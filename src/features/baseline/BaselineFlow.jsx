@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
 import { BASELINE_SECTIONS, estimateSecondsRemaining } from './baselineQuestions';
 
 const PAGES = BASELINE_SECTIONS.map((s) => ({ type: 'section', section: s }));
 
 export default function BaselineFlow({ userId, onComplete }) {
+  const { signOut } = useAuth();
   const [pageIndex, setPageIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
@@ -50,7 +52,14 @@ export default function BaselineFlow({ userId, onComplete }) {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex flex-col">
-      <div className="max-w-md mx-auto w-full px-4 pt-8 pb-4 text-center">
+      <div className="max-w-md mx-auto w-full px-4 pt-8 pb-4 text-center relative">
+        <button
+          onClick={() => { if (window.confirm("Sign out now? What you've entered on this form hasn't been saved yet, so you'll start over from the beginning next time.")) signOut(); }}
+          style={{ color: TEXT_SOFT }}
+          className="absolute right-4 top-8 flex items-center gap-1 text-sm p-2 -m-2"
+        >
+          <LogOut size={16} />
+        </button>
         <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic mb-1">
           <em>GROOVE</em>
         </div>
