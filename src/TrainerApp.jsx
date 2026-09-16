@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY } from './theme';
 import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import MessageTab from './features/message/MessageTab';
+import AccountMenu from './AccountMenu';
 
 export default function TrainerApp() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,13 +27,11 @@ export default function TrainerApp() {
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
-          <div />
+          <AccountMenu />
           <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
             GROOVE
           </span>
-          <button onClick={signOut} style={{ color: TEXT_SOFT }} className="flex items-center gap-1 text-sm shrink-0 justify-self-end p-2 -m-2">
-            <LogOut size={16} />
-          </button>
+          <div />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { LogOut } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
-import { INK, INK_2, PAPER, PAPER_DIM, LIME, TEXT_SOFT } from './theme';
+import { INK, INK_2, PAPER, PAPER_DIM, LIME } from './theme';
+import AccountMenu from './AccountMenu';
 import BirdseyeTab from './features/birdseye/BirdseyeTab';
 import MoveTab from './features/move/MoveTab';
 import JournalTab from './features/journal/JournalTab';
@@ -11,7 +11,7 @@ const TABS = ['birdseye', 'move', 'journal', 'message'];
 const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', message: 'Message' };
 
 export default function ClientApp() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab] = useState('birdseye');
   const touchStartX = useRef(null);
 
@@ -32,13 +32,11 @@ export default function ClientApp() {
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
-          <div />
+          <AccountMenu />
           <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
             GROOVE
           </span>
-          <button onClick={signOut} style={{ color: TEXT_SOFT }} className="flex items-center gap-1 text-sm shrink-0 justify-self-end p-2 -m-2">
-            <LogOut size={16} />
-          </button>
+          <div />
         </div>
         <div className="flex gap-2 pb-4">
           {TABS.map((key) => (

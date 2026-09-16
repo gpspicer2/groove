@@ -2,3 +2,10 @@
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* iOS Safari auto-zooms the whole page when a focused input's font is
+   under 16px — this keeps every text input/textarea/select at 16px on
+   small screens so tapping into a field never triggers that zoom. */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px; }
+}
