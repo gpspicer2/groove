@@ -9,3 +9,10 @@
 @media (max-width: 768px) {
   input, textarea, select { font-size: 16px; }
 }
+
+/* viewport-fit=cover (needed to fix the earlier zoom issue) lets content
+   extend under the notch/status bar/home indicator — without this, the
+   top-left profile icon and other edge controls can render partly
+   underneath that unsafe area and become untappable on some phones. */
+.pt-safe { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+.pb-safe { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }

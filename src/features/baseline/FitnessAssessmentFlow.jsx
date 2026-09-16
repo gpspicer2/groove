@@ -66,7 +66,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
-      <div className="max-w-md mx-auto w-full px-4 pt-6 flex items-center justify-between">
+      <div className="max-w-md mx-auto w-full px-4 pt-safe flex items-center justify-between">
         <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic">
           <em>GROOVE</em>
         </div>
