@@ -1,20 +1,19 @@
 // Mirrors the "Personalized Exercise Mentorship - Getting Acquainted
-// Form" content, plus a physical self-assessment section layered on top
-// per Greg's request. Answers are stored as one JSONB blob keyed by
-// these slugs (see `key` below), so new questions can be added later
-// without a schema migration.
+// Form" content. Answers are stored as one JSONB blob keyed by these
+// slugs (see `key` below), so new questions can be added later without
+// a schema migration. Email isn't asked here — it's already known from
+// the account itself.
 export const BASELINE_SECTIONS = [
   {
     title: 'Basic Information',
     subtitle: 'Please enter the following information.',
     questions: [
-      { key: 'name', label: 'Name (preferred first and last)', type: 'text', required: true },
-      { key: 'age', label: 'Age', type: 'text', required: true },
-      { key: 'email', label: 'Email', type: 'text', required: true },
-      { key: 'phone', label: 'Phone', type: 'text', required: true },
+      { key: 'name', label: 'Preferred First and Last Name', type: 'text', required: true },
+      { key: 'age', label: 'Age', type: 'age', required: true },
+      { key: 'phone', label: 'Phone', type: 'tel', required: true },
       {
         key: 'preferred_contact',
-        label: 'Preferred method of communication',
+        label: 'Preferred method of communication (check one)',
         type: 'radio',
         required: true,
         options: ['Email', 'Text', 'Phone call', 'Facetime', 'Other'],
@@ -50,7 +49,7 @@ export const BASELINE_SECTIONS = [
         key: 'coaching_style',
         label: 'Do you have a preferred coaching, leading, or management style?',
         type: 'radio',
-        options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other'],
+        options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other (e.g., a mix of a couple styles — please explain)'],
       },
     ],
   },
@@ -70,20 +69,17 @@ export const BASELINE_SECTIONS = [
   },
 ];
 
-// A quick, informal physical self-assessment — not the full form above,
-// but data Greg wants up front for programming. Estimated 1RMs only show
-// up once someone says they can estimate their strength on a given lift.
-export const FITNESS_ASSESSMENT_QUESTIONS = [
-  { key: 'pushups', label: 'How many push-ups can you do in a row (good form)?', type: 'text' },
-  { key: 'plank_seconds', label: 'How long can you hold a plank? (seconds)', type: 'text' },
-  { key: 'walk_600m_minutes', label: 'Roughly how long would a 600m (about a third of a mile) walk take you? (minutes)', type: 'text' },
-  { key: 'stairs_5min', label: 'About how many flights of stairs could you climb in 5 minutes?', type: 'text' },
-  {
-    key: 'can_estimate_1rm',
-    label: 'Can you estimate your strength in traditional resistance exercises (e.g., bench press, squat, deadlift)?',
-    type: 'radio',
-    options: ['Yes', 'No'],
-  },
-];
-
-export const ONE_RM_LIFTS = ['Bench Press', 'Back Squat', 'Deadlift', 'Overhead Press'];
+// Roughly 30-45 seconds per short-answer question, ~10s per multiple
+// choice — just enough to give a believable "X min left" estimate on
+// the progress bar, not a precise timer.
+export function estimateSecondsRemaining(pages, pageIndex) {
+  let seconds = 0;
+  for (let i = pageIndex; i < pages.length; i++) {
+    const p = pages[i];
+    if (p.type !== 'section') { seconds += 60; continue; }
+    for (const q of p.section.questions) {
+      seconds += q.type === 'radio' ? 10 : q.type === 'textarea' ? 40 : 15;
+    }
+  }
+  return seconds;
+}

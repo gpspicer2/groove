@@ -3,7 +3,7 @@ import { LogOut, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY } from './theme';
-import { BASELINE_SECTIONS, FITNESS_ASSESSMENT_QUESTIONS } from './features/baseline/baselineQuestions';
+import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import MessageTab from './features/message/MessageTab';
 
 export default function TrainerApp() {
@@ -27,7 +27,7 @@ export default function TrainerApp() {
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center">
+          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
             GROOVE
           </span>
           <button onClick={signOut} style={{ color: TEXT_SOFT }} className="flex items-center gap-1 text-sm shrink-0 justify-self-end p-2 -m-2">
@@ -140,23 +140,42 @@ function ClientBaseline({ clientId }) {
         </div>
       ))}
       <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-        <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Physical self-assessment</div>
-        <div className="space-y-2">
-          {FITNESS_ASSESSMENT_QUESTIONS.map((q) => (
-            <div key={q.key}>
-              <div style={{ color: TEXT_SOFT }} className="text-sm">{q.label}</div>
-              <div style={{ color: PAPER }} className="text-sm">{assessment[q.key] || '—'}</div>
-            </div>
-          ))}
-          {assessment.one_rep_maxes && (
+        <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Fitness self-assessment</div>
+        {!assessment.aerobic_rating ? (
+          <div style={{ color: TEXT_SOFT }} className="text-sm">Not completed yet.</div>
+        ) : (
+          <div className="space-y-2">
             <div>
-              <div style={{ color: TEXT_SOFT }} className="text-sm">Estimated 1RMs</div>
-              <div style={{ color: PAPER }} className="text-sm">
-                {Object.entries(assessment.one_rep_maxes).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lb`).join(', ') || '—'}
-              </div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm">Aerobic fitness (self-rated)</div>
+              <div style={{ color: PAPER }} className="text-sm">{assessment.aerobic_rating}</div>
             </div>
-          )}
-        </div>
+            {assessment.aerobic_mode === 'timed' ? (
+              <div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm">Timed activity</div>
+                <div style={{ color: PAPER }} className="text-sm">
+                  {assessment.aerobic_activity === 'walk' ? 'Walk ~600m' : 'Stair climb'} — {Math.floor((assessment.aerobic_seconds || 0) / 60)}:{String((assessment.aerobic_seconds || 0) % 60).padStart(2, '0')}, result: {assessment.aerobic_result || '—'}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm">Aerobic endurance, in their words</div>
+                <div style={{ color: PAPER }} className="text-sm">{assessment.aerobic_description || '—'}</div>
+              </div>
+            )}
+            <div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm">Strength / resistance (self-rated)</div>
+              <div style={{ color: PAPER }} className="text-sm">{assessment.resistance_rating}</div>
+            </div>
+            {assessment.one_rep_maxes && (
+              <div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm">Estimated 1RMs</div>
+                <div style={{ color: PAPER }} className="text-sm">
+                  {Object.entries(assessment.one_rep_maxes).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lb`).join(', ') || '—'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

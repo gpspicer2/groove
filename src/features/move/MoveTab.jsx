@@ -173,7 +173,7 @@ export default function MoveTab() {
         </div>
       )}
 
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
+      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center">
         Move
       </h1>
 

@@ -31,8 +31,10 @@ export default function AuthScreen() {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
-      <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="w-full max-w-sm rounded-lg px-6 py-8">
-        <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase mb-1">Groove</div>
+      <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
+        <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic mb-1">
+          <em>GROOVE</em>
+        </div>
         <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>

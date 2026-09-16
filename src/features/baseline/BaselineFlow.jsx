@@ -1,34 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
-import { BASELINE_SECTIONS, FITNESS_ASSESSMENT_QUESTIONS, ONE_RM_LIFTS } from './baselineQuestions';
+import { BASELINE_SECTIONS, estimateSecondsRemaining } from './baselineQuestions';
 
-// The form sections, then the physical self-assessment, as one flat list
-// of "pages" so the same next/back controls drive the whole flow.
-const PAGES = [...BASELINE_SECTIONS.map((s) => ({ type: 'section', section: s })), { type: 'assessment' }];
+const PAGES = BASELINE_SECTIONS.map((s) => ({ type: 'section', section: s }));
 
 export default function BaselineFlow({ userId, onComplete }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [assessment, setAssessment] = useState({});
-  const [oneRms, setOneRms] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const page = PAGES[pageIndex];
   const isLast = pageIndex === PAGES.length - 1;
+  const pct = Math.round(((pageIndex + 1) / PAGES.length) * 100);
+  const secondsLeft = estimateSecondsRemaining(PAGES, pageIndex);
+  const minutesLeft = Math.max(1, Math.round(secondsLeft / 60));
 
   function setAnswer(key, value) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
   }
 
-  function setAssessmentAnswer(key, value) {
-    setAssessment((prev) => ({ ...prev, [key]: value }));
-  }
-
   function canAdvance() {
-    if (page.type !== 'section') return true;
     return page.section.questions
       .filter((q) => q.required)
       .every((q) => (answers[q.key] || '').toString().trim().length > 0);
@@ -37,11 +31,10 @@ export default function BaselineFlow({ userId, onComplete }) {
   async function handleFinish() {
     setSaving(true);
     setError('');
-    const fitness_assessment = assessment.can_estimate_1rm === 'Yes' ? { ...assessment, one_rep_maxes: oneRms } : assessment;
     const { error } = await supabase
       .from('baseline_responses')
       .upsert(
-        { user_id: userId, form_answers: answers, fitness_assessment, submitted_at: new Date().toISOString() },
+        { user_id: userId, form_answers: answers, submitted_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       );
     setSaving(false);
@@ -57,52 +50,29 @@ export default function BaselineFlow({ userId, onComplete }) {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex flex-col">
-      <div className="max-w-md mx-auto w-full px-4 pt-8 pb-4">
-        <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase mb-1">Groove</div>
+      <div className="max-w-md mx-auto w-full px-4 pt-8 pb-4 text-center">
+        <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic mb-1">
+          <em>GROOVE</em>
+        </div>
         <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-1">
-          {page.type === 'assessment' ? 'Where are you starting from?' : page.section.title}
+          {page.section.title}
         </h1>
-        {page.type === 'section' && page.section.subtitle && (
+        {page.section.subtitle && (
           <p style={{ color: TEXT_SOFT }} className="text-sm mb-2">{page.section.subtitle}</p>
         )}
-        <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden mt-3">
-          <div style={{ width: `${((pageIndex + 1) / PAGES.length) * 100}%`, background: LIME }} className="h-full rounded-full transition-all" />
+        <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden mt-3 relative">
+          <div style={{ width: `${pct}%`, background: LIME }} className="h-full rounded-full transition-all" />
+        </div>
+        <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">
+          {pct}% · Page {pageIndex + 1}/{PAGES.length} · ~{minutesLeft} min left
         </div>
       </div>
 
       <div className="flex-1 max-w-md mx-auto w-full px-4 pb-4 space-y-5">
-        {page.type === 'section'
-          ? page.section.questions.map((q) => (
-              <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} />
-            ))
-          : (
-            <>
-              {FITNESS_ASSESSMENT_QUESTIONS.map((q) => (
-                <QuestionField key={q.key} question={q} value={assessment[q.key] || ''} onChange={(v) => setAssessmentAnswer(q.key, v)} />
-              ))}
-              {assessment.can_estimate_1rm === 'Yes' && (
-                <div>
-                  <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Estimated 1-rep max (lb) — leave blank if unsure</div>
-                  <div className="space-y-3">
-                    {ONE_RM_LIFTS.map((lift) => (
-                      <div key={lift}>
-                        <label style={{ color: PAPER_DIM }} className="text-sm">{lift}</label>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          value={oneRms[lift] || ''}
-                          onChange={(e) => setOneRms((prev) => ({ ...prev, [lift]: e.target.value }))}
-                          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-                          className="w-full rounded-md px-3 py-2.5 mt-1 text-sm outline-none"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        {error && <div style={{ color: BRICK }} className="text-sm">{error}</div>}
+        {page.section.questions.map((q) => (
+          <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} allAnswers={answers} setAnswer={setAnswer} />
+        ))}
+        {error && <div style={{ color: BRICK }} className="text-sm text-center">{error}</div>}
       </div>
 
       <div className="max-w-md mx-auto w-full px-4 pb-8 flex items-center gap-3">
@@ -129,13 +99,17 @@ export default function BaselineFlow({ userId, onComplete }) {
   );
 }
 
-function QuestionField({ question, value, onChange }) {
+function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
+  const otherKey = `${question.key}_other`;
+  const isOtherSelected = question.type === 'radio' && value.startsWith('Other');
+
   return (
     <div>
-      <label style={{ color: PAPER }} className="text-sm block mb-2">
+      <label style={{ color: PAPER }} className="text-sm block mb-2 text-center">
         {question.label}
         {question.required && <span style={{ color: SKY }}> *</span>}
       </label>
+
       {question.type === 'textarea' && (
         <textarea
           value={value}
@@ -145,33 +119,119 @@ function QuestionField({ question, value, onChange }) {
           className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
         />
       )}
+
       {question.type === 'text' && (
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           style={{ background: INK_3, color: PAPER }}
-          className="w-full rounded-md px-3 py-2.5 text-sm outline-none"
+          className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
         />
       )}
-      {question.type === 'radio' && (
-        <div className="space-y-2">
-          {question.options.map((opt) => {
-            const selected = value === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
-                className="w-full text-left rounded-md px-3 py-2.5 text-sm"
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
+
+      {question.type === 'tel' && (
+        <input
+          type="tel"
+          inputMode="tel"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="(555) 555-5555"
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+        />
       )}
+
+      {question.type === 'age' && (
+        <AgePicker value={value} onChange={onChange} />
+      )}
+
+      {question.type === 'radio' && (
+        <>
+          <div className="space-y-2">
+            {question.options.map((opt) => {
+              const selected = value === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange(opt)}
+                  style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
+                  className="w-full text-center rounded-md px-3 py-2.5 text-sm"
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {isOtherSelected && (
+            <textarea
+              value={allAnswers[otherKey] || ''}
+              onChange={(e) => setAnswer(otherKey, e.target.value)}
+              rows={2}
+              placeholder="Please explain…"
+              style={{ background: INK_3, color: PAPER }}
+              className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none mt-2"
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+const AGE_MIN = 13;
+const AGE_MAX = 99;
+const ITEM_HEIGHT = 40;
+const VISIBLE_ROWS = 3;
+const AGES = Array.from({ length: AGE_MAX - AGE_MIN + 1 }, (_, i) => AGE_MIN + i);
+
+function AgePicker({ value, onChange }) {
+  const containerRef = useRef(null);
+  const scrollTimeout = useRef(null);
+
+  useEffect(() => {
+    const idx = AGES.indexOf(Number(value));
+    if (idx >= 0 && containerRef.current) {
+      containerRef.current.scrollTop = idx * ITEM_HEIGHT;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleScroll() {
+    clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      if (!containerRef.current) return;
+      const idx = Math.round(containerRef.current.scrollTop / ITEM_HEIGHT);
+      const clamped = Math.min(Math.max(idx, 0), AGES.length - 1);
+      onChange(String(AGES[clamped]));
+    }, 80);
+  }
+
+  return (
+    <div className="relative mx-auto" style={{ width: 120, height: ITEM_HEIGHT * VISIBLE_ROWS }}>
+      <div
+        style={{ height: ITEM_HEIGHT, background: INK_3, top: ITEM_HEIGHT * Math.floor(VISIBLE_ROWS / 2) }}
+        className="absolute left-0 right-0 rounded-md pointer-events-none"
+      />
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        style={{ height: ITEM_HEIGHT * VISIBLE_ROWS, scrollSnapType: 'y mandatory' }}
+        className="overflow-y-scroll no-scrollbar relative"
+      >
+        <div style={{ height: ITEM_HEIGHT * Math.floor(VISIBLE_ROWS / 2) }} />
+        {AGES.map((a) => (
+          <div
+            key={a}
+            style={{ height: ITEM_HEIGHT, scrollSnapAlign: 'center', color: String(a) === value ? PAPER : TEXT_SOFT, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="flex items-center justify-center text-lg"
+          >
+            {a}
+          </div>
+        ))}
+        <div style={{ height: ITEM_HEIGHT * Math.floor(VISIBLE_ROWS / 2) }} />
+      </div>
     </div>
   );
 }

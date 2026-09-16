@@ -1,9 +1,9 @@
 // GROOVE's palette — deep eggplant purple base, white text, with light
 // blue, lime, and gray as accents. Deliberately distinct from LifeOS's
 // navy/lime/gold so the two apps never feel like the same product.
-export const INK = '#241129';        // app background — deep eggplant
-export const INK_2 = '#341A3D';      // card background
-export const INK_3 = '#472955';      // inputs, tracks, dividers-on-cards
+export const INK = '#160C1A';        // app background — darker eggplant
+export const INK_2 = '#241329';      // card background
+export const INK_3 = '#37203E';      // inputs, tracks, dividers-on-cards
 
 export const PAPER = '#F5F3F7';      // primary text — near-white
 export const PAPER_DIM = '#C4B8CC';  // secondary text

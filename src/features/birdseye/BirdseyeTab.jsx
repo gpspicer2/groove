@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY } from '../../theme';
+import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 
 const LIFT_GOAL = 3; // workouts/week — matches Move tab's own weekly tracker for now
 
-export default function BirdseyeTab() {
+export default function BirdseyeTab({ userId }) {
   const [workouts, setWorkouts] = useState([]);
   const [journalCount, setJournalCount] = useState(0);
+  const [assessmentDone, setAssessmentDone] = useState(true); // assume done until checked, to avoid a flash
   const [loading, setLoading] = useState(true);
+  const [showAssessment, setShowAssessment] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [{ data: w }, { data: j }] = await Promise.all([
+      const [{ data: w }, { data: j }, { data: baseline }] = await Promise.all([
         supabase.from('workouts').select('started_at, completed_at').not('completed_at', 'is', null),
         supabase.from('journal_entries').select('id'),
+        supabase.from('baseline_responses').select('fitness_assessment').eq('user_id', userId).maybeSingle(),
       ]);
       setWorkouts(w || []);
       setJournalCount((j || []).length);
+      setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
       setLoading(false);
     })();
-  }, []);
+  }, [userId]);
 
   if (loading) {
     return (
@@ -53,14 +58,26 @@ export default function BirdseyeTab() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-12">
+    <div className="max-w-md mx-auto px-4 pb-12 text-center">
       <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
         Birdseye
       </h1>
 
+      {!assessmentDone && (
+        <button
+          onClick={() => setShowAssessment(true)}
+          style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
+          className="w-full rounded-lg px-5 py-4 mb-4 text-left"
+        >
+          <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Optional, recommended</div>
+          <div style={{ color: PAPER }} className="text-sm font-medium">Complete your fitness baseline →</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Helps Greg help you — takes about 2 minutes.</div>
+        </button>
+      )}
+
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">This week</div>
-        <div className="flex items-end justify-between mb-2">
+        <div className="flex items-center justify-center mb-2">
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl font-medium">
             {workoutsThisWeek} <span style={{ color: TEXT_SOFT, fontSize: '1rem' }}>/ {LIFT_GOAL} workouts</span>
           </span>
@@ -79,6 +96,14 @@ export default function BirdseyeTab() {
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Journal entries logged</div>
         <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</div>
       </div>
+
+      {showAssessment && (
+        <FitnessAssessmentFlow
+          userId={userId}
+          onClose={() => setShowAssessment(false)}
+          onComplete={() => { setShowAssessment(false); setAssessmentDone(true); }}
+        />
+      )}
     </div>
   );
 }

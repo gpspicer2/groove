@@ -33,7 +33,7 @@ export default function ClientApp() {
       <div className="max-w-md mx-auto px-4 pt-6">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center">
+          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
             GROOVE
           </span>
           <button onClick={signOut} style={{ color: TEXT_SOFT }} className="flex items-center gap-1 text-sm shrink-0 justify-self-end p-2 -m-2">
@@ -55,7 +55,7 @@ export default function ClientApp() {
       </div>
 
       <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        {tab === 'birdseye' && <BirdseyeTab />}
+        {tab === 'birdseye' && <BirdseyeTab userId={user.id} />}
         {tab === 'move' && <MoveTab />}
         {tab === 'journal' && <JournalTab />}
         {tab === 'message' && <MessageTab userId={user.id} />}

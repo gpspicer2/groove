@@ -63,7 +63,7 @@ export default function JournalTab() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
+      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center">
         Journal
       </h1>
 
