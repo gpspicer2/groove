@@ -15,3 +15,9 @@ export const GRAY = '#9C8CA8';       // same as TEXT_SOFT, named for clarity whe
 
 export const MOSS = '#7FD858';       // positive / on-track
 export const BRICK = '#E2635A';      // negative / off-track / errors
+
+// Per-tab accent colors, so each of the 5 client tabs reads as its own
+// place rather than everything sharing lime.
+export const AMBER = '#F0B94D';      // Journal
+export const VIOLET = '#B98AF2';     // Message
+export const TEAL = '#4ED9C5';       // Learn

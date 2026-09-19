@@ -179,6 +179,21 @@ create policy "messages_recipient_update" on messages for update
 -- Realtime needs to know which tables to broadcast changes for.
 alter publication supabase_realtime add table messages;
 
+-- "Reasons to Move" — short weekly articles Greg posts, shown in the
+-- Learn tab. Everyone can read; only the trainer can write.
+create table articles (
+  id uuid primary key default gen_random_uuid(),
+  trainer_id uuid not null references auth.users(id) default auth.uid(),
+  title text not null,
+  summary text not null,
+  url text,
+  created_at timestamptz not null default now()
+);
+alter table articles enable row level security;
+create policy "articles_select_all" on articles for select using (true);
+create policy "articles_trainer_write" on articles for all
+  using (public.is_trainer()) with check (public.is_trainer());
+
 -- ── After running everything above, run this ONE line yourself, once ──
 -- ── you've signed up your own account in the app, to make yourself   ──
 -- ── the trainer (replace the email if you sign up with a different   ──

@@ -104,9 +104,9 @@ export function filterByLocation(pool, location) {
 export const TRAINING_STYLES = ['Strength', 'Hypertrophy', 'Endurance'];
 
 export const STYLE_CONFIG = {
-  Strength: { sets: 4, reps: '3-6', incrementMultiplier: 1.5, blurb: 'Heavy loads, low reps, full recovery between sets.' },
-  Hypertrophy: { sets: 4, reps: '8-12', incrementMultiplier: 1, blurb: 'Moderate reps, steady load progression, shorter rests.' },
-  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, blurb: 'Lighter loads, higher reps, minimal rest.' },
+  Strength: { sets: 4, reps: '3-6', incrementMultiplier: 1.5, restSeconds: 150, blurb: 'Heavy loads, low reps, full recovery between sets.' },
+  Hypertrophy: { sets: 4, reps: '8-12', incrementMultiplier: 1, restSeconds: 90, blurb: 'Moderate reps, steady load progression, shorter rests.' },
+  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, restSeconds: 45, blurb: 'Lighter loads, higher reps, minimal rest.' },
 };
 
 // Picks `count` exercises per selected muscle group, preferring ones not

@@ -16,6 +16,7 @@ function mapWorkout(row) {
     muscleGroups: row.muscle_groups || [],
     style: row.style || null,
     location: row.location || null,
+    programId: row.program_id || null,
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
@@ -85,7 +86,7 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export default function MoveTab() {
+export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState([]);
   const [sets, setSets] = useState([]);
@@ -99,12 +100,14 @@ export default function MoveTab() {
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
+  const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
 
   const loadData = useCallback(async () => {
-    const [workoutRes, setRes, profileRes] = await Promise.all([
+    const [workoutRes, setRes, profileRes, programRes] = await Promise.all([
       supabase.from('workouts').select('*').order('started_at', { ascending: false }),
       supabase.from('workout_sets').select('*').order('set_number', { ascending: true }),
       user ? supabase.from('profiles').select('bodyweight_lb').eq('id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+      user ? supabase.from('programs').select('id, name').eq('client_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     if (workoutRes.error || setRes.error) {
       setLoadError("Couldn't load your workouts. Try refreshing the page.");
@@ -113,6 +116,28 @@ export default function MoveTab() {
     setWorkouts(workoutRes.data.map(mapWorkout));
     setSets(setRes.data.map(mapSet));
     setBodyweight(profileRes.data?.bodyweight_lb != null ? Number(profileRes.data.bodyweight_lb) : null);
+
+    if (programRes.data) {
+      const { data: exerciseRows } = await supabase
+        .from('program_exercises')
+        .select('*')
+        .eq('program_id', programRes.data.id)
+        .order('order_index', { ascending: true });
+      setAssignedProgram({
+        id: programRes.data.id,
+        name: programRes.data.name,
+        exercises: (exerciseRows || []).map((r) => ({
+          name: r.exercise_name,
+          muscleGroup: r.muscle_group,
+          sets: r.target_sets,
+          reps: r.target_reps,
+          type: 'resistance',
+          supersetId: null,
+        })),
+      });
+    } else {
+      setAssignedProgram(null);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -124,6 +149,16 @@ export default function MoveTab() {
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt);
+
+  useEffect(() => {
+    if (!deepLinkWorkoutId || loading) return;
+    if (!completedWorkouts.some((w) => w.id === deepLinkWorkoutId)) return;
+    setExpandedHistoryId(deepLinkWorkoutId);
+    const el = document.getElementById(`history-${deepLinkWorkoutId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    onConsumeDeepLink && onConsumeDeepLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkWorkoutId, loading]);
 
   // Most recent logged set for each exercise, across any past workout —
   // shown as "last time" so you can judge whether to push weight up.
@@ -170,6 +205,20 @@ export default function MoveTab() {
     setSelectedGroups([]);
     setSelectedStyle('');
     setSelectedLocation('');
+  }
+
+  async function startAssignedProgram(location) {
+    if (!assignedProgram || !location) return;
+    const muscleGroups = [...new Set(assignedProgram.exercises.map((e) => e.muscleGroup))];
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert({ muscle_groups: muscleGroups, location, program_id: assignedProgram.id })
+      .select()
+      .single();
+    if (error) { setLoadError(error.message); return; }
+    setWorkouts((prev) => [mapWorkout(data), ...prev]);
+    setActiveWorkoutId(data.id);
+    setPlanExercises(assignedProgram.exercises.map((e) => ({ ...e })));
   }
 
   function replaceExercise(index, next) {
@@ -345,6 +394,8 @@ export default function MoveTab() {
           selectedStyle={selectedStyle}
           onSelectStyle={setSelectedStyle}
           onStart={startWorkout}
+          assignedProgram={assignedProgram}
+          onStartAssignedProgram={startAssignedProgram}
         />
       )}
 
@@ -364,7 +415,7 @@ export default function MoveTab() {
               const date = new Date(w.startedAt);
               const total = totalWeightLifted(workoutSets);
               return (
-                <div key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
+                <div id={`history-${w.id}`} key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
                   <button
                     onClick={() => { setExpandedHistoryId(expanded ? null : w.id); if (expanded) setEditingHistoryId(null); }}
                     className="w-full flex items-center justify-between"
@@ -503,8 +554,11 @@ function WeeklyTracker({ completedWorkouts }) {
   );
 }
 
-function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart }) {
+function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart, assignedProgram, onStartAssignedProgram }) {
   const canStart = Boolean(selectedLocation) && selectedGroups.length > 0 && Boolean(selectedStyle);
+  const [skipProgram, setSkipProgram] = useState(false);
+  const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
+
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
@@ -526,7 +580,24 @@ function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onTo
         })}
       </div>
 
-      {selectedLocation && (
+      {showProgramOffer && (
+        <div style={{ background: INK_3, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3 mb-5 text-center">
+          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Your coach assigned</div>
+          <div style={{ color: PAPER }} className="text-sm font-medium mb-3">{assignedProgram.name}</div>
+          <button
+            onClick={() => onStartAssignedProgram(selectedLocation)}
+            style={{ background: LIME, color: INK }}
+            className="w-full rounded-md py-2.5 text-sm font-medium mb-2"
+          >
+            Start assigned plan
+          </button>
+          <button onClick={() => setSkipProgram(true)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1 underline">
+            Build my own instead
+          </button>
+        </div>
+      )}
+
+      {selectedLocation && !showProgramOffer && (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             What are you training today?
@@ -575,14 +646,16 @@ function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onTo
         </>
       )}
 
-      <button
-        onClick={onStart}
-        disabled={!canStart}
-        style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
-        className="w-full rounded-md py-3 text-sm font-medium"
-      >
-        Start workout
-      </button>
+      {!showProgramOffer && (
+        <button
+          onClick={onStart}
+          disabled={!canStart}
+          style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
+          className="w-full rounded-md py-3 text-sm font-medium"
+        >
+          Start workout
+        </button>
+      )}
     </div>
   );
 }
@@ -595,6 +668,8 @@ function ActiveWorkout({
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
   const [swapIndex, setSwapIndex] = useState(null);
+  const [restRemaining, setRestRemaining] = useState(null);
+  const [restTotal, setRestTotal] = useState(0);
 
   const groups = groupPlan(exercises);
   const total = Math.round(totalWeightLifted(sets));
@@ -602,6 +677,24 @@ function ActiveWorkout({
   function closeAddForm() {
     setAddMenuOpen(false);
     setAddMode(null);
+  }
+
+  function startRest() {
+    const seconds = STYLE_CONFIG[workout.style]?.restSeconds || 90;
+    setRestTotal(seconds);
+    setRestRemaining(seconds);
+  }
+
+  useEffect(() => {
+    if (restRemaining == null) return;
+    if (restRemaining <= 0) { setRestRemaining(null); return; }
+    const t = setTimeout(() => setRestRemaining((r) => (r == null ? null : r - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [restRemaining]);
+
+  function handleResistanceLog(payload) {
+    onLogSet(payload);
+    startRest();
   }
 
   return (
@@ -631,7 +724,7 @@ function ActiveWorkout({
                 bodyweight={bodyweight}
                 sets={sets}
                 lastPerformance={lastPerformance}
-                onLogSet={onLogSet}
+                onLogSet={handleResistanceLog}
                 onDeleteSet={onDeleteSet}
                 onOpenSwap={setSwapIndex}
                 onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
@@ -664,7 +757,7 @@ function ActiveWorkout({
               bodyweight={bodyweight}
               loggedSets={loggedSets}
               last={lastPerformance(ex.name)}
-              onLogSet={(payload) => onLogSet({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup })}
+              onLogSet={(payload) => handleResistanceLog({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup })}
               onDeleteSet={onDeleteSet}
               onOpenSwap={() => setSwapIndex(ex.index)}
               onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
@@ -674,6 +767,23 @@ function ActiveWorkout({
           );
         })}
       </div>
+
+      {restRemaining != null && (
+        <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-2.5 mb-4 flex items-center gap-3">
+          <span style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium tabular-nums">
+            Rest {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+          </span>
+          <div style={{ background: INK_3 }} className="flex-1 h-1.5 rounded-full overflow-hidden">
+            <div
+              style={{ width: `${(restRemaining / restTotal) * 100}%`, background: LIME }}
+              className="h-full rounded-full transition-all"
+            />
+          </div>
+          <button onClick={() => setRestRemaining(null)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {addMenuOpen ? (
         addMode === null ? (
