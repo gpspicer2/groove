@@ -11,20 +11,31 @@ export default function BirdseyeTab({ userId }) {
   const [assessmentDone, setAssessmentDone] = useState(true); // assume done until checked, to avoid a flash
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
+  const [bodyweight, setBodyweight] = useState('');
+  const [savingWeight, setSavingWeight] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [{ data: w }, { data: j }, { data: baseline }] = await Promise.all([
+      const [{ data: w }, { data: j }, { data: baseline }, { data: profile }] = await Promise.all([
         supabase.from('workouts').select('started_at, completed_at').not('completed_at', 'is', null),
         supabase.from('journal_entries').select('id'),
         supabase.from('baseline_responses').select('fitness_assessment').eq('user_id', userId).maybeSingle(),
+        supabase.from('profiles').select('bodyweight_lb').eq('id', userId).maybeSingle(),
       ]);
       setWorkouts(w || []);
       setJournalCount((j || []).length);
       setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
+      setBodyweight(profile?.bodyweight_lb != null ? String(profile.bodyweight_lb) : '');
       setLoading(false);
     })();
   }, [userId]);
+
+  async function saveBodyweight(value) {
+    setSavingWeight(true);
+    const numeric = value.trim() === '' ? null : parseFloat(value);
+    await supabase.from('profiles').update({ bodyweight_lb: numeric }).eq('id', userId);
+    setSavingWeight(false);
+  }
 
   if (loading) {
     return (
@@ -92,9 +103,27 @@ export default function BirdseyeTab({ userId }) {
         )}
       </div>
 
-      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Journal entries logged</div>
         <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</div>
+      </div>
+
+      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Bodyweight</div>
+        <div className="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={bodyweight}
+            onChange={(e) => setBodyweight(e.target.value)}
+            onBlur={(e) => saveBodyweight(e.target.value)}
+            placeholder="—"
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
+          />
+          <span style={{ color: TEXT_SOFT }} className="text-sm">lb {savingWeight && '· saving…'}</span>
+        </div>
+        <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Used to log bodyweight movements in Move</div>
       </div>
 
       {showAssessment && (

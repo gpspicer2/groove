@@ -10,6 +10,9 @@ create table profiles (
   email text not null,
   full_name text,
   role text not null default 'client',
+  -- self-reported bodyweight, editable from Birdseye — used so "bodyweight"
+  -- can be logged as a set's weight (e.g. pull-ups, dips) without retyping it
+  bodyweight_lb numeric,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
@@ -120,6 +123,12 @@ create table workout_sets (
   set_number integer not null,
   weight numeric,
   reps integer,
+  -- 'resistance' (default) or 'aerobic' — aerobic sets use duration/distance
+  -- instead of weight/reps
+  movement_type text not null default 'resistance',
+  is_bodyweight boolean not null default false,
+  duration_seconds integer,
+  distance text,
   created_at timestamptz not null default now()
 );
 alter table workout_sets enable row level security;
@@ -134,6 +143,10 @@ create table journal_entries (
   user_id uuid not null references auth.users(id) default auth.uid(),
   prompt text not null,
   response text not null,
+  -- set for guided "daily check-in" entries (mood, favorite/least favorite
+  -- movement, etc.) so they can render as structured fields instead of a
+  -- single response string; null for freeform single-prompt entries
+  structured jsonb,
   created_at timestamptz not null default now()
 );
 alter table journal_entries enable row level security;

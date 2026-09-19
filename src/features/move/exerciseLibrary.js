@@ -5,6 +5,13 @@
 // different workout each time without repeating last session's picks.
 export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 
+// Quick-pick suggestions for aerobic/cardio movements — these aren't part
+// of the resistance library (no sets/reps/weight progression) so they
+// live separately.
+export const AEROBIC_ACTIVITIES_QUICK = [
+  'Treadmill Run', 'Treadmill Walk', 'Outdoor Run', 'Stationary Bike', 'Rowing Machine', 'Elliptical', 'Stair Climber', 'Jump Rope',
+];
+
 export const EXERCISE_LIBRARY = {
   Chest: [
     { name: 'Barbell Bench Press', sets: 4, reps: '8-10' },
