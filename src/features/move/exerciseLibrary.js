@@ -67,12 +67,12 @@ export const EXERCISE_LIBRARY = {
 // The three training styles a client can pick for a session. Each one
 // overrides the library's default sets/reps target and how aggressively
 // weight progresses between sessions.
-export const TRAINING_STYLES = ['Power', 'Strength', 'Endurance'];
+export const TRAINING_STYLES = ['Strength', 'Hypertrophy', 'Endurance'];
 
 export const STYLE_CONFIG = {
-  Power: { sets: 4, reps: '3-5', incrementMultiplier: 1.5, blurb: 'Heavy loads, low reps, full recovery between sets.' },
-  Strength: { sets: 4, reps: '6-8', incrementMultiplier: 1, blurb: 'Moderate reps, steady load progression.' },
-  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, blurb: 'Lighter loads, higher reps, shorter rests.' },
+  Strength: { sets: 4, reps: '3-6', incrementMultiplier: 1.5, blurb: 'Heavy loads, low reps, full recovery between sets.' },
+  Hypertrophy: { sets: 4, reps: '8-12', incrementMultiplier: 1, blurb: 'Moderate reps, steady load progression, shorter rests.' },
+  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, blurb: 'Lighter loads, higher reps, minimal rest.' },
 };
 
 // Picks `count` exercises per selected muscle group, preferring ones not
