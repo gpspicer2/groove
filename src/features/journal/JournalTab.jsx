@@ -84,8 +84,8 @@ export default function JournalTab() {
             style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
             className="w-full rounded-lg px-5 py-4 text-center"
           >
-            <div style={{ color: PAPER }} className="text-sm font-medium">Daily check-in</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">A few quick questions — mood, favorite movement, and more.</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Post-movement reflection</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Right after training — mood, favorite movement, and more.</div>
           </button>
           <button
             onClick={() => setMode('freeform')}
@@ -93,7 +93,7 @@ export default function JournalTab() {
             className="w-full rounded-lg px-5 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Choose a prompt</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Pick from a list and write freely.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Anytime, on your own time — pick a prompt and write freely.</div>
           </button>
         </div>
       )}
@@ -233,7 +233,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
     const structured = { mood, favoriteMovement: favoriteMovement.trim(), leastFavoriteMovement: leastFavoriteMovement.trim(), smile: smile.trim(), extra: extra.trim() };
     const { data, error } = await supabase
       .from('journal_entries')
-      .insert({ prompt: 'Daily check-in', response: `Mood ${mood}/7`, structured, is_private: isPrivate })
+      .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: isPrivate })
       .select()
       .single();
     setSaving(false);

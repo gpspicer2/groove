@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, X, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK } from '../../theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
@@ -488,7 +488,7 @@ function AcsmGuidelines() {
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
-        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">ACSM guidelines</span>
+        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">ACSM's Recommendations for Physical Activity</span>
         {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
       </button>
       {open && (
