@@ -5,6 +5,7 @@ import { supabase } from './lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, TEAL } from './theme';
 import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import { MUSCLE_GROUPS } from './features/move/exerciseLibrary';
+import { computeHrZones } from './lib/heartRate';
 import MessageTab from './features/message/MessageTab';
 import AccountMenu from './AccountMenu';
 
@@ -259,10 +260,77 @@ function ClientDetail({ client, trainerId, onBack }) {
           </button>
         ))}
       </div>
-      {tab === 'baseline' && <ClientBaseline clientId={client.id} />}
+      {tab === 'baseline' && (
+        <div className="space-y-4">
+          <ClientHeartRate clientId={client.id} />
+          <ClientBaseline clientId={client.id} />
+        </div>
+      )}
       {tab === 'program' && <ProgramBuilder clientId={client.id} trainerId={trainerId} />}
       {tab === 'workouts' && <ClientWorkouts clientId={client.id} />}
       {tab === 'chat' && <MessageTab userId={trainerId} peerId={client.id} />}
+    </div>
+  );
+}
+
+const HR_ZONE_OPTIONS = ['Light', 'Moderate', 'Vigorous'];
+
+function ClientHeartRate({ clientId }) {
+  const [hr, setHr] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('profiles').select('resting_hr_bpm, max_hr_bpm, prescribed_hr_zone').eq('id', clientId).maybeSingle();
+      setHr(data);
+      setLoading(false);
+    })();
+  }, [clientId]);
+
+  async function setPrescribedZone(zone) {
+    setSaving(true);
+    const next = hr?.prescribed_hr_zone === zone ? null : zone;
+    await supabase.from('profiles').update({ prescribed_hr_zone: next }).eq('id', clientId);
+    setHr((prev) => ({ ...prev, prescribed_hr_zone: next }));
+    setSaving(false);
+  }
+
+  if (loading) return null;
+  const zones = computeHrZones(hr?.resting_hr_bpm, hr?.max_hr_bpm);
+
+  return (
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Heart rate zones</div>
+      {!zones ? (
+        <div style={{ color: TEXT_SOFT }} className="text-sm">This client hasn't entered resting/max heart rate on Birdseye yet.</div>
+      ) : (
+        <div className="space-y-1 mb-3">
+          {zones.map((z) => (
+            <div key={z.label} className="flex items-center justify-between">
+              <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}</span>
+              <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Prescribe a target intensity for their aerobic work</div>
+      <div className="flex gap-2">
+        {HR_ZONE_OPTIONS.map((zone) => {
+          const selected = hr?.prescribed_hr_zone === zone;
+          return (
+            <button
+              key={zone}
+              onClick={() => setPrescribedZone(zone)}
+              disabled={saving}
+              style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
+              className="flex-1 rounded-md py-2 text-sm font-medium"
+            >
+              {zone}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

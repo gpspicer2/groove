@@ -13,6 +13,17 @@ create table profiles (
   -- self-reported bodyweight, editable from Birdseye — used so "bodyweight"
   -- can be logged as a set's weight (e.g. pull-ups, dips) without retyping it
   bodyweight_lb numeric,
+  -- which day starts the week for weekly-goal / calendar math — 'sunday' or 'monday'
+  week_start_day text not null default 'sunday',
+  -- a client's own saved custom movement types (Move's "what kind of
+  -- movement" picker), so a typed-in activity is remembered next time
+  custom_activities text[] not null default '{}',
+  -- heart-rate-reserve inputs for ACSM-style intensity prescription
+  resting_hr_bpm numeric,
+  max_hr_bpm numeric,
+  max_hr_measured boolean not null default false,
+  -- trainer-set target intensity zone for this client's aerobic work
+  prescribed_hr_zone text,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
@@ -25,6 +36,9 @@ create policy "profiles_trainer_select_all" on profiles for select
   using (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'trainer'));
 create policy "profiles_self_update" on profiles for update
   using (auth.uid() = id) with check (auth.uid() = id);
+-- lets the trainer set a client's prescribed_hr_zone from the client view
+create policy "profiles_trainer_update" on profiles for update
+  using (public.is_trainer()) with check (public.is_trainer());
 
 -- Auto-create a profile row whenever someone signs up.
 create function public.handle_new_user()
@@ -107,6 +121,12 @@ create table workouts (
   -- where the session happens: 'Outdoors' | 'In the Home' | 'At the Gym' —
   -- narrows the suggested exercise pool to what's realistically available
   location text,
+  -- non-resistance activity types picked for this session (Walking,
+  -- Yoga, Dancing, etc.) — shown alongside muscle_groups in the header
+  activities text[] not null default '{}',
+  -- soft delete: kept (not removed) so it can be restored from Birdseye's
+  -- "Deleted Workouts" list; excluded from History/calendar/streak math
+  deleted_at timestamptz,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   created_at timestamptz not null default now()

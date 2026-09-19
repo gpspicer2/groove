@@ -3,7 +3,8 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2 } from '
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { startOfWeek, weekDayLabels } from '../../lib/week';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -14,11 +15,13 @@ function mapWorkout(row) {
   return {
     id: row.id,
     muscleGroups: row.muscle_groups || [],
+    activities: row.activities || [],
     style: row.style || null,
     location: row.location || null,
     programId: row.program_id || null,
     startedAt: row.started_at,
     completedAt: row.completed_at,
+    deletedAt: row.deleted_at || null,
   };
 }
 
@@ -87,13 +90,14 @@ function uid() {
 }
 
 export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
-  const { user } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [workouts, setWorkouts] = useState([]);
   const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedActivities, setSelectedActivities] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState('');
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
@@ -101,6 +105,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
+
+  const weekStartDay = profile?.week_start_day || 'sunday';
+  const customActivities = profile?.custom_activities || [];
 
   const loadData = useCallback(async () => {
     const [workoutRes, setRes, profileRes, programRes] = await Promise.all([
@@ -148,7 +155,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }, [loadData]);
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
-  const completedWorkouts = workouts.filter((w) => w.completedAt);
+  const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
 
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;
@@ -184,18 +191,51 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     );
   }
 
+  function toggleActivity(activity) {
+    setSelectedActivities((prev) =>
+      prev.includes(activity) ? prev.filter((a) => a !== activity) : [...prev, activity]
+    );
+  }
+
+  async function addCustomActivity(name) {
+    const trimmed = name.trim();
+    if (!trimmed || customActivities.includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed)) return;
+    await updateProfile({ custom_activities: [...customActivities, trimmed] });
+    setSelectedActivities((prev) => [...prev, trimmed]);
+  }
+
+  async function removeCustomActivity(name) {
+    await updateProfile({ custom_activities: customActivities.filter((a) => a !== name) });
+    setSelectedActivities((prev) => prev.filter((a) => a !== name));
+  }
+
   async function startWorkout() {
-    if (selectedGroups.length === 0 || !selectedStyle || !selectedLocation) return;
-    const lastWorkout = completedWorkouts[0];
-    const recentNames = lastWorkout
-      ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
-      : [];
-    const plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation)
-      .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+    const hasResistance = selectedGroups.length > 0;
+    if ((!hasResistance && selectedActivities.length === 0) || !selectedLocation) return;
+    if (hasResistance && !selectedStyle) return;
+
+    let plan = [];
+    if (hasResistance) {
+      const lastWorkout = completedWorkouts[0];
+      const recentNames = lastWorkout
+        ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
+        : [];
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation)
+        .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+    }
+    const activityEntries = selectedActivities.map((name) => ({
+      name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '',
+    }));
+    plan = [...plan, ...activityEntries];
 
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ muscle_groups: selectedGroups, style: selectedStyle, location: selectedLocation })
+      .insert({
+        muscle_groups: selectedGroups,
+        activities: selectedActivities,
+        style: hasResistance ? selectedStyle : null,
+        location: selectedLocation,
+      })
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
@@ -203,8 +243,17 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setActiveWorkoutId(data.id);
     setPlanExercises(plan);
     setSelectedGroups([]);
+    setSelectedActivities([]);
     setSelectedStyle('');
     setSelectedLocation('');
+  }
+
+  async function deleteWorkout(workoutId) {
+    if (!window.confirm('Delete this workout? You can restore it later from Birdseye if you change your mind.')) return;
+    const { error } = await supabase.from('workouts').update({ deleted_at: new Date().toISOString() }).eq('id', workoutId).select().single();
+    if (error) { setLoadError(error.message); return; }
+    setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, deletedAt: new Date().toISOString() } : w)));
+    setExpandedHistoryId((id) => (id === workoutId ? null : id));
   }
 
   async function startAssignedProgram(location) {
@@ -365,7 +414,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         Move
       </h1>
 
-      <WeeklyTracker completedWorkouts={completedWorkouts} />
+      <WeeklyTracker completedWorkouts={completedWorkouts} weekStartDay={weekStartDay} />
 
       {activeWorkout ? (
         <ActiveWorkout
@@ -391,6 +440,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           onSelectLocation={setSelectedLocation}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
+          selectedActivities={selectedActivities}
+          onToggleActivity={toggleActivity}
+          customActivities={customActivities}
+          onAddCustomActivity={addCustomActivity}
+          onRemoveCustomActivity={removeCustomActivity}
           selectedStyle={selectedStyle}
           onSelectStyle={setSelectedStyle}
           onStart={startWorkout}
@@ -422,7 +476,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                   >
                     <div className="text-left">
                       <div style={{ color: PAPER }} className="text-sm font-medium">
-                        {w.muscleGroups.join(' + ')}{w.location && ` · ${w.location}`}
+                        {[...w.muscleGroups, ...w.activities].join(' + ')}{w.location && ` · ${w.location}`}
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
                         {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {exerciseNames.length} exercises · {workoutSets.length} sets
@@ -482,13 +536,22 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                           </div>
                         );
                       })}
-                      <button
-                        onClick={() => setEditingHistoryId(editing ? null : w.id)}
-                        style={{ color: SKY }}
-                        className="w-full text-sm py-2 text-center underline"
-                      >
-                        {editing ? 'Done editing' : 'Edit this workout'}
-                      </button>
+                      <div className="flex items-center justify-center gap-4">
+                        <button
+                          onClick={() => setEditingHistoryId(editing ? null : w.id)}
+                          style={{ color: SKY }}
+                          className="text-sm py-2 text-center underline"
+                        >
+                          {editing ? 'Done editing' : 'Edit this workout'}
+                        </button>
+                        <button
+                          onClick={() => deleteWorkout(w.id)}
+                          style={{ color: BRICK }}
+                          className="text-sm py-2 text-center underline"
+                        >
+                          Delete workout
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -501,17 +564,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   );
 }
 
-const WEEK_DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-function WeeklyTracker({ completedWorkouts }) {
+function WeeklyTracker({ completedWorkouts, weekStartDay }) {
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setHours(0, 0, 0, 0);
-  startOfWeek.setDate(now.getDate() - now.getDay());
+  const weekStart = startOfWeek(now, weekStartDay);
+  const dayLabels = weekDayLabels(weekStartDay);
 
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
     return d;
   });
 
@@ -544,7 +604,7 @@ function WeeklyTracker({ completedWorkouts }) {
                 }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
               >
-                {trained ? <Check size={14} /> : WEEK_DAY_LABELS[i]}
+                {trained ? <Check size={14} /> : dayLabels[i]}
               </div>
             </div>
           );
@@ -554,10 +614,25 @@ function WeeklyTracker({ completedWorkouts }) {
   );
 }
 
-function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart, assignedProgram, onStartAssignedProgram }) {
-  const canStart = Boolean(selectedLocation) && selectedGroups.length > 0 && Boolean(selectedStyle);
+function StartWorkout({
+  selectedLocation, onSelectLocation,
+  selectedGroups, onToggleGroup,
+  selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity,
+  selectedStyle, onSelectStyle, onStart,
+  assignedProgram, onStartAssignedProgram,
+}) {
+  const hasResistance = selectedGroups.length > 0;
+  const hasAnyMovement = hasResistance || selectedActivities.length > 0;
+  const canStart = Boolean(selectedLocation) && hasAnyMovement && (!hasResistance || Boolean(selectedStyle));
   const [skipProgram, setSkipProgram] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
+
+  function handleAddCustom() {
+    if (!customInput.trim()) return;
+    onAddCustomActivity(customInput);
+    setCustomInput('');
+  }
 
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
@@ -600,20 +675,17 @@ function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onTo
       {selectedLocation && !showProgramOffer && (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            What are you training today?
+            What kind of movement are you doing today?
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Select your target muscle group(s)</div>
-          <div className="flex flex-wrap justify-center gap-2 mb-5">
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Strength training (select any)</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
             {MUSCLE_GROUPS.map((group) => {
               const selected = selectedGroups.includes(group);
               return (
                 <button
                   key={group}
                   onClick={() => onToggleGroup(group)}
-                  style={{
-                    background: selected ? SKY : INK_3,
-                    color: selected ? INK : PAPER_DIM,
-                  }}
+                  style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
                   className="px-3 py-2 rounded-full text-sm font-medium"
                 >
                   {group}
@@ -621,10 +693,48 @@ function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onTo
               );
             })}
           </div>
+
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Or everyday movement (select any)</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-2">
+            {[...LIFESTYLE_ACTIVITIES, ...customActivities].map((activity) => {
+              const selected = selectedActivities.includes(activity);
+              const isCustom = customActivities.includes(activity);
+              return (
+                <LongPressChip
+                  key={activity}
+                  label={activity}
+                  selected={selected}
+                  onClick={() => onToggleActivity(activity)}
+                  onLongPress={isCustom ? () => onRemoveCustomActivity(activity) : null}
+                />
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 mb-5">
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              placeholder="Add your own…"
+              style={{ background: INK_3, color: PAPER }}
+              className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-center"
+            />
+            <button
+              onClick={handleAddCustom}
+              disabled={!customInput.trim()}
+              style={{ background: customInput.trim() ? SKY : INK_3, color: customInput.trim() ? INK : TEXT_SOFT }}
+              className="rounded-md px-3 py-2 text-sm font-medium"
+            >
+              Add
+            </button>
+          </div>
+          {customActivities.length > 0 && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-5 -mt-3">Press and hold your own entries to remove them</div>
+          )}
         </>
       )}
 
-      {selectedLocation && selectedGroups.length > 0 && (
+      {selectedLocation && hasResistance && (
         <>
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Training style</div>
           <div className="space-y-2 mb-5">
@@ -657,6 +767,44 @@ function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onTo
         </button>
       )}
     </div>
+  );
+}
+
+const LONG_PRESS_MS = 550;
+
+function LongPressChip({ label, selected, onClick, onLongPress }) {
+  const timerRef = React.useRef(null);
+  const firedRef = React.useRef(false);
+
+  function start() {
+    if (!onLongPress) return;
+    firedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true;
+      if (window.confirm(`Remove "${label}" from your list?`)) onLongPress();
+    }, LONG_PRESS_MS);
+  }
+  function cancel() {
+    clearTimeout(timerRef.current);
+  }
+  function handleClick() {
+    if (firedRef.current) { firedRef.current = false; return; }
+    onClick();
+  }
+
+  return (
+    <button
+      onMouseDown={start}
+      onMouseUp={cancel}
+      onMouseLeave={cancel}
+      onTouchStart={start}
+      onTouchEnd={cancel}
+      onClick={handleClick}
+      style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
+      className="px-3 py-2 rounded-full text-sm font-medium select-none"
+    >
+      {label}
+    </button>
   );
 }
 
@@ -701,7 +849,7 @@ function ActiveWorkout({
     <div className="mb-8">
       <div className="mb-3 text-center">
         <div style={{ color: PAPER }} className="text-sm font-medium">
-          {workout.muscleGroups.join(' + ')}
+          {[...workout.muscleGroups, ...workout.activities].join(' + ')}
         </div>
         {(workout.style || workout.location) && (
           <div style={{ color: SKY }} className="text-sm">

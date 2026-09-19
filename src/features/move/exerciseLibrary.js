@@ -12,6 +12,14 @@ export const AEROBIC_ACTIVITIES_QUICK = [
   'Treadmill Run', 'Treadmill Walk', 'Outdoor Run', 'Stationary Bike', 'Rowing Machine', 'Elliptical', 'Stair Climber', 'Jump Rope',
 ];
 
+// Built-in options for "what kind of movement are you doing today" —
+// everyday/lifestyle activity, logged as aerobic (duration/distance)
+// rather than sets and reps. A client's own typed-in additions are
+// appended alongside these (see profiles.custom_activities).
+export const LIFESTYLE_ACTIVITIES = [
+  'Walking', 'Jogging', 'Cycling', 'Hiking', 'Swimming', 'Yoga', 'Dancing', 'Gardening', 'Yard Work',
+];
+
 // Each exercise is tagged with the equipment it needs, so the plan can be
 // narrowed down based on where the session happens (see LOCATION_EQUIPMENT
 // below) instead of always suggesting a full gym's worth of machines.

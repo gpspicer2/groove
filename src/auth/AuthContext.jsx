@@ -29,10 +29,18 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  async function updateProfile(fields) {
+    if (!session?.user) return;
+    const { data, error } = await supabase.from('profiles').update(fields).eq('id', session.user.id).select().single();
+    if (!error && data) setProfile(data);
+    return { error };
+  }
+
   const value = {
     session,
     user: session?.user ?? null,
     profile,
+    updateProfile,
     // The one account allowed to see the coach side — everyone else who
     // signs up is a client. Simple ownership check rather than an
     // invite-code system, since there's only ever one coach for now.
