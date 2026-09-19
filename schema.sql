@@ -170,13 +170,15 @@ create table journal_entries (
   -- movement, etc.) so they can render as structured fields instead of a
   -- single response string; null for freeform single-prompt entries
   structured jsonb,
+  -- client-controlled: when true, hidden from the trainer's view entirely
+  is_private boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table journal_entries enable row level security;
 create policy "journal_client_all" on journal_entries for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "journal_trainer_select" on journal_entries for select
-  using (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'trainer'));
+  using (is_private = false and exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'trainer'));
 
 -- Messages: real-time chat between a client and Greg. Since there's only
 -- one trainer for now, each row is just sender -> recipient.

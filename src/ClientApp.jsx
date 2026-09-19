@@ -1,40 +1,28 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from './auth/AuthContext';
-import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, TEAL } from './theme';
+import { INK, INK_2, PAPER_DIM, LIME, SKY, AMBER, VIOLET } from './theme';
 import AccountMenu from './AccountMenu';
+import SwipeTabs from './SwipeTabs';
 import BirdseyeTab from './features/birdseye/BirdseyeTab';
 import MoveTab from './features/move/MoveTab';
 import JournalTab from './features/journal/JournalTab';
-import MessageTab from './features/message/MessageTab';
 import LearnTab from './features/learn/LearnTab';
 
-const TABS = ['birdseye', 'move', 'journal', 'message', 'learn'];
-const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', message: 'Message', learn: 'Learn' };
-const TAB_COLORS = { birdseye: LIME, move: SKY, journal: AMBER, message: VIOLET, learn: TEAL };
+const TABS = ['birdseye', 'move', 'journal', 'learn'];
+const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', learn: 'Learn' };
+const TAB_COLORS = { birdseye: LIME, move: SKY, journal: AMBER, learn: VIOLET };
 
 export default function ClientApp() {
   const { user } = useAuth();
   const [tab, setTab] = useState('birdseye');
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
-  const touchStartX = useRef(null);
 
   function openWorkout(workoutId) {
     setDeepLinkWorkoutId(workoutId);
     setTab('move');
   }
 
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-  function handleTouchEnd(e) {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) < 80) return;
-    const i = TABS.indexOf(tab);
-    if (dx < 0 && i < TABS.length - 1) setTab(TABS[i + 1]);
-    else if (dx > 0 && i > 0) setTab(TABS[i - 1]);
-  }
+  const activeIndex = TABS.indexOf(tab);
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh]">
@@ -46,7 +34,7 @@ export default function ClientApp() {
           </span>
           <div />
         </div>
-        <div className="flex gap-1.5 pb-4 flex-wrap">
+        <div className="flex gap-1.5 pb-4">
           {TABS.map((key) => {
             const active = tab === key;
             const color = TAB_COLORS[key];
@@ -55,7 +43,7 @@ export default function ClientApp() {
                 key={key}
                 onClick={() => setTab(key)}
                 style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
-                className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors min-w-[4.5rem]"
+                className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors"
               >
                 {TAB_LABELS[key]}
               </button>
@@ -64,18 +52,16 @@ export default function ClientApp() {
         </div>
       </div>
 
-      <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        {tab === 'birdseye' && <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} />}
-        {tab === 'move' && (
-          <MoveTab
-            deepLinkWorkoutId={deepLinkWorkoutId}
-            onConsumeDeepLink={() => setDeepLinkWorkoutId(null)}
-          />
-        )}
-        {tab === 'journal' && <JournalTab />}
-        {tab === 'message' && <MessageTab userId={user.id} />}
-        {tab === 'learn' && <LearnTab />}
-      </div>
+      <SwipeTabs
+        index={activeIndex}
+        onChangeIndex={(i) => setTab(TABS[i])}
+        pages={[
+          <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} />,
+          <MoveTab deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
+          <JournalTab />,
+          <LearnTab />,
+        ]}
+      />
     </div>
   );
 }

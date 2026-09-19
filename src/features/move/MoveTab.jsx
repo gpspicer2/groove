@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
+import MovementTypePicker from './MovementTypePicker';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -625,14 +626,7 @@ function StartWorkout({
   const hasAnyMovement = hasResistance || selectedActivities.length > 0;
   const canStart = Boolean(selectedLocation) && hasAnyMovement && (!hasResistance || Boolean(selectedStyle));
   const [skipProgram, setSkipProgram] = useState(false);
-  const [customInput, setCustomInput] = useState('');
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
-
-  function handleAddCustom() {
-    if (!customInput.trim()) return;
-    onAddCustomActivity(customInput);
-    setCustomInput('');
-  }
 
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
@@ -677,60 +671,15 @@ function StartWorkout({
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             What kind of movement are you doing today?
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Strength training (select any)</div>
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
-            {MUSCLE_GROUPS.map((group) => {
-              const selected = selectedGroups.includes(group);
-              return (
-                <button
-                  key={group}
-                  onClick={() => onToggleGroup(group)}
-                  style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
-                  className="px-3 py-2 rounded-full text-sm font-medium"
-                >
-                  {group}
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Or everyday movement (select any)</div>
-          <div className="flex flex-wrap justify-center gap-2 mb-2">
-            {[...LIFESTYLE_ACTIVITIES, ...customActivities].map((activity) => {
-              const selected = selectedActivities.includes(activity);
-              const isCustom = customActivities.includes(activity);
-              return (
-                <LongPressChip
-                  key={activity}
-                  label={activity}
-                  selected={selected}
-                  onClick={() => onToggleActivity(activity)}
-                  onLongPress={isCustom ? () => onRemoveCustomActivity(activity) : null}
-                />
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2 mb-5">
-            <input
-              type="text"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              placeholder="Add your own…"
-              style={{ background: INK_3, color: PAPER }}
-              className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-center"
-            />
-            <button
-              onClick={handleAddCustom}
-              disabled={!customInput.trim()}
-              style={{ background: customInput.trim() ? SKY : INK_3, color: customInput.trim() ? INK : TEXT_SOFT }}
-              className="rounded-md px-3 py-2 text-sm font-medium"
-            >
-              Add
-            </button>
-          </div>
-          {customActivities.length > 0 && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-5 -mt-3">Press and hold your own entries to remove them</div>
-          )}
+          <MovementTypePicker
+            selectedGroups={selectedGroups}
+            onToggleGroup={onToggleGroup}
+            selectedActivities={selectedActivities}
+            onToggleActivity={onToggleActivity}
+            customActivities={customActivities}
+            onAddCustomActivity={onAddCustomActivity}
+            onRemoveCustomActivity={onRemoveCustomActivity}
+          />
         </>
       )}
 
@@ -767,44 +716,6 @@ function StartWorkout({
         </button>
       )}
     </div>
-  );
-}
-
-const LONG_PRESS_MS = 550;
-
-function LongPressChip({ label, selected, onClick, onLongPress }) {
-  const timerRef = React.useRef(null);
-  const firedRef = React.useRef(false);
-
-  function start() {
-    if (!onLongPress) return;
-    firedRef.current = false;
-    timerRef.current = setTimeout(() => {
-      firedRef.current = true;
-      if (window.confirm(`Remove "${label}" from your list?`)) onLongPress();
-    }, LONG_PRESS_MS);
-  }
-  function cancel() {
-    clearTimeout(timerRef.current);
-  }
-  function handleClick() {
-    if (firedRef.current) { firedRef.current = false; return; }
-    onClick();
-  }
-
-  return (
-    <button
-      onMouseDown={start}
-      onMouseUp={cancel}
-      onMouseLeave={cancel}
-      onTouchStart={start}
-      onTouchEnd={cancel}
-      onClick={handleClick}
-      style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
-      className="px-3 py-2 rounded-full text-sm font-medium select-none"
-    >
-      {label}
-    </button>
   );
 }
 

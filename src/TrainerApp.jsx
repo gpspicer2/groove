@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, TEAL } from './theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from './theme';
 import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import { MUSCLE_GROUPS } from './features/move/exerciseLibrary';
 import { computeHrZones } from './lib/heartRate';
-import MessageTab from './features/message/MessageTab';
 import AccountMenu from './AccountMenu';
 
 function daysBetween(a, b) {
@@ -64,7 +63,7 @@ export default function TrainerApp() {
             </button>
             <button
               onClick={() => setView('learn')}
-              style={{ background: view === 'learn' ? TEAL : INK_2, color: view === 'learn' ? INK : PAPER_DIM }}
+              style={{ background: view === 'learn' ? VIOLET : INK_2, color: view === 'learn' ? INK : PAPER_DIM }}
               className="flex-1 py-2.5 rounded-md text-sm font-medium"
             >
               Learn articles
@@ -161,7 +160,7 @@ function ArticleManager() {
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-4 text-center">Reasons to Move — shown to every client</div>
 
       {adding ? (
-        <div style={{ background: INK_2, borderTop: `2px solid ${TEAL}` }} className="rounded-lg px-5 py-5 mb-4">
+        <div style={{ background: INK_2, borderTop: `2px solid ${VIOLET}` }} className="rounded-lg px-5 py-5 mb-4">
           <input
             type="text"
             value={title}
@@ -191,7 +190,7 @@ function ArticleManager() {
             <button
               onClick={handleAdd}
               disabled={!title.trim() || !summary.trim() || saving}
-              style={{ background: TEAL, color: INK }}
+              style={{ background: VIOLET, color: INK }}
               className="flex-1 rounded-md py-2.5 text-sm font-medium"
             >
               {saving ? 'Posting…' : 'Post article'}
@@ -201,7 +200,7 @@ function ArticleManager() {
       ) : (
         <button
           onClick={() => setAdding(true)}
-          style={{ background: INK_2, color: TEAL, borderLeft: `3px solid ${TEAL}` }}
+          style={{ background: INK_2, color: VIOLET, borderLeft: `3px solid ${VIOLET}` }}
           className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
         >
           <Plus size={14} /> Post new article
@@ -217,13 +216,13 @@ function ArticleManager() {
       ) : (
         <div className="space-y-2">
           {articles.map((a) => (
-            <div key={a.id} style={{ background: INK_2, borderLeft: `3px solid ${TEAL}` }} className="rounded-md px-4 py-3 text-center">
+            <div key={a.id} style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3 text-center">
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
                 {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
               <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{a.title}</div>
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">{a.summary}</div>
-              {a.url && <div style={{ color: TEAL }} className="text-sm mb-2 break-all">{a.url}</div>}
+              {a.url && <div style={{ color: VIOLET }} className="text-sm mb-2 break-all">{a.url}</div>}
               <button onClick={() => handleDelete(a.id)} style={{ color: TEXT_SOFT }} className="text-sm inline-flex items-center gap-1">
                 <Trash2 size={12} /> Delete
               </button>
@@ -235,7 +234,7 @@ function ArticleManager() {
   );
 }
 
-const CLIENT_TABS = ['baseline', 'program', 'workouts', 'chat'];
+const CLIENT_TABS = ['baseline', 'program', 'workouts'];
 
 function ClientDetail({ client, trainerId, onBack }) {
   const [tab, setTab] = useState('baseline');
@@ -268,7 +267,6 @@ function ClientDetail({ client, trainerId, onBack }) {
       )}
       {tab === 'program' && <ProgramBuilder clientId={client.id} trainerId={trainerId} />}
       {tab === 'workouts' && <ClientWorkouts clientId={client.id} />}
-      {tab === 'chat' && <MessageTab userId={trainerId} peerId={client.id} />}
     </div>
   );
 }

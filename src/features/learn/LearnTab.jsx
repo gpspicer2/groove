@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { INK_2, PAPER, PAPER_DIM, TEXT_SOFT, TEAL } from '../../theme';
+import { INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET } from '../../theme';
 
 function mapArticle(row) {
   return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at };
@@ -41,7 +41,7 @@ export default function LearnTab() {
       ) : (
         <div className="space-y-2">
           {articles.map((a) => (
-            <div key={a.id} style={{ background: INK_2, borderLeft: `3px solid ${TEAL}` }} className="rounded-md px-4 py-3 text-center">
+            <div key={a.id} style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3 text-center">
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
                 {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
@@ -52,7 +52,7 @@ export default function LearnTab() {
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: TEAL }}
+                  style={{ color: VIOLET }}
                   className="text-sm inline-flex items-center gap-1"
                 >
                   Read more <ExternalLink size={12} />

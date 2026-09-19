@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, X, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
+import { WORKOUT_LOCATIONS } from '../move/exerciseLibrary';
+import MovementTypePicker from '../move/MovementTypePicker';
 
-const LIFT_GOAL = 3; // workouts/week — matches Move tab's own weekly tracker for now
+const RESISTANCE_GOAL = 3; // sessions/week
+const AEROBIC_GOAL = 3;    // sessions/week
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -17,17 +20,24 @@ function sameDay(a, b) {
   return a.toDateString() === b.toDateString();
 }
 
+function todayInputValue() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function BirdseyeTab({ userId, onOpenWorkout }) {
-  const { profile } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
+  const customActivities = profile?.custom_activities || [];
   const [workouts, setWorkouts] = useState([]);
   const [deletedWorkouts, setDeletedWorkouts] = useState([]);
-  const [workoutIcons, setWorkoutIcons] = useState({});
+  const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [journalCount, setJournalCount] = useState(0);
   const [assessmentDone, setAssessmentDone] = useState(true);
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
+  const [showQuickLog, setShowQuickLog] = useState(false);
   const [bodyweight, setBodyweight] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
   const [prescribedZone, setPrescribedZone] = useState(null);
@@ -35,39 +45,47 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   const [maxHr, setMaxHr] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
 
+  async function loadAll() {
+    const [{ data: w }, { data: deleted }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
+      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
+      supabase.from('workouts').select('id, started_at, muscle_groups, activities').not('deleted_at', 'is', null).order('started_at', { ascending: false }),
+      supabase.from('journal_entries').select('id'),
+      supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
+      supabase.from('profiles').select('bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone').eq('id', userId).maybeSingle(),
+      supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
+    ]);
+    setWorkouts(w || []);
+    setDeletedWorkouts(deleted || []);
+    setJournalCount((j || []).length);
+    setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
+    setAge(baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
+    setBodyweight(profileRow?.bodyweight_lb != null ? String(profileRow.bodyweight_lb) : '');
+    setPrescribedZone(profileRow?.prescribed_hr_zone || null);
+    setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
+    setMaxHr(profileRow?.max_hr_bpm != null ? String(profileRow.max_hr_bpm) : '');
+
+    const types = {};
+    (setRows || []).forEach((s) => {
+      if (!types[s.workout_id]) types[s.workout_id] = new Set();
+      types[s.workout_id].add(s.movement_type || 'resistance');
+    });
+    setWorkoutTypes(types);
+  }
+
   useEffect(() => {
     (async () => {
-      const [{ data: w }, { data: deleted }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
-        supabase.from('workouts').select('id, started_at, completed_at').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
-        supabase.from('workouts').select('id, started_at, muscle_groups, activities').not('deleted_at', 'is', null).order('started_at', { ascending: false }),
-        supabase.from('journal_entries').select('id'),
-        supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-        supabase.from('profiles').select('bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone').eq('id', userId).maybeSingle(),
-        supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
-      ]);
-      setWorkouts(w || []);
-      setDeletedWorkouts(deleted || []);
-      setJournalCount((j || []).length);
-      setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
-      setAge(baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
-      setBodyweight(profileRow?.bodyweight_lb != null ? String(profileRow.bodyweight_lb) : '');
-      setPrescribedZone(profileRow?.prescribed_hr_zone || null);
-      setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
-      setMaxHr(profileRow?.max_hr_bpm != null ? String(profileRow.max_hr_bpm) : '');
-
-      const icons = {};
-      (setRows || []).forEach((s) => {
-        if (!icons[s.workout_id]) icons[s.workout_id] = new Set();
-        icons[s.workout_id].add(s.movement_type || 'resistance');
-      });
-      const resolved = {};
-      Object.entries(icons).forEach(([id, types]) => {
-        resolved[id] = types.size === 1 && types.has('aerobic') ? 'aerobic' : 'resistance';
-      });
-      setWorkoutIcons(resolved);
+      await loadAll();
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  function hasResistance(w) {
+    return (w.muscle_groups || []).length > 0 || workoutTypes[w.id]?.has('resistance');
+  }
+  function hasAerobic(w) {
+    return (w.activities || []).length > 0 || workoutTypes[w.id]?.has('aerobic');
+  }
 
   async function saveBodyweight(value) {
     setSavingWeight(true);
@@ -84,9 +102,16 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   async function restoreWorkout(id) {
     const { error } = await supabase.from('workouts').update({ deleted_at: null }).eq('id', id);
     if (error) return;
-    const restored = deletedWorkouts.find((w) => w.id === id);
-    setDeletedWorkouts((prev) => prev.filter((w) => w.id !== id));
-    if (restored) setWorkouts((prev) => [restored, ...prev].sort((a, b) => new Date(b.started_at) - new Date(a.started_at)));
+    await loadAll();
+  }
+
+  async function addCustomActivity(name) {
+    const trimmed = name.trim();
+    if (!trimmed || customActivities.includes(trimmed)) return;
+    await updateProfile({ custom_activities: [...customActivities, trimmed] });
+  }
+  async function removeCustomActivity(name) {
+    await updateProfile({ custom_activities: customActivities.filter((a) => a !== name) });
   }
 
   if (loading) {
@@ -99,27 +124,30 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
 
   const now = new Date();
   const weekStart = startOfWeek(now, weekStartDay);
-  const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart).length;
-  const liftPct = Math.min(100, (workoutsThisWeek / LIFT_GOAL) * 100);
+  const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart);
+  const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
+  const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
 
-  // Streak: consecutive weeks (including this one) hitting the lift goal.
+  // Streak: consecutive weeks (including this one) hitting BOTH goals.
   let streak = 0;
   for (let i = 0; ; i++) {
     const ws = new Date(weekStart);
     ws.setDate(weekStart.getDate() - i * 7);
     const we = new Date(ws);
     we.setDate(ws.getDate() + 7);
-    const count = workouts.filter((w) => {
+    const weekWorkouts = workouts.filter((w) => {
       const d = new Date(w.started_at);
       return d >= ws && d < we;
-    }).length;
-    if (count >= LIFT_GOAL) streak++;
+    });
+    const rCount = weekWorkouts.filter(hasResistance).length;
+    const aCount = weekWorkouts.filter(hasAerobic).length;
+    if (rCount >= RESISTANCE_GOAL && aCount >= AEROBIC_GOAL) streak++;
     else break;
     if (i > 52) break;
   }
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
-  const insight = buildInsight({ workoutsThisWeek, daysSinceLast });
+  const insight = buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast });
 
   const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);
   const maxHrNum = maxHr.trim() === '' ? (predictedMaxHR(age) || null) : parseFloat(maxHr);
@@ -150,23 +178,27 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
       )}
 
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">This week</div>
-        <div className="flex items-center justify-center mb-2">
-          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl font-medium">
-            {workoutsThisWeek} <span style={{ color: TEXT_SOFT, fontSize: '1rem' }}>/ {LIFT_GOAL} workouts</span>
-          </span>
-        </div>
-        <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
-          <div style={{ width: `${liftPct}%`, background: LIME }} className="h-full rounded-full transition-all" />
-        </div>
+        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3">This week</div>
+
+        <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={RESISTANCE_GOAL} />
+        <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={AEROBIC_GOAL} />
+
         {streak > 0 && (
-          <div style={{ color: SKY }} className="text-sm mt-2">
-            🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting your goal
+          <div style={{ color: LIME }} className="text-sm mt-3">
+            🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting both goals
           </div>
         )}
       </div>
 
-      <WorkoutCalendar workouts={workouts} workoutIcons={workoutIcons} onOpenWorkout={onOpenWorkout} weekStartDay={weekStartDay} />
+      <button
+        onClick={() => setShowQuickLog(true)}
+        style={{ background: INK_2, color: LIME, borderLeft: `3px solid ${LIME}` }}
+        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+      >
+        <Plus size={14} /> Log a workout
+      </button>
+
+      <WorkoutCalendar workouts={workouts} hasResistance={hasResistance} hasAerobic={hasAerobic} onOpenWorkout={onOpenWorkout} weekStartDay={weekStartDay} />
 
       <DeletedWorkouts workouts={deletedWorkouts} open={showDeleted} onToggle={() => setShowDeleted((v) => !v)} onRestore={restoreWorkout} />
 
@@ -210,17 +242,57 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
           onComplete={() => { setShowAssessment(false); setAssessmentDone(true); }}
         />
       )}
+
+      {showQuickLog && (
+        <QuickLogModal
+          customActivities={customActivities}
+          onAddCustomActivity={addCustomActivity}
+          onRemoveCustomActivity={removeCustomActivity}
+          onClose={() => setShowQuickLog(false)}
+          onSaved={async () => { setShowQuickLog(false); await loadAll(); }}
+        />
+      )}
     </div>
   );
 }
 
-// Light, in-app encouragement — friendly and specific, never guilt-driven.
-function buildInsight({ workoutsThisWeek, daysSinceLast }) {
-  if (workoutsThisWeek >= LIFT_GOAL) {
-    return `Howdy! You hit your goal of ${LIFT_GOAL} workouts this week — nice work. 🎉`;
+function GoalRow({ label, icon: Icon, color, count, goal }) {
+  const pct = Math.min(100, (count / goal) * 100);
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="flex items-center gap-1.5">
+          <Icon size={14} color={color} />
+          <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+        </span>
+        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+          {count} / {goal}
+        </span>
+      </div>
+      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
+        <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+      </div>
+    </div>
+  );
+}
+
+// Light, in-app encouragement — friendly and specific, never guilt-driven,
+// and reflects whichever of the two goals actually needs attention.
+function buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast }) {
+  const rDone = resistanceThisWeek >= RESISTANCE_GOAL;
+  const aDone = aerobicThisWeek >= AEROBIC_GOAL;
+
+  if (rDone && aDone) {
+    return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
   }
-  if (workoutsThisWeek === LIFT_GOAL - 1) {
-    return "Howdy! You're 2/3 of the way to your weekly goal — let's get one more in today or tomorrow!";
+  if (rDone && !aDone) {
+    return "Howdy! Resistance goal is done for the week — got time for some aerobic activity, like a walk, today or tomorrow?";
+  }
+  if (aDone && !rDone) {
+    return "Howdy! Aerobic goal is done for the week — one more resistance session would round things out nicely.";
+  }
+  if (resistanceThisWeek === RESISTANCE_GOAL - 1 || aerobicThisWeek === AEROBIC_GOAL - 1) {
+    return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
   }
   if (daysSinceLast != null && daysSinceLast >= 4) {
     return `Howdy! It's been ${daysSinceLast} days since your last session — do you have time for a 20 min walk today?`;
@@ -231,7 +303,7 @@ function buildInsight({ workoutsThisWeek, daysSinceLast }) {
   return null;
 }
 
-function WorkoutCalendar({ workouts, workoutIcons, onOpenWorkout, weekStartDay }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, weekStartDay }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -279,7 +351,8 @@ function WorkoutCalendar({ workouts, workoutIcons, onOpenWorkout, weekStartDay }
           if (!day) return <div key={i} />;
           const workout = workoutForDay(day);
           const isToday = sameDay(day, now);
-          const icon = workout ? workoutIcons[workout.id] : null;
+          const r = workout && hasResistance(workout);
+          const a = workout && hasAerobic(workout);
           return (
             <button
               key={i}
@@ -290,9 +363,10 @@ function WorkoutCalendar({ workouts, workoutIcons, onOpenWorkout, weekStartDay }
             >
               <span style={{ color: workout ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
               {workout && (
-                icon === 'aerobic'
-                  ? <Activity size={12} color={SKY} />
-                  : <Dumbbell size={12} color={LIME} />
+                <span className="flex items-center gap-0.5">
+                  {r && <Dumbbell size={11} color={SKY} />}
+                  {a && <Activity size={11} color={MOSS} />}
+                </span>
               )}
             </button>
           );
@@ -300,12 +374,12 @@ function WorkoutCalendar({ workouts, workoutIcons, onOpenWorkout, weekStartDay }
       </div>
       <div className="flex items-center justify-center gap-4 mt-3">
         <div className="flex items-center gap-1">
-          <Dumbbell size={12} color={LIME} />
-          <span style={{ color: TEXT_SOFT }} className="text-sm">Lifting</span>
+          <Dumbbell size={12} color={SKY} />
+          <span style={{ color: TEXT_SOFT }} className="text-sm">Resistance</span>
         </div>
         <div className="flex items-center gap-1">
-          <Activity size={12} color={SKY} />
-          <span style={{ color: TEXT_SOFT }} className="text-sm">Cardio</span>
+          <Activity size={12} color={MOSS} />
+          <span style={{ color: TEXT_SOFT }} className="text-sm">Aerobic</span>
         </div>
       </div>
     </div>
@@ -401,8 +475,16 @@ function HeartRateCard({ restingHr, setRestingHr, maxHr, setMaxHr, onSave, resti
   );
 }
 
+const MOVEMENT_INFO = {
+  Aerobic: "Aerobic activity doesn't have to mean the treadmill. Anything that elicits your target heart-rate response counts — brisk walking, cycling, swimming, dancing, hiking, even a vigorous afternoon of yard work. What matters is the response your body has, not the setting it happens in.",
+  Resistance: 'Resistance training is most convenient in a gym with barbells and machines, but that\'s not the only way to meet this recommendation. Bodyweight circuits, resistance bands, carrying or loading heavy objects (yard work, groceries, moving furniture), rock climbing, and heavy manual labor can all count toward this guideline.',
+  Flexibility: 'Static stretching, yoga, and dynamic mobility work targeting the major muscle-tendon groups all count — the goal is regularly moving your joints through their full range of motion.',
+};
+
 function AcsmGuidelines() {
   const [open, setOpen] = useState(false);
+  const [openInfo, setOpenInfo] = useState(null);
+
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
@@ -410,28 +492,213 @@ function AcsmGuidelines() {
         {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
       </button>
       {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-3 text-left">
-          <div>
-            <div style={{ color: SKY }} className="text-sm font-medium mb-1">Aerobic</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm">
-              150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days — no more than 2 consecutive days without activity.
-            </div>
-          </div>
-          <div>
-            <div style={{ color: LIME }} className="text-sm font-medium mb-1">Resistance</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm">
-              2–3 non-consecutive days/week, training all major muscle groups — 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
-            </div>
-          </div>
-          <div>
-            <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Flexibility</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm">
-              2–3 days/week, stretching major muscle-tendon groups — hold static stretches 10–30 sec, 2–4 reps each.
-            </div>
-          </div>
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4 text-center">
+          <p style={{ color: TEXT_SOFT }} className="text-sm italic">
+            The American College of Sports Medicine (ACSM) is the leading professional organization for exercise science, publishing the evidence-based, science-backed recommendations behind the guidelines below.
+          </p>
+
+          <GuidelineBlock
+            label="Aerobic" color={MOSS}
+            text="150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days — no more than 2 consecutive days without activity."
+            open={openInfo === 'Aerobic'} onToggle={() => setOpenInfo((v) => (v === 'Aerobic' ? null : 'Aerobic'))}
+          />
+          <GuidelineBlock
+            label="Resistance" color={SKY}
+            text="2–3 non-consecutive days/week, training all major muscle groups — 2–4 sets of 8–12 reps at moderate-to-vigorous intensity."
+            open={openInfo === 'Resistance'} onToggle={() => setOpenInfo((v) => (v === 'Resistance' ? null : 'Resistance'))}
+          />
+          <GuidelineBlock
+            label="Flexibility" color={BRICK}
+            text="2–3 days/week, stretching major muscle-tendon groups — hold static stretches 10–30 sec, 2–4 reps each."
+            open={openInfo === 'Flexibility'} onToggle={() => setOpenInfo((v) => (v === 'Flexibility' ? null : 'Flexibility'))}
+          />
+
           <div style={{ color: TEXT_SOFT }} className="text-sm">— American College of Sports Medicine</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function GuidelineBlock({ label, color, text, open, onToggle }) {
+  return (
+    <div>
+      <div className="flex items-center justify-center gap-1.5 mb-1">
+        <span style={{ color }} className="text-sm font-medium">{label}</span>
+        <button onClick={onToggle} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+          <Info size={13} />
+        </button>
+      </div>
+      <div style={{ color: PAPER_DIM }} className="text-sm">{text}</div>
+      {open && (
+        <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-2">
+          {MOVEMENT_INFO[label]}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickLogModal({ customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
+  const [date, setDate] = useState(todayInputValue());
+  const [location, setLocation] = useState('');
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedActivities, setSelectedActivities] = useState([]);
+  const [details, setDetails] = useState({}); // activity -> {minutes, seconds, distance}
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  function toggleGroup(g) {
+    setSelectedGroups((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
+  }
+  function toggleActivity(a) {
+    setSelectedActivities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+  }
+  function updateDetail(activity, field, value) {
+    setDetails((prev) => ({ ...prev, [activity]: { ...prev[activity], [field]: value } }));
+  }
+
+  const canSave = Boolean(date) && Boolean(location) && (selectedGroups.length > 0 || selectedActivities.length > 0);
+
+  async function handleSave() {
+    if (!canSave) return;
+    setSaving(true);
+    setError('');
+    const iso = new Date(`${date}T12:00:00`).toISOString();
+    const { data: workout, error: workoutErr } = await supabase
+      .from('workouts')
+      .insert({
+        muscle_groups: selectedGroups,
+        activities: selectedActivities,
+        location,
+        started_at: iso,
+        completed_at: iso,
+      })
+      .select()
+      .single();
+    if (workoutErr) { setSaving(false); setError(workoutErr.message); return; }
+
+    const setRows = selectedActivities
+      .map((activity) => {
+        const d = details[activity] || {};
+        const durationSeconds = (parseInt(d.minutes, 10) || 0) * 60 + (parseInt(d.seconds, 10) || 0);
+        const distance = (d.distance || '').trim();
+        if (!durationSeconds && !distance) return null;
+        return {
+          workout_id: workout.id,
+          exercise_name: activity,
+          muscle_group: 'Cardio',
+          set_number: 1,
+          movement_type: 'aerobic',
+          duration_seconds: durationSeconds || null,
+          distance: distance || null,
+        };
+      })
+      .filter(Boolean);
+    if (setRows.length > 0) await supabase.from('workout_sets').insert(setRows);
+
+    setSaving(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+      <div
+        style={{ background: INK_2 }}
+        className="relative w-full max-w-md rounded-t-xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div style={{ color: PAPER }} className="text-sm font-medium">Log a workout</div>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Date</div>
+        <input
+          type="date"
+          value={date}
+          max={todayInputValue()}
+          onChange={(e) => setDate(e.target.value)}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-4"
+        />
+
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Where</div>
+        <div className="flex flex-wrap justify-center gap-2 mb-4">
+          {WORKOUT_LOCATIONS.map((loc) => (
+            <button
+              key={loc}
+              onClick={() => setLocation(loc)}
+              style={{ background: location === loc ? SKY : INK_3, color: location === loc ? INK : PAPER_DIM }}
+              className="px-3 py-2 rounded-full text-sm font-medium"
+            >
+              {loc}
+            </button>
+          ))}
+        </div>
+
+        <MovementTypePicker
+          selectedGroups={selectedGroups}
+          onToggleGroup={toggleGroup}
+          selectedActivities={selectedActivities}
+          onToggleActivity={toggleActivity}
+          customActivities={customActivities}
+          onAddCustomActivity={onAddCustomActivity}
+          onRemoveCustomActivity={onRemoveCustomActivity}
+        />
+
+        {selectedActivities.length > 0 && (
+          <div className="space-y-3 mt-2 mb-2">
+            {selectedActivities.map((activity) => (
+              <div key={activity} style={{ background: INK_3 }} className="rounded-md px-3 py-3">
+                <div style={{ color: PAPER }} className="text-sm mb-2 text-center">{activity}</div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={details[activity]?.minutes || ''}
+                    onChange={(e) => updateDetail(activity, 'minutes', e.target.value)}
+                    placeholder="min"
+                    style={{ background: INK_2, color: PAPER }}
+                    className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+                  />
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={details[activity]?.seconds || ''}
+                    onChange={(e) => updateDetail(activity, 'seconds', e.target.value)}
+                    placeholder="sec"
+                    style={{ background: INK_2, color: PAPER }}
+                    className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+                  />
+                  <input
+                    type="text"
+                    value={details[activity]?.distance || ''}
+                    onChange={(e) => updateDetail(activity, 'distance', e.target.value)}
+                    placeholder="distance (optional)"
+                    style={{ background: INK_2, color: PAPER }}
+                    className="flex-1 min-w-[7rem] rounded-md px-2 py-2 text-sm outline-none text-center"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && <div style={{ color: BRICK }} className="text-sm text-center mb-2">{error}</div>}
+
+        <button
+          onClick={handleSave}
+          disabled={!canSave || saving}
+          style={{ background: canSave ? LIME : INK_3, color: canSave ? INK : TEXT_SOFT }}
+          className="w-full rounded-md py-3 text-sm font-medium mt-3"
+        >
+          {saving ? 'Saving…' : 'Save workout'}
+        </button>
+      </div>
     </div>
   );
 }

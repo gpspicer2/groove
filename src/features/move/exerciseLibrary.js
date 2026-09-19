@@ -91,10 +91,10 @@ export const EXERCISE_LIBRARY = {
 // Where a session happens, and what equipment is realistically available
 // there. Falls back to the full pool for a muscle group if filtering would
 // leave it empty, rather than suggesting nothing.
-export const WORKOUT_LOCATIONS = ['Outdoors', 'In the Home', 'At the Gym'];
+export const WORKOUT_LOCATIONS = ['The Great Outdoors', 'In the Home', 'At the Gym'];
 
 export const LOCATION_EQUIPMENT = {
-  Outdoors: ['bodyweight'],
+  'The Great Outdoors': ['bodyweight'],
   'In the Home': ['bodyweight', 'dumbbell'],
   'At the Gym': ['bodyweight', 'dumbbell', 'barbell', 'machine', 'cable'],
 };
