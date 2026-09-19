@@ -12,64 +12,91 @@ export const AEROBIC_ACTIVITIES_QUICK = [
   'Treadmill Run', 'Treadmill Walk', 'Outdoor Run', 'Stationary Bike', 'Rowing Machine', 'Elliptical', 'Stair Climber', 'Jump Rope',
 ];
 
+// Each exercise is tagged with the equipment it needs, so the plan can be
+// narrowed down based on where the session happens (see LOCATION_EQUIPMENT
+// below) instead of always suggesting a full gym's worth of machines.
 export const EXERCISE_LIBRARY = {
   Chest: [
-    { name: 'Barbell Bench Press', sets: 4, reps: '8-10' },
-    { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12' },
-    { name: 'Deficit Push-Ups', sets: 3, reps: '12-15' }, // hands elevated on blocks/plates for extra stretch — big ROM
-    { name: 'Dumbbell Fly', sets: 3, reps: '12-15' },
-    { name: 'Dumbbell Chest Press', sets: 4, reps: '10-12' },
-    { name: 'Dips', sets: 3, reps: '10-15' },
+    { name: 'Barbell Bench Press', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Deficit Push-Ups', sets: 3, reps: '12-15', equipment: 'bodyweight' }, // hands elevated on blocks/plates for extra stretch — big ROM
+    { name: 'Dumbbell Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
+    { name: 'Dumbbell Chest Press', sets: 4, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Dips', sets: 3, reps: '10-15', equipment: 'bodyweight' },
   ],
   Back: [
-    { name: 'Pull-Ups', sets: 4, reps: '8-10' },
-    { name: 'Barbell Row', sets: 4, reps: '8-10' },
-    { name: 'Lat Pulldown', sets: 3, reps: '10-12' },
-    { name: 'Straight-Arm Pulldown', sets: 3, reps: '12-15' }, // long lat stretch overhead
-    { name: 'Dumbbell Pullover', sets: 3, reps: '10-12' },     // big overhead ROM
-    { name: 'Single-Arm Dumbbell Row', sets: 3, reps: '10-12' },
+    { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
+    { name: 'Barbell Row', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Lat Pulldown', sets: 3, reps: '10-12', equipment: 'machine' },
+    { name: 'Straight-Arm Pulldown', sets: 3, reps: '12-15', equipment: 'cable' }, // long lat stretch overhead
+    { name: 'Dumbbell Pullover', sets: 3, reps: '10-12', equipment: 'dumbbell' },     // big overhead ROM
+    { name: 'Single-Arm Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
   ],
   Legs: [
-    { name: 'Barbell Back Squat', sets: 4, reps: '8-10' },
-    { name: 'Romanian Deadlift', sets: 3, reps: '10-12' },
-    { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12' }, // deep single-leg stretch
-    { name: 'Walking Lunges', sets: 3, reps: '10-12' },
-    { name: 'Leg Press (deep)', sets: 4, reps: '10-15' },
-    { name: 'Leg Curl', sets: 3, reps: '10-15' },
+    { name: 'Barbell Back Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
+    { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' }, // deep single-leg stretch
+    { name: 'Walking Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
+    { name: 'Leg Press (deep)', sets: 4, reps: '10-15', equipment: 'machine' },
+    { name: 'Leg Curl', sets: 3, reps: '10-15', equipment: 'machine' },
+    { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
+    { name: 'Single-Leg Glute Bridge', sets: 3, reps: '12-15', equipment: 'bodyweight' },
   ],
   Shoulders: [
-    { name: 'Overhead Press', sets: 4, reps: '6-8' },
-    { name: 'Lateral Raise', sets: 3, reps: '12-15' },
-    { name: 'Face Pull', sets: 3, reps: '12-15' },
-    { name: 'Arnold Press', sets: 3, reps: '8-10' },
-    { name: 'Front Raise', sets: 3, reps: '10-12' },
-    { name: 'Rear Delt Fly', sets: 3, reps: '12-15' },
+    { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
+    { name: 'Lateral Raise', sets: 3, reps: '12-15', equipment: 'dumbbell' },
+    { name: 'Face Pull', sets: 3, reps: '12-15', equipment: 'cable' },
+    { name: 'Arnold Press', sets: 3, reps: '8-10', equipment: 'dumbbell' },
+    { name: 'Front Raise', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Rear Delt Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
+    { name: 'Pike Push-Up', sets: 3, reps: '8-12', equipment: 'bodyweight' },
+    { name: 'Handstand Hold (wall)', sets: 3, reps: '20-30s', equipment: 'bodyweight' },
   ],
   Biceps: [
-    { name: 'Barbell Curl', sets: 3, reps: '8-12' },
-    { name: 'Incline Dumbbell Curl', sets: 3, reps: '10-15' }, // deep stretch at the bottom — good ROM pick
-    { name: 'Hammer Curl', sets: 3, reps: '10-12' },
-    { name: 'Concentration Curl', sets: 3, reps: '10-15' },
-    { name: 'Cable Curl', sets: 3, reps: '12-15' },
-    { name: 'Preacher Curl', sets: 3, reps: '10-12' },
+    { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
+    { name: 'Incline Dumbbell Curl', sets: 3, reps: '10-15', equipment: 'dumbbell' }, // deep stretch at the bottom — good ROM pick
+    { name: 'Hammer Curl', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Concentration Curl', sets: 3, reps: '10-15', equipment: 'dumbbell' },
+    { name: 'Cable Curl', sets: 3, reps: '12-15', equipment: 'cable' },
+    { name: 'Preacher Curl', sets: 3, reps: '10-12', equipment: 'barbell' },
+    { name: 'Chin-Up (underhand)', sets: 3, reps: '6-10', equipment: 'bodyweight' },
   ],
   Triceps: [
-    { name: 'Tricep Pushdown', sets: 3, reps: '10-15' },
-    { name: 'Skull Crusher', sets: 3, reps: '8-12' },
-    { name: 'Overhead Tricep Extension', sets: 3, reps: '10-15' }, // long stretch overhead — good ROM pick
-    { name: 'Close-Grip Bench Press', sets: 3, reps: '8-10' },
-    { name: 'Dips', sets: 3, reps: '8-12' },
-    { name: 'Cable Kickback', sets: 3, reps: '12-15' },
+    { name: 'Tricep Pushdown', sets: 3, reps: '10-15', equipment: 'cable' },
+    { name: 'Skull Crusher', sets: 3, reps: '8-12', equipment: 'barbell' },
+    { name: 'Overhead Tricep Extension', sets: 3, reps: '10-15', equipment: 'dumbbell' }, // long stretch overhead — good ROM pick
+    { name: 'Close-Grip Bench Press', sets: 3, reps: '8-10', equipment: 'barbell' },
+    { name: 'Dips', sets: 3, reps: '8-12', equipment: 'bodyweight' },
+    { name: 'Cable Kickback', sets: 3, reps: '12-15', equipment: 'cable' },
+    { name: 'Diamond Push-Ups', sets: 3, reps: '10-15', equipment: 'bodyweight' },
   ],
   Core: [
-    { name: 'Plank', sets: 3, reps: '30-60s' },
-    { name: 'Hanging Leg Raise', sets: 3, reps: '10-12' },
-    { name: 'Cable Crunch', sets: 3, reps: '12-15' },
-    { name: 'Russian Twist', sets: 3, reps: '15-20' },
-    { name: 'Ab Wheel Rollout', sets: 3, reps: '8-10' },
-    { name: 'Side Plank', sets: 3, reps: '30-45s' },
+    { name: 'Plank', sets: 3, reps: '30-60s', equipment: 'bodyweight' },
+    { name: 'Hanging Leg Raise', sets: 3, reps: '10-12', equipment: 'bodyweight' },
+    { name: 'Cable Crunch', sets: 3, reps: '12-15', equipment: 'cable' },
+    { name: 'Russian Twist', sets: 3, reps: '15-20', equipment: 'bodyweight' },
+    { name: 'Ab Wheel Rollout', sets: 3, reps: '8-10', equipment: 'bodyweight' },
+    { name: 'Side Plank', sets: 3, reps: '30-45s', equipment: 'bodyweight' },
   ],
 };
+
+// Where a session happens, and what equipment is realistically available
+// there. Falls back to the full pool for a muscle group if filtering would
+// leave it empty, rather than suggesting nothing.
+export const WORKOUT_LOCATIONS = ['Outdoors', 'In the Home', 'At the Gym'];
+
+export const LOCATION_EQUIPMENT = {
+  Outdoors: ['bodyweight'],
+  'In the Home': ['bodyweight', 'dumbbell'],
+  'At the Gym': ['bodyweight', 'dumbbell', 'barbell', 'machine', 'cable'],
+};
+
+export function filterByLocation(pool, location) {
+  const allowed = LOCATION_EQUIPMENT[location];
+  if (!allowed) return pool;
+  const filtered = pool.filter((e) => !e.equipment || allowed.includes(e.equipment));
+  return filtered.length > 0 ? filtered : pool;
+}
 
 // The three training styles a client can pick for a session. Each one
 // overrides the library's default sets/reps target and how aggressively
@@ -87,11 +114,11 @@ export const STYLE_CONFIG = {
 // look identical — falls back to repeats only if a group runs out of
 // fresh options. Sets/reps on each pick are overridden by the chosen
 // training style rather than the library's default.
-export function generateWorkout(muscleGroups, style, recentNames = [], perGroup = 2) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   for (const group of muscleGroups) {
-    const pool = EXERCISE_LIBRARY[group] || [];
+    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location);
     const fresh = pool.filter((e) => !recentNames.includes(e.name));
     const stale = pool.filter((e) => recentNames.includes(e.name));
     const ordered = [...shuffle(fresh), ...shuffle(stale)];

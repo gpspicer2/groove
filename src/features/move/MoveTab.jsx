@@ -3,7 +3,7 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2 } from '
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, TRAINING_STYLES, STYLE_CONFIG, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -15,6 +15,7 @@ function mapWorkout(row) {
     id: row.id,
     muscleGroups: row.muscle_groups || [],
     style: row.style || null,
+    location: row.location || null,
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
@@ -90,6 +91,7 @@ export default function MoveTab() {
   const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState('');
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
@@ -148,17 +150,17 @@ export default function MoveTab() {
   }
 
   async function startWorkout() {
-    if (selectedGroups.length === 0 || !selectedStyle) return;
+    if (selectedGroups.length === 0 || !selectedStyle || !selectedLocation) return;
     const lastWorkout = completedWorkouts[0];
     const recentNames = lastWorkout
       ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
       : [];
-    const plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)])
+    const plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation)
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
 
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ muscle_groups: selectedGroups, style: selectedStyle })
+      .insert({ muscle_groups: selectedGroups, style: selectedStyle, location: selectedLocation })
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
@@ -167,6 +169,7 @@ export default function MoveTab() {
     setPlanExercises(plan);
     setSelectedGroups([]);
     setSelectedStyle('');
+    setSelectedLocation('');
   }
 
   function replaceExercise(index, next) {
@@ -335,6 +338,8 @@ export default function MoveTab() {
         />
       ) : (
         <StartWorkout
+          selectedLocation={selectedLocation}
+          onSelectLocation={setSelectedLocation}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
           selectedStyle={selectedStyle}
@@ -366,7 +371,7 @@ export default function MoveTab() {
                   >
                     <div className="text-left">
                       <div style={{ color: PAPER }} className="text-sm font-medium">
-                        {w.muscleGroups.join(' + ')}
+                        {w.muscleGroups.join(' + ')}{w.location && ` · ${w.location}`}
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
                         {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {exerciseNames.length} exercises · {workoutSets.length} sets
@@ -498,34 +503,57 @@ function WeeklyTracker({ completedWorkouts }) {
   );
 }
 
-function StartWorkout({ selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart }) {
-  const canStart = selectedGroups.length > 0 && Boolean(selectedStyle);
+function StartWorkout({ selectedLocation, onSelectLocation, selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart }) {
+  const canStart = Boolean(selectedLocation) && selectedGroups.length > 0 && Boolean(selectedStyle);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        What are you training today?
+        Where are you getting your movement in today?
       </div>
-      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Select your target muscle group(s)</div>
-      <div className="flex flex-wrap justify-center gap-2 mb-5">
-        {MUSCLE_GROUPS.map((group) => {
-          const selected = selectedGroups.includes(group);
+      <div className="space-y-2 mb-5">
+        {WORKOUT_LOCATIONS.map((loc) => {
+          const selected = selectedLocation === loc;
           return (
             <button
-              key={group}
-              onClick={() => onToggleGroup(group)}
-              style={{
-                background: selected ? SKY : INK_3,
-                color: selected ? INK : PAPER_DIM,
-              }}
-              className="px-3 py-2 rounded-full text-sm font-medium"
+              key={loc}
+              onClick={() => onSelectLocation(loc)}
+              style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
+              className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
             >
-              {group}
+              <span style={{ color: selected ? INK : PAPER }}>{loc}</span>
             </button>
           );
         })}
       </div>
 
-      {selectedGroups.length > 0 && (
+      {selectedLocation && (
+        <>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            What are you training today?
+          </div>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Select your target muscle group(s)</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-5">
+            {MUSCLE_GROUPS.map((group) => {
+              const selected = selectedGroups.includes(group);
+              return (
+                <button
+                  key={group}
+                  onClick={() => onToggleGroup(group)}
+                  style={{
+                    background: selected ? SKY : INK_3,
+                    color: selected ? INK : PAPER_DIM,
+                  }}
+                  className="px-3 py-2 rounded-full text-sm font-medium"
+                >
+                  {group}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {selectedLocation && selectedGroups.length > 0 && (
         <>
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Training style</div>
           <div className="space-y-2 mb-5">
@@ -582,8 +610,10 @@ function ActiveWorkout({
         <div style={{ color: PAPER }} className="text-sm font-medium">
           {workout.muscleGroups.join(' + ')}
         </div>
-        {workout.style && (
-          <div style={{ color: SKY }} className="text-sm">{workout.style}</div>
+        {(workout.style || workout.location) && (
+          <div style={{ color: SKY }} className="text-sm">
+            {[workout.style, workout.location].filter(Boolean).join(' · ')}
+          </div>
         )}
         {total > 0 && (
           <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">{total.toLocaleString()} lb lifted so far</div>
@@ -667,12 +697,14 @@ function ActiveWorkout({
         ) : addMode === 'resistance' ? (
           <AddExerciseForm
             muscleGroups={workout.muscleGroups}
+            location={workout.location}
             onAdd={(name, group) => { onAddExercise(name, group); closeAddForm(); }}
             onCancel={closeAddForm}
           />
         ) : addMode === 'superset' ? (
           <AddSupersetForm
             muscleGroups={workout.muscleGroups}
+            location={workout.location}
             onAdd={(a, b) => { onAddSuperset(a, b); closeAddForm(); }}
             onCancel={closeAddForm}
           />
@@ -708,6 +740,7 @@ function ActiveWorkout({
         <SwapPicker
           exercise={exercises[swapIndex]}
           usedNames={exercises.map((e) => e.name)}
+          location={workout.location}
           onPick={(next) => { onReplace(swapIndex, next); setSwapIndex(null); }}
           onClose={() => setSwapIndex(null)}
         />
@@ -716,8 +749,8 @@ function ActiveWorkout({
   );
 }
 
-function SwapPicker({ exercise, usedNames, onPick, onClose }) {
-  const pool = (EXERCISE_LIBRARY[exercise.muscleGroup] || []).filter(
+function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
+  const pool = filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location).filter(
     (e) => e.name !== exercise.name && !usedNames.includes(e.name)
   );
 
@@ -758,8 +791,8 @@ function SwapPicker({ exercise, usedNames, onPick, onClose }) {
   );
 }
 
-function MovementPicker({ label, group, setGroup, name, setName }) {
-  const libraryOptions = EXERCISE_LIBRARY[group] || [];
+function MovementPicker({ label, group, setGroup, name, setName, location }) {
+  const libraryOptions = filterByLocation(EXERCISE_LIBRARY[group] || [], location);
   return (
     <div className="mb-3">
       {label && <div style={{ color: SKY }} className="text-sm mb-2 text-center">{label}</div>}
@@ -801,13 +834,13 @@ function MovementPicker({ label, group, setGroup, name, setName }) {
   );
 }
 
-function AddExerciseForm({ muscleGroups, onAdd, onCancel }) {
+function AddExerciseForm({ muscleGroups, location, onAdd, onCancel }) {
   const [group, setGroup] = useState(muscleGroups[0] || MUSCLE_GROUPS[0]);
   const [name, setName] = useState('');
 
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
-      <MovementPicker group={group} setGroup={setGroup} name={name} setName={setName} />
+      <MovementPicker group={group} setGroup={setGroup} name={name} setName={setName} location={location} />
       <div className="flex items-center gap-2">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
           Cancel
@@ -825,7 +858,7 @@ function AddExerciseForm({ muscleGroups, onAdd, onCancel }) {
   );
 }
 
-function AddSupersetForm({ muscleGroups, onAdd, onCancel }) {
+function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
   const [groupA, setGroupA] = useState(muscleGroups[0] || MUSCLE_GROUPS[0]);
   const [nameA, setNameA] = useState('');
   const [groupB, setGroupB] = useState(muscleGroups[1] || muscleGroups[0] || MUSCLE_GROUPS[0]);
@@ -837,9 +870,9 @@ function AddSupersetForm({ muscleGroups, onAdd, onCancel }) {
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-3 text-center">
         Paired movements, done back-to-back with no rest between them.
       </div>
-      <MovementPicker label="Movement 1" group={groupA} setGroup={setGroupA} name={nameA} setName={setNameA} />
+      <MovementPicker label="Movement 1" group={groupA} setGroup={setGroupA} name={nameA} setName={setNameA} location={location} />
       <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3">
-        <MovementPicker label="Movement 2" group={groupB} setGroup={setGroupB} name={nameB} setName={setNameB} />
+        <MovementPicker label="Movement 2" group={groupB} setGroup={setGroupB} name={nameB} setName={setNameB} location={location} />
       </div>
       <div className="flex items-center gap-2">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">

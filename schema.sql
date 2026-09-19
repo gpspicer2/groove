@@ -104,6 +104,9 @@ create table workouts (
   -- sets/reps/progression (power: low reps, heavy; strength: moderate;
   -- endurance: high reps, lighter)
   style text,
+  -- where the session happens: 'Outdoors' | 'In the Home' | 'At the Gym' —
+  -- narrows the suggested exercise pool to what's realistically available
+  location text,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   created_at timestamptz not null default now()
