@@ -97,6 +97,10 @@ create table workouts (
   user_id uuid not null references auth.users(id) default auth.uid(),
   program_id uuid references programs(id),
   muscle_groups text[] not null default '{}',
+  -- training style picked for this session — drives the suggested
+  -- sets/reps/progression (power: low reps, heavy; strength: moderate;
+  -- endurance: high reps, lighter)
+  style text,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   created_at timestamptz not null default now()

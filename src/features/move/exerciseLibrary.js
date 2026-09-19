@@ -64,11 +64,24 @@ export const EXERCISE_LIBRARY = {
   ],
 };
 
+// The three training styles a client can pick for a session. Each one
+// overrides the library's default sets/reps target and how aggressively
+// weight progresses between sessions.
+export const TRAINING_STYLES = ['Power', 'Strength', 'Endurance'];
+
+export const STYLE_CONFIG = {
+  Power: { sets: 4, reps: '3-5', incrementMultiplier: 1.5, blurb: 'Heavy loads, low reps, full recovery between sets.' },
+  Strength: { sets: 4, reps: '6-8', incrementMultiplier: 1, blurb: 'Moderate reps, steady load progression.' },
+  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, blurb: 'Lighter loads, higher reps, shorter rests.' },
+};
+
 // Picks `count` exercises per selected muscle group, preferring ones not
 // in `recentNames` (last workout's picks) so back-to-back sessions don't
 // look identical — falls back to repeats only if a group runs out of
-// fresh options.
-export function generateWorkout(muscleGroups, recentNames = [], perGroup = 2) {
+// fresh options. Sets/reps on each pick are overridden by the chosen
+// training style rather than the library's default.
+export function generateWorkout(muscleGroups, style, recentNames = [], perGroup = 2) {
+  const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   for (const group of muscleGroups) {
     const pool = EXERCISE_LIBRARY[group] || [];
@@ -76,7 +89,12 @@ export function generateWorkout(muscleGroups, recentNames = [], perGroup = 2) {
     const stale = pool.filter((e) => recentNames.includes(e.name));
     const ordered = [...shuffle(fresh), ...shuffle(stale)];
     for (const ex of ordered.slice(0, perGroup)) {
-      picked.push({ ...ex, muscleGroup: group });
+      picked.push({
+        ...ex,
+        muscleGroup: group,
+        sets: styleConfig.sets ?? ex.sets,
+        reps: styleConfig.reps ?? ex.reps,
+      });
     }
   }
   return picked;
@@ -88,16 +106,34 @@ function parseRepRange(repsStr) {
   return [Number(match[1]), Number(match[2])];
 }
 
-// A simple hypertrophy-oriented progression rule, not a real algorithm:
-// hit the top of your rep range → nudge weight up next time; miss the
-// bottom → back off or hold; land in range → repeat the same weight for
-// another clean set before adding load. Bigger, multi-joint lifts get a
-// bigger jump than isolation/curl-type movements.
-export function suggestNextWeight(exercise, lastSet) {
+// A simple, style-aware progression rule, not a real algorithm: hit the
+// top of your rep range → nudge weight up next time; miss the bottom →
+// back off or hold; land in range → repeat the same weight for another
+// clean set before adding load. Bigger, multi-joint lifts get a bigger
+// jump than isolation/curl-type movements, and Power sessions push
+// harder per jump than Endurance ones. `daysSince` (time since that last
+// logged set) scales the jump further — a long layoff backs the
+// suggestion off toward "match last time" rather than pushing more load
+// on stale form, while a same-week repeat progresses at full strength.
+export function suggestNextWeight(exercise, lastSet, style, daysSince = null) {
   if (!lastSet || lastSet.weight == null || lastSet.reps == null) return null;
   const [lo, hi] = parseRepRange(exercise.reps);
-  const increment = /Squat|Deadlift|Press|Row|Pulldown/.test(exercise.name) ? 5 : 2.5;
+  const baseIncrement = /Squat|Deadlift|Press|Row|Pulldown/.test(exercise.name) ? 5 : 2.5;
+  const styleMultiplier = STYLE_CONFIG[style]?.incrementMultiplier ?? 1;
+
+  // Been away a while — don't push added load onto detrained form.
+  const longLayoff = daysSince != null && daysSince > 21;
+  const roundToHalf = (n) => Math.round(n * 2) / 2;
+  const increment = roundToHalf(baseIncrement * styleMultiplier * (longLayoff ? 0.5 : 1));
+
   if (hi == null) return { weight: lastSet.weight, note: 'Match last time' };
+
+  if (longLayoff) {
+    return {
+      weight: lastSet.weight,
+      note: `It's been ${daysSince} days — start back at your last weight and see how it feels`,
+    };
+  }
   if (lastSet.reps >= hi) {
     return { weight: lastSet.weight + increment, note: `Hit ${lastSet.reps} last time — try +${increment} lb` };
   }

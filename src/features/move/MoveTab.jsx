@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Check, Shuffle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, TRAINING_STYLES, STYLE_CONFIG, generateWorkout, suggestNextWeight } from './exerciseLibrary';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -13,9 +13,14 @@ function mapWorkout(row) {
   return {
     id: row.id,
     muscleGroups: row.muscle_groups || [],
+    style: row.style || null,
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
+}
+
+function daysBetween(a, b) {
+  return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function mapSet(row) {
@@ -36,6 +41,7 @@ export default function MoveTab() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedStyle, setSelectedStyle] = useState('');
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]); // [{name, muscleGroup, sets, reps}]
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
@@ -65,11 +71,20 @@ export default function MoveTab() {
 
   // Most recent logged set for each exercise, across any past workout —
   // shown as "last time" so you can judge whether to push weight up.
+  // Also reports days since that session, so the suggestion can account
+  // for how much time has passed.
   function lastPerformance(exerciseName) {
     const matches = sets
       .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId)
-      .sort((a, b) => b.id.localeCompare(a.id));
-    return matches[0] || null;
+      .map((s) => {
+        const w = workouts.find((wk) => wk.id === s.workoutId);
+        return { ...s, startedAt: w?.startedAt || null };
+      })
+      .filter((s) => s.startedAt)
+      .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+    const last = matches[0];
+    if (!last) return null;
+    return { ...last, daysSince: daysBetween(new Date(), new Date(last.startedAt)) };
   }
 
   function toggleGroup(group) {
@@ -79,17 +94,17 @@ export default function MoveTab() {
   }
 
   async function startWorkout() {
-    if (selectedGroups.length === 0) return;
+    if (selectedGroups.length === 0 || !selectedStyle) return;
     // Avoid repeating last workout's exact exercise picks where possible.
     const lastWorkout = completedWorkouts[0];
     const recentNames = lastWorkout
       ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
       : [];
-    const plan = generateWorkout(selectedGroups, [...new Set(recentNames)]);
+    const plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)]);
 
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ muscle_groups: selectedGroups })
+      .insert({ muscle_groups: selectedGroups, style: selectedStyle })
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
@@ -97,18 +112,49 @@ export default function MoveTab() {
     setActiveWorkoutId(data.id);
     setPlanExercises(plan);
     setSelectedGroups([]);
+    setSelectedStyle('');
   }
 
-  function swapExercise(index) {
+  function replaceExercise(index, next) {
     const ex = planExercises[index];
-    const pool = EXERCISE_LIBRARY[ex.muscleGroup] || [];
-    const usedNames = planExercises.map((e) => e.name);
-    const options = pool.filter((e) => !usedNames.includes(e.name));
-    if (options.length === 0) return;
-    const next = options[Math.floor(Math.random() * options.length)];
     setPlanExercises((prev) =>
-      prev.map((e, i) => (i === index ? { ...next, muscleGroup: ex.muscleGroup } : e))
+      prev.map((e, i) => (i === index ? { ...next, muscleGroup: ex.muscleGroup, sets: ex.sets, reps: ex.reps } : e))
     );
+  }
+
+  function moveExercise(index, direction) {
+    setPlanExercises((prev) => {
+      const next = [...prev];
+      const swapWith = index + direction;
+      if (swapWith < 0 || swapWith >= next.length) return prev;
+      [next[index], next[swapWith]] = [next[swapWith], next[index]];
+      return next;
+    });
+  }
+
+  function addExercise(name, muscleGroup) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const styleConfig = STYLE_CONFIG[activeWorkout?.style] || {};
+    const fromLibrary = (EXERCISE_LIBRARY[muscleGroup] || []).find(
+      (e) => e.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    setPlanExercises((prev) => [
+      ...prev,
+      {
+        name: fromLibrary?.name || trimmed,
+        muscleGroup,
+        sets: styleConfig.sets ?? fromLibrary?.sets ?? 3,
+        reps: styleConfig.reps ?? fromLibrary?.reps ?? '10-12',
+      },
+    ]);
+  }
+
+  function removeExercise(index, hasLoggedSets) {
+    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
+      return;
+    }
+    setPlanExercises((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function logSet(exerciseName, muscleGroup, setNumber, weight, reps) {
@@ -187,12 +233,21 @@ export default function MoveTab() {
           lastPerformance={lastPerformance}
           onLogSet={logSet}
           onDeleteSet={deleteSet}
-          onSwap={swapExercise}
+          onReplace={replaceExercise}
+          onMove={moveExercise}
+          onAddExercise={addExercise}
+          onRemoveExercise={removeExercise}
           onFinish={finishWorkout}
           onDiscard={discardWorkout}
         />
       ) : (
-        <StartWorkout selectedGroups={selectedGroups} onToggleGroup={toggleGroup} onStart={startWorkout} />
+        <StartWorkout
+          selectedGroups={selectedGroups}
+          onToggleGroup={toggleGroup}
+          selectedStyle={selectedStyle}
+          onSelectStyle={setSelectedStyle}
+          onStart={startWorkout}
+        />
       )}
 
       <div className="mt-8">
@@ -302,12 +357,14 @@ function WeeklyTracker({ completedWorkouts }) {
   );
 }
 
-function StartWorkout({ selectedGroups, onToggleGroup, onStart }) {
+function StartWorkout({ selectedGroups, onToggleGroup, selectedStyle, onSelectStyle, onStart }) {
+  const canStart = selectedGroups.length > 0 && Boolean(selectedStyle);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
         What are you training today?
       </div>
+      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Pick any body parts (multiple OK)</div>
       <div className="flex flex-wrap justify-center gap-2 mb-5">
         {MUSCLE_GROUPS.map((group) => {
           const selected = selectedGroups.includes(group);
@@ -326,10 +383,33 @@ function StartWorkout({ selectedGroups, onToggleGroup, onStart }) {
           );
         })}
       </div>
+
+      {selectedGroups.length > 0 && (
+        <>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Training style</div>
+          <div className="space-y-2 mb-5">
+            {TRAINING_STYLES.map((style) => {
+              const selected = selectedStyle === style;
+              return (
+                <button
+                  key={style}
+                  onClick={() => onSelectStyle(style)}
+                  style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
+                  className="w-full text-left rounded-md px-4 py-2.5"
+                >
+                  <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{style}</div>
+                  <div style={{ color: selected ? INK : TEXT_SOFT }} className="text-sm">{STYLE_CONFIG[style].blurb}</div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <button
         onClick={onStart}
-        disabled={selectedGroups.length === 0}
-        style={{ background: selectedGroups.length ? SKY : INK_3, color: selectedGroups.length ? INK : TEXT_SOFT }}
+        disabled={!canStart}
+        style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
         className="w-full rounded-md py-3 text-sm font-medium"
       >
         Start workout
@@ -338,45 +418,196 @@ function StartWorkout({ selectedGroups, onToggleGroup, onStart }) {
   );
 }
 
-function ActiveWorkout({ workout, exercises, sets, lastPerformance, onLogSet, onDeleteSet, onSwap, onFinish, onDiscard }) {
+function ActiveWorkout({ workout, exercises, sets, lastPerformance, onLogSet, onDeleteSet, onReplace, onMove, onAddExercise, onRemoveExercise, onFinish, onDiscard }) {
+  const [addingExercise, setAddingExercise] = useState(false);
+  const [swapIndex, setSwapIndex] = useState(null);
+
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3">
         <div style={{ color: PAPER }} className="text-sm font-medium">
           {workout.muscleGroups.join(' + ')}
         </div>
-        <button onClick={onDiscard} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1 py-2 -my-2">
-          <Trash2 size={14} /> Discard
-        </button>
+        {workout.style && (
+          <div style={{ color: SKY }} className="text-sm">{workout.style}</div>
+        )}
       </div>
 
       <div className="space-y-3 mb-4">
-        {exercises.map((ex, i) => (
-          <ExerciseCard
-            key={`${ex.name}-${i}`}
-            exercise={ex}
-            loggedSets={sets.filter((s) => s.exerciseName === ex.name)}
-            last={lastPerformance(ex.name)}
-            onLogSet={(setNumber, weight, reps) => onLogSet(ex.name, ex.muscleGroup, setNumber, weight, reps)}
-            onDeleteSet={onDeleteSet}
-            onSwap={() => onSwap(i)}
-          />
-        ))}
+        {exercises.map((ex, i) => {
+          const loggedSets = sets.filter((s) => s.exerciseName === ex.name);
+          return (
+            <ExerciseCard
+              key={`${ex.name}-${i}`}
+              exercise={ex}
+              style={workout.style}
+              loggedSets={loggedSets}
+              last={lastPerformance(ex.name)}
+              onLogSet={(setNumber, weight, reps) => onLogSet(ex.name, ex.muscleGroup, setNumber, weight, reps)}
+              onDeleteSet={onDeleteSet}
+              onOpenSwap={() => setSwapIndex(i)}
+              onMoveUp={i > 0 ? () => onMove(i, -1) : null}
+              onMoveDown={i < exercises.length - 1 ? () => onMove(i, 1) : null}
+              onRemove={() => onRemoveExercise(i, loggedSets.length > 0)}
+            />
+          );
+        })}
       </div>
+
+      {addingExercise ? (
+        <AddExerciseForm
+          muscleGroups={workout.muscleGroups}
+          onAdd={(name, group) => { onAddExercise(name, group); setAddingExercise(false); }}
+          onCancel={() => setAddingExercise(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setAddingExercise(true)}
+          style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+          className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+        >
+          <Plus size={14} /> Add exercise
+        </button>
+      )}
 
       <button
         onClick={onFinish}
         style={{ background: SKY, color: INK }}
-        className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
+        className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5 mb-3"
       >
         <Check size={16} /> Finish workout
       </button>
+
+      <button onClick={onDiscard} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline">
+        Discard this workout
+      </button>
+
+      {swapIndex !== null && (
+        <SwapPicker
+          exercise={exercises[swapIndex]}
+          usedNames={exercises.map((e) => e.name)}
+          onPick={(next) => { onReplace(swapIndex, next); setSwapIndex(null); }}
+          onClose={() => setSwapIndex(null)}
+        />
+      )}
     </div>
   );
 }
 
-function ExerciseCard({ exercise, loggedSets, last, onLogSet, onDeleteSet, onSwap }) {
-  const suggestion = suggestNextWeight(exercise, last);
+function SwapPicker({ exercise, usedNames, onPick, onClose }) {
+  const pool = (EXERCISE_LIBRARY[exercise.muscleGroup] || []).filter(
+    (e) => e.name !== exercise.name && !usedNames.includes(e.name)
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+      <div
+        style={{ background: INK_2 }}
+        className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 max-h-[70vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div style={{ color: PAPER }} className="text-sm font-medium">Swap "{exercise.name}" for…</div>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
+            <X size={18} />
+          </button>
+        </div>
+        {pool.length === 0 ? (
+          <div style={{ color: TEXT_SOFT }} className="text-sm py-4 text-center">
+            No other {exercise.muscleGroup.toLowerCase()} exercises left in the library.
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {pool.map((e) => (
+              <button
+                key={e.name}
+                onClick={() => onPick(e)}
+                style={{ background: INK_3, color: PAPER }}
+                className="w-full text-left rounded-md px-4 py-3 text-sm"
+              >
+                {e.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AddExerciseForm({ muscleGroups, onAdd, onCancel }) {
+  const [group, setGroup] = useState(muscleGroups[0] || MUSCLE_GROUPS[0]);
+  const [name, setName] = useState('');
+
+  const libraryOptions = EXERCISE_LIBRARY[group] || [];
+
+  return (
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Muscle group</div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {MUSCLE_GROUPS.map((g) => (
+          <button
+            key={g}
+            onClick={() => setGroup(g)}
+            style={{ background: group === g ? SKY : INK_3, color: group === g ? INK : PAPER_DIM }}
+            className="px-3 py-1.5 rounded-full text-sm"
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Pick from the library, or type your own</div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {libraryOptions.map((ex) => (
+          <button
+            key={ex.name}
+            onClick={() => setName(ex.name)}
+            style={{ background: name === ex.name ? SKY : INK_3, color: name === ex.name ? INK : PAPER_DIM }}
+            className="px-3 py-1.5 rounded-full text-sm"
+          >
+            {ex.name}
+          </button>
+        ))}
+      </div>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Exercise name"
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none mb-3"
+      />
+
+      <div className="flex items-center gap-2">
+        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
+          Cancel
+        </button>
+        <button
+          onClick={() => onAdd(name, group)}
+          disabled={!name.trim()}
+          style={{ background: name.trim() ? SKY : INK_3, color: name.trim() ? INK : TEXT_SOFT }}
+          className="flex-1 rounded-md py-2.5 text-sm font-medium"
+        >
+          Add to workout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatDaysSince(days) {
+  if (days == null) return '';
+  if (days === 0) return 'today';
+  if (days === 1) return '1 day ago';
+  if (days < 14) return `${days} days ago`;
+  const weeks = Math.round(days / 7);
+  return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+}
+
+function ExerciseCard({ exercise, style, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onMoveUp, onMoveDown, onRemove }) {
+  const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
   const [weight, setWeight] = useState(suggestion?.weight != null ? String(suggestion.weight) : '');
   const [reps, setReps] = useState('');
   const nextSetNumber = loggedSets.length + 1;
@@ -390,13 +621,34 @@ function ExerciseCard({ exercise, loggedSets, last, onLogSet, onDeleteSet, onSwa
     <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
       <div className="flex items-center justify-between mb-1">
         <div style={{ color: PAPER }} className="text-sm font-medium">{exercise.name}</div>
-        <button onClick={onSwap} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-          <Shuffle size={14} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onMoveUp || undefined}
+            disabled={!onMoveUp}
+            style={{ color: onMoveUp ? TEXT_SOFT : INK_3 }}
+            className="p-2 -m-1"
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            onClick={onMoveDown || undefined}
+            disabled={!onMoveDown}
+            style={{ color: onMoveDown ? TEXT_SOFT : INK_3 }}
+            className="p-2 -m-1"
+          >
+            <ChevronDown size={14} />
+          </button>
+          <button onClick={onOpenSwap} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Swap for another exercise">
+            <Replace size={14} />
+          </button>
+          <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">
         Target: {exercise.sets} sets × {exercise.reps}
-        {last && ` · Last time: ${formatMoneyLikeWeight(last.weight) ?? '—'} × ${last.reps ?? '—'}`}
+        {last && ` · Last time (${formatDaysSince(last.daysSince)}): ${formatMoneyLikeWeight(last.weight) ?? '—'} × ${last.reps ?? '—'}`}
       </div>
       {suggestion && (
         <div style={{ color: SKY }} className="text-sm mb-2">
