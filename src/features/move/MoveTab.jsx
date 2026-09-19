@@ -364,7 +364,7 @@ function StartWorkout({ selectedGroups, onToggleGroup, selectedStyle, onSelectSt
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
         What are you training today?
       </div>
-      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Pick any body parts (multiple OK)</div>
+      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Select your target muscle group(s)</div>
       <div className="flex flex-wrap justify-center gap-2 mb-5">
         {MUSCLE_GROUPS.map((group) => {
           const selected = selectedGroups.includes(group);
