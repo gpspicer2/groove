@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Lock, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import Portal from '../../Portal';
 
 const PROMPTS = [
   'What felt good in your body today?',
@@ -54,9 +55,23 @@ export default function JournalTab() {
     })();
   }, [user]);
 
+  const [editingEntry, setEditingEntry] = useState(null);
+
   function addEntry(entry) {
     setEntries((prev) => [entry, ...prev]);
     setMode(null);
+  }
+
+  function updateEntry(updated) {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    setEditingEntry(null);
+  }
+
+  async function deleteEntry(id) {
+    if (!window.confirm('Delete this journal entry? This can\'t be undone.')) return;
+    const { error } = await supabase.from('journal_entries').delete().eq('id', id);
+    if (error) return;
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
   if (loading) {
@@ -69,9 +84,10 @@ export default function JournalTab() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center">
+      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-1 text-center">
         Journal
       </h1>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">A space just for you to put your thoughts.</div>
 
       {mode === 'checkin' ? (
         <CheckinFlow recentExerciseNames={recentExerciseNames} onSaved={addEntry} onCancel={() => setMode(null)} />
@@ -106,15 +122,173 @@ export default function JournalTab() {
       ) : (
         <div className="space-y-2">
           {entries.map((e) => (
-            <div key={e.id} style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-              <div style={{ color: PAPER }} className="text-sm text-center flex items-center justify-center gap-1.5">
-                {new Date(e.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {e.prompt}
-                {e.isPrivate && <Lock size={11} color={TEXT_SOFT} />}
-              </div>
-            </div>
+            <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
           ))}
         </div>
       )}
+
+      {editingEntry && (
+        <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} onSaved={updateEntry} />
+      )}
+    </div>
+  );
+}
+
+function JournalEntryRow({ entry, onEdit, onDelete }) {
+  const [revealed, setRevealed] = useState(false);
+  const startX = useRef(0);
+  const dragging = useRef(false);
+
+  function handleTouchStart(e) {
+    startX.current = e.touches[0].clientX;
+    dragging.current = true;
+  }
+  function handleTouchMove(e) {
+    if (!dragging.current) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (dx < -30) setRevealed(true);
+    if (dx > 30) setRevealed(false);
+  }
+  function handleTouchEnd() {
+    dragging.current = false;
+  }
+
+  return (
+    <div data-no-swipe className="relative rounded-md overflow-hidden">
+      <div className="absolute right-0 top-0 h-full flex" style={{ width: 112 }}>
+        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
+          <Pencil size={16} />
+        </button>
+        <button onClick={onDelete} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          <Trash2 size={16} />
+        </button>
+      </div>
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ background: INK_2, transform: `translateX(${revealed ? -112 : 0}px)`, transition: 'transform 0.2s ease' }}
+        className="relative flex items-center justify-between gap-2 px-4 py-3"
+      >
+        <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">
+          {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
+          {entry.isPrivate && <Lock size={11} color={TEXT_SOFT} />}
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0" style={{ color: TEXT_SOFT }}>
+          <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
+          <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditEntryModal({ entry, onClose, onSaved }) {
+  const isStructured = Boolean(entry.structured);
+  const [response, setResponse] = useState(entry.response);
+  const [mood, setMood] = useState(entry.structured?.mood || 4);
+  const [favoriteMovement, setFavoriteMovement] = useState(entry.structured?.favoriteMovement || '');
+  const [leastFavoriteMovement, setLeastFavoriteMovement] = useState(entry.structured?.leastFavoriteMovement || '');
+  const [smile, setSmile] = useState(entry.structured?.smile || '');
+  const [extra, setExtra] = useState(entry.structured?.extra || '');
+  const [isPrivate, setIsPrivate] = useState(entry.isPrivate);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    const updates = { is_private: isPrivate };
+    if (isStructured) {
+      updates.structured = { mood, favoriteMovement, leastFavoriteMovement, smile, extra };
+      updates.response = `Mood ${mood}/7`;
+    } else {
+      updates.response = response.trim();
+    }
+    const { data, error } = await supabase.from('journal_entries').update(updates).eq('id', entry.id).select().single();
+    setSaving(false);
+    if (error) return;
+    onSaved(mapEntry(data));
+  }
+
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
+        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Edit entry</h2>
+            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
+          </div>
+
+          {isStructured ? (
+            <div className="space-y-4">
+              <div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Mood</div>
+                <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-xl font-medium text-center mb-2">
+                  {MOOD_LABELS[mood - 1]}
+                </div>
+                <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: LIME }} />
+              </div>
+              <LabeledInput label="Favorite movement" value={favoriteMovement} onChange={setFavoriteMovement} />
+              <LabeledInput label="Least favorite movement" value={leastFavoriteMovement} onChange={setLeastFavoriteMovement} />
+              <LabeledTextarea label="What made you smile" value={smile} onChange={setSmile} />
+              <LabeledTextarea label="Anything else" value={extra} onChange={setExtra} />
+            </div>
+          ) : (
+            <div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">{entry.prompt}</div>
+              <textarea
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                rows={5}
+                style={{ background: INK_3, color: PAPER }}
+                className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
+              />
+            </div>
+          )}
+
+          <div className="mt-4">
+            <PrivacyToggle isPrivate={isPrivate} onToggle={() => setIsPrivate((v) => !v)} />
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ background: LIME, color: INK }}
+            className="w-full rounded-md py-3 text-sm font-medium mt-2"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+function LabeledInput({ label, value, onChange }) {
+  return (
+    <div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-1">{label}</div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+      />
+    </div>
+  );
+}
+
+function LabeledTextarea({ label, value, onChange }) {
+  return (
+    <div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-1">{label}</div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
+      />
     </div>
   );
 }
