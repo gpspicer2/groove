@@ -1,10 +1,11 @@
 import React from 'react';
 
-// The GROOVE wordmark, letter by letter: G = bike wheel + crank, R = a
-// strung racket, O = a 45lb plate with a bar through it, O = a sun,
-// V = a jump rope with handles, E = a letter with a musical note beside
-// it. Monoline strokes throughout so the six motifs still read as one
-// consistent mark rather than icons stapled together.
+// The GROOVE wordmark, letter by letter: G = a chainring with a crank arm
+// and pedal, R = a person running, O = a 45lb plate with a bar through
+// it, O = a sun, V = a checkmark, E = a musical note built from the
+// letter's own stem (flag at the top, notehead at the bottom) rather than
+// a separate glyph bolted on. Monoline strokes throughout so the motifs
+// still read as one consistent mark.
 export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
   return (
     <svg
@@ -16,24 +17,23 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="none" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round">
-        {/* G: bike wheel + crossbar */}
+        {/* G: chainring + crank + pedal */}
         <g>
           <path d="M 96 100 A 48 48 0 1 1 96 50" />
           <path d="M 96 75 L 72 75" />
-          <line x1="55" y1="75" x2="55" y2="35" strokeWidth="4" opacity="0.7" />
-          <line x1="55" y1="75" x2="55" y2="115" strokeWidth="4" opacity="0.7" />
-          <line x1="55" y1="75" x2="20" y2="52" strokeWidth="4" opacity="0.7" />
-          <line x1="55" y1="75" x2="20" y2="98" strokeWidth="4" opacity="0.7" />
-          <circle cx="55" cy="75" r="6" fill="currentColor" stroke="none" />
+          <line x1="55" y1="75" x2="92" y2="108" strokeWidth="9" />
+          <circle cx="55" cy="75" r="7" fill="currentColor" stroke="none" />
+          <rect x="76" y="98" width="34" height="15" rx="7.5" transform="rotate(48 93 105.5)" fill="currentColor" stroke="none" />
         </g>
 
-        {/* R: strung racket */}
+        {/* R: running figure */}
         <g transform="translate(124,0)">
-          <line x1="15" y1="10" x2="15" y2="140" />
-          <path d="M 15 10 L 42 10 A 30 30 0 0 1 42 70 L 15 70" />
-          <line x1="27" y1="20" x2="27" y2="60" strokeWidth="4" opacity="0.7" />
-          <line x1="18" y1="40" x2="40" y2="40" strokeWidth="4" opacity="0.7" />
-          <path d="M 30 70 L 82 140" />
+          <circle cx="62" cy="20" r="13" fill="currentColor" stroke="none" />
+          <path d="M 55 34 L 40 72" />
+          <path d="M 40 72 L 12 140" />
+          <path d="M 40 72 L 85 135" />
+          <path d="M 48 48 L 85 30" />
+          <path d="M 44 58 L 8 75" />
         </g>
 
         {/* O: 45lb plate with a bar through the hole */}
@@ -48,36 +48,33 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
 
         {/* O: sun */}
         <g transform="translate(372,0)">
-          <circle cx="55" cy="75" r="34" />
-          <line x1="55" y1="12" x2="55" y2="28" strokeWidth="7" />
-          <line x1="55" y1="122" x2="55" y2="138" strokeWidth="7" />
-          <line x1="4" y1="75" x2="20" y2="75" strokeWidth="7" />
-          <line x1="90" y1="75" x2="106" y2="75" strokeWidth="7" />
-          <line x1="19" y1="39" x2="30" y2="50" strokeWidth="7" />
-          <line x1="80" y1="100" x2="91" y2="111" strokeWidth="7" />
-          <line x1="91" y1="39" x2="80" y2="50" strokeWidth="7" />
-          <line x1="30" y1="100" x2="19" y2="111" strokeWidth="7" />
-        </g>
-
-        {/* V: jump rope, handles at the top */}
-        <g transform="translate(496,0)">
-          <path d="M 14 20 Q 55 150 96 20" />
-          <circle cx="14" cy="14" r="13" fill="currentColor" stroke="none" />
-          <circle cx="96" cy="14" r="13" fill="currentColor" stroke="none" />
-        </g>
-
-        {/* E, with a musical note beside it */}
-        <g transform="translate(624,0)">
-          <path d="M 82 10 L 15 10" />
-          <path d="M 15 10 L 15 130" />
-          <path d="M 15 70 L 65 70" />
-          <path d="M 15 130 L 82 130" />
-          <g strokeWidth="8">
-            <path d="M 118 20 L 118 78" />
-            <path d="M 118 20 C 135 24, 136 40, 122 42" />
+          <circle cx="55" cy="75" r="26" />
+          <g strokeWidth="9">
+            <line x1="55" y1="8" x2="55" y2="24" />
+            <line x1="55" y1="126" x2="55" y2="142" />
+            <line x1="-12" y1="75" x2="4" y2="75" />
+            <line x1="106" y1="75" x2="122" y2="75" />
+            <line x1="4" y1="24" x2="15" y2="35" />
+            <line x1="95" y1="115" x2="106" y2="126" />
+            <line x1="106" y1="24" x2="95" y2="35" />
+            <line x1="15" y1="115" x2="4" y2="126" />
           </g>
-          <ellipse cx="107" cy="82" rx="14" ry="10" fill="currentColor" stroke="none" transform="rotate(-18 107 82)" />
         </g>
+
+        {/* V: checkmark */}
+        <g transform="translate(496,0)" strokeWidth="16">
+          <path d="M 10 75 L 45 115 L 105 15" />
+        </g>
+
+        {/* E: musical note built from the letter's own stem */}
+        <g transform="translate(624,0)">
+          <path d="M 88 10 L 22 10" />
+          <path d="M 22 10 L 22 130" />
+          <path d="M 22 70 L 75 70" />
+          <path d="M 40 130 L 88 130" />
+          <path d="M 88 10 C 110 15, 109 34, 90 35" strokeWidth="9" />
+        </g>
+        <ellipse cx="636" cy="136" rx="19" ry="14" fill="currentColor" stroke="none" transform="rotate(-20 636 136)" />
       </g>
     </svg>
   );

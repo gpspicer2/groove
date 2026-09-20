@@ -107,31 +107,10 @@ export default function JournalTab() {
         <div className="space-y-2">
           {entries.map((e) => (
             <div key={e.id} style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-              <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 text-center flex items-center justify-center gap-1">
+              <div style={{ color: PAPER }} className="text-sm text-center flex items-center justify-center gap-1.5">
                 {new Date(e.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {e.prompt}
-                {e.isPrivate && <Lock size={11} />}
+                {e.isPrivate && <Lock size={11} color={TEXT_SOFT} />}
               </div>
-              {e.structured ? (
-                <div className="space-y-1.5">
-                  <div style={{ color: PAPER }} className="text-sm text-center">
-                    Mood: {MOOD_LABELS[e.structured.mood - 1] || e.structured.mood} ({e.structured.mood}/7)
-                  </div>
-                  {e.structured.favoriteMovement && (
-                    <div style={{ color: PAPER }} className="text-sm text-center">Favorite: {e.structured.favoriteMovement}</div>
-                  )}
-                  {e.structured.leastFavoriteMovement && (
-                    <div style={{ color: PAPER }} className="text-sm text-center">Least favorite: {e.structured.leastFavoriteMovement}</div>
-                  )}
-                  {e.structured.smile && (
-                    <div style={{ color: PAPER }} className="text-sm text-center">Made you smile: {e.structured.smile}</div>
-                  )}
-                  {e.structured.extra && (
-                    <div style={{ color: PAPER_DIM }} className="text-sm text-center">{e.structured.extra}</div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ color: PAPER }} className="text-sm text-center">{e.response}</div>
-              )}
             </div>
           ))}
         </div>
