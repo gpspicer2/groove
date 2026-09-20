@@ -392,11 +392,16 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* The label/icon never moves — only the count (and the buttons
-          underneath it) slide, so swiping doesn't yank the whole row
-          sideways. Touch tracking lives on the whole row so the gesture
-          works no matter where on it you start swiping. */}
-      <div className="absolute right-0 top-0 bottom-0 flex" style={{ width: 96 }}>
+      {/* Nothing in the row itself ever moves — the buttons slide IN
+          from off-screen to overlay it, instead of the row's own
+          content sliding away to uncover them underneath. Absolutely
+          positioned elements always paint above normal in-flow content
+          in CSS, so once these are on-screen they're guaranteed visible
+          without needing to fight anything for stacking. */}
+      <div
+        className="absolute right-0 top-0 bottom-0 flex"
+        style={{ width: 96, transform: `translateX(${revealed ? 0 : 96}px)`, transition: 'transform 0.2s ease' }}
+      >
         <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <Pencil size={14} />
         </button>
@@ -409,17 +414,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
         </span>
-        <span
-          style={{
-            background: INK_2,
-            transform: `translateX(${revealed ? -96 : 0}px)`,
-            transition: 'transform 0.2s ease',
-            position: 'relative',
-            zIndex: 1,
-            minWidth: 96,
-          }}
-          className="flex items-center justify-end gap-1.5 pl-2"
-        >
+        <span className="flex items-center gap-1.5">
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
             {count} / {goal}
           </span>
@@ -429,7 +424,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           </span>
         </span>
       </div>
-      <div style={{ background: INK_3, position: 'relative', zIndex: 1 }} className="h-2 rounded-full overflow-hidden">
+      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
       </div>
     </div>
