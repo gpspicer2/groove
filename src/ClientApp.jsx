@@ -7,6 +7,7 @@ import BirdseyeTab from './features/birdseye/BirdseyeTab';
 import MoveTab from './features/move/MoveTab';
 import JournalTab from './features/journal/JournalTab';
 import LearnTab from './features/learn/LearnTab';
+import GrooveSheet from './GrooveSheet';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
 const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', learn: 'Learn' };
@@ -16,6 +17,7 @@ export default function ClientApp() {
   const { user } = useAuth();
   const [tab, setTab] = useState('birdseye');
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
+  const [showGroove, setShowGroove] = useState(false);
 
   function openWorkout(workoutId) {
     setDeepLinkWorkoutId(workoutId);
@@ -59,6 +61,7 @@ export default function ClientApp() {
       <SwipeTabs
         index={activeIndex}
         onChangeIndex={(i) => setTab(TABS[i])}
+        onEdgeSwipeRight={tab === 'birdseye' ? () => setShowGroove(true) : null}
         pages={[
           <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenJournal={openJournal} />,
           <MoveTab deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
@@ -66,6 +69,8 @@ export default function ClientApp() {
           <LearnTab />,
         ]}
       />
+
+      {showGroove && <GrooveSheet onClose={() => setShowGroove(false)} />}
     </div>
   );
 }

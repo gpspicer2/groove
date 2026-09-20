@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, INK } from '../../theme';
 import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES, BODY_REGION_GROUPS } from './exerciseLibrary';
 
@@ -8,6 +8,17 @@ const LONG_PRESS_MS = 550;
 // shortcuts, used by the Resistance/Combined/Flexibility steps of Move's
 // start flow, and by Birdseye's quick-log modal.
 export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
+  // "Whole Body" is tracked separately from the derived Upper/Lower
+  // highlight: deselecting one or two individual muscles should leave it
+  // looking selected, but explicitly clearing an entire half via the
+  // Upper/Lower Body button should turn it off, even though the other
+  // half's muscles are still selected.
+  const [wholeActive, setWholeActive] = useState(false);
+
+  useEffect(() => {
+    if (selectedGroups.length === 0) setWholeActive(false);
+  }, [selectedGroups.length]);
+
   function toggleRegion(region) {
     const groups = BODY_REGION_GROUPS[region];
     const allSelected = groups.every((g) => selectedGroups.includes(g));
@@ -16,16 +27,25 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
       if (allSelected && isSelected) onToggleGroup(g);
       if (!allSelected && !isSelected) onToggleGroup(g);
     });
+
+    if (region === 'Whole Body') {
+      setWholeActive(!allSelected);
+    } else if (allSelected) {
+      // Clearing an entire half while Whole Body was active means it's
+      // no longer fully selected, even though the other half remains.
+      setWholeActive(false);
+    }
   }
 
   return (
     <>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {Object.keys(BODY_REGION_GROUPS).map((region) => {
-          // Highlighted as long as ANY of its groups are still selected —
-          // deselecting one or two muscles individually shouldn't make the
-          // shortcut look like it was never used.
-          const selected = BODY_REGION_GROUPS[region].some((g) => selectedGroups.includes(g));
+          // Upper/Lower stay highlighted as long as ANY of their groups
+          // are still selected — deselecting one or two muscles
+          // individually shouldn't make the shortcut look unused. Whole
+          // Body uses its own explicit flag instead (see above).
+          const selected = region === 'Whole Body' ? wholeActive : BODY_REGION_GROUPS[region].some((g) => selectedGroups.includes(g));
           return (
             <button
               key={region}

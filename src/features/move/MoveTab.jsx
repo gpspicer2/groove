@@ -108,6 +108,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
 
@@ -161,6 +162,32 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+
+  // Resume an unfinished movement automatically — closing the app (or
+  // just navigating away) without tapping "Finish Movement" shouldn't
+  // make it disappear; reconstruct the in-progress plan from whatever
+  // sets were already logged so the session picks up where it left off.
+  useEffect(() => {
+    if (loading || activeWorkoutId) return;
+    const unfinished = workouts.find((w) => !w.completedAt && !w.deletedAt);
+    if (!unfinished) return;
+    const loggedSets = sets.filter((s) => s.workoutId === unfinished.id);
+    const seen = new Set();
+    const reconstructed = [];
+    loggedSets.forEach((s) => {
+      if (seen.has(s.exerciseName)) return;
+      seen.add(s.exerciseName);
+      reconstructed.push({
+        name: s.exerciseName,
+        muscleGroup: s.muscleGroup,
+        type: s.movementType === 'aerobic' ? 'aerobic' : s.movementType === 'flexibility' ? 'flexibility' : 'resistance',
+        supersetId: null,
+      });
+    });
+    setActiveWorkoutId(unfinished.id);
+    setPlanExercises(reconstructed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, workouts]);
 
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;
@@ -299,6 +326,33 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setMovementMode('');
   }
 
+  // Lets a past resistance (or flexibility) movement pick up aerobic
+  // work after the fact, bumping it to Combined so it counts toward
+  // both goals — same idea as mid-session mixing, just for history.
+  async function addAerobicToHistory(workoutId, name, durationSeconds, distance) {
+    const { data, error } = await supabase
+      .from('workout_sets')
+      .insert({
+        workout_id: workoutId,
+        exercise_name: name,
+        muscle_group: 'Cardio',
+        set_number: 1,
+        movement_type: 'aerobic',
+        duration_seconds: durationSeconds || null,
+        distance: distance || null,
+      })
+      .select()
+      .single();
+    if (error) { setLoadError(error.message); return; }
+    setSets((prev) => [...prev, mapSet(data)]);
+    const w = workouts.find((x) => x.id === workoutId);
+    if (w && (w.movementMode === 'Resistance' || w.movementMode === 'Flexibility')) {
+      const { data: wdata, error: werror } = await supabase.from('workouts').update({ movement_mode: 'Combined' }).eq('id', workoutId).select().single();
+      if (!werror) setWorkouts((prev) => prev.map((x) => (x.id === workoutId ? mapWorkout(wdata) : x)));
+    }
+    setAddingAerobicToId(null);
+  }
+
   async function deleteWorkout(workoutId) {
     if (!window.confirm('Delete this movement? You can restore it later from Birdseye if you change your mind.')) return;
     const { error } = await supabase.from('workouts').update({ deleted_at: new Date().toISOString() }).eq('id', workoutId).select().single();
@@ -339,6 +393,22 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     });
   }
 
+  // A workout started as one mode can pick up a different kind of
+  // movement mid-session (aerobic work added into a resistance day,
+  // say) — bump its stored mode to Combined so goal counts and the
+  // calendar reflect what actually happened, not just how it started.
+  async function upgradeToCombinedIfNeeded(addedType) {
+    if (!activeWorkoutId || !activeWorkout) return;
+    const mode = activeWorkout.movementMode;
+    const needsUpgrade =
+      (addedType === 'aerobic' && (mode === 'Resistance' || mode === 'Flexibility')) ||
+      (addedType === 'resistance' && (mode === 'Aerobic' || mode === 'Flexibility'));
+    if (!needsUpgrade) return;
+    const { data, error } = await supabase.from('workouts').update({ movement_mode: 'Combined' }).eq('id', activeWorkoutId).select().single();
+    if (error) return;
+    setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
+  }
+
   function addExercise(name, muscleGroup) {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -357,6 +427,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         reps: styleConfig.reps ?? fromLibrary?.reps ?? '10-12',
       },
     ]);
+    upgradeToCombinedIfNeeded('resistance');
   }
 
   function addSuperset(a, b) {
@@ -380,6 +451,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       ...prev,
       { name: trimmed, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: targetNote.trim() },
     ]);
+    upgradeToCombinedIfNeeded('aerobic');
   }
 
   function removeExercise(index, hasLoggedSets) {
@@ -600,9 +672,25 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                           </div>
                         );
                       })}
+                      {editing && (
+                        addingAerobicToId === w.id ? (
+                          <AddAerobicToHistoryForm
+                            onAdd={(name, durationSeconds, distance) => addAerobicToHistory(w.id, name, durationSeconds, distance)}
+                            onCancel={() => setAddingAerobicToId(null)}
+                          />
+                        ) : (
+                          <button
+                            onClick={() => setAddingAerobicToId(w.id)}
+                            style={{ background: INK_3, color: SKY }}
+                            className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+                          >
+                            <Plus size={14} /> Add aerobic work
+                          </button>
+                        )
+                      )}
                       <div className="flex items-center justify-center gap-4">
                         <button
-                          onClick={() => setEditingHistoryId(editing ? null : w.id)}
+                          onClick={() => { setEditingHistoryId(editing ? null : w.id); setAddingAerobicToId(null); }}
                           style={{ color: SKY }}
                           className="text-sm py-2 text-center underline"
                         >
@@ -1188,6 +1276,72 @@ function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
           className="flex-1 rounded-md py-2.5 text-sm font-medium"
         >
           Add superset
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddAerobicToHistoryForm({ onAdd, onCancel }) {
+  const [name, setName] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [seconds, setSeconds] = useState('');
+  const [distance, setDistance] = useState('');
+
+  function handleAdd() {
+    const durationSeconds = (parseInt(minutes, 10) || 0) * 60 + (parseInt(seconds, 10) || 0);
+    onAdd(name.trim(), durationSeconds || null, distance.trim() || null);
+  }
+
+  return (
+    <div style={{ background: INK_3 }} className="rounded-md px-3 py-3">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Activity name"
+        style={{ background: INK_2, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
+      />
+      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          value={minutes}
+          onChange={(e) => setMinutes(e.target.value)}
+          placeholder="min"
+          style={{ background: INK_2, color: PAPER }}
+          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <input
+          type="number"
+          inputMode="numeric"
+          value={seconds}
+          onChange={(e) => setSeconds(e.target.value)}
+          placeholder="sec"
+          style={{ background: INK_2, color: PAPER }}
+          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <input
+          type="text"
+          value={distance}
+          onChange={(e) => setDistance(e.target.value)}
+          placeholder="distance (optional)"
+          style={{ background: INK_2, color: PAPER }}
+          className="flex-1 min-w-[7rem] rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
+          Cancel
+        </button>
+        <button
+          onClick={handleAdd}
+          disabled={!name.trim()}
+          style={{ background: name.trim() ? SKY : INK_2, color: name.trim() ? INK : TEXT_SOFT }}
+          className="flex-1 rounded-md py-2.5 text-sm font-medium"
+        >
+          Add
         </button>
       </div>
     </div>

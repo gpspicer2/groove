@@ -8,10 +8,11 @@ import { RATING_SCALE, AEROBIC_ACTIVITIES, ONE_RM_LIFTS } from './fitnessAssessm
 // A short, coached, step-by-step flow — one question/action per screen,
 // so it feels like being walked through a session rather than filling
 // out a form. Entirely optional; can be exited at any point.
-const STEPS = ['intro', 'aerobic_rating', 'aerobic_mode', 'aerobic_detail', 'resistance_rating', 'resistance_1rm_ask', 'resistance_1rm'];
+const STEPS = ['intro', 'resting_hr', 'aerobic_rating', 'aerobic_mode', 'aerobic_detail', 'resistance_rating', 'resistance_1rm_ask', 'resistance_1rm'];
 
 export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
   const [stepIndex, setStepIndex] = useState(0);
+  const [restingHr, setRestingHr] = useState('');
   const [aerobicRating, setAerobicRating] = useState('');
   const [aerobicMode, setAerobicMode] = useState(''); // 'timed' | 'described'
   const [aerobicActivity, setAerobicActivity] = useState('');
@@ -30,7 +31,15 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
   const step = visibleSteps[stepIndex];
   const isLast = stepIndex === visibleSteps.length - 1;
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('profiles').select('resting_hr_bpm').eq('id', userId).maybeSingle();
+      if (data?.resting_hr_bpm != null) setRestingHr(String(data.resting_hr_bpm));
+    })();
+  }, [userId]);
+
   function canAdvance() {
+    if (step === 'resting_hr') return Boolean(restingHr.trim()) && Number(restingHr) > 0;
     if (step === 'aerobic_rating') return Boolean(aerobicRating);
     if (step === 'aerobic_mode') return Boolean(aerobicMode);
     if (step === 'aerobic_detail') return aerobicMode === 'timed' ? Boolean(aerobicResult) : Boolean(aerobicDescription.trim());
@@ -52,9 +61,10 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
       can_estimate_1rm: canEstimate1rm,
       one_rep_maxes: canEstimate1rm === 'Yes' ? oneRms : null,
     };
-    await supabase
-      .from('baseline_responses')
-      .upsert({ user_id: userId, fitness_assessment }, { onConflict: 'user_id' });
+    await Promise.all([
+      supabase.from('baseline_responses').upsert({ user_id: userId, fitness_assessment }, { onConflict: 'user_id' }),
+      supabase.from('profiles').update({ resting_hr_bpm: Number(restingHr) }).eq('id', userId),
+    ]);
     setSaving(false);
     onComplete();
   }
@@ -89,6 +99,27 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
             <p style={{ color: TEXT_SOFT }} className="text-sm">
               We'll cover aerobic fitness first, then strength. Takes about 2 minutes.
             </p>
+          </div>
+        )}
+
+        {step === 'resting_hr' && (
+          <div>
+            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-3">
+              What's your resting heart rate?
+            </h2>
+            <p style={{ color: TEXT_SOFT }} className="text-sm mb-4">
+              Check first thing in the morning, or right now if you've been sitting still for a few minutes. This is what powers your personal heart-rate zones.
+            </p>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={restingHr}
+              onChange={(e) => setRestingHr(e.target.value)}
+              placeholder="e.g., 62"
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="w-24 rounded-md px-3 py-2.5 text-lg outline-none text-center mx-auto block"
+            />
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">bpm</div>
           </div>
         )}
 

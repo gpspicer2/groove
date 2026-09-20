@@ -6,7 +6,7 @@ import React, { useRef, useState, useEffect } from 'react';
 // drags to us — that's what makes this reliable instead of racing the
 // page's own scroll (the old dx-on-touchend approach didn't have this,
 // which is why it felt temperamental).
-export default function SwipeTabs({ index, onChangeIndex, pages }) {
+export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRight }) {
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -81,6 +81,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
       const threshold = width * 0.2;
       if (dragX < -threshold && index < pages.length - 1) onChangeIndex(index + 1);
       else if (dragX > threshold && index > 0) onChangeIndex(index - 1);
+      else if (dragX > threshold && index === 0 && onEdgeSwipeRight) onEdgeSwipeRight();
     }
     setDragX(0);
     setDragging(false);

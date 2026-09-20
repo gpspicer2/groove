@@ -16,3 +16,8 @@
    underneath that unsafe area and become untappable on some phones. */
 .pt-safe { padding-top: max(1.5rem, env(safe-area-inset-top)); }
 .pb-safe { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+
+@keyframes groove-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
