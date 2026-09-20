@@ -410,8 +410,15 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
         </span>
         <span
-          style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}
-          className="flex items-center gap-1.5 pl-2"
+          style={{
+            background: INK_2,
+            transform: `translateX(${revealed ? -96 : 0}px)`,
+            transition: 'transform 0.2s ease',
+            position: 'relative',
+            zIndex: 1,
+            minWidth: 96,
+          }}
+          className="flex items-center justify-end gap-1.5 pl-2"
         >
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
             {count} / {goal}

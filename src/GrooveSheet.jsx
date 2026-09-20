@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Portal from './Portal';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
@@ -10,9 +10,25 @@ const GROOVE_DEFINITIONS = [
   { term: 'A worn-in path', color: MOSS, text: 'A groove is literally a track worn by repetition — the more you move, the more natural the path becomes.' },
 ];
 
+// Same easing/duration as SwipeTabs' own page transitions, so this feels
+// like the same gesture system rather than a bolted-on modal.
+const TRANSITION = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+const CLOSE_MS = 280;
+
 export default function GrooveSheet({ onClose }) {
+  const [visible, setVisible] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  function handleClose() {
+    setVisible(false);
+    setTimeout(onClose, CLOSE_MS);
+  }
 
   function handleTouchStart(e) {
     startX.current = e.touches[0].clientX;
@@ -21,7 +37,7 @@ export default function GrooveSheet({ onClose }) {
   function handleTouchMove(e) {
     if (!dragging.current) return;
     const dx = e.touches[0].clientX - startX.current;
-    if (dx < -40) { dragging.current = false; onClose(); }
+    if (dx < -40) { dragging.current = false; handleClose(); }
   }
   function handleTouchEnd() {
     dragging.current = false;
@@ -29,17 +45,21 @@ export default function GrooveSheet({ onClose }) {
 
   return (
     <Portal>
-      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 z-50 flex" onClick={onClose}>
+      <div
+        style={{ background: 'rgba(0,0,0,0.6)', opacity: visible ? 1 : 0, transition: 'opacity 0.28s ease' }}
+        className="fixed inset-0 z-50 flex"
+        onClick={handleClose}
+      >
         <div
-          style={{ background: INK_2, touchAction: 'pan-y' }}
-          className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto animate-[groove-in_0.25s_ease-out]"
+          style={{ background: INK_2, touchAction: 'pan-y', transform: `translateX(${visible ? '0' : '-100%'})`, transition: TRANSITION }}
+          className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         >
-          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
+          <button onClick={handleClose} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
             <X size={20} />
           </button>
           <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium tracking-wide italic mb-8 mt-4">
@@ -54,7 +74,7 @@ export default function GrooveSheet({ onClose }) {
             ))}
           </div>
         </div>
-        <div className="flex-1" onClick={onClose} />
+        <div className="flex-1" onClick={handleClose} />
       </div>
     </Portal>
   );
