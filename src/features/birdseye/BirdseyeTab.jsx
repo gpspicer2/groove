@@ -396,7 +396,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           underneath it) slide, so swiping doesn't yank the whole row
           sideways. Touch tracking lives on the whole row so the gesture
           works no matter where on it you start swiping. */}
-      <div className="absolute right-0 top-0 bottom-0 flex" style={{ width: 96 }}>
+      <div className="absolute right-0 top-0 flex" style={{ width: 96, height: 28 }}>
         <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <Pencil size={14} />
         </button>
@@ -404,14 +404,14 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           <X size={14} />
         </button>
       </div>
-      <div className="relative flex items-center justify-between mb-1 py-0.5">
+      <div className="flex items-center justify-between mb-1 py-0.5">
         <span className="flex items-center gap-1.5">
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
         </span>
         <span
-          style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
-          className="relative flex items-center gap-1.5 pl-2"
+          style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease', position: 'relative', zIndex: 1 }}
+          className="flex items-center gap-1.5 pl-2"
         >
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
             {count} / {goal}
