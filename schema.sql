@@ -233,6 +233,19 @@ create policy "articles_select_all" on articles for select using (true);
 create policy "articles_trainer_write" on articles for all
   using (public.is_trainer()) with check (public.is_trainer());
 
+-- A client's own saved/favorited articles — private to them, one row
+-- per (client, article) pair.
+create table article_favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) default auth.uid(),
+  article_id uuid not null references articles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, article_id)
+);
+alter table article_favorites enable row level security;
+create policy "article_favorites_own" on article_favorites for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ── After running everything above, run this ONE line yourself, once ──
 -- ── you've signed up your own account in the app, to make yourself   ──
 -- ── the trainer (replace the email if you sign up with a different   ──
