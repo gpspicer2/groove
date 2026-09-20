@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
@@ -928,6 +929,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   );
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
       <div
@@ -961,6 +963,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
         )}
       </div>
     </div>
+    </Portal>
   );
 }
 

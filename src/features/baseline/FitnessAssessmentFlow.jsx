@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Square, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
 import { RATING_SCALE, AEROBIC_ACTIVITIES, ONE_RM_LIFTS } from './fitnessAssessment';
 
@@ -65,6 +66,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
   }
 
   return (
+    <Portal>
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
       <div className="max-w-md mx-auto w-full px-4 pt-safe flex items-center justify-between">
         <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic">
@@ -192,6 +194,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
         </button>
       </div>
     </div>
+    </Portal>
   );
 }
 

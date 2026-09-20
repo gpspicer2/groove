@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, Minus, Pencil, X, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
@@ -720,6 +721,7 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
       <div
@@ -821,5 +823,6 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
         </button>
       </div>
     </div>
+    </Portal>
   );
 }
