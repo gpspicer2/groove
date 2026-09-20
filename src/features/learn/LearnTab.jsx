@@ -29,9 +29,6 @@ export default function LearnTab() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-1 text-center">
-        Learn
-      </h1>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-4 text-center">Reasons to Move</div>
 
       {articles.length === 0 ? (

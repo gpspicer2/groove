@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, ChevronRight as Arrow, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -27,13 +27,12 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOpenGroove }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
   const [workouts, setWorkouts] = useState([]);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
-  const [journalCount, setJournalCount] = useState(0);
   const [assessmentDone, setAssessmentDone] = useState(true);
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,9 +51,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOp
   const [editingGoals, setEditingGoals] = useState(false);
 
   async function loadAll() {
-    const [{ data: w }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
+    const [{ data: w }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').is('deleted_at', null).order('started_at', { ascending: false }),
-      supabase.from('journal_entries').select('id'),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
@@ -65,7 +63,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOp
     // shouldn't have that day disappear from the calendar.
     const loggedWorkoutIds = new Set((setRows || []).map((s) => s.workout_id));
     setWorkouts((w || []).filter((row) => row.completed_at || loggedWorkoutIds.has(row.id)));
-    setJournalCount((j || []).length);
     setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
     const resolvedAge = profileRow?.age != null ? Number(profileRow.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
     setAge(resolvedAge);
@@ -184,19 +181,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOp
   ].filter(Boolean);
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-12 text-center relative">
-      <button
-        onClick={() => onOpenGroove && onOpenGroove()}
-        style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }}
-        className="absolute left-2 top-0 text-lg font-bold w-8 h-8 flex items-center justify-center"
-        aria-label="Groove"
-      >
-        G
-      </button>
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
-        Birdseye
-      </h1>
-
+    <div className="max-w-md mx-auto px-4 pb-12 text-center relative flex flex-col min-h-full">
       {insight && (
         <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 mb-4">
           <div style={{ color: PAPER }} className="text-sm">{insight}</div>
@@ -225,7 +210,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOp
         </div>
 
         {trackedGoals.map((g) => (
-          <GoalRow key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} />
+          <GoalRow
+            key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
+            onEdit={() => setEditingGoals(true)}
+            onDelete={() => setGoalTracked(g.mode, false)}
+          />
         ))}
 
         {streak > 0 && (
@@ -256,21 +245,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOp
         />
       </div>
 
+      <div className="flex-1" />
+
       <div className="mt-4">
         <AcsmGuidelines />
       </div>
-
-      <button
-        onClick={onOpenJournal}
-        style={{ background: INK_2 }}
-        className="w-full rounded-md px-4 py-3 mb-4 mt-4 flex items-center justify-between"
-      >
-        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Journal entries logged</span>
-        <span className="flex items-center gap-1">
-          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</span>
-          <Arrow size={14} color={TEXT_SOFT} />
-        </span>
-      </button>
 
       {showAssessment && (
         <FitnessAssessmentFlow
@@ -359,21 +338,59 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, onClose }) {
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal }) {
+function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
+  const [revealed, setRevealed] = useState(false);
+  const startX = useRef(0);
+  const dragging = useRef(false);
   const pct = Math.min(100, (count / goal) * 100);
+
+  function handleTouchStart(e) {
+    startX.current = e.touches[0].clientX;
+    dragging.current = true;
+  }
+  function handleTouchMove(e) {
+    if (!dragging.current) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (dx < -30) setRevealed(true);
+    if (dx > 30) setRevealed(false);
+  }
+  function handleTouchEnd() {
+    dragging.current = false;
+  }
+
   return (
-    <div className="mb-3 last:mb-0">
-      <div className="flex items-center justify-between mb-1">
-        <span className="flex items-center gap-1.5">
-          <Icon size={14} color={color} />
-          <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
-        </span>
-        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-          {count} / {goal}
-        </span>
+    <div data-no-swipe className="relative mb-3 last:mb-0 rounded-md overflow-hidden">
+      <div className="absolute right-0 top-0 bottom-0 flex" style={{ width: 96 }}>
+        <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
+          <Pencil size={14} />
+        </button>
+        <button onClick={onDelete} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          <X size={14} />
+        </button>
       </div>
-      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
-        <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
+        className="relative py-0.5"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
+              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
+              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
+            </span>
+            <Icon size={14} color={color} />
+            <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+          </span>
+          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+            {count} / {goal}
+          </span>
+        </div>
+        <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
+          <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+        </div>
       </div>
     </div>
   );
@@ -422,8 +439,11 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
   for (let i = 0; i < startWeekday; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
 
-  function workoutForDay(day) {
-    return workouts.find((w) => sameDay(new Date(w.started_at), day));
+  // A day can have more than one logged session (a walk in the morning,
+  // a resistance session later) — combine all of them so none quietly
+  // gets shadowed by whichever one happens to render first.
+  function workoutsForDay(day) {
+    return workouts.filter((w) => sameDay(new Date(w.started_at), day));
   }
 
   return (
@@ -452,25 +472,26 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => {
           if (!day) return <div key={i} />;
-          const workout = workoutForDay(day);
+          const dayWorkouts = workoutsForDay(day);
+          const hasAny = dayWorkouts.length > 0;
           const isToday = sameDay(day, now);
           const isFuture = day > now && !isToday;
-          const r = workout && hasResistance(workout);
-          const a = workout && hasAerobic(workout);
-          const f = workout && hasFlexibility(workout);
+          const r = dayWorkouts.some(hasResistance);
+          const a = dayWorkouts.some(hasAerobic);
+          const f = dayWorkouts.some(hasFlexibility);
           return (
             <button
               key={i}
               onClick={() => {
-                if (workout) { onOpenWorkout && onOpenWorkout(workout.id); }
+                if (hasAny) { onOpenWorkout && onOpenWorkout(dayWorkouts[0].id); }
                 else if (!isFuture) { onAddWorkout && onAddWorkout(day); }
               }}
-              disabled={!workout && isFuture}
+              disabled={!hasAny && isFuture}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
               className="aspect-[5/4] rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
-              <span style={{ color: workout ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
-              {workout ? (
+              <span style={{ color: hasAny ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
+              {hasAny ? (
                 <span className="flex items-center gap-0.5">
                   {a && <Activity size={10} color={MOSS} />}
                   {r && <Dumbbell size={10} color={SKY} />}
@@ -498,72 +519,67 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
         My Science-Supported Strategy
       </div>
 
-      {!assessmentDone ? (
-        <>
-          <p style={{ color: TEXT_SOFT }} className="text-sm mb-3">
-            This is where your individualized exercise prescription shows up — aerobic, resistance, and flexibility recommendations based on your goals (see ACSM guidelines description below).
+      <div className="space-y-4">
+        <p style={{ color: TEXT_SOFT }} className="text-sm">
+          My individualized exercise prescription, based on my goals (see ACSM guidelines description below):
+        </p>
+
+        <div>
+          <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
+          <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
+            {aerobicGoal
+              ? `Aim for ${aerobicGoal} session${aerobicGoal === 1 ? '' : 's'}/week — `
+              : "No specific aerobic goal set, so here's ACSM's recommendation: "}
+            150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days.
           </p>
+          {zones ? (
+            <>
+              {prescribedZone && (
+                <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>
+              )}
+              <div className="space-y-1">
+                {zones.map((z) => (
+                  <div key={z.label} className="flex items-center justify-center gap-2">
+                    <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
+                    <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
+                Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
+              </p>
+            </>
+          ) : (
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Add your resting heart rate in Account → Baseline Data to see your personal target ranges.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <div style={{ color: SKY }} className="text-sm font-medium mb-1">Resistance</div>
+          <p style={{ color: TEXT_SOFT }} className="text-sm">
+            Train each major muscle group across {resistanceGoal} session{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
+          </p>
+        </div>
+
+        <div>
+          <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Flexibility</div>
+          <p style={{ color: TEXT_SOFT }} className="text-sm">
+            Stretch major muscle-tendon groups 2–3 days/week, holding each stretch 10–30 sec for 2–4 reps.
+          </p>
+        </div>
+
+        {!assessmentDone && (
           <button
             onClick={onStartAssessment}
-            style={{ background: MOSS, color: INK }}
-            className="rounded-md px-4 py-2.5 text-sm font-medium"
+            style={{ color: MOSS }}
+            className="text-sm underline"
           >
-            More data needed — complete baseline data assessment
+            Complete your fitness baseline for a fuller picture →
           </button>
-        </>
-      ) : (
-        <div className="space-y-4">
-          <p style={{ color: TEXT_SOFT }} className="text-sm">
-            My individualized exercise prescription, based on my goals (see ACSM guidelines description below):
-          </p>
-
-          <div>
-            <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              {aerobicGoal
-                ? `Aim for ${aerobicGoal} session${aerobicGoal === 1 ? '' : 's'}/week — `
-                : "No specific aerobic goal set, so here's ACSM's recommendation: "}
-              150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days.
-            </p>
-            {zones ? (
-              <>
-                {prescribedZone && (
-                  <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>
-                )}
-                <div className="space-y-1">
-                  {zones.map((z) => (
-                    <div key={z.label} className="flex items-center justify-center gap-2">
-                      <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
-                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
-                  Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
-                </p>
-              </>
-            ) : (
-              <p style={{ color: TEXT_SOFT }} className="text-sm">
-                Complete your fitness baseline assessment to see your personal target ranges here.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <div style={{ color: SKY }} className="text-sm font-medium mb-1">Resistance</div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Train each major muscle group across {resistanceGoal} session{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
-            </p>
-          </div>
-
-          <div>
-            <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Flexibility</div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Stretch major muscle-tendon groups 2–3 days/week, holding each stretch 10–30 sec for 2–4 reps.
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

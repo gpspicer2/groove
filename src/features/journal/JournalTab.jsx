@@ -84,9 +84,6 @@ export default function JournalTab() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-1 text-center">
-        Journal
-      </h1>
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">A space just for you to put your thoughts.</div>
 
       {mode === 'checkin' ? (

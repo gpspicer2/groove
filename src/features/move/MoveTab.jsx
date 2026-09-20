@@ -507,10 +507,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         </div>
       )}
 
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center">
-        Move
-      </h1>
-
       <WeeklyTracker completedWorkouts={completedWorkouts} weekStartDay={weekStartDay} />
 
       {activeWorkout ? (

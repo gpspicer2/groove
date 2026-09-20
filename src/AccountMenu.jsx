@@ -50,9 +50,18 @@ function AccountModal({ onClose }) {
   }
 
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    // The app's real scroll container is the tab content area (#app-scroll),
+    // not the document body — lock that too, or content behind the modal
+    // keeps scrolling.
+    const scrollEl = document.getElementById('app-scroll');
+    const prevBody = document.body.style.overflow;
+    const prevScroll = scrollEl?.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    if (scrollEl) scrollEl.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBody;
+      if (scrollEl) scrollEl.style.overflow = prevScroll || '';
+    };
   }, []);
 
   return (

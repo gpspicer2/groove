@@ -6,7 +6,7 @@ import React, { useRef, useState, useEffect } from 'react';
 // drags to us — that's what makes this reliable instead of racing the
 // page's own scroll (the old dx-on-touchend approach didn't have this,
 // which is why it felt temperamental).
-export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRight }) {
+export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRight, scrollContainerRef }) {
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
   const [dragX, setDragX] = useState(0);
@@ -24,13 +24,14 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // All pages share the page's single scroll position (they sit side by
-  // side, not each in their own scroll container) — switching to a
-  // shorter tab while scrolled down on a taller one otherwise leaves the
-  // viewport stranded past the new tab's content.
+  // All pages share one scroll position (they sit side by side, not each
+  // in their own scroll container) — switching to a shorter tab while
+  // scrolled down on a taller one otherwise leaves the viewport stranded
+  // past the new tab's content.
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [index]);
+    if (scrollContainerRef?.current) scrollContainerRef.current.scrollTo(0, 0);
+    else window.scrollTo(0, 0);
+  }, [index, scrollContainerRef]);
 
   // Anything that has its own horizontal drag/scroll behavior (sliders,
   // horizontally-scrolling rows, etc.) opts out of the pager's own swipe
@@ -91,10 +92,14 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   const translate = -index * width + dragX;
 
   return (
-    <div ref={containerRef} style={{ touchAction: 'pan-y', overflow: 'hidden' }}>
+    // A column flex container of its own, so the sliding strip below can
+    // use flex:1 (reliable) instead of a percentage height (which needs
+    // an explicit, not merely min-, height on every ancestor to resolve).
+    <div ref={containerRef} style={{ touchAction: 'pan-y', overflow: 'hidden', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
           display: 'flex',
+          flex: '1',
           width: pages.length ? `${pages.length * 100}%` : '100%',
           transform: `translateX(${translate}px)`,
           transition: dragging ? 'none' : 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
@@ -104,6 +109,8 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
       >
+        {/* align-items defaults to 'stretch' in a row flex container, so
+            each page fills the strip's full height with no extra CSS. */}
         {pages.map((page, i) => (
           <div key={i} style={{ width: `${100 / pages.length}%`, flexShrink: 0 }}>
             {page}
