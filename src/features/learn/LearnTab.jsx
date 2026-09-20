@@ -42,19 +42,20 @@ export default function LearnTab() {
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
                 {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
-              <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{a.title}</div>
-              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">{a.summary}</div>
-              {a.url && (
+              {a.url ? (
                 <a
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: VIOLET }}
-                  className="text-sm inline-flex items-center gap-1"
+                  className="text-sm font-medium mb-1 inline-flex items-center gap-1"
                 >
-                  Read more <ExternalLink size={12} />
+                  {a.title} <ExternalLink size={12} />
                 </a>
+              ) : (
+                <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{a.title}</div>
               )}
+              <div style={{ color: PAPER_DIM }} className="text-sm">{a.summary}</div>
             </div>
           ))}
         </div>
