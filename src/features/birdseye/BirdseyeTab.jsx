@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, ChevronRight as Arrow, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
@@ -27,7 +27,7 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal, onOpenGroove }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
@@ -185,10 +185,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12 text-center relative">
-      <div
-        style={{ borderLeft: `2px dashed ${LIME}`, opacity: 0.35 }}
-        className="absolute left-0 top-16 bottom-16 pointer-events-none"
-      />
+      <button
+        onClick={() => onOpenGroove && onOpenGroove()}
+        style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }}
+        className="absolute left-2 top-0 text-lg font-bold w-8 h-8 flex items-center justify-center"
+        aria-label="Groove"
+      >
+        G
+      </button>
       <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
         Birdseye
       </h1>
@@ -221,7 +225,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
         </div>
 
         {trackedGoals.map((g) => (
-          <GoalRow key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} onChangeGoal={(v) => saveGoal(g.field, v)} />
+          <GoalRow key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} />
         ))}
 
         {streak > 0 && (
@@ -229,17 +233,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
             🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting both goals
           </div>
         )}
-      </div>
-
-      <div className="mb-4">
-        <ScienceStrategy
-          assessmentDone={assessmentDone}
-          onStartAssessment={() => setShowAssessment(true)}
-          resistanceGoal={resistanceGoal}
-          aerobicGoal={aerobicGoal}
-          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
-          prescribedZone={prescribedZone}
-        />
       </div>
 
       <WorkoutCalendar
@@ -251,6 +244,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
         onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
         weekStartDay={weekStartDay}
       />
+
+      <div className="mt-4">
+        <ScienceStrategy
+          assessmentDone={assessmentDone}
+          onStartAssessment={() => setShowAssessment(true)}
+          resistanceGoal={resistanceGoal}
+          aerobicGoal={aerobicGoal}
+          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
+          prescribedZone={prescribedZone}
+        />
+      </div>
 
       <div className="mt-4">
         <AcsmGuidelines />
@@ -291,7 +295,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
       {editingGoals && (
         <EditGoalsModal
           tracked={{ Aerobic: trackAerobicGoal, Resistance: trackResistanceGoal, Flexibility: trackFlexibilityGoal }}
+          goals={{ Aerobic: aerobicGoal, Resistance: resistanceGoal, Flexibility: flexibilityGoal }}
           onToggle={setGoalTracked}
+          onChangeGoal={(mode, v) => saveGoal(mode === 'Aerobic' ? 'aerobic_goal' : mode === 'Resistance' ? 'resistance_goal' : 'flexibility_goal', v)}
           onClose={() => setEditingGoals(false)}
         />
       )}
@@ -300,7 +306,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   );
 }
 
-function EditGoalsModal({ tracked, onToggle, onClose }) {
+function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, onClose }) {
   const MODES = [
     { mode: 'Aerobic', icon: Activity, color: MOSS },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
@@ -314,28 +320,36 @@ function EditGoalsModal({ tracked, onToggle, onClose }) {
             <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Weekly Goals</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
           </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Choose which modes of movement show up as weekly goals.</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Choose which modes show up, and how many sessions/week to aim for.</div>
           <div className="space-y-2">
             {MODES.map(({ mode, icon: Icon, color }) => {
               const active = tracked[mode];
               return (
-                <button
-                  key={mode}
-                  onClick={() => onToggle(mode, !active)}
-                  style={{ background: INK_3 }}
-                  className="w-full flex items-center justify-between rounded-md px-4 py-3"
-                >
-                  <span className="flex items-center gap-2">
+                <div key={mode} style={{ background: INK_3 }} className="rounded-md px-4 py-3 flex items-center justify-between">
+                  <button onClick={() => onToggle(mode, !active)} className="flex items-center gap-2">
+                    <span
+                      style={{ background: active ? color : 'transparent', borderColor: active ? color : TEXT_SOFT }}
+                      className="w-5 h-5 rounded-full border flex items-center justify-center"
+                    >
+                      {active && <Check size={12} color={INK} />}
+                    </span>
                     <Icon size={16} color={color} />
                     <span style={{ color: PAPER }} className="text-sm">{mode}</span>
-                  </span>
-                  <span
-                    style={{ background: active ? color : 'transparent', borderColor: active ? color : TEXT_SOFT }}
-                    className="w-5 h-5 rounded-full border flex items-center justify-center"
-                  >
-                    {active && <Check size={12} color={INK} />}
-                  </span>
-                </button>
+                  </button>
+                  {active && (
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => onChangeGoal(mode, goals[mode] - 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+                        <Minus size={13} />
+                      </button>
+                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium w-6 text-center">
+                        {goals[mode]}
+                      </span>
+                      <button onClick={() => onChangeGoal(mode, goals[mode] + 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+                        <Plus size={13} />
+                      </button>
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -345,62 +359,21 @@ function EditGoalsModal({ tracked, onToggle, onClose }) {
   );
 }
 
-
-function GoalRow({ label, icon: Icon, color, count, goal, onChangeGoal }) {
-  const [revealed, setRevealed] = useState(false);
-  const startX = useRef(0);
-  const dragging = useRef(false);
+function GoalRow({ label, icon: Icon, color, count, goal }) {
   const pct = Math.min(100, (count / goal) * 100);
-
-  function handleTouchStart(e) {
-    startX.current = e.touches[0].clientX;
-    dragging.current = true;
-  }
-  function handleTouchMove(e) {
-    if (!dragging.current) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (dx < -30) setRevealed(true);
-    if (dx > 30) setRevealed(false);
-  }
-  function handleTouchEnd() {
-    dragging.current = false;
-  }
-
   return (
-    <div data-no-swipe className="relative mb-3 last:mb-0 rounded-md overflow-hidden">
-      <div className="absolute right-0 top-0 h-full flex items-center" style={{ width: 88 }}>
-        <button onClick={() => { onChangeGoal(goal - 1); }} style={{ background: INK_3, color: TEXT_SOFT }} className="flex-1 h-full flex items-center justify-center">
-          <Minus size={14} />
-        </button>
-        <button onClick={() => { onChangeGoal(goal + 1); }} style={{ background: INK_3, color }} className="flex-1 h-full flex items-center justify-center">
-          <Plus size={14} />
-        </button>
+    <div className="mb-3 last:mb-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="flex items-center gap-1.5">
+          <Icon size={14} color={color} />
+          <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+        </span>
+        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+          {count} / {goal}
+        </span>
       </div>
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ transform: `translateX(${revealed ? -88 : 0}px)`, transition: 'transform 0.2s ease' }}
-        className="relative"
-      >
-        <div className="flex items-center justify-between mb-1">
-          <span className="flex items-center gap-1.5">
-            <Icon size={14} color={color} />
-            <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-              {count} / {goal}
-            </span>
-            <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
-              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
-              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
-            </span>
-          </span>
-        </div>
-        <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
-          <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
-        </div>
+      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
+        <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
       </div>
     </div>
   );

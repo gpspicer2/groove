@@ -63,7 +63,7 @@ export default function ClientApp() {
         onChangeIndex={(i) => setTab(TABS[i])}
         onEdgeSwipeRight={tab === 'birdseye' ? () => setShowGroove(true) : null}
         pages={[
-          <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenJournal={openJournal} />,
+          <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenJournal={openJournal} onOpenGroove={() => setShowGroove(true)} />,
           <MoveTab deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
           <JournalTab />,
           <LearnTab />,

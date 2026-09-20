@@ -1,7 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import Portal from './Portal';
-import GrooveLogo from './GrooveLogo';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME } from './theme';
 
 const GROOVE_DEFINITIONS = [
@@ -23,7 +22,9 @@ export default function GrooveSheet({ onClose }) {
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
             <X size={20} />
           </button>
-          <GrooveLogo className="w-full h-auto mb-8 mt-4" style={{ color: LIME }} />
+          <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium tracking-wide italic mb-8 mt-4">
+            GROOVE
+          </div>
           <div className="space-y-6">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>

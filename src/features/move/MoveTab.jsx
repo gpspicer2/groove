@@ -163,32 +163,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
 
-  // Resume an unfinished movement automatically — closing the app (or
-  // just navigating away) without tapping "Finish Movement" shouldn't
-  // make it disappear; reconstruct the in-progress plan from whatever
-  // sets were already logged so the session picks up where it left off.
-  useEffect(() => {
-    if (loading || activeWorkoutId) return;
-    const unfinished = workouts.find((w) => !w.completedAt && !w.deletedAt);
-    if (!unfinished) return;
-    const loggedSets = sets.filter((s) => s.workoutId === unfinished.id);
-    const seen = new Set();
-    const reconstructed = [];
-    loggedSets.forEach((s) => {
-      if (seen.has(s.exerciseName)) return;
-      seen.add(s.exerciseName);
-      reconstructed.push({
-        name: s.exerciseName,
-        muscleGroup: s.muscleGroup,
-        type: s.movementType === 'aerobic' ? 'aerobic' : s.movementType === 'flexibility' ? 'flexibility' : 'resistance',
-        supersetId: null,
-      });
-    });
-    setActiveWorkoutId(unfinished.id);
-    setPlanExercises(reconstructed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, workouts]);
-
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;
     if (!completedWorkouts.some((w) => w.id === deepLinkWorkoutId)) return;
