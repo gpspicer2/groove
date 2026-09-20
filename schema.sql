@@ -24,6 +24,9 @@ create table profiles (
   max_hr_measured boolean not null default false,
   -- trainer-set target intensity zone for this client's aerobic work
   prescribed_hr_zone text,
+  -- client-adjustable weekly goals shown on Birdseye
+  resistance_goal integer not null default 3,
+  aerobic_goal integer not null default 3,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;

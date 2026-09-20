@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, X, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, Minus, Pencil, X, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER } from '../../theme';
@@ -8,9 +8,6 @@ import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { WORKOUT_LOCATIONS } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
-
-const RESISTANCE_GOAL = 3; // sessions/week
-const AEROBIC_GOAL = 3;    // sessions/week
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -22,6 +19,10 @@ function sameDay(a, b) {
 
 function todayInputValue() {
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -37,13 +38,15 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
-  const [showQuickLog, setShowQuickLog] = useState(false);
+  const [quickLogDate, setQuickLogDate] = useState(null);
   const [bodyweight, setBodyweight] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
   const [prescribedZone, setPrescribedZone] = useState(null);
   const [restingHr, setRestingHr] = useState('');
   const [maxHr, setMaxHr] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
+  const [resistanceGoal, setResistanceGoal] = useState(3);
+  const [aerobicGoal, setAerobicGoal] = useState(3);
 
   async function loadAll() {
     const [{ data: w }, { data: deleted }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
@@ -51,7 +54,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
       supabase.from('workouts').select('id, started_at, muscle_groups, activities').not('deleted_at', 'is', null).order('started_at', { ascending: false }),
       supabase.from('journal_entries').select('id'),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
     ]);
     setWorkouts(w || []);
@@ -63,6 +66,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
     setPrescribedZone(profileRow?.prescribed_hr_zone || null);
     setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
     setMaxHr(profileRow?.max_hr_bpm != null ? String(profileRow.max_hr_bpm) : '');
+    setResistanceGoal(profileRow?.resistance_goal || 3);
+    setAerobicGoal(profileRow?.aerobic_goal || 3);
 
     const types = {};
     (setRows || []).forEach((s) => {
@@ -97,6 +102,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   async function saveHr(field, value) {
     const numeric = value.trim() === '' ? null : parseFloat(value);
     await supabase.from('profiles').update({ [field]: numeric, ...(field === 'max_hr_bpm' ? { max_hr_measured: numeric != null } : {}) }).eq('id', userId);
+  }
+
+  async function saveGoal(field, value) {
+    const clamped = Math.min(14, Math.max(1, value));
+    if (field === 'resistance_goal') setResistanceGoal(clamped); else setAerobicGoal(clamped);
+    await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
   }
 
   async function restoreWorkout(id) {
@@ -141,13 +152,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
     });
     const rCount = weekWorkouts.filter(hasResistance).length;
     const aCount = weekWorkouts.filter(hasAerobic).length;
-    if (rCount >= RESISTANCE_GOAL && aCount >= AEROBIC_GOAL) streak++;
+    if (rCount >= resistanceGoal && aCount >= aerobicGoal) streak++;
     else break;
     if (i > 52) break;
   }
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
-  const insight = buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast });
+  const insight = buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aerobicGoal, daysSinceLast });
 
   const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);
   const maxHrNum = maxHr.trim() === '' ? (predictedMaxHR(age) || null) : parseFloat(maxHr);
@@ -180,8 +191,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3">This week</div>
 
-        <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={RESISTANCE_GOAL} />
-        <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={AEROBIC_GOAL} />
+        <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={resistanceGoal} onChangeGoal={(v) => saveGoal('resistance_goal', v)} />
+        <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={aerobicGoal} onChangeGoal={(v) => saveGoal('aerobic_goal', v)} />
 
         {streak > 0 && (
           <div style={{ color: LIME }} className="text-sm mt-3">
@@ -190,15 +201,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
         )}
       </div>
 
-      <button
-        onClick={() => setShowQuickLog(true)}
-        style={{ background: INK_2, color: LIME, borderLeft: `3px solid ${LIME}` }}
-        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
-      >
-        <Plus size={14} /> Log a workout
-      </button>
-
-      <WorkoutCalendar workouts={workouts} hasResistance={hasResistance} hasAerobic={hasAerobic} onOpenWorkout={onOpenWorkout} weekStartDay={weekStartDay} />
+      <WorkoutCalendar
+        workouts={workouts}
+        hasResistance={hasResistance}
+        hasAerobic={hasAerobic}
+        onOpenWorkout={onOpenWorkout}
+        onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
+        weekStartDay={weekStartDay}
+      />
 
       <DeletedWorkouts workouts={deletedWorkouts} open={showDeleted} onToggle={() => setShowDeleted((v) => !v)} onRestore={restoreWorkout} />
 
@@ -207,31 +217,33 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
         <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</div>
       </div>
 
-      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Bodyweight</div>
-        <div className="flex items-center justify-center gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={bodyweight}
-            onChange={(e) => setBodyweight(e.target.value)}
-            onBlur={(e) => saveBodyweight(e.target.value)}
-            placeholder="—"
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-          />
-          <span style={{ color: TEXT_SOFT }} className="text-sm">lb {savingWeight && '· saving…'}</span>
+      <BaselineSection>
+        <div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Bodyweight</div>
+          <div className="flex items-center justify-center gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={bodyweight}
+              onChange={(e) => setBodyweight(e.target.value)}
+              onBlur={(e) => saveBodyweight(e.target.value)}
+              placeholder="—"
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
+            />
+            <span style={{ color: TEXT_SOFT }} className="text-sm">lb {savingWeight && '· saving…'}</span>
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Used to log bodyweight movements in Move</div>
         </div>
-        <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Used to log bodyweight movements in Move</div>
-      </div>
 
-      <HeartRateCard
-        restingHr={restingHr} setRestingHr={setRestingHr}
-        maxHr={maxHr} setMaxHr={setMaxHr}
-        onSave={saveHr}
-        restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
-        prescribedZone={prescribedZone}
-      />
+        <HeartRateCard
+          restingHr={restingHr} setRestingHr={setRestingHr}
+          maxHr={maxHr} setMaxHr={setMaxHr}
+          onSave={saveHr}
+          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
+          prescribedZone={prescribedZone}
+        />
+      </BaselineSection>
 
       <AcsmGuidelines />
 
@@ -243,20 +255,22 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
         />
       )}
 
-      {showQuickLog && (
+      {quickLogDate && (
         <QuickLogModal
+          initialDate={quickLogDate}
           customActivities={customActivities}
           onAddCustomActivity={addCustomActivity}
           onRemoveCustomActivity={removeCustomActivity}
-          onClose={() => setShowQuickLog(false)}
-          onSaved={async () => { setShowQuickLog(false); await loadAll(); }}
+          onClose={() => setQuickLogDate(null)}
+          onSaved={async () => { setQuickLogDate(null); await loadAll(); }}
         />
       )}
     </div>
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal }) {
+function GoalRow({ label, icon: Icon, color, count, goal, onChangeGoal }) {
+  const [editing, setEditing] = useState(false);
   const pct = Math.min(100, (count / goal) * 100);
   return (
     <div className="mb-3 last:mb-0">
@@ -265,9 +279,27 @@ function GoalRow({ label, icon: Icon, color, count, goal }) {
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
         </span>
-        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-          {count} / {goal}
-        </span>
+        {editing ? (
+          <span className="flex items-center gap-2">
+            <button onClick={() => onChangeGoal(goal - 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+              <Minus size={13} />
+            </button>
+            <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium w-14 text-center">
+              {count} / {goal}
+            </span>
+            <button onClick={() => onChangeGoal(goal + 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+              <Plus size={13} />
+            </button>
+            <button onClick={() => setEditing(false)} style={{ color }} className="text-sm">Done</button>
+          </span>
+        ) : (
+          <button onClick={() => setEditing(true)} className="flex items-center gap-1">
+            <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+              {count} / {goal}
+            </span>
+            <Pencil size={11} color={TEXT_SOFT} />
+          </button>
+        )}
       </div>
       <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
@@ -278,9 +310,9 @@ function GoalRow({ label, icon: Icon, color, count, goal }) {
 
 // Light, in-app encouragement — friendly and specific, never guilt-driven,
 // and reflects whichever of the two goals actually needs attention.
-function buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast }) {
-  const rDone = resistanceThisWeek >= RESISTANCE_GOAL;
-  const aDone = aerobicThisWeek >= AEROBIC_GOAL;
+function buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aerobicGoal, daysSinceLast }) {
+  const rDone = resistanceThisWeek >= resistanceGoal;
+  const aDone = aerobicThisWeek >= aerobicGoal;
 
   if (rDone && aDone) {
     return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
@@ -291,7 +323,7 @@ function buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast }) {
   if (aDone && !rDone) {
     return "Howdy! Aerobic goal is done for the week — one more resistance session would round things out nicely.";
   }
-  if (resistanceThisWeek === RESISTANCE_GOAL - 1 || aerobicThisWeek === AEROBIC_GOAL - 1) {
+  if (resistanceThisWeek === resistanceGoal - 1 || aerobicThisWeek === aerobicGoal - 1) {
     return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
   }
   if (daysSinceLast != null && daysSinceLast >= 4) {
@@ -303,7 +335,7 @@ function buildInsight({ resistanceThisWeek, aerobicThisWeek, daysSinceLast }) {
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, weekStartDay }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, onAddWorkout, weekStartDay }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -351,23 +383,29 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, w
           if (!day) return <div key={i} />;
           const workout = workoutForDay(day);
           const isToday = sameDay(day, now);
+          const isFuture = day > now && !isToday;
           const r = workout && hasResistance(workout);
           const a = workout && hasAerobic(workout);
           return (
             <button
               key={i}
-              onClick={() => workout && onOpenWorkout && onOpenWorkout(workout.id)}
-              disabled={!workout}
+              onClick={() => {
+                if (workout) { onOpenWorkout && onOpenWorkout(workout.id); }
+                else if (!isFuture) { onAddWorkout && onAddWorkout(day); }
+              }}
+              disabled={!workout && isFuture}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
-              className="aspect-square rounded-md flex flex-col items-center justify-center gap-0.5"
+              className="aspect-square rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
               <span style={{ color: workout ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
-              {workout && (
+              {workout ? (
                 <span className="flex items-center gap-0.5">
                   {r && <Dumbbell size={11} color={SKY} />}
                   {a && <Activity size={11} color={MOSS} />}
                 </span>
-              )}
+              ) : !isFuture ? (
+                <Plus size={10} color={INK_3} />
+              ) : null}
             </button>
           );
         })}
@@ -382,6 +420,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, w
           <span style={{ color: TEXT_SOFT }} className="text-sm">Aerobic</span>
         </div>
       </div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-2">Tap an empty day to log a workout</div>
     </div>
   );
 }
@@ -417,11 +456,28 @@ function DeletedWorkouts({ workouts, open, onToggle, onRestore }) {
   );
 }
 
+function BaselineSection({ children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
+        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Your Baseline</span>
+        {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
+      </button>
+      {open && (
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HeartRateCard({ restingHr, setRestingHr, maxHr, setMaxHr, onSave, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
 
   return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
+    <div>
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Heart rate</div>
       {prescribedZone && (
         <div style={{ color: SKY }} className="text-sm mb-3">
@@ -539,8 +595,8 @@ function GuidelineBlock({ label, color, text, open, onToggle }) {
   );
 }
 
-function QuickLogModal({ customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
-  const [date, setDate] = useState(todayInputValue());
+function QuickLogModal({ initialDate, customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
+  const [date, setDate] = useState(initialDate || todayInputValue());
   const [location, setLocation] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);

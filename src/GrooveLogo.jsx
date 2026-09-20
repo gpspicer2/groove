@@ -1,14 +1,14 @@
 import React from 'react';
 
 // The GROOVE wordmark, letter by letter: G = bike wheel + crank, R = a
-// strung racket, O = a 45lb plate, O = a sun, V = a figure with arms
-// raised (head sitting in the gap), E = a musical note (flag + notehead).
-// Monoline strokes throughout so the six very different motifs still read
-// as one consistent mark rather than six unrelated icons stapled together.
+// strung racket, O = a 45lb plate with a bar through it, O = a sun,
+// V = a jump rope with handles, E = a letter with a musical note beside
+// it. Monoline strokes throughout so the six motifs still read as one
+// consistent mark rather than icons stapled together.
 export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
   return (
     <svg
-      viewBox="-20 -20 770 190"
+      viewBox="-20 -20 800 195"
       className={className}
       style={style}
       role="img"
@@ -36,14 +36,14 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
           <path d="M 30 70 L 82 140" />
         </g>
 
-        {/* O: 45lb barbell plate */}
+        {/* O: 45lb plate with a bar through the hole */}
         <g transform="translate(248,0)">
-          <circle cx="55" cy="75" r="50" />
-          <circle cx="55" cy="75" r="18" />
-          <line x1="55" y1="25" x2="55" y2="38" strokeWidth="6" />
-          <line x1="55" y1="112" x2="55" y2="125" strokeWidth="6" />
-          <line x1="5" y1="75" x2="18" y2="75" strokeWidth="6" />
-          <line x1="92" y1="75" x2="105" y2="75" strokeWidth="6" />
+          <path
+            fill="currentColor" stroke="none" fillRule="evenodd"
+            d="M 3 75 A 52 52 0 1 1 107 75 A 52 52 0 1 1 3 75 Z
+               M 35 75 A 20 20 0 1 1 75 75 A 20 20 0 1 1 35 75 Z"
+          />
+          <line x1="2" y1="75" x2="108" y2="75" strokeWidth="12" />
         </g>
 
         {/* O: sun */}
@@ -59,21 +59,24 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
           <line x1="30" y1="100" x2="19" y2="111" strokeWidth="7" />
         </g>
 
-        {/* V: victory figure, head in the gap */}
+        {/* V: jump rope, handles at the top */}
         <g transform="translate(496,0)">
-          <path d="M 55 135 L 10 15" />
-          <path d="M 55 135 L 100 15" />
-          <circle cx="55" cy="46" r="13" fill="currentColor" stroke="none" />
+          <path d="M 14 20 Q 55 150 96 20" />
+          <circle cx="14" cy="14" r="13" fill="currentColor" stroke="none" />
+          <circle cx="96" cy="14" r="13" fill="currentColor" stroke="none" />
         </g>
 
-        {/* E: musical note */}
+        {/* E, with a musical note beside it */}
         <g transform="translate(624,0)">
-          <path d="M 92 10 L 15 10" />
+          <path d="M 82 10 L 15 10" />
           <path d="M 15 10 L 15 130" />
-          <path d="M 15 70 L 72 70" />
-          <path d="M 15 130 L 88 130" />
-          <path d="M 92 10 C 114 16, 112 34, 94 34" strokeWidth="9" />
-          <circle cx="8" cy="136" r="12" fill="currentColor" stroke="none" />
+          <path d="M 15 70 L 65 70" />
+          <path d="M 15 130 L 82 130" />
+          <g strokeWidth="8">
+            <path d="M 118 20 L 118 78" />
+            <path d="M 118 20 C 135 24, 136 40, 122 42" />
+          </g>
+          <ellipse cx="107" cy="82" rx="14" ry="10" fill="currentColor" stroke="none" transform="rotate(-18 107 82)" />
         </g>
       </g>
     </svg>
