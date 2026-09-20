@@ -205,12 +205,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           {loadError}
         </div>
       )}
-      {/* Stretches the gaps between these sections (rather than leaving
-          one dead gap at the end) so the Science-Supported Strategy card
-          lands at the bottom of the first screen instead of being cut
-          off mid-sentence — on a short/tall page this just tightens up
-          instead of leaving a big last gap. */}
-      <div className="flex-1 flex flex-col justify-between gap-4">
+      <div className="flex flex-col gap-4">
         {insight && (
           <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
             <div style={{ color: PAPER }} className="text-sm">{insight}</div>
