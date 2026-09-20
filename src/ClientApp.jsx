@@ -22,6 +22,10 @@ export default function ClientApp() {
     setTab('move');
   }
 
+  function openJournal() {
+    setTab('journal');
+  }
+
   const activeIndex = TABS.indexOf(tab);
 
   return (
@@ -56,7 +60,7 @@ export default function ClientApp() {
         index={activeIndex}
         onChangeIndex={(i) => setTab(TABS[i])}
         pages={[
-          <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} />,
+          <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenJournal={openJournal} />,
           <MoveTab deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
           <JournalTab />,
           <LearnTab />,

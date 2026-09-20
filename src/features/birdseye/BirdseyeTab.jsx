@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, RotateCcw, Plus, Minus, Pencil, X, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, Plus, Minus, Pencil, X, Info, ChevronRight as Arrow } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -27,12 +27,11 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
   const [workouts, setWorkouts] = useState([]);
-  const [deletedWorkouts, setDeletedWorkouts] = useState([]);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [journalCount, setJournalCount] = useState(0);
   const [assessmentDone, setAssessmentDone] = useState(true);
@@ -40,33 +39,33 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
   const [quickLogDate, setQuickLogDate] = useState(null);
-  const [bodyweight, setBodyweight] = useState('');
-  const [savingWeight, setSavingWeight] = useState(false);
   const [prescribedZone, setPrescribedZone] = useState(null);
-  const [restingHr, setRestingHr] = useState('');
-  const [maxHr, setMaxHr] = useState('');
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [restingHrNum, setRestingHrNum] = useState(null);
+  const [maxHrNum, setMaxHrNum] = useState(null);
+  const [maxHrIsPredicted, setMaxHrIsPredicted] = useState(false);
   const [resistanceGoal, setResistanceGoal] = useState(3);
   const [aerobicGoal, setAerobicGoal] = useState(3);
 
   async function loadAll() {
-    const [{ data: w }, { data: deleted }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
+    const [{ data: w }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
-      supabase.from('workouts').select('id, started_at, muscle_groups, activities').not('deleted_at', 'is', null).order('started_at', { ascending: false }),
       supabase.from('journal_entries').select('id'),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
     ]);
     setWorkouts(w || []);
-    setDeletedWorkouts(deleted || []);
     setJournalCount((j || []).length);
     setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
-    setAge(profile?.age != null ? Number(profile.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null));
-    setBodyweight(profileRow?.bodyweight_lb != null ? String(profileRow.bodyweight_lb) : '');
+    const resolvedAge = profileRow?.age != null ? Number(profileRow.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
+    setAge(resolvedAge);
     setPrescribedZone(profileRow?.prescribed_hr_zone || null);
-    setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
-    setMaxHr(profileRow?.max_hr_bpm != null ? String(profileRow.max_hr_bpm) : '');
+    const resting = profileRow?.resting_hr_bpm != null ? Number(profileRow.resting_hr_bpm) : null;
+    const maxMeasured = profileRow?.max_hr_bpm != null ? Number(profileRow.max_hr_bpm) : null;
+    const maxResolved = maxMeasured != null ? maxMeasured : predictedMaxHR(resolvedAge);
+    setRestingHrNum(resting);
+    setMaxHrNum(maxResolved || null);
+    setMaxHrIsPredicted(maxMeasured == null && maxResolved != null);
     setResistanceGoal(profileRow?.resistance_goal || 3);
     setAerobicGoal(profileRow?.aerobic_goal || 3);
 
@@ -93,28 +92,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
     return (w.activities || []).length > 0 || workoutTypes[w.id]?.has('aerobic');
   }
 
-  async function saveBodyweight(value) {
-    setSavingWeight(true);
-    const numeric = value.trim() === '' ? null : parseFloat(value);
-    await supabase.from('profiles').update({ bodyweight_lb: numeric }).eq('id', userId);
-    setSavingWeight(false);
-  }
-
-  async function saveHr(field, value) {
-    const numeric = value.trim() === '' ? null : parseFloat(value);
-    await supabase.from('profiles').update({ [field]: numeric, ...(field === 'max_hr_bpm' ? { max_hr_measured: numeric != null } : {}) }).eq('id', userId);
-  }
-
   async function saveGoal(field, value) {
     const clamped = Math.min(14, Math.max(1, value));
     if (field === 'resistance_goal') setResistanceGoal(clamped); else setAerobicGoal(clamped);
     await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
-  }
-
-  async function restoreWorkout(id) {
-    const { error } = await supabase.from('workouts').update({ deleted_at: null }).eq('id', id);
-    if (error) return;
-    await loadAll();
   }
 
   async function addCustomActivity(name) {
@@ -161,10 +142,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
   const insight = buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aerobicGoal, daysSinceLast });
 
-  const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);
-  const maxHrNum = maxHr.trim() === '' ? (predictedMaxHR(age) || null) : parseFloat(maxHr);
-  const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
-
   return (
     <div className="max-w-md mx-auto px-4 pb-12 text-center">
       <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4">
@@ -192,8 +169,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3">This week</div>
 
-        <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={resistanceGoal} onChangeGoal={(v) => saveGoal('resistance_goal', v)} />
         <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={aerobicGoal} onChangeGoal={(v) => saveGoal('aerobic_goal', v)} />
+        <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={resistanceGoal} onChangeGoal={(v) => saveGoal('resistance_goal', v)} />
 
         {streak > 0 && (
           <div style={{ color: LIME }} className="text-sm mt-3">
@@ -211,10 +188,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
         weekStartDay={weekStartDay}
       />
 
-      <DeletedWorkouts workouts={deletedWorkouts} open={showDeleted} onToggle={() => setShowDeleted((v) => !v)} onRestore={restoreWorkout} />
-
       <div className="mt-4">
         <ScienceStrategy
+          assessmentDone={assessmentDone}
+          onStartAssessment={() => setShowAssessment(true)}
+          resistanceGoal={resistanceGoal}
           restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
           prescribedZone={prescribedZone}
         />
@@ -224,38 +202,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
         <AcsmGuidelines />
       </div>
 
-      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4 mt-4">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Journal entries logged</div>
-        <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</div>
-      </div>
-
-      <BaselineSection>
-        <div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Bodyweight</div>
-          <div className="flex items-center justify-center gap-2">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={bodyweight}
-              onChange={(e) => setBodyweight(e.target.value)}
-              onBlur={(e) => saveBodyweight(e.target.value)}
-              placeholder="—"
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-              className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-            />
-            <span style={{ color: TEXT_SOFT }} className="text-sm">lb {savingWeight && '· saving…'}</span>
-          </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Used to log bodyweight movements in Move</div>
-        </div>
-
-        <HeartRateCard
-          restingHr={restingHr} setRestingHr={setRestingHr}
-          maxHr={maxHr} setMaxHr={setMaxHr}
-          onSave={saveHr}
-          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
-          prescribedZone={prescribedZone}
-        />
-      </BaselineSection>
+      <button
+        onClick={onOpenJournal}
+        style={{ background: INK_2 }}
+        className="w-full rounded-md px-4 py-3 mb-4 mt-4 flex items-center justify-between"
+      >
+        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Journal entries logged</span>
+        <span className="flex items-center gap-1">
+          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</span>
+          <Arrow size={14} color={TEXT_SOFT} />
+        </span>
+      </button>
 
       {showAssessment && (
         <FitnessAssessmentFlow
@@ -328,11 +285,11 @@ function buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aer
   if (rDone && aDone) {
     return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
   }
-  if (rDone && !aDone) {
-    return "Howdy! Resistance goal is done for the week — got time for some aerobic activity, like a walk, today or tomorrow?";
-  }
   if (aDone && !rDone) {
     return "Howdy! Aerobic goal is done for the week — one more resistance session would round things out nicely.";
+  }
+  if (rDone && !aDone) {
+    return "Howdy! Resistance goal is done for the week — got time for some aerobic activity, like a walk, today or tomorrow?";
   }
   if (resistanceThisWeek === resistanceGoal - 1 || aerobicThisWeek === aerobicGoal - 1) {
     return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
@@ -411,8 +368,8 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
               <span style={{ color: workout ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
               {workout ? (
                 <span className="flex items-center gap-0.5">
-                  {r && <Dumbbell size={11} color={SKY} />}
                   {a && <Activity size={11} color={MOSS} />}
+                  {r && <Dumbbell size={11} color={SKY} />}
                 </span>
               ) : !isFuture ? (
                 <Plus size={10} color={INK_3} />
@@ -423,12 +380,12 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
       </div>
       <div className="flex items-center justify-center gap-4 mt-3">
         <div className="flex items-center gap-1">
-          <Dumbbell size={12} color={SKY} />
-          <span style={{ color: TEXT_SOFT }} className="text-sm">Resistance</span>
-        </div>
-        <div className="flex items-center gap-1">
           <Activity size={12} color={MOSS} />
           <span style={{ color: TEXT_SOFT }} className="text-sm">Aerobic</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Dumbbell size={12} color={SKY} />
+          <span style={{ color: TEXT_SOFT }} className="text-sm">Resistance</span>
         </div>
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-2">Tap an empty day to log a workout</div>
@@ -436,156 +393,74 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
   );
 }
 
-function DeletedWorkouts({ workouts, open, onToggle, onRestore }) {
-  if (workouts.length === 0) return null;
-  return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mt-4">
-      <button onClick={onToggle} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Deleted Workouts ({workouts.length})</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-2">
-          {workouts.map((w) => (
-            <div key={w.id} className="flex flex-col items-center gap-1">
-              <div style={{ color: PAPER_DIM }} className="text-sm">
-                {[...(w.muscle_groups || []), ...(w.activities || [])].join(' + ') || 'Workout'}
-              </div>
-              <div style={{ color: TEXT_SOFT }} className="text-sm">
-                {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </div>
-              <button onClick={() => onRestore(w.id)} style={{ color: LIME }} className="text-sm flex items-center gap-1 py-1 px-1">
-                <RotateCcw size={14} /> Restore
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BaselineSection({ children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Baseline Data</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Practical application of the ACSM guidelines below: turns the client's
-// own resting/max heart rate into concrete target ranges, rather than
-// leaving the guidelines as an abstract reference.
-function ScienceStrategy({ restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
-  const [open, setOpen] = useState(false);
+// The permanent, personalized companion to the ACSM reference below: your
+// own individualized exercise prescription, not just an abstract standard.
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
 
   return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">Science-Supported Strategy</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-3 text-center">
-          <p style={{ color: TEXT_SOFT }} className="text-sm">
-            The ACSM guidelines below tell you how much to move. This turns them into a personal number, using your own heart rate.
+    <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-5 text-center">
+      <div style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold mb-3">
+        My Science-Supported Strategy
+      </div>
+
+      {!assessmentDone ? (
+        <>
+          <p style={{ color: TEXT_SOFT }} className="text-sm mb-3">
+            This is where your individualized exercise prescription shows up — aerobic, resistance, and flexibility recommendations based on your goals (see ACSM guidelines description below).
           </p>
-          {zones ? (
-            <>
-              {prescribedZone && (
-                <div style={{ color: SKY }} className="text-sm">
-                  Your coach recommends training in the {prescribedZone} zone
-                </div>
-              )}
-              <div className="space-y-1">
-                {zones.map((z) => (
-                  <div key={z.label} className="flex items-center justify-center gap-2">
-                    <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
-                    <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
-                  </div>
-                ))}
-              </div>
-              <p style={{ color: TEXT_SOFT }} className="text-sm">
-                Aim to keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''} to stay aligned with the ACSM guidelines.
-              </p>
-            </>
-          ) : (
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Add your resting heart rate in Baseline Data below to see your personal target ranges.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HeartRateCard({ restingHr, setRestingHr, maxHr, setMaxHr, onSave, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
-  const zones = computeHrZones(restingHrNum, maxHrNum);
-
-  return (
-    <div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Heart rate</div>
-      {prescribedZone && (
-        <div style={{ color: SKY }} className="text-sm mb-3">
-          Your coach recommends training in the {prescribedZone} zone
-        </div>
-      )}
-      <div className="flex items-center justify-center gap-4 mb-2">
-        <div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">Resting</div>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={restingHr}
-            onChange={(e) => setRestingHr(e.target.value)}
-            onBlur={(e) => onSave('resting_hr_bpm', e.target.value)}
-            placeholder="—"
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-          />
-        </div>
-        <div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">Max{maxHrIsPredicted ? ' (est.)' : ''}</div>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={maxHr}
-            onChange={(e) => setMaxHr(e.target.value)}
-            onBlur={(e) => onSave('max_hr_bpm', e.target.value)}
-            placeholder={maxHrIsPredicted ? String(maxHrNum) : '—'}
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-          />
-        </div>
-      </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
-        bpm — leave max blank to use an age-based estimate
-      </div>
-      {zones ? (
-        <div className="space-y-1">
-          {zones.map((z) => (
-            <div key={z.label} className="flex items-center justify-between">
-              <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}</span>
-              <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
-            </div>
-          ))}
-        </div>
+          <button
+            onClick={onStartAssessment}
+            style={{ background: MOSS, color: INK }}
+            className="rounded-md px-4 py-2.5 text-sm font-medium"
+          >
+            More data needed — complete baseline data assessment
+          </button>
+        </>
       ) : (
-        <div style={{ color: TEXT_SOFT }} className="text-sm">Enter your resting heart rate to see your training zones.</div>
+        <div className="space-y-4">
+          <p style={{ color: TEXT_SOFT }} className="text-sm">
+            My individualized exercise prescription, based on my goals (see ACSM guidelines description below):
+          </p>
+
+          <div>
+            <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
+            {zones ? (
+              <>
+                {prescribedZone && (
+                  <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>
+                )}
+                <div className="space-y-1">
+                  {zones.map((z) => (
+                    <div key={z.label} className="flex items-center justify-center gap-2">
+                      <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
+                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
+                  Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
+                </p>
+              </>
+            ) : (
+              <p style={{ color: TEXT_SOFT }} className="text-sm">Add your resting heart rate in Account → Baseline Data to see your personal target ranges.</p>
+            )}
+          </div>
+
+          <div>
+            <div style={{ color: SKY }} className="text-sm font-medium mb-1">Resistance</div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Train each major muscle group across {resistanceGoal} session{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
+            </p>
+          </div>
+
+          <div>
+            <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Flexibility</div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Stretch major muscle-tendon groups 2–3 days/week, holding each stretch 10–30 sec for 2–4 reps.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
