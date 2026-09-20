@@ -276,7 +276,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         <FitnessAssessmentFlow
           userId={userId}
           onClose={() => setShowAssessment(false)}
-          onComplete={() => { setShowAssessment(false); setAssessmentDone(true); }}
+          onComplete={async () => { setShowAssessment(false); setAssessmentDone(true); await loadAll(); }}
         />
       )}
 

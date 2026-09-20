@@ -33,14 +33,24 @@ export default function BaselineFlow({ userId, onComplete }) {
   async function handleFinish() {
     setSaving(true);
     setError('');
-    const { error } = await supabase
-      .from('baseline_responses')
-      .upsert(
-        { user_id: userId, form_answers: answers, submitted_at: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      );
+    const [{ error }, ageError] = await Promise.all([
+      supabase
+        .from('baseline_responses')
+        .upsert(
+          { user_id: userId, form_answers: answers, submitted_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        ),
+      // The age answer here also needs to land on profiles.age directly —
+      // Account's own age field (and anything reading profile.age instead
+      // of falling back to the baseline blob) would otherwise show blank
+      // even though the client already answered this.
+      answers.age
+        ? supabase.from('profiles').update({ age: parseInt(answers.age, 10) }).eq('id', userId).then((r) => r.error)
+        : Promise.resolve(null),
+    ]);
     setSaving(false);
     if (error) { setError(error.message); return; }
+    if (ageError) { setError(ageError.message); return; }
     onComplete();
   }
 
