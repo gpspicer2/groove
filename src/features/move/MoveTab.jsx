@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 
@@ -102,6 +102,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [movementMode, setMovementMode] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
+  const [selectedFlexActivities, setSelectedFlexActivities] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState('');
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
@@ -201,16 +202,40 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     );
   }
 
+  function toggleFlexActivity(activity) {
+    setSelectedFlexActivities((prev) =>
+      prev.includes(activity) ? prev.filter((a) => a !== activity) : [...prev, activity]
+    );
+  }
+
   async function addCustomActivity(name) {
     const trimmed = name.trim();
-    if (!trimmed || customActivities.includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed)) return;
+    if (!trimmed || customActivities.includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed) || FLEXIBILITY_ACTIVITIES.includes(trimmed)) return;
     await updateProfile({ custom_activities: [...customActivities, trimmed] });
-    setSelectedActivities((prev) => [...prev, trimmed]);
+    if (movementMode === 'Flexibility') setSelectedFlexActivities((prev) => [...prev, trimmed]);
+    else setSelectedActivities((prev) => [...prev, trimmed]);
   }
 
   async function removeCustomActivity(name) {
     await updateProfile({ custom_activities: customActivities.filter((a) => a !== name) });
     setSelectedActivities((prev) => prev.filter((a) => a !== name));
+    setSelectedFlexActivities((prev) => prev.filter((a) => a !== name));
+  }
+
+  function selectMode(mode) {
+    if (movementMode === mode) {
+      setMovementMode('');
+      setSelectedGroups([]);
+      setSelectedActivities([]);
+      setSelectedFlexActivities([]);
+      setSelectedStyle('');
+      return;
+    }
+    setMovementMode(mode);
+    setSelectedGroups([]);
+    setSelectedActivities([]);
+    setSelectedFlexActivities([]);
+    setSelectedStyle('');
   }
 
   function canStartMode() {
@@ -218,7 +243,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     if (movementMode === 'Aerobic') return selectedActivities.length > 0;
     if (movementMode === 'Resistance') return selectedGroups.length > 0 && Boolean(selectedStyle);
     if (movementMode === 'Combined') return selectedGroups.length > 0 && selectedActivities.length > 0 && Boolean(selectedStyle);
-    if (movementMode === 'Flexibility') return selectedGroups.length > 0;
+    if (movementMode === 'Flexibility') return selectedGroups.length > 0 && selectedFlexActivities.length > 0;
     return false;
   }
 
@@ -239,6 +264,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     }
     if (usesFlexibility) {
       plan = generateFlexibilityPlan(selectedGroups);
+      const flexActivityEntries = selectedFlexActivities.map((name) => ({
+        name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '',
+      }));
+      plan = [...plan, ...flexActivityEntries];
     }
     if (usesAerobic) {
       const activityEntries = selectedActivities.map((name) => ({
@@ -251,7 +280,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       .from('workouts')
       .insert({
         muscle_groups: usesResistance || usesFlexibility ? selectedGroups : [],
-        activities: usesAerobic ? selectedActivities : [],
+        activities: usesAerobic ? selectedActivities : usesFlexibility ? selectedFlexActivities : [],
         movement_mode: movementMode,
         style: usesResistance ? selectedStyle : null,
         location: selectedLocation,
@@ -264,13 +293,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setPlanExercises(plan);
     setSelectedGroups([]);
     setSelectedActivities([]);
+    setSelectedFlexActivities([]);
     setSelectedStyle('');
     setSelectedLocation('');
     setMovementMode('');
   }
 
   async function deleteWorkout(workoutId) {
-    if (!window.confirm('Delete this workout? You can restore it later from Birdseye if you change your mind.')) return;
+    if (!window.confirm('Delete this movement? You can restore it later from Birdseye if you change your mind.')) return;
     const { error } = await supabase.from('workouts').update({ deleted_at: new Date().toISOString() }).eq('id', workoutId).select().single();
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, deletedAt: new Date().toISOString() } : w)));
@@ -353,7 +383,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   function removeExercise(index, hasLoggedSets) {
-    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
+    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this movement.')) {
       return;
     }
     setPlanExercises((prev) => cleanupSupersets(prev.filter((_, i) => i !== index)));
@@ -406,7 +436,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   async function discardWorkout() {
-    if (!window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
+    if (!window.confirm('Discard this movement? Any sets you logged will be deleted.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
@@ -418,7 +448,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading your workouts…</span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading your movement…</span>
       </div>
     );
   }
@@ -461,11 +491,13 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
           movementMode={movementMode}
-          onSelectMode={setMovementMode}
+          onSelectMode={selectMode}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
           selectedActivities={selectedActivities}
           onToggleActivity={toggleActivity}
+          selectedFlexActivities={selectedFlexActivities}
+          onToggleFlexActivity={toggleFlexActivity}
           customActivities={customActivities}
           onAddCustomActivity={addCustomActivity}
           onRemoveCustomActivity={removeCustomActivity}
@@ -482,7 +514,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">History</div>
         {completedWorkouts.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
-            No completed workouts yet — finish one and it'll show up here.
+            No movement logged yet — finish one and it'll show up here.
           </div>
         ) : (
           <div className="space-y-2">
@@ -574,14 +606,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                           style={{ color: SKY }}
                           className="text-sm py-2 text-center underline"
                         >
-                          {editing ? 'Done editing' : 'Edit this workout'}
+                          {editing ? 'Done editing' : 'Edit this movement'}
                         </button>
                         <button
                           onClick={() => deleteWorkout(w.id)}
                           style={{ color: BRICK }}
                           className="text-sm py-2 text-center underline"
                         >
-                          Delete workout
+                          Delete movement
                         </button>
                       </div>
                     </div>
@@ -651,7 +683,9 @@ function StartWorkout({
   selectedLocation, onSelectLocation,
   movementMode, onSelectMode,
   selectedGroups, onToggleGroup,
-  selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity,
+  selectedActivities, onToggleActivity,
+  selectedFlexActivities, onToggleFlexActivity,
+  customActivities, onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
 }) {
@@ -661,6 +695,7 @@ function StartWorkout({
 
   const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
   const needsActivities = movementMode === 'Aerobic' || movementMode === 'Combined';
+  const needsFlexActivities = movementMode === 'Flexibility';
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
 
   return (
@@ -740,6 +775,22 @@ function StartWorkout({
         </>
       )}
 
+      {selectedLocation && !showProgramOffer && needsFlexActivities && (
+        <>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            Select Flexibility Activity
+          </div>
+          <ActivityPicker
+            baseActivities={FLEXIBILITY_ACTIVITIES}
+            selectedActivities={selectedFlexActivities}
+            onToggleActivity={onToggleFlexActivity}
+            customActivities={customActivities}
+            onAddCustomActivity={onAddCustomActivity}
+            onRemoveCustomActivity={onRemoveCustomActivity}
+          />
+        </>
+      )}
+
       {selectedLocation && !showProgramOffer && needsGroups && (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
@@ -778,7 +829,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
-          🏋️ Start workout{startEmoji}
+          🪩 Start Movement{startEmoji}
         </button>
       )}
     </div>
@@ -860,11 +911,12 @@ function ActiveWorkout({
           }
           const ex = group[0];
           const loggedSets = sets.filter((s) => s.exerciseName === ex.name);
-          if (ex.type === 'aerobic') {
+          if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
             return (
               <AerobicCard
                 key={`aerobic-${ex.index}`}
                 exercise={ex}
+                movementType={ex.type === 'flexibility-activity' ? 'flexibility' : 'aerobic'}
                 loggedSets={loggedSets}
                 onLogSet={onLogSet}
                 onDeleteSet={onDeleteSet}
@@ -978,11 +1030,11 @@ function ActiveWorkout({
         style={{ background: SKY, color: INK }}
         className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5 mb-3"
       >
-        <Check size={16} /> Finish workout
+        <Check size={16} /> Finish Movement
       </button>
 
       <button onClick={onDiscard} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline text-center">
-        Discard this workout
+        Discard this movement
       </button>
 
       {swapIndex !== null && (
@@ -1102,7 +1154,7 @@ function AddExerciseForm({ muscleGroups, location, onAdd, onCancel }) {
           style={{ background: name.trim() ? SKY : INK_3, color: name.trim() ? INK : TEXT_SOFT }}
           className="flex-1 rounded-md py-2.5 text-sm font-medium"
         >
-          Add to workout
+          Add to movement
         </button>
       </div>
     </div>
@@ -1187,7 +1239,7 @@ function AddAerobicForm({ onAdd, onCancel }) {
           style={{ background: name.trim() ? SKY : INK_3, color: name.trim() ? INK : TEXT_SOFT }}
           className="flex-1 rounded-md py-2.5 text-sm font-medium"
         >
-          Add to workout
+          Add to movement
         </button>
       </div>
     </div>
@@ -1393,7 +1445,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
   );
 }
 
-function AerobicCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
+function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
   const [minutes, setMinutes] = useState('');
   const [seconds, setSeconds] = useState('');
   const [distance, setDistance] = useState('');
@@ -1403,9 +1455,9 @@ function AerobicCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp, on
     if (durationSeconds === 0 && !distance.trim()) return;
     onLogSet({
       exerciseName: exercise.name,
-      muscleGroup: 'Cardio',
+      muscleGroup: exercise.muscleGroup || 'Cardio',
       setNumber: loggedSets.length + 1,
-      movementType: 'aerobic',
+      movementType,
       weight: null,
       reps: null,
       durationSeconds: durationSeconds || null,

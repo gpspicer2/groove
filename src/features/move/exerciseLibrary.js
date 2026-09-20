@@ -3,12 +3,18 @@
 // exercises with equipment/injury filters — this is a deliberately
 // simple starting point: enough variety per muscle group to generate a
 // different workout each time without repeating last session's picks.
-export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
+export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 
-// Quick "select all" shortcuts on the muscle-group picker.
+// Quick "select all" shortcuts on the muscle-group picker. Selecting one
+// fills in every group in it; individual groups can still be deselected
+// afterward without the region shortcut losing its highlighted state (see
+// MuscleGroupPicker — it highlights on "any selected", not "all selected").
+const UPPER_BODY = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'];
+const LOWER_BODY = ['Legs', 'Quadriceps', 'Hamstrings', 'Glutes'];
 export const BODY_REGION_GROUPS = {
-  'Upper Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
-  'Lower Body': ['Legs'],
+  'Whole Body': [...UPPER_BODY, ...LOWER_BODY, 'Core'],
+  'Upper Body': UPPER_BODY,
+  'Lower Body': LOWER_BODY,
 };
 
 // What a session is made of. Aerobic/Resistance ask for one picker each;
@@ -29,6 +35,13 @@ export const AEROBIC_ACTIVITIES_QUICK = [
 // appended alongside these (see profiles.custom_activities).
 export const LIFESTYLE_ACTIVITIES = [
   'Walking', 'Jogging', 'Cycling', 'Hiking', 'Swimming', 'Yoga', 'Dancing', 'Gardening', 'Yard Work',
+];
+
+// What kind of flexibility work, selected alongside which muscle groups
+// to target — logged as its own timed entry (like an aerobic activity)
+// in addition to the muscle-group-driven stretch plan.
+export const FLEXIBILITY_ACTIVITIES = [
+  'Static Stretching', 'Dynamic Stretching', 'Yoga', 'Pilates', 'Mobility Work', 'Foam Rolling',
 ];
 
 // Each exercise is tagged with the equipment it needs, so the plan can be
@@ -57,9 +70,25 @@ export const EXERCISE_LIBRARY = {
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' }, // deep single-leg stretch
     { name: 'Walking Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
     { name: 'Leg Press (deep)', sets: 4, reps: '10-15', equipment: 'machine' },
-    { name: 'Leg Curl', sets: 3, reps: '10-15', equipment: 'machine' },
     { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
+  ],
+  Quadriceps: [
+    { name: 'Front Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Leg Extension', sets: 3, reps: '12-15', equipment: 'machine' },
+    { name: 'Goblet Squat', sets: 3, reps: '10-15', equipment: 'dumbbell' },
+    { name: 'Step-Ups', sets: 3, reps: '10-12', equipment: 'bodyweight' },
+  ],
+  Hamstrings: [
+    { name: 'Leg Curl', sets: 3, reps: '10-15', equipment: 'machine' },
+    { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
+    { name: 'Nordic Curl (assisted)', sets: 3, reps: '6-10', equipment: 'bodyweight' },
+    { name: 'Good Morning', sets: 3, reps: '10-12', equipment: 'barbell' },
+  ],
+  Glutes: [
+    { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'barbell' },
     { name: 'Single-Leg Glute Bridge', sets: 3, reps: '12-15', equipment: 'bodyweight' },
+    { name: 'Cable Kickback', sets: 3, reps: '12-15', equipment: 'cable' },
+    { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' },
   ],
   Shoulders: [
     { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
@@ -115,6 +144,18 @@ export const FLEXIBILITY_LIBRARY = {
     { name: 'Standing Quad Stretch', sets: 2, reps: '20-30s per side' },
     { name: 'Seated Hamstring Stretch', sets: 2, reps: '20-30s per side' },
     { name: 'Figure-4 Glute Stretch', sets: 2, reps: '20-30s per side' },
+  ],
+  Quadriceps: [
+    { name: 'Standing Quad Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Couch Stretch', sets: 2, reps: '20-30s per side' },
+  ],
+  Hamstrings: [
+    { name: 'Seated Hamstring Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Standing Toe Touch', sets: 2, reps: '20-30s' },
+  ],
+  Glutes: [
+    { name: 'Figure-4 Glute Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Pigeon Pose', sets: 2, reps: '20-30s per side' },
   ],
   Shoulders: [
     { name: 'Overhead Triceps/Shoulder Stretch', sets: 2, reps: '20-30s per side' },

@@ -22,7 +22,10 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
     <>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {Object.keys(BODY_REGION_GROUPS).map((region) => {
-          const selected = BODY_REGION_GROUPS[region].every((g) => selectedGroups.includes(g));
+          // Highlighted as long as ANY of its groups are still selected —
+          // deselecting one or two muscles individually shouldn't make the
+          // shortcut look like it was never used.
+          const selected = BODY_REGION_GROUPS[region].some((g) => selectedGroups.includes(g));
           return (
             <button
               key={region}
@@ -58,7 +61,7 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
 // Everyday-activity picker with a rememberable custom entry (press-and-
 // hold to remove), used by the Aerobic/Combined steps of Move's start
 // flow, and by Birdseye's quick-log modal.
-export function ActivityPicker({ selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity }) {
+export function ActivityPicker({ baseActivities = LIFESTYLE_ACTIVITIES, selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity }) {
   const [customInput, setCustomInput] = useState('');
   const [addingCustom, setAddingCustom] = useState(false);
 
@@ -72,7 +75,7 @@ export function ActivityPicker({ selectedActivities, onToggleActivity, customAct
   return (
     <>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
-        {[...LIFESTYLE_ACTIVITIES, ...customActivities].map((activity) => {
+        {[...baseActivities, ...customActivities].map((activity) => {
           const selected = selectedActivities.includes(activity);
           const isCustom = customActivities.includes(activity);
           return (
