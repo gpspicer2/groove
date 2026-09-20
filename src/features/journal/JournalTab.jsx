@@ -152,8 +152,20 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
   }
 
   return (
-    <div data-no-swipe className="relative rounded-md overflow-hidden">
-      <div className="absolute right-0 top-0 h-full flex" style={{ width: 112 }}>
+    // The entry's own text never moves — swiping slides the Edit/Delete
+    // buttons IN from off-screen over it, instead of sliding the content
+    // away to uncover them underneath.
+    <div
+      data-no-swipe
+      className="relative rounded-md overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div
+        className="absolute right-0 top-0 h-full flex"
+        style={{ width: 112, transform: `translateX(${revealed ? 0 : 112}px)`, transition: 'transform 0.2s ease' }}
+      >
         <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <Pencil size={16} />
         </button>
@@ -162,11 +174,8 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         </button>
       </div>
       <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         onClick={() => { if (!revealed) setShowActions(true); }}
-        style={{ background: INK_2, transform: `translateX(${revealed ? -112 : 0}px)`, transition: 'transform 0.2s ease' }}
+        style={{ background: INK_2 }}
         className="relative flex items-center justify-between gap-2 px-4 py-3"
       >
         <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">

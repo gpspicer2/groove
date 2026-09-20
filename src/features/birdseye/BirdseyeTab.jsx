@@ -49,14 +49,21 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [trackAerobicGoal, setTrackAerobicGoal] = useState(true);
   const [trackResistanceGoal, setTrackResistanceGoal] = useState(true);
   const [editingGoals, setEditingGoals] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   async function loadAll() {
-    const [{ data: w }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
-      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').is('deleted_at', null).order('started_at', { ascending: false }),
+    const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
+      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
     ]);
+    const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
+    setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
+    const w = workoutsRes.data;
+    const baseline = baselineRes.data;
+    const profileRow = profileRes.data;
+    const setRows = setsRes.data;
     // A workout counts once it's either explicitly finished, or has at
     // least one logged set — someone who logged real sets but never
     // tapped "Finish Movement" (closed the app mid-session, etc.)
@@ -193,6 +200,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12 text-center relative flex flex-col min-h-full">
+      {loadError && (
+        <div style={{ background: INK_2, color: BRICK }} className="rounded-md px-4 py-3 mb-4 text-sm text-center">
+          {loadError}
+        </div>
+      )}
       {/* Stretches the gaps between these sections (rather than leaving
           one dead gap at the end) so the Science-Supported Strategy card
           lands at the bottom of the first screen instead of being cut
@@ -373,7 +385,17 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
   }
 
   return (
-    <div data-no-swipe className="relative mb-3 last:mb-0 rounded-md overflow-hidden">
+    <div
+      data-no-swipe
+      className="relative mb-3 last:mb-0 rounded-md overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* The label/icon never moves — only the count (and the buttons
+          underneath it) slide, so swiping doesn't yank the whole row
+          sideways. Touch tracking lives on the whole row so the gesture
+          works no matter where on it you start swiping. */}
       <div className="absolute right-0 top-0 bottom-0 flex" style={{ width: 96 }}>
         <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <Pencil size={14} />
@@ -382,31 +404,26 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           <X size={14} />
         </button>
       </div>
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
-        className="relative py-0.5"
-      >
-        <div className="flex items-center justify-between mb-1">
-          <span className="flex items-center gap-1.5">
-            <Icon size={14} color={color} />
-            <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+      <div className="relative flex items-center justify-between mb-1 py-0.5">
+        <span className="flex items-center gap-1.5">
+          <Icon size={14} color={color} />
+          <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+        </span>
+        <span
+          style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
+          className="relative flex items-center gap-1.5 pl-2"
+        >
+          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+            {count} / {goal}
           </span>
-          <span className="flex items-center gap-1.5">
-            <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-              {count} / {goal}
-            </span>
-            <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
-              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
-              <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
-            </span>
+          <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
+            <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
+            <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
           </span>
-        </div>
-        <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
-          <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
-        </div>
+        </span>
+      </div>
+      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
+        <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
       </div>
     </div>
   );

@@ -768,7 +768,7 @@ function StartWorkout({
           return (
             <button
               key={loc}
-              onClick={() => onSelectLocation(loc)}
+              onClick={() => onSelectLocation(selected ? '' : loc)}
               style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
               className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
             >

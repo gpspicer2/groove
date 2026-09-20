@@ -21,7 +21,7 @@ export default function GrooveSheet({ onClose }) {
   function handleTouchMove(e) {
     if (!dragging.current) return;
     const dx = e.touches[0].clientX - startX.current;
-    if (dx < -50) { dragging.current = false; onClose(); }
+    if (dx < -40) { dragging.current = false; onClose(); }
   }
   function handleTouchEnd() {
     dragging.current = false;
@@ -31,7 +31,7 @@ export default function GrooveSheet({ onClose }) {
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 z-50 flex" onClick={onClose}>
         <div
-          style={{ background: INK_2 }}
+          style={{ background: INK_2, touchAction: 'pan-y' }}
           className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto animate-[groove-in_0.25s_ease-out]"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={handleTouchStart}

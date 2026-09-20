@@ -3,7 +3,7 @@
 // exercises with equipment/injury filters — this is a deliberately
 // simple starting point: enough variety per muscle group to generate a
 // different workout each time without repeating last session's picks.
-export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
+export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Arms', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 
 // Quick "select all" shortcuts on the muscle-group picker. Selecting one
 // fills in every group in it; individual groups can still be deselected
@@ -16,6 +16,15 @@ export const BODY_REGION_GROUPS = {
   'Upper Body': UPPER_BODY,
   'Lower Body': LOWER_BODY,
 };
+
+// "Legs" and "Arms" act as their own quick-select bundles right in the
+// muscle-group chip row: clicking one fills in its whole bundle, and
+// unselecting one member doesn't clear the bundle's highlight until
+// every member is gone. "Legs" is itself a real, selectable muscle
+// group (with its own exercise pool); "Arms" is a pure UI shortcut for
+// Biceps/Triceps/Shoulders and is never stored as a value on its own.
+export const LEGS_BUNDLE = ['Legs', 'Quadriceps', 'Hamstrings', 'Glutes'];
+export const ARMS_BUNDLE = ['Biceps', 'Triceps', 'Shoulders'];
 
 // What a session is made of. Aerobic/Resistance ask for one picker each;
 // Combined requires both; Flexibility reuses the muscle-group picker but

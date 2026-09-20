@@ -88,7 +88,9 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
       // trigger as a normal tab change.
       if (dragX < -threshold && index < pages.length - 1) onChangeIndex(index + 1);
       else if (dragX > threshold && index > 0) onChangeIndex(index - 1);
-      else if (rawDxRef.current > width * 0.2 && index === 0 && onEdgeSwipeRight) onEdgeSwipeRight();
+      // Lower bar than a normal tab change — this is a secondary "peek"
+      // gesture, not primary navigation, so it should trigger easily.
+      else if (rawDxRef.current > width * 0.1 && index === 0 && onEdgeSwipeRight) onEdgeSwipeRight();
     }
     setDragX(0);
     setDragging(false);
