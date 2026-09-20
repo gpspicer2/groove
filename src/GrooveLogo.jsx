@@ -1,40 +1,43 @@
 import React from 'react';
 
-// The GROOVE wordmark, letter by letter: G = a chainring with a crank arm
-// and pedal, R = a seated stretch/meditation figure, O = a 45lb plate
-// with grip holes, O = a sun, V = an EKG pulse line, E = a plain, fully
-// legible letter with a separate musical note (and three rewind-style
-// arrows) beside it. Monoline strokes throughout so the motifs still read
-// as one consistent mark.
+// The GROOVE wordmark, letter by letter: G = a bike crankset with a
+// pedal, R = a leaning stick figure whose circled arms form the letter's
+// bowl, O = a 45lb plate with grip holes, O = a sun, V = a two-point V,
+// E = a musical note (its own vertical stroke) with three arrows pointing
+// outward to form the letter's bars.
 export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
   return (
     <svg
-      viewBox="-20 -20 870 195"
+      viewBox="-20 -20 850 195"
       className={className}
       style={style}
       role="img"
       aria-label={title}
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g fill="none" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round">
-        {/* G: chainring + crank + pedal */}
-        <g>
+      <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        {/* G: crankset + pedal */}
+        <g strokeWidth="13">
           <path d="M 96 100 A 48 48 0 1 1 96 50" />
           <path d="M 96 75 L 72 75" />
-          <line x1="55" y1="75" x2="92" y2="108" strokeWidth="9" />
+          <g strokeWidth="7">
+            <line x1="55" y1="19" x2="55" y2="31" />
+            <line x1="55" y1="119" x2="55" y2="131" />
+            <line x1="12" y1="38" x2="21" y2="45" />
+            <line x1="12" y1="112" x2="21" y2="105" />
+          </g>
+          <line x1="55" y1="75" x2="95" y2="105" strokeWidth="9" />
           <circle cx="55" cy="75" r="7" fill="currentColor" stroke="none" />
-          <rect x="76" y="98" width="34" height="15" rx="7.5" transform="rotate(48 93 105.5)" fill="currentColor" stroke="none" />
+          <rect x="86" y="97" width="34" height="15" rx="4" transform="rotate(48 103 104.5)" fill="currentColor" stroke="none" />
         </g>
 
-        {/* R: seated stretch figure */}
-        <g transform="translate(124,0)">
-          <circle cx="55" cy="20" r="13" fill="currentColor" stroke="none" />
-          <path d="M 55 33 L 55 62" />
-          <path d="M 55 45 L 20 85" />
-          <path d="M 55 45 L 90 85" />
-          <path d="M 55 62 L 15 125" />
-          <path d="M 55 62 L 95 125" />
-          <path d="M 15 125 L 95 125" />
+        {/* R: leaning figure, circled arms form the bowl */}
+        <g transform="translate(124,0)" strokeWidth="13">
+          <circle cx="26" cy="20" r="12" fill="currentColor" stroke="none" />
+          <path d="M 30 31 L 48 70" />
+          <circle cx="66" cy="42" r="24" />
+          <path d="M 48 70 L 18 140" />
+          <path d="M 48 70 L 90 130" />
         </g>
 
         {/* O: 45lb plate with grip holes */}
@@ -50,7 +53,7 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
         </g>
 
         {/* O: sun */}
-        <g transform="translate(372,0)">
+        <g transform="translate(372,0)" strokeWidth="13">
           <circle cx="55" cy="75" r="26" />
           <g strokeWidth="8">
             <line x1="85" y1="75" x2="103" y2="75" />
@@ -64,32 +67,28 @@ export default function GrooveLogo({ className, style, title = 'GROOVE' }) {
           </g>
         </g>
 
-        {/* V: EKG pulse */}
-        <g transform="translate(496,15)" strokeWidth="10">
-          <path d="M0,60 L20,60 L28,50 L36,70 L46,5 L56,115 L64,60 L74,60 L82,45 L90,75 L110,60" />
+        {/* V: two-point V */}
+        <g transform="translate(496,0)" strokeWidth="13">
+          <path d="M 55 132 L 15 28" />
+          <path d="M 55 132 L 95 28" />
         </g>
+        <circle cx="511" cy="20" r="11" fill="currentColor" stroke="none" />
+        <circle cx="591" cy="20" r="11" fill="currentColor" stroke="none" />
 
-        {/* E: plain, fully legible */}
-        <g transform="translate(624,0)">
-          <path d="M 82 10 L 15 10" />
-          <path d="M 15 10 L 15 130" />
-          <path d="M 15 70 L 65 70" />
-          <path d="M 15 130 L 82 130" />
+        {/* E: note stem + 3 outward arrows */}
+        <g transform="translate(620,0)" strokeWidth="12">
+          <path d="M 20 10 L 20 128" />
+          <path d="M 20 10 C 42 15, 41 34, 23 35" strokeWidth="9" />
+          <path d="M 20 10 L 68 10" />
+          <path d="M 20 70 L 58 70" />
+          <path d="M 20 128 L 72 128" />
         </g>
       </g>
-
-      {/* Musical note + rewind arrows, standalone beside the E */}
-      <g transform="translate(700,15)">
-        <g fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M 90 15 L 90 90" />
-          <path d="M 90 15 C 112 20, 111 40, 92 41" />
-        </g>
-        <ellipse cx="78" cy="96" rx="16" ry="12" fill="currentColor" stroke="none" transform="rotate(-18 78 96)" />
-        <g fill="currentColor" stroke="none">
-          <path d="M 50 60 L 65 50 L 65 70 Z" />
-          <path d="M 30 60 L 45 50 L 45 70 Z" />
-          <path d="M 10 60 L 25 50 L 25 70 Z" />
-        </g>
+      <ellipse cx="634" cy="134" rx="15" ry="11" fill="currentColor" stroke="none" transform="rotate(-18 634 134)" />
+      <g fill="currentColor" stroke="none">
+        <path d="M 688 3 L 704 10 L 688 17 Z" />
+        <path d="M 678 63 L 694 70 L 678 77 Z" />
+        <path d="M 692 121 L 708 128 L 692 135 Z" />
       </g>
     </svg>
   );
