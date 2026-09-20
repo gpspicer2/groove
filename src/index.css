@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Neither html nor body had a background set — on iOS Safari, rubber-band
+   overscroll (especially at the bottom, past the home-indicator safe
+   area) exposes whatever's behind the app's own div, which defaults to
+   white. Setting it here, app-wide, kills that regardless of exactly
+   which element's height computation is a pixel short. Keep in sync with
+   theme.js's INK constant. */
+html, body {
+  background: #160C1A;
+  height: 100%;
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
