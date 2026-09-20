@@ -280,7 +280,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
       {step === 'favorite' && (
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            Which movement was your favorite today?
+            Which movement was your <strong><em>favorite</em></strong> today?
           </div>
           {hasRecent ? (
             <div className="space-y-2">
@@ -294,9 +294,16 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
                   {name}
                 </button>
               ))}
+              <button
+                onClick={() => setFavoriteMovement('None')}
+                style={{ background: favoriteMovement === 'None' ? LIME : INK_3, color: favoriteMovement === 'None' ? INK : PAPER_DIM }}
+                className="w-full text-center rounded-md px-4 py-2.5 text-sm"
+              >
+                None
+              </button>
               <input
                 type="text"
-                value={recentExerciseNames.includes(favoriteMovement) ? '' : favoriteMovement}
+                value={recentExerciseNames.includes(favoriteMovement) || favoriteMovement === 'None' ? '' : favoriteMovement}
                 onChange={(e) => setFavoriteMovement(e.target.value)}
                 placeholder="Or type something else…"
                 style={{ background: INK_3, color: PAPER }}
@@ -319,7 +326,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
       {step === 'least_favorite' && (
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            What was your least favorite movement today?
+            What was your <strong><em>least favorite</em></strong> movement today?
           </div>
           {hasRecent ? (
             <div className="space-y-2">
@@ -333,9 +340,16 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
                   {name}
                 </button>
               ))}
+              <button
+                onClick={() => setLeastFavoriteMovement('None')}
+                style={{ background: leastFavoriteMovement === 'None' ? LIME : INK_3, color: leastFavoriteMovement === 'None' ? INK : PAPER_DIM }}
+                className="w-full text-center rounded-md px-4 py-2.5 text-sm"
+              >
+                None
+              </button>
               <input
                 type="text"
-                value={recentExerciseNames.includes(leastFavoriteMovement) ? '' : leastFavoriteMovement}
+                value={recentExerciseNames.includes(leastFavoriteMovement) || leastFavoriteMovement === 'None' ? '' : leastFavoriteMovement}
                 onChange={(e) => setLeastFavoriteMovement(e.target.value)}
                 placeholder="Or type something else…"
                 style={{ background: INK_3, color: PAPER }}

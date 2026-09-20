@@ -13,6 +13,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
   const [dragging, setDragging] = useState(false);
   const startRef = useRef({ x: 0, y: 0 });
   const isHorizontalRef = useRef(null); // null = undecided, true/false once decided
+  const suppressedRef = useRef(false); // gesture started on a control that needs its own horizontal drag
 
   useEffect(() => {
     function measure() {
@@ -23,7 +24,19 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
+  // Anything that has its own horizontal drag/scroll behavior (sliders,
+  // horizontally-scrolling rows, etc.) opts out of the pager's own swipe
+  // tracking entirely, rather than the two gestures fighting each other.
+  function isSwipeExempt(target) {
+    return Boolean(target.closest && target.closest('input[type="range"], [data-no-swipe]'));
+  }
+
   function handleTouchStart(e) {
+    if (isSwipeExempt(e.target)) {
+      suppressedRef.current = true;
+      return;
+    }
+    suppressedRef.current = false;
     const t = e.touches[0];
     startRef.current = { x: t.clientX, y: t.clientY };
     isHorizontalRef.current = null;
@@ -31,6 +44,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
   }
 
   function handleTouchMove(e) {
+    if (suppressedRef.current) return;
     const t = e.touches[0];
     const dx = t.clientX - startRef.current.x;
     const dy = t.clientY - startRef.current.y;
@@ -51,6 +65,10 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
   }
 
   function handleTouchEnd() {
+    if (suppressedRef.current) {
+      suppressedRef.current = false;
+      return;
+    }
     if (isHorizontalRef.current) {
       const threshold = width * 0.2;
       if (dragX < -threshold && index < pages.length - 1) onChangeIndex(index + 1);
