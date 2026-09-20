@@ -717,7 +717,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium"
         >
-          Start workout{startEmoji}
+          🏋️ Start workout{startEmoji}
         </button>
       )}
     </div>

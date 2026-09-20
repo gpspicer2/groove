@@ -14,11 +14,13 @@ export default function MovementTypePicker({
   customActivities, onAddCustomActivity, onRemoveCustomActivity,
 }) {
   const [customInput, setCustomInput] = useState('');
+  const [addingCustom, setAddingCustom] = useState(false);
 
   function handleAddCustom() {
     if (!customInput.trim()) return;
     onAddCustomActivity(customInput);
     setCustomInput('');
+    setAddingCustom(false);
   }
 
   return (
@@ -56,24 +58,36 @@ export default function MovementTypePicker({
           );
         })}
       </div>
-      <div className="flex items-center gap-2 mb-2">
-        <input
-          type="text"
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          placeholder="Add your own…"
-          style={{ background: INK_3, color: PAPER }}
-          className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-center"
-        />
+      {addingCustom ? (
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            autoFocus
+            type="text"
+            value={customInput}
+            onChange={(e) => setCustomInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
+            placeholder="Movement name…"
+            style={{ background: INK_3, color: PAPER }}
+            className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-center"
+          />
+          <button
+            onClick={handleAddCustom}
+            disabled={!customInput.trim()}
+            style={{ background: customInput.trim() ? SKY : INK_3, color: customInput.trim() ? INK : TEXT_SOFT }}
+            className="rounded-md px-3 py-2 text-sm font-medium"
+          >
+            Add
+          </button>
+        </div>
+      ) : (
         <button
-          onClick={handleAddCustom}
-          disabled={!customInput.trim()}
-          style={{ background: customInput.trim() ? SKY : INK_3, color: customInput.trim() ? INK : TEXT_SOFT }}
-          className="rounded-md px-3 py-2 text-sm font-medium"
+          onClick={() => setAddingCustom(true)}
+          style={{ color: SKY }}
+          className="text-sm mb-2 mx-auto block"
         >
-          Add
+          + Add…
         </button>
-      </div>
+      )}
       {customActivities.length > 0 && (
         <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">Press and hold your own entries to remove them</div>
       )}
