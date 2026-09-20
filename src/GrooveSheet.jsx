@@ -12,54 +12,88 @@ const GROOVE_DEFINITIONS = [
 
 // Same easing/duration as SwipeTabs' own page transitions, so this feels
 // like the same gesture system rather than a bolted-on modal.
-const TRANSITION = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+const SNAP_TRANSITION = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
 const CLOSE_MS = 280;
 
 export default function GrooveSheet({ onClose }) {
-  const [visible, setVisible] = useState(false);
-  const startX = useRef(0);
-  const dragging = useRef(false);
+  const panelRef = useRef(null);
+  const [open, setOpen] = useState(false); // resting state: fully in vs fully out
+  const [dragX, setDragX] = useState(0); // live offset while a finger is down, 0 or negative
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef(0);
+  const widthRef = useRef(320);
+  const trackingRef = useRef(false);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
+    if (panelRef.current) widthRef.current = panelRef.current.offsetWidth;
+    const id = requestAnimationFrame(() => setOpen(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, CLOSE_MS);
-  }
-
   function handleTouchStart(e) {
-    startX.current = e.touches[0].clientX;
-    dragging.current = true;
+    trackingRef.current = true;
+    startXRef.current = e.touches[0].clientX;
+    setDragging(true);
   }
   function handleTouchMove(e) {
-    if (!dragging.current) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (dx < -40) { dragging.current = false; handleClose(); }
+    if (!trackingRef.current) return;
+    const dx = e.touches[0].clientX - startXRef.current;
+    // Only ever pulls left (closing) — dragging right past fully-open
+    // just does nothing, no rubber-band needed since it's already home.
+    setDragX(Math.min(0, dx));
   }
-  function handleTouchEnd() {
-    dragging.current = false;
+  function finishGesture() {
+    if (!trackingRef.current) return;
+    trackingRef.current = false;
+    setDragging(false);
+    const closedEnough = -dragX > widthRef.current * 0.3;
+    setDragX(0);
+    if (closedEnough) {
+      setOpen(false);
+      setTimeout(onClose, CLOSE_MS);
+    } else {
+      setOpen(true);
+    }
+  }
+
+  // The offset actually applied: fully open (0) or fully closed
+  // (-100%) as a resting position, live-adjusted by finger movement
+  // while a touch is active — same feel as SwipeTabs' own drag.
+  const baseX = open ? 0 : -widthRef.current;
+  const translate = baseX + dragX;
+
+  function handleBackdropClick() {
+    setOpen(false);
+    setTimeout(onClose, CLOSE_MS);
   }
 
   return (
     <Portal>
       <div
-        style={{ background: 'rgba(0,0,0,0.6)', opacity: visible ? 1 : 0, transition: 'opacity 0.28s ease' }}
+        style={{ background: 'rgba(0,0,0,0.6)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.28s ease' }}
         className="fixed inset-0 z-50 flex"
-        onClick={handleClose}
+        onClick={handleBackdropClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={finishGesture}
+        onTouchCancel={finishGesture}
       >
         <div
-          style={{ background: INK_2, touchAction: 'pan-y', transform: `translateX(${visible ? '0' : '-100%'})`, transition: TRANSITION }}
+          ref={panelRef}
+          style={{
+            background: INK_2,
+            touchAction: 'pan-y',
+            transform: `translateX(${translate}px)`,
+            transition: dragging ? 'none' : SNAP_TRANSITION,
+          }}
           className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
         >
-          <button onClick={handleClose} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
+          <button
+            onClick={handleBackdropClick}
+            style={{ color: TEXT_SOFT }}
+            className="absolute top-4 right-4 p-2 -m-2"
+          >
             <X size={20} />
           </button>
           <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium tracking-wide italic mb-8 mt-4">
@@ -74,7 +108,7 @@ export default function GrooveSheet({ onClose }) {
             ))}
           </div>
         </div>
-        <div className="flex-1" onClick={handleClose} />
+        <div className="flex-1" />
       </div>
     </Portal>
   );
