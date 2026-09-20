@@ -27,7 +27,7 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, active }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
@@ -95,6 +95,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove }) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // All four tabs stay mounted the whole session (SwipeTabs slides
+  // between them rather than mounting/unmounting), so Birdseye's initial
+  // load can go stale — a workout logged in Move, or HR data saved from
+  // Account, wouldn't show up here until a full page refresh. Refetch
+  // every time this tab becomes the active one.
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (active && !wasActive.current) loadAll();
+    wasActive.current = active;
+  }, [active]);
 
   // A workout's stored movement_mode reflects what it was when it was
   // started — but movement can be added afterward (aerobic work mixed
@@ -182,59 +193,64 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove }) {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12 text-center relative flex flex-col min-h-full">
-      {insight && (
-        <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 mb-4">
-          <div style={{ color: PAPER }} className="text-sm">{insight}</div>
-        </div>
-      )}
-
-      {!assessmentDone && (
-        <button
-          onClick={() => setShowAssessment(true)}
-          style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
-          className="w-full rounded-lg px-5 py-4 mb-4 text-center"
-        >
-          <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Optional, recommended</div>
-          <div style={{ color: PAPER }} className="text-sm font-medium">Complete your fitness baseline →</div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Helps Greg help you — takes about 2 minutes.</div>
-        </button>
-      )}
-
-      <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <span />
-          <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
-          <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-            <Pencil size={14} />
-          </button>
-        </div>
-
-        {trackedGoals.map((g) => (
-          <GoalRow
-            key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
-            onEdit={() => setEditingGoals(true)}
-            onDelete={() => setGoalTracked(g.mode, false)}
-          />
-        ))}
-
-        {streak > 0 && (
-          <div style={{ color: LIME }} className="text-sm mt-3">
-            🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting both goals
+      {/* Stretches the gaps between these sections (rather than leaving
+          one dead gap at the end) so the Science-Supported Strategy card
+          lands at the bottom of the first screen instead of being cut
+          off mid-sentence — on a short/tall page this just tightens up
+          instead of leaving a big last gap. */}
+      <div className="flex-1 flex flex-col justify-between gap-4">
+        {insight && (
+          <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
+            <div style={{ color: PAPER }} className="text-sm">{insight}</div>
           </div>
         )}
-      </div>
 
-      <WorkoutCalendar
-        workouts={workouts}
-        hasResistance={hasResistance}
-        hasAerobic={hasAerobic}
-        hasFlexibility={hasFlexibility}
-        onOpenWorkout={onOpenWorkout}
-        onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
-        weekStartDay={weekStartDay}
-      />
+        {!assessmentDone && (
+          <button
+            onClick={() => setShowAssessment(true)}
+            style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
+            className="w-full rounded-lg px-5 py-4 text-center"
+          >
+            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Optional, recommended</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Complete your fitness baseline →</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Helps Greg help you — takes about 2 minutes.</div>
+          </button>
+        )}
 
-      <div className="mt-4">
+        <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6">
+          <div className="flex items-center justify-between mb-3">
+            <span />
+            <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
+            <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+              <Pencil size={14} />
+            </button>
+          </div>
+
+          {trackedGoals.map((g) => (
+            <GoalRow
+              key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
+              onEdit={() => setEditingGoals(true)}
+              onDelete={() => setGoalTracked(g.mode, false)}
+            />
+          ))}
+
+          {streak > 0 && (
+            <div style={{ color: LIME }} className="text-sm mt-3">
+              🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting both goals
+            </div>
+          )}
+        </div>
+
+        <WorkoutCalendar
+          workouts={workouts}
+          hasResistance={hasResistance}
+          hasAerobic={hasAerobic}
+          hasFlexibility={hasFlexibility}
+          onOpenWorkout={onOpenWorkout}
+          onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
+          weekStartDay={weekStartDay}
+        />
+
         <ScienceStrategy
           assessmentDone={assessmentDone}
           onStartAssessment={() => setShowAssessment(true)}
@@ -244,8 +260,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove }) {
           prescribedZone={prescribedZone}
         />
       </div>
-
-      <div className="flex-1" />
 
       <div className="mt-4">
         <AcsmGuidelines />
@@ -372,20 +386,22 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        style={{ transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
+        style={{ background: INK_2, transform: `translateX(${revealed ? -96 : 0}px)`, transition: 'transform 0.2s ease' }}
         className="relative py-0.5"
       >
         <div className="flex items-center justify-between mb-1">
+          <span className="flex items-center gap-1.5">
+            <Icon size={14} color={color} />
+            <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+          </span>
           <span className="flex items-center gap-1.5">
             <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
               <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
               <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
             </span>
-            <Icon size={14} color={color} />
-            <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
-          </span>
-          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-            {count} / {goal}
+            <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+              {count} / {goal}
+            </span>
           </span>
         </div>
         <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">

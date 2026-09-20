@@ -74,7 +74,7 @@ export default function ClientApp() {
           onEdgeSwipeRight={tab === 'birdseye' ? () => setShowGroove(true) : null}
           scrollContainerRef={scrollRef}
           pages={[
-            <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenGroove={() => setShowGroove(true)} />,
+            <BirdseyeTab userId={user.id} onOpenWorkout={openWorkout} onOpenGroove={() => setShowGroove(true)} active={tab === 'birdseye'} />,
             <MoveTab deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
             <JournalTab />,
             <LearnTab />,

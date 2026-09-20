@@ -14,6 +14,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   const startRef = useRef({ x: 0, y: 0 });
   const isHorizontalRef = useRef(null); // null = undecided, true/false once decided
   const suppressedRef = useRef(false); // gesture started on a control that needs its own horizontal drag
+  const rawDxRef = useRef(0); // actual finger movement, before rubber-band dampening
 
   useEffect(() => {
     function measure() {
@@ -64,6 +65,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
       if (!isHorizontalRef.current) { setDragging(false); return; }
     }
     if (!isHorizontalRef.current) return;
+    rawDxRef.current = dx;
 
     // Rubber-band past the first/last page instead of dragging freely.
     let next = dx;
@@ -80,9 +82,13 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
     }
     if (isHorizontalRef.current) {
       const threshold = width * 0.2;
+      // The edge-swipe-right gesture is checked against the raw finger
+      // movement, not the rubber-band-dampened dragX (which is divided
+      // by 3 at index 0) — otherwise it'd take 3x the swipe distance to
+      // trigger as a normal tab change.
       if (dragX < -threshold && index < pages.length - 1) onChangeIndex(index + 1);
       else if (dragX > threshold && index > 0) onChangeIndex(index - 1);
-      else if (dragX > threshold && index === 0 && onEdgeSwipeRight) onEdgeSwipeRight();
+      else if (rawDxRef.current > width * 0.2 && index === 0 && onEdgeSwipeRight) onEdgeSwipeRight();
     }
     setDragX(0);
     setDragging(false);
