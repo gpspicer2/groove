@@ -46,13 +46,15 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   const [resistanceGoal, setResistanceGoal] = useState(3);
   const [aerobicGoal, setAerobicGoal] = useState(3);
   const [flexibilityGoal, setFlexibilityGoal] = useState(2);
+  const [trackFlexibilityGoal, setTrackFlexibilityGoal] = useState(true);
+  const [editingGoals, setEditingGoals] = useState(false);
 
   async function loadAll() {
     const [{ data: w }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('journal_entries').select('id'),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal, track_flexibility_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
     ]);
     setWorkouts(w || []);
@@ -70,6 +72,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
     setResistanceGoal(profileRow?.resistance_goal || 3);
     setAerobicGoal(profileRow?.aerobic_goal || 3);
     setFlexibilityGoal(profileRow?.flexibility_goal || 2);
+    setTrackFlexibilityGoal(profileRow?.track_flexibility_goal !== false);
 
     const types = {};
     (setRows || []).forEach((s) => {
@@ -106,6 +109,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
     else if (field === 'aerobic_goal') setAerobicGoal(clamped);
     else setFlexibilityGoal(clamped);
     await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
+  }
+
+  async function toggleFlexibilityGoal() {
+    const next = !trackFlexibilityGoal;
+    setTrackFlexibilityGoal(next);
+    await supabase.from('profiles').update({ track_flexibility_goal: next }).eq('id', userId);
+  }
+
+  async function saveRestingHr(value) {
+    setRestingHrNum(value);
+    await supabase.from('profiles').update({ resting_hr_bpm: value }).eq('id', userId);
   }
 
   async function addCustomActivity(name) {
@@ -178,11 +192,27 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
       )}
 
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3">This week</div>
+        <div className="flex items-center justify-between mb-3">
+          <span />
+          <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
+          <button onClick={() => setEditingGoals((v) => !v)} style={{ color: editingGoals ? LIME : TEXT_SOFT }} className="p-1 -m-1">
+            <Pencil size={14} />
+          </button>
+        </div>
 
         <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={aerobicGoal} onChangeGoal={(v) => saveGoal('aerobic_goal', v)} />
         <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={resistanceGoal} onChangeGoal={(v) => saveGoal('resistance_goal', v)} />
-        <GoalRow label="Flexibility" icon={StretchHorizontal} color={BRICK} count={flexibilityThisWeek} goal={flexibilityGoal} onChangeGoal={(v) => saveGoal('flexibility_goal', v)} />
+        {trackFlexibilityGoal ? (
+          <GoalRow
+            label="Flexibility" icon={StretchHorizontal} color={BRICK} count={flexibilityThisWeek} goal={flexibilityGoal}
+            onChangeGoal={(v) => saveGoal('flexibility_goal', v)}
+            onRemove={editingGoals ? toggleFlexibilityGoal : null}
+          />
+        ) : editingGoals ? (
+          <button onClick={toggleFlexibilityGoal} style={{ color: BRICK }} className="text-sm flex items-center gap-1.5 mb-1">
+            <StretchHorizontal size={14} /> + Add Flexibility goal back
+          </button>
+        ) : null}
 
         {streak > 0 && (
           <div style={{ color: LIME }} className="text-sm mt-3">
@@ -206,8 +236,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
           assessmentDone={assessmentDone}
           onStartAssessment={() => setShowAssessment(true)}
           resistanceGoal={resistanceGoal}
+          aerobicGoal={aerobicGoal}
           restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
           prescribedZone={prescribedZone}
+          onSaveRestingHr={saveRestingHr}
         />
       </div>
 
@@ -250,7 +282,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, onChangeGoal }) {
+function GoalRow({ label, icon: Icon, color, count, goal, onChangeGoal, onRemove }) {
   const [editing, setEditing] = useState(false);
   const pct = Math.min(100, (count / goal) * 100);
   return (
@@ -259,6 +291,11 @@ function GoalRow({ label, icon: Icon, color, count, goal, onChangeGoal }) {
         <span className="flex items-center gap-1.5">
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+          {onRemove && (
+            <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+              <X size={12} />
+            </button>
+          )}
         </span>
         {editing ? (
           <span className="flex items-center gap-2">
@@ -407,15 +444,28 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           <span style={{ color: TEXT_SOFT }} className="text-sm">Flexibility</span>
         </div>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-2">Tap an empty day to log a workout</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-2">Tap an empty day to log movement</div>
     </div>
   );
 }
 
 // The permanent, personalized companion to the ACSM reference below: your
 // own individualized exercise prescription, not just an abstract standard.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoal, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, onSaveRestingHr }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
+  const [editingHr, setEditingHr] = useState(false);
+  const [hrInput, setHrInput] = useState(restingHrNum != null ? String(restingHrNum) : '');
+
+  useEffect(() => {
+    setHrInput(restingHrNum != null ? String(restingHrNum) : '');
+  }, [restingHrNum]);
+
+  function handleSaveHr() {
+    const n = parseInt(hrInput, 10);
+    if (!Number.isFinite(n) || n <= 0) return;
+    onSaveRestingHr && onSaveRestingHr(n);
+    setEditingHr(false);
+  }
 
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-5 text-center">
@@ -444,6 +494,12 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, re
 
           <div>
             <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
+              {aerobicGoal
+                ? `Aim for ${aerobicGoal} session${aerobicGoal === 1 ? '' : 's'}/week — `
+                : "No specific aerobic goal set, so here's ACSM's recommendation: "}
+              150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days.
+            </p>
             {zones ? (
               <>
                 {prescribedZone && (
@@ -460,9 +516,31 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, re
                 <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
                   Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
                 </p>
+                <button onClick={() => setEditingHr(true)} style={{ color: SKY }} className="text-sm mt-1">
+                  Update resting heart rate ({restingHrNum} bpm)
+                </button>
               </>
+            ) : editingHr ? (
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  autoFocus
+                  value={hrInput}
+                  onChange={(e) => setHrInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveHr()}
+                  placeholder="Resting HR"
+                  style={{ background: INK_3, color: PAPER }}
+                  className="w-24 rounded-md px-2 py-2 text-sm outline-none text-center"
+                />
+                <button onClick={handleSaveHr} style={{ background: MOSS, color: INK }} className="rounded-md px-3 py-2 text-sm font-medium">
+                  Save
+                </button>
+              </div>
             ) : (
-              <p style={{ color: TEXT_SOFT }} className="text-sm">Add your resting heart rate in Account → Baseline Data to see your personal target ranges.</p>
+              <button onClick={() => setEditingHr(true)} style={{ color: SKY }} className="text-sm">
+                Add your resting heart rate to see your personal target ranges →
+              </button>
             )}
           </div>
 
@@ -624,7 +702,7 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <div style={{ color: PAPER }} className="text-sm font-medium">Log a workout</div>
+          <div style={{ color: PAPER }} className="text-sm font-medium">Log movement</div>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
             <X size={18} />
           </button>
@@ -713,7 +791,7 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
           style={{ background: canSave ? LIME : INK_3, color: canSave ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-3"
         >
-          {saving ? 'Saving…' : 'Save workout'}
+          {saving ? 'Saving…' : 'Save movement'}
         </button>
       </div>
     </div>

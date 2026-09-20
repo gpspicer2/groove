@@ -136,6 +136,7 @@ export default function JournalTab() {
 
 function JournalEntryRow({ entry, onEdit, onDelete }) {
   const [revealed, setRevealed] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
 
@@ -167,6 +168,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onClick={() => { if (!revealed) setShowActions(true); }}
         style={{ background: INK_2, transform: `translateX(${revealed ? -112 : 0}px)`, transition: 'transform 0.2s ease' }}
         className="relative flex items-center justify-between gap-2 px-4 py-3"
       >
@@ -179,6 +181,35 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
           <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
         </div>
       </div>
+
+      {showActions && (
+        <Portal>
+          <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={() => setShowActions(false)}>
+            <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+              <div style={{ color: PAPER }} className="text-sm text-center mb-5">
+                {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
+              </div>
+              <button
+                onClick={() => { setShowActions(false); onEdit(); }}
+                style={{ background: SKY, color: INK }}
+                className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
+              >
+                <Pencil size={16} /> Edit entry
+              </button>
+              <button
+                onClick={() => { setShowActions(false); onDelete(); }}
+                style={{ background: BRICK, color: PAPER }}
+                className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
+              >
+                <Trash2 size={16} /> Delete entry
+              </button>
+              <button onClick={() => setShowActions(false)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 text-center">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }

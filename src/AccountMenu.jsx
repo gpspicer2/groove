@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount } from './lib/api';
@@ -11,7 +11,7 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ color: TEXT_SOFT }} className="p-2 -m-2 justify-self-start">
+      <button onClick={() => setOpen(true)} style={{ color: TEXT_SOFT }} className="p-2 -m-2 justify-self-end">
         <User size={18} />
       </button>
       {open && <AccountModal onClose={() => setOpen(false)} />}
@@ -49,6 +49,12 @@ function AccountModal({ onClose }) {
     }
   }
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   return (
     <Portal>
     <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50">
@@ -63,8 +69,8 @@ function AccountModal({ onClose }) {
           <div style={{ color: PAPER }} className="text-sm">{user.email}</div>
         </div>
 
-        <LinkRow label="Change password" onClick={() => setShowPassword(true)} />
-        <LinkRow label="Payment information" onClick={() => setShowPassword('payment')} />
+        <LinkRow label="Change Password" onClick={() => setShowPassword(true)} />
+        <LinkRow label="Payment Information" onClick={() => setShowPassword('payment')} />
 
         {!isTrainer && (
           <>
@@ -100,7 +106,7 @@ function AccountModal({ onClose }) {
 
             <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2">Week starts on</label>
             <div className="flex items-center gap-2 mb-6">
-              {['sunday', 'monday'].map((day) => {
+              {['monday', 'sunday'].map((day) => {
                 const selected = (profile?.week_start_day || 'sunday') === day;
                 return (
                   <button
@@ -117,7 +123,7 @@ function AccountModal({ onClose }) {
 
             <BaselineDataSection userId={user.id} />
 
-            <LinkRow label="Manage your movements" onClick={() => setShowMovements(true)} />
+            <LinkRow label="Manage Your Movements" onClick={() => setShowMovements(true)} />
             <DeletedWorkoutsSection userId={user.id} />
           </>
         )}
@@ -174,9 +180,10 @@ function AccountModal({ onClose }) {
 
 function LinkRow({ label, onClick }) {
   return (
-    <button onClick={onClick} style={{ background: INK_3 }} className="w-full flex items-center justify-between rounded-md px-4 py-3 mb-2">
-      <span style={{ color: PAPER }} className="text-sm">{label}</span>
-      <ChevronRight size={16} color={TEXT_SOFT} />
+    <button onClick={onClick} style={{ background: INK_3 }} className="w-full grid grid-cols-[16px_1fr_16px] items-center rounded-md px-4 py-3 mb-2">
+      <span />
+      <span style={{ color: PAPER }} className="text-sm text-center">{label}</span>
+      <ChevronRight size={16} color={TEXT_SOFT} className="justify-self-end" />
     </button>
   );
 }
@@ -335,6 +342,7 @@ function BaselineDataSection({ userId }) {
   const [restingHr, setRestingHr] = useState('');
   const [maxHr, setMaxHr] = useState('');
   const [prescribedZone, setPrescribedZone] = useState(null);
+  const [showPeakInfo, setShowPeakInfo] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -363,7 +371,6 @@ function BaselineDataSection({ userId }) {
   const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);
   const maxHrNum = maxHr.trim() === '' ? (predictedMaxHR(age) || null) : parseFloat(maxHr);
   const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
-  const zones = computeHrZones(restingHrNum, maxHrNum);
 
   return (
     <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
@@ -412,7 +419,12 @@ function BaselineDataSection({ userId }) {
                 />
               </div>
               <div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">Max{maxHrIsPredicted ? ' (est.)' : ''}</div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 flex items-center gap-1">
+                  Peak{maxHrIsPredicted ? ' (est.)' : ''}
+                  <button onClick={() => setShowPeakInfo((v) => !v)} style={{ color: TEXT_SOFT }} className="p-0.5 -m-0.5">
+                    <Info size={12} />
+                  </button>
+                </div>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -425,14 +437,9 @@ function BaselineDataSection({ userId }) {
                 />
               </div>
             </div>
-            {zones && (
-              <div className="space-y-1">
-                {zones.map((z) => (
-                  <div key={z.label} className="flex items-center justify-between">
-                    <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}</span>
-                    <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
-                  </div>
-                ))}
+            {showPeakInfo && (
+              <div style={{ background: INK_2, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm text-left mb-2">
+                HRmax is the theoretical highest heart rate your body can reach. HRpeak is the highest you've actually measured — say, during a hard effort or a real test. HRpeak is usually the more accurate number to train off of. We default to an age-predicted estimate unless you enter your own.
               </div>
             )}
           </div>

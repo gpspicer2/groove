@@ -46,11 +46,11 @@ export default function TrainerApp() {
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
-          <AccountMenu />
+          <div />
           <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
             GROOVE
           </span>
-          <div />
+          <AccountMenu />
         </div>
         {!selectedClient && (
           <div className="flex gap-2 pb-4">

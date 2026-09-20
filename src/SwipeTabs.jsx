@@ -24,6 +24,14 @@ export default function SwipeTabs({ index, onChangeIndex, pages }) {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
+  // All pages share the page's single scroll position (they sit side by
+  // side, not each in their own scroll container) — switching to a
+  // shorter tab while scrolled down on a taller one otherwise leaves the
+  // viewport stranded past the new tab's content.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [index]);
+
   // Anything that has its own horizontal drag/scroll behavior (sliders,
   // horizontally-scrolling rows, etc.) opts out of the pager's own swipe
   // tracking entirely, rather than the two gestures fighting each other.

@@ -28,6 +28,8 @@ create table profiles (
   resistance_goal integer not null default 3,
   aerobic_goal integer not null default 3,
   flexibility_goal integer not null default 2,
+  -- lets a client hide the Flexibility row from Weekly Goals entirely
+  track_flexibility_goal boolean not null default true,
   -- self-reported, entered from Account — age feeds the age-based max HR
   -- estimate when no measured max HR is on file; gender only drives a
   -- cosmetic emoji next to "Start workout" in Move
