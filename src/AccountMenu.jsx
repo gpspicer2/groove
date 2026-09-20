@@ -17,15 +17,23 @@ export default function AccountMenu() {
   );
 }
 
+const GENDER_OPTIONS = ['Female', 'Male', 'Other'];
+
 function AccountModal({ onClose }) {
   const { user, profile, updateProfile, signOut } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
+  const [age, setAge] = useState(profile?.age != null ? String(profile.age) : '');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  async function saveAge(value) {
+    const numeric = value.trim() === '' ? null : parseInt(value, 10);
+    await updateProfile({ age: numeric });
+  }
 
   async function handlePasswordSave() {
     if (newPassword.length < 6) return;
@@ -82,6 +90,36 @@ function AccountModal({ onClose }) {
         >
           {passwordSaving ? 'Saving…' : 'Update password'}
         </button>
+
+        <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2">Age</label>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          onBlur={(e) => saveAge(e.target.value)}
+          placeholder="—"
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          className="w-20 rounded-md px-2 py-2 text-sm outline-none text-center mb-1 mx-auto block"
+        />
+        <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-6">Used to estimate your heart rate zones</div>
+
+        <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2">Gender</label>
+        <div className="flex items-center gap-2 mb-6">
+          {GENDER_OPTIONS.map((g) => {
+            const selected = profile?.gender === g;
+            return (
+              <button
+                key={g}
+                onClick={() => updateProfile({ gender: g })}
+                style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
+                className="flex-1 rounded-md py-2.5 text-sm font-medium"
+              >
+                {g}
+              </button>
+            );
+          })}
+        </div>
 
         <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2">Week starts on</label>
         <div className="flex items-center gap-2 mb-6">

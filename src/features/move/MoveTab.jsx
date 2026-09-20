@@ -3,7 +3,7 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2 } from '
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, LOCATION_EMOJI, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import MovementTypePicker from './MovementTypePicker';
 
@@ -437,6 +437,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         />
       ) : (
         <StartWorkout
+          gender={profile?.gender}
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
           selectedGroups={selectedGroups}
@@ -616,12 +617,14 @@ function WeeklyTracker({ completedWorkouts, weekStartDay }) {
 }
 
 function StartWorkout({
+  gender,
   selectedLocation, onSelectLocation,
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart,
   assignedProgram, onStartAssignedProgram,
 }) {
+  const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const hasResistance = selectedGroups.length > 0;
   const hasAnyMovement = hasResistance || selectedActivities.length > 0;
   const canStart = Boolean(selectedLocation) && hasAnyMovement && (!hasResistance || Boolean(selectedStyle));
@@ -643,7 +646,7 @@ function StartWorkout({
               style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
               className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
             >
-              <span style={{ color: selected ? INK : PAPER }}>{loc}</span>
+              <span style={{ color: selected ? INK : PAPER }}>{LOCATION_EMOJI[loc]} {loc}</span>
             </button>
           );
         })}
@@ -712,7 +715,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium"
         >
-          Start workout
+          Start workout{startEmoji}
         </button>
       )}
     </div>

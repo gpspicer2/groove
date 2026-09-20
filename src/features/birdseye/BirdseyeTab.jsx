@@ -6,7 +6,7 @@ import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK,
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
-import { WORKOUT_LOCATIONS } from '../move/exerciseLibrary';
+import { WORKOUT_LOCATIONS, LOCATION_EMOJI } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
 
 function daysBetween(a, b) {
@@ -61,7 +61,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
     setDeletedWorkouts(deleted || []);
     setJournalCount((j || []).length);
     setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
-    setAge(baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
+    setAge(profile?.age != null ? Number(profile.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null));
     setBodyweight(profileRow?.bodyweight_lb != null ? String(profileRow.bodyweight_lb) : '');
     setPrescribedZone(profileRow?.prescribed_hr_zone || null);
     setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
@@ -212,6 +212,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
 
       <DeletedWorkouts workouts={deletedWorkouts} open={showDeleted} onToggle={() => setShowDeleted((v) => !v)} onRestore={restoreWorkout} />
 
+      <div className="mt-4">
+        <ScienceStrategy
+          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
+          prescribedZone={prescribedZone}
+        />
+      </div>
+
+      <div className="mt-4">
+        <AcsmGuidelines />
+      </div>
+
       <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4 mt-4">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Journal entries logged</div>
         <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">{journalCount}</div>
@@ -244,8 +255,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
           prescribedZone={prescribedZone}
         />
       </BaselineSection>
-
-      <AcsmGuidelines />
 
       {showAssessment && (
         <FitnessAssessmentFlow
@@ -429,23 +438,22 @@ function DeletedWorkouts({ workouts, open, onToggle, onRestore }) {
   if (workouts.length === 0) return null;
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mt-4">
-      <button onClick={onToggle} className="w-full flex items-center justify-between">
+      <button onClick={onToggle} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
         <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Deleted Workouts ({workouts.length})</span>
-        {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-2">
           {workouts.map((w) => (
-            <div key={w.id} className="flex items-center justify-between gap-2">
-              <div className="text-left">
-                <div style={{ color: PAPER_DIM }} className="text-sm">
-                  {[...(w.muscle_groups || []), ...(w.activities || [])].join(' + ') || 'Workout'}
-                </div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm">
-                  {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </div>
+            <div key={w.id} className="flex flex-col items-center gap-1">
+              <div style={{ color: PAPER_DIM }} className="text-sm">
+                {[...(w.muscle_groups || []), ...(w.activities || [])].join(' + ') || 'Workout'}
               </div>
-              <button onClick={() => onRestore(w.id)} style={{ color: LIME }} className="text-sm flex items-center gap-1 py-2 px-1">
+              <div style={{ color: TEXT_SOFT }} className="text-sm">
+                {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </div>
+              <button onClick={() => onRestore(w.id)} style={{ color: LIME }} className="text-sm flex items-center gap-1 py-1 px-1">
                 <RotateCcw size={14} /> Restore
               </button>
             </div>
@@ -460,13 +468,63 @@ function BaselineSection({ children }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Your Baseline</span>
-        {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Baseline Data</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
           {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Practical application of the ACSM guidelines below: turns the client's
+// own resting/max heart rate into concrete target ranges, rather than
+// leaving the guidelines as an abstract reference.
+function ScienceStrategy({ restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
+  const [open, setOpen] = useState(false);
+  const zones = computeHrZones(restingHrNum, maxHrNum);
+
+  return (
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">Science-Supported Strategy</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+      </button>
+      {open && (
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-3 text-center">
+          <p style={{ color: TEXT_SOFT }} className="text-sm">
+            The ACSM guidelines below tell you how much to move. This turns them into a personal number, using your own heart rate.
+          </p>
+          {zones ? (
+            <>
+              {prescribedZone && (
+                <div style={{ color: SKY }} className="text-sm">
+                  Your coach recommends training in the {prescribedZone} zone
+                </div>
+              )}
+              <div className="space-y-1">
+                {zones.map((z) => (
+                  <div key={z.label} className="flex items-center justify-center gap-2">
+                    <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
+                    <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: TEXT_SOFT }} className="text-sm">
+                Aim to keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''} to stay aligned with the ACSM guidelines.
+              </p>
+            </>
+          ) : (
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Add your resting heart rate in Baseline Data below to see your personal target ranges.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -543,9 +601,12 @@ function AcsmGuidelines() {
 
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between">
-        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">ACSM's Recommendations for Physical Activity</span>
-        {open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold leading-snug">
+          ACSM's Recommendations for<br />Physical Activity
+        </span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4 text-center">
@@ -691,7 +752,7 @@ function QuickLogModal({ initialDate, customActivities, onAddCustomActivity, onR
               style={{ background: location === loc ? SKY : INK_3, color: location === loc ? INK : PAPER_DIM }}
               className="px-3 py-2 rounded-full text-sm font-medium"
             >
-              {loc}
+              {LOCATION_EMOJI[loc]} {loc}
             </button>
           ))}
         </div>

@@ -27,6 +27,11 @@ create table profiles (
   -- client-adjustable weekly goals shown on Birdseye
   resistance_goal integer not null default 3,
   aerobic_goal integer not null default 3,
+  -- self-reported, entered from Account — age feeds the age-based max HR
+  -- estimate when no measured max HR is on file; gender only drives a
+  -- cosmetic emoji next to "Start workout" in Move
+  age integer,
+  gender text,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
