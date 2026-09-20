@@ -5,6 +5,17 @@
 // different workout each time without repeating last session's picks.
 export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 
+// Quick "select all" shortcuts on the muscle-group picker.
+export const BODY_REGION_GROUPS = {
+  'Upper Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
+  'Lower Body': ['Legs'],
+};
+
+// What a session is made of. Aerobic/Resistance ask for one picker each;
+// Combined requires both; Flexibility reuses the muscle-group picker but
+// pulls from FLEXIBILITY_LIBRARY and logs as its own movement type.
+export const MOVEMENT_MODES = ['Aerobic', 'Resistance', 'Combined', 'Flexibility'];
+
 // Quick-pick suggestions for aerobic/cardio movements — these aren't part
 // of the resistance library (no sets/reps/weight progression) so they
 // live separately.
@@ -87,6 +98,50 @@ export const EXERCISE_LIBRARY = {
     { name: 'Side Plank', sets: 3, reps: '30-45s', equipment: 'bodyweight' },
   ],
 };
+
+// Stretches for a Flexibility session, keyed by the same muscle groups as
+// the resistance library. "sets"/"reps" here mean hold-time reps (e.g. 3
+// holds of 20-30s each), not weight training sets.
+export const FLEXIBILITY_LIBRARY = {
+  Chest: [
+    { name: 'Doorway Chest Stretch', sets: 3, reps: '20-30s' },
+    { name: 'Cross-Body Shoulder Stretch', sets: 2, reps: '20-30s' },
+  ],
+  Back: [
+    { name: "Child's Pose", sets: 2, reps: '30-45s' },
+    { name: 'Cat-Cow', sets: 3, reps: '8-10 reps' },
+  ],
+  Legs: [
+    { name: 'Standing Quad Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Seated Hamstring Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Figure-4 Glute Stretch', sets: 2, reps: '20-30s per side' },
+  ],
+  Shoulders: [
+    { name: 'Overhead Triceps/Shoulder Stretch', sets: 2, reps: '20-30s per side' },
+    { name: 'Wall Shoulder Slide', sets: 2, reps: '10-12 reps' },
+  ],
+  Biceps: [
+    { name: 'Extended Arm Wall Stretch', sets: 2, reps: '20-30s per side' },
+  ],
+  Triceps: [
+    { name: 'Overhead Triceps Stretch', sets: 2, reps: '20-30s per side' },
+  ],
+  Core: [
+    { name: 'Cobra Stretch', sets: 2, reps: '20-30s' },
+    { name: 'Seated Spinal Twist', sets: 2, reps: '20-30s per side' },
+  ],
+};
+
+export function generateFlexibilityPlan(muscleGroups, perGroup = 2) {
+  const picked = [];
+  for (const group of muscleGroups) {
+    const pool = FLEXIBILITY_LIBRARY[group] || [];
+    for (const ex of shuffle(pool).slice(0, perGroup)) {
+      picked.push({ ...ex, muscleGroup: group, type: 'flexibility', supersetId: null });
+    }
+  }
+  return picked;
+}
 
 // Where a session happens, and what equipment is realistically available
 // there. Falls back to the full pool for a muscle group if filtering would

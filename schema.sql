@@ -27,6 +27,7 @@ create table profiles (
   -- client-adjustable weekly goals shown on Birdseye
   resistance_goal integer not null default 3,
   aerobic_goal integer not null default 3,
+  flexibility_goal integer not null default 2,
   -- self-reported, entered from Account — age feeds the age-based max HR
   -- estimate when no measured max HR is on file; gender only drives a
   -- cosmetic emoji next to "Start workout" in Move
@@ -132,6 +133,10 @@ create table workouts (
   -- non-resistance activity types picked for this session (Walking,
   -- Yoga, Dancing, etc.) — shown alongside muscle_groups in the header
   activities text[] not null default '{}',
+  -- 'Aerobic' | 'Resistance' | 'Combined' | 'Flexibility' — set at
+  -- creation so history/calendar/goal math doesn't have to guess from
+  -- muscle_groups/activities alone (both are used by more than one mode)
+  movement_mode text,
   -- soft delete: kept (not removed) so it can be restored from Birdseye's
   -- "Deleted Workouts" list; excluded from History/calendar/streak math
   deleted_at timestamptz,

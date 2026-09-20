@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, Plus, Minus, Pencil, X, Info, ChevronRight as Arrow } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, ChevronRight as Arrow } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -45,13 +45,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   const [maxHrIsPredicted, setMaxHrIsPredicted] = useState(false);
   const [resistanceGoal, setResistanceGoal] = useState(3);
   const [aerobicGoal, setAerobicGoal] = useState(3);
+  const [flexibilityGoal, setFlexibilityGoal] = useState(2);
 
   async function loadAll() {
     const [{ data: w }, { data: j }, { data: baseline }, { data: profileRow }, { data: setRows }] = await Promise.all([
-      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
+      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('journal_entries').select('id'),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
     ]);
     setWorkouts(w || []);
@@ -68,6 +69,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
     setMaxHrIsPredicted(maxMeasured == null && maxResolved != null);
     setResistanceGoal(profileRow?.resistance_goal || 3);
     setAerobicGoal(profileRow?.aerobic_goal || 3);
+    setFlexibilityGoal(profileRow?.flexibility_goal || 2);
 
     const types = {};
     (setRows || []).forEach((s) => {
@@ -86,15 +88,23 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   }, [userId]);
 
   function hasResistance(w) {
+    if (w.movement_mode) return w.movement_mode === 'Resistance' || w.movement_mode === 'Combined';
     return (w.muscle_groups || []).length > 0 || workoutTypes[w.id]?.has('resistance');
   }
   function hasAerobic(w) {
+    if (w.movement_mode) return w.movement_mode === 'Aerobic' || w.movement_mode === 'Combined';
     return (w.activities || []).length > 0 || workoutTypes[w.id]?.has('aerobic');
+  }
+  function hasFlexibility(w) {
+    if (w.movement_mode) return w.movement_mode === 'Flexibility';
+    return workoutTypes[w.id]?.has('flexibility');
   }
 
   async function saveGoal(field, value) {
     const clamped = Math.min(14, Math.max(1, value));
-    if (field === 'resistance_goal') setResistanceGoal(clamped); else setAerobicGoal(clamped);
+    if (field === 'resistance_goal') setResistanceGoal(clamped);
+    else if (field === 'aerobic_goal') setAerobicGoal(clamped);
+    else setFlexibilityGoal(clamped);
     await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
   }
 
@@ -120,6 +130,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
   const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart);
   const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
+  const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
 
   // Streak: consecutive weeks (including this one) hitting BOTH goals.
   let streak = 0;
@@ -171,6 +182,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
 
         <GoalRow label="Aerobic" icon={Activity} color={MOSS} count={aerobicThisWeek} goal={aerobicGoal} onChangeGoal={(v) => saveGoal('aerobic_goal', v)} />
         <GoalRow label="Resistance" icon={Dumbbell} color={SKY} count={resistanceThisWeek} goal={resistanceGoal} onChangeGoal={(v) => saveGoal('resistance_goal', v)} />
+        <GoalRow label="Flexibility" icon={StretchHorizontal} color={BRICK} count={flexibilityThisWeek} goal={flexibilityGoal} onChangeGoal={(v) => saveGoal('flexibility_goal', v)} />
 
         {streak > 0 && (
           <div style={{ color: LIME }} className="text-sm mt-3">
@@ -183,6 +195,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenJournal }) {
         workouts={workouts}
         hasResistance={hasResistance}
         hasAerobic={hasAerobic}
+        hasFlexibility={hasFlexibility}
         onOpenWorkout={onOpenWorkout}
         onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
         weekStartDay={weekStartDay}
@@ -303,7 +316,7 @@ function buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aer
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, onAddWorkout, weekStartDay }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onAddWorkout, weekStartDay }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -354,6 +367,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
           const isFuture = day > now && !isToday;
           const r = workout && hasResistance(workout);
           const a = workout && hasAerobic(workout);
+          const f = workout && hasFlexibility(workout);
           return (
             <button
               key={i}
@@ -370,6 +384,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
                 <span className="flex items-center gap-0.5">
                   {a && <Activity size={11} color={MOSS} />}
                   {r && <Dumbbell size={11} color={SKY} />}
+                  {f && <StretchHorizontal size={11} color={BRICK} />}
                 </span>
               ) : !isFuture ? (
                 <Plus size={10} color={INK_3} />
@@ -386,6 +401,10 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, onOpenWorkout, o
         <div className="flex items-center gap-1">
           <Dumbbell size={12} color={SKY} />
           <span style={{ color: TEXT_SOFT }} className="text-sm">Resistance</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <StretchHorizontal size={12} color={BRICK} />
+          <span style={{ color: TEXT_SOFT }} className="text-sm">Flexibility</span>
         </div>
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-2">Tap an empty day to log a workout</div>

@@ -4,9 +4,9 @@ import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
-import MovementTypePicker from './MovementTypePicker';
+import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -18,6 +18,7 @@ function mapWorkout(row) {
     id: row.id,
     muscleGroups: row.muscle_groups || [],
     activities: row.activities || [],
+    movementMode: row.movement_mode || null,
     style: row.style || null,
     location: row.location || null,
     programId: row.program_id || null,
@@ -49,7 +50,7 @@ function mapSet(row) {
 
 function totalWeightLifted(workoutSets) {
   return workoutSets
-    .filter((s) => s.movementType !== 'aerobic')
+    .filter((s) => s.movementType === 'resistance')
     .reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
 }
 
@@ -98,6 +99,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [movementMode, setMovementMode] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState('');
@@ -175,7 +177,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   // for how much time has passed.
   function lastPerformance(exerciseName) {
     const matches = sets
-      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType !== 'aerobic')
+      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance')
       .map((s) => {
         const w = workouts.find((wk) => wk.id === s.workoutId);
         return { ...s, startedAt: w?.startedAt || null };
@@ -211,13 +213,23 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSelectedActivities((prev) => prev.filter((a) => a !== name));
   }
 
+  function canStartMode() {
+    if (!movementMode || !selectedLocation) return false;
+    if (movementMode === 'Aerobic') return selectedActivities.length > 0;
+    if (movementMode === 'Resistance') return selectedGroups.length > 0 && Boolean(selectedStyle);
+    if (movementMode === 'Combined') return selectedGroups.length > 0 && selectedActivities.length > 0 && Boolean(selectedStyle);
+    if (movementMode === 'Flexibility') return selectedGroups.length > 0;
+    return false;
+  }
+
   async function startWorkout() {
-    const hasResistance = selectedGroups.length > 0;
-    if ((!hasResistance && selectedActivities.length === 0) || !selectedLocation) return;
-    if (hasResistance && !selectedStyle) return;
+    if (!canStartMode()) return;
+    const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
+    const usesAerobic = movementMode === 'Aerobic' || movementMode === 'Combined';
+    const usesFlexibility = movementMode === 'Flexibility';
 
     let plan = [];
-    if (hasResistance) {
+    if (usesResistance) {
       const lastWorkout = completedWorkouts[0];
       const recentNames = lastWorkout
         ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
@@ -225,17 +237,23 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
-    const activityEntries = selectedActivities.map((name) => ({
-      name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '',
-    }));
-    plan = [...plan, ...activityEntries];
+    if (usesFlexibility) {
+      plan = generateFlexibilityPlan(selectedGroups);
+    }
+    if (usesAerobic) {
+      const activityEntries = selectedActivities.map((name) => ({
+        name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '',
+      }));
+      plan = [...plan, ...activityEntries];
+    }
 
     const { data, error } = await supabase
       .from('workouts')
       .insert({
-        muscle_groups: selectedGroups,
-        activities: selectedActivities,
-        style: hasResistance ? selectedStyle : null,
+        muscle_groups: usesResistance || usesFlexibility ? selectedGroups : [],
+        activities: usesAerobic ? selectedActivities : [],
+        movement_mode: movementMode,
+        style: usesResistance ? selectedStyle : null,
         location: selectedLocation,
       })
       .select()
@@ -248,6 +266,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSelectedActivities([]);
     setSelectedStyle('');
     setSelectedLocation('');
+    setMovementMode('');
   }
 
   async function deleteWorkout(workoutId) {
@@ -263,7 +282,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     const muscleGroups = [...new Set(assignedProgram.exercises.map((e) => e.muscleGroup))];
     const { data, error } = await supabase
       .from('workouts')
-      .insert({ muscle_groups: muscleGroups, location, program_id: assignedProgram.id })
+      .insert({ muscle_groups: muscleGroups, location, movement_mode: 'Resistance', program_id: assignedProgram.id })
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
@@ -441,6 +460,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           gender={profile?.gender}
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
+          movementMode={movementMode}
+          onSelectMode={setMovementMode}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
           selectedActivities={selectedActivities}
@@ -451,6 +472,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           selectedStyle={selectedStyle}
           onSelectStyle={setSelectedStyle}
           onStart={startWorkout}
+          canStart={canStartMode()}
           assignedProgram={assignedProgram}
           onStartAssignedProgram={startAssignedProgram}
         />
@@ -493,6 +515,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                       {exerciseNames.map((name) => {
                         const exSets = workoutSets.filter((s) => s.exerciseName === name);
                         const isAerobic = exSets[0]?.movementType === 'aerobic';
+                        const isFlexibility = exSets[0]?.movementType === 'flexibility';
                         return (
                           <div key={name}>
                             <div style={{ color: PAPER }} className="text-sm mb-1">{name}</div>
@@ -503,6 +526,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                                     {isAerobic ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
                                         {formatDuration(s.durationSeconds) || '—'}{s.distance ? ` · ${s.distance}` : ''}
+                                      </span>
+                                    ) : isFlexibility ? (
+                                      <span style={{ color: PAPER_DIM }} className="text-sm">
+                                        {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
                                       </span>
                                     ) : (
                                       <>
@@ -533,6 +560,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                               <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
                                 {isAerobic
                                   ? exSets.map((s) => `${formatDuration(s.durationSeconds) || '—'}${s.distance ? ` · ${s.distance}` : ''}`).join(', ')
+                                  : isFlexibility
+                                  ? exSets.map((s) => (s.durationSeconds ? `${s.durationSeconds}s` : '—')).join(', ')
                                   : exSets.map((s) => `${s.weight ?? '—'}×${s.reps ?? '—'}`).join(', ')}
                               </div>
                             )}
@@ -620,17 +649,19 @@ function WeeklyTracker({ completedWorkouts, weekStartDay }) {
 function StartWorkout({
   gender,
   selectedLocation, onSelectLocation,
+  movementMode, onSelectMode,
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity,
-  selectedStyle, onSelectStyle, onStart,
+  selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
-  const hasResistance = selectedGroups.length > 0;
-  const hasAnyMovement = hasResistance || selectedActivities.length > 0;
-  const canStart = Boolean(selectedLocation) && hasAnyMovement && (!hasResistance || Boolean(selectedStyle));
   const [skipProgram, setSkipProgram] = useState(false);
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
+
+  const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
+  const needsActivities = movementMode === 'Aerobic' || movementMode === 'Combined';
+  const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
 
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
@@ -674,11 +705,32 @@ function StartWorkout({
       {selectedLocation && !showProgramOffer && (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            What kind of movement are you doing today?
+            Select Movement Mode
           </div>
-          <MovementTypePicker
-            selectedGroups={selectedGroups}
-            onToggleGroup={onToggleGroup}
+          <div className="space-y-2 mb-5">
+            {MOVEMENT_MODES.map((mode) => {
+              const selected = movementMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => onSelectMode(mode)}
+                  style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
+                  className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
+                >
+                  <span style={{ color: selected ? INK : PAPER }}>{mode}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {selectedLocation && !showProgramOffer && needsActivities && (
+        <>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            Select Aerobic Activity
+          </div>
+          <ActivityPicker
             selectedActivities={selectedActivities}
             onToggleActivity={onToggleActivity}
             customActivities={customActivities}
@@ -688,9 +740,18 @@ function StartWorkout({
         </>
       )}
 
-      {selectedLocation && hasResistance && (
+      {selectedLocation && !showProgramOffer && needsGroups && (
         <>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Training style</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
+            Select Targeted Muscle Groups
+          </div>
+          <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
+        </>
+      )}
+
+      {selectedLocation && needsStyle && (
+        <>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2 mt-3">Training style</div>
           <div className="space-y-2 mb-5">
             {TRAINING_STYLES.map((style) => {
               const selected = selectedStyle === style;
@@ -715,7 +776,7 @@ function StartWorkout({
           onClick={onStart}
           disabled={!canStart}
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
-          className="w-full rounded-md py-3 text-sm font-medium"
+          className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
           🏋️ Start workout{startEmoji}
         </button>
@@ -803,6 +864,20 @@ function ActiveWorkout({
             return (
               <AerobicCard
                 key={`aerobic-${ex.index}`}
+                exercise={ex}
+                loggedSets={loggedSets}
+                onLogSet={onLogSet}
+                onDeleteSet={onDeleteSet}
+                onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
+                onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
+                onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
+              />
+            );
+          }
+          if (ex.type === 'flexibility') {
+            return (
+              <FlexibilityCard
+                key={`flex-${ex.index}`}
                 exercise={ex}
                 loggedSets={loggedSets}
                 onLogSet={onLogSet}
@@ -1398,6 +1473,70 @@ function AerobicCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp, on
       >
         <Plus size={14} /> Log activity
       </button>
+    </div>
+  );
+}
+
+function FlexibilityCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
+  const [seconds, setSeconds] = useState('');
+  const nextSetNumber = loggedSets.length + 1;
+
+  function handleLog() {
+    const durationSeconds = seconds === '' ? null : parseInt(seconds, 10);
+    if (!durationSeconds) return;
+    onLogSet({
+      exerciseName: exercise.name,
+      muscleGroup: exercise.muscleGroup,
+      setNumber: nextSetNumber,
+      movementType: 'flexibility',
+      weight: null,
+      reps: null,
+      durationSeconds,
+    });
+    setSeconds('');
+  }
+
+  return (
+    <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3">
+      <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
+        Target: {exercise.sets} holds, {exercise.reps}
+      </div>
+
+      {loggedSets.length > 0 && (
+        <div className="space-y-1 mb-2">
+          {loggedSets.map((s) => (
+            <div key={s.id} className="flex items-center justify-center gap-2">
+              <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
+                Hold {s.setNumber}: {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
+              </span>
+              <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-center gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          value={seconds}
+          onChange={(e) => setSeconds(e.target.value)}
+          placeholder="sec"
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <button
+          onClick={handleLog}
+          disabled={seconds === ''}
+          style={{ background: seconds === '' ? INK_3 : BRICK, color: seconds === '' ? TEXT_SOFT : PAPER }}
+          className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
+        >
+          <Plus size={14} /> Log hold {nextSetNumber}
+        </button>
+      </div>
     </div>
   );
 }

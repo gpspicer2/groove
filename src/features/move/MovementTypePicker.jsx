@@ -1,32 +1,42 @@
 import React, { useState } from 'react';
 import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, INK } from '../../theme';
-import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES } from './exerciseLibrary';
+import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES, BODY_REGION_GROUPS } from './exerciseLibrary';
 
 const LONG_PRESS_MS = 550;
 
-// Shared by Move's "start a workout" flow and Birdseye's quick-log modal —
-// both need the same "what kind of movement" picker (strength training
-// muscle groups, plus everyday activities with a rememberable custom
-// entry, press-and-hold to remove).
-export default function MovementTypePicker({
-  selectedGroups, onToggleGroup,
-  selectedActivities, onToggleActivity,
-  customActivities, onAddCustomActivity, onRemoveCustomActivity,
-}) {
-  const [customInput, setCustomInput] = useState('');
-  const [addingCustom, setAddingCustom] = useState(false);
-
-  function handleAddCustom() {
-    if (!customInput.trim()) return;
-    onAddCustomActivity(customInput);
-    setCustomInput('');
-    setAddingCustom(false);
+// Muscle-group picker with "Upper Body"/"Lower Body" quick-select
+// shortcuts, used by the Resistance/Combined/Flexibility steps of Move's
+// start flow, and by Birdseye's quick-log modal.
+export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
+  function toggleRegion(region) {
+    const groups = BODY_REGION_GROUPS[region];
+    const allSelected = groups.every((g) => selectedGroups.includes(g));
+    groups.forEach((g) => {
+      const isSelected = selectedGroups.includes(g);
+      if (allSelected && isSelected) onToggleGroup(g);
+      if (!allSelected && !isSelected) onToggleGroup(g);
+    });
   }
 
   return (
     <>
-      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Strength training (select any)</div>
-      <div className="flex flex-wrap justify-center gap-2 mb-4">
+      <div className="flex flex-wrap justify-center gap-2 mb-2">
+        {Object.keys(BODY_REGION_GROUPS).map((region) => {
+          const selected = BODY_REGION_GROUPS[region].every((g) => selectedGroups.includes(g));
+          return (
+            <button
+              key={region}
+              onClick={() => toggleRegion(region)}
+              style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM, borderLeft: `3px solid ${SKY}` }}
+              className="px-3 py-2 rounded-full text-sm font-medium"
+            >
+              {region}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">or pick specific muscle groups</div>
+      <div className="flex flex-wrap justify-center gap-2 mb-2">
         {MUSCLE_GROUPS.map((group) => {
           const selected = selectedGroups.includes(group);
           return (
@@ -41,8 +51,26 @@ export default function MovementTypePicker({
           );
         })}
       </div>
+    </>
+  );
+}
 
-      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Or everyday movement (select any)</div>
+// Everyday-activity picker with a rememberable custom entry (press-and-
+// hold to remove), used by the Aerobic/Combined steps of Move's start
+// flow, and by Birdseye's quick-log modal.
+export function ActivityPicker({ selectedActivities, onToggleActivity, customActivities, onAddCustomActivity, onRemoveCustomActivity }) {
+  const [customInput, setCustomInput] = useState('');
+  const [addingCustom, setAddingCustom] = useState(false);
+
+  function handleAddCustom() {
+    if (!customInput.trim()) return;
+    onAddCustomActivity(customInput);
+    setCustomInput('');
+    setAddingCustom(false);
+  }
+
+  return (
+    <>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {[...LIFESTYLE_ACTIVITIES, ...customActivities].map((activity) => {
           const selected = selectedActivities.includes(activity);
@@ -66,7 +94,7 @@ export default function MovementTypePicker({
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
-            placeholder="Movement name…"
+            placeholder="Activity name…"
             style={{ background: INK_3, color: PAPER }}
             className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-center"
           />
@@ -80,17 +108,38 @@ export default function MovementTypePicker({
           </button>
         </div>
       ) : (
-        <button
-          onClick={() => setAddingCustom(true)}
-          style={{ color: SKY }}
-          className="text-sm mb-2 mx-auto block"
-        >
+        <button onClick={() => setAddingCustom(true)} style={{ color: SKY }} className="text-sm mb-2 mx-auto block">
           + Add…
         </button>
       )}
       {customActivities.length > 0 && (
         <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">Press and hold your own entries to remove them</div>
       )}
+    </>
+  );
+}
+
+// Combined picker (both muscle groups and activities together) — kept for
+// Birdseye's lightweight quick-log modal, which doesn't need the full
+// mode-branching flow Move's "start a workout" uses.
+export default function MovementTypePicker({
+  selectedGroups, onToggleGroup,
+  selectedActivities, onToggleActivity,
+  customActivities, onAddCustomActivity, onRemoveCustomActivity,
+}) {
+  return (
+    <>
+      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">Strength training (select any)</div>
+      <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
+
+      <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2 mt-2">Or everyday movement (select any)</div>
+      <ActivityPicker
+        selectedActivities={selectedActivities}
+        onToggleActivity={onToggleActivity}
+        customActivities={customActivities}
+        onAddCustomActivity={onAddCustomActivity}
+        onRemoveCustomActivity={onRemoveCustomActivity}
+      />
     </>
   );
 }
