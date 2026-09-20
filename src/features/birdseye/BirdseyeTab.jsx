@@ -6,7 +6,7 @@ import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK,
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
-import { WORKOUT_LOCATIONS, LOCATION_EMOJI } from '../move/exerciseLibrary';
+import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
 
 function daysBetween(a, b) {
@@ -266,6 +266,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout }) {
 
       {quickLogDate && (
         <QuickLogModal
+          gender={profile?.gender}
           initialDate={quickLogDate}
           customActivities={customActivities}
           onAddCustomActivity={addCustomActivity}
@@ -656,7 +657,7 @@ function GuidelineBlock({ label, color, text, open, onToggle }) {
   );
 }
 
-function QuickLogModal({ initialDate, customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
+function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
   const [date, setDate] = useState(initialDate || todayInputValue());
   const [location, setLocation] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -745,16 +746,19 @@ function QuickLogModal({ initialDate, customActivities, onAddCustomActivity, onR
 
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Where</div>
         <div className="flex flex-wrap justify-center gap-2 mb-4">
-          {WORKOUT_LOCATIONS.map((loc) => (
-            <button
-              key={loc}
-              onClick={() => setLocation(loc)}
-              style={{ background: location === loc ? SKY : INK_3, color: location === loc ? INK : PAPER_DIM }}
-              className="px-3 py-2 rounded-full text-sm font-medium"
-            >
-              {LOCATION_EMOJI[loc]} {loc}
-            </button>
-          ))}
+          {WORKOUT_LOCATIONS.map((loc) => {
+            const [left, right] = locationEmojis(loc, gender);
+            return (
+              <button
+                key={loc}
+                onClick={() => setLocation(loc)}
+                style={{ background: location === loc ? SKY : INK_3, color: location === loc ? INK : PAPER_DIM }}
+                className="px-3 py-2 rounded-full text-sm font-medium"
+              >
+                {left} {loc} {right}
+              </button>
+            );
+          })}
         </div>
 
         <MovementTypePicker

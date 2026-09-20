@@ -93,11 +93,23 @@ export const EXERCISE_LIBRARY = {
 // leave it empty, rather than suggesting nothing.
 export const WORKOUT_LOCATIONS = ['The Great Outdoors', 'In the Home', 'At the Gym'];
 
-export const LOCATION_EMOJI = {
-  'The Great Outdoors': '🌲',
-  'In the Home': '🏠',
-  'At the Gym': '🏋️',
-};
+// Two emoji flank each location label. The person-shaped one swaps to
+// match the account's gender (Female/Male); anything else stays fixed.
+// Falls back to the plain, non-gendered glyph when gender isn't set.
+export function locationEmojis(location, gender) {
+  const g = gender === 'Female' ? 'female' : gender === 'Male' ? 'male' : 'neutral';
+  const pick = (neutral, female, male) => (g === 'female' ? female : g === 'male' ? male : neutral);
+  switch (location) {
+    case 'The Great Outdoors':
+      return ['🏂', pick('🚵', '🚵‍♀️', '🚵‍♂️')];
+    case 'In the Home':
+      return [pick('🧘', '🧘‍♀️', '🧘‍♂️'), '🏡'];
+    case 'At the Gym':
+      return [pick('🏋️', '🏋️‍♀️', '🏋️‍♂️'), pick('⛹️', '⛹️‍♀️', '⛹️‍♂️')];
+    default:
+      return ['', ''];
+  }
+}
 
 export const LOCATION_EQUIPMENT = {
   'The Great Outdoors': ['bodyweight'],

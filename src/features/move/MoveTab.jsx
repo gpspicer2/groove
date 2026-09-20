@@ -3,7 +3,7 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2 } from '
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, LOCATION_EMOJI, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import MovementTypePicker from './MovementTypePicker';
 
@@ -639,6 +639,7 @@ function StartWorkout({
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
           const selected = selectedLocation === loc;
+          const [left, right] = locationEmojis(loc, gender);
           return (
             <button
               key={loc}
@@ -646,7 +647,7 @@ function StartWorkout({
               style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
               className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
             >
-              <span style={{ color: selected ? INK : PAPER }}>{LOCATION_EMOJI[loc]} {loc}</span>
+              <span style={{ color: selected ? INK : PAPER }}>{left} {loc} {right}</span>
             </button>
           );
         })}
