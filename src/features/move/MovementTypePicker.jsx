@@ -4,65 +4,72 @@ import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES, BODY_REGION_GROUPS, LEGS_BUNDLE, A
 
 const LONG_PRESS_MS = 550;
 
-// Muscle-group picker with "Upper Body"/"Lower Body" quick-select
-// shortcuts, used by the Resistance/Combined/Flexibility steps of Move's
-// start flow, and by Birdseye's quick-log modal.
+// Every quick-select shortcut (Whole/Upper/Lower Body, plus the Legs and
+// Arms bundles in the chip row below) shares one highlighting rule: it
+// looks "active" once its full set of muscles is covered — whether that
+// happened by clicking the shortcut itself, or by hand-picking every
+// member individually — and it STAYS looking active through partial
+// deselection (dropping one or two muscles), only clearing once you
+// explicitly clear the whole thing or empty the selection out entirely.
+// This is what keeps a single muscle pick (e.g. just Triceps) from
+// falsely lighting up "Arms," while still giving a grace period once a
+// bundle really was fully selected.
+const BUNDLE_DEFS = { Legs: LEGS_BUNDLE, Arms: ARMS_BUNDLE };
+
 export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
-  // "Whole Body" is tracked separately from the derived Upper/Lower
-  // highlight: deselecting one or two individual muscles should leave it
-  // looking selected, but explicitly clearing an entire half via the
-  // Upper/Lower Body button should turn it off, even though the other
-  // half's muscles are still selected.
-  const [wholeActive, setWholeActive] = useState(false);
+  const [active, setActive] = useState(new Set());
 
   useEffect(() => {
-    if (selectedGroups.length === 0) setWholeActive(false);
-  }, [selectedGroups.length]);
+    setActive((prev) => {
+      let next = prev;
+      const allDefs = { ...BODY_REGION_GROUPS, ...BUNDLE_DEFS };
+      Object.entries(allDefs).forEach(([label, groups]) => {
+        if (!prev.has(label) && groups.every((g) => selectedGroups.includes(g))) {
+          if (next === prev) next = new Set(prev);
+          next.add(label);
+        }
+      });
+      if (selectedGroups.length === 0 && next.size > 0) next = new Set();
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroups]);
 
-  function toggleRegion(region) {
-    const groups = BODY_REGION_GROUPS[region];
+  function setBundleActive(label, isActive) {
+    setActive((prev) => {
+      const next = new Set(prev);
+      if (isActive) next.add(label); else next.delete(label);
+      return next;
+    });
+  }
+
+  function toggleBundle(label, groups) {
     const allSelected = groups.every((g) => selectedGroups.includes(g));
     groups.forEach((g) => {
       const isSelected = selectedGroups.includes(g);
       if (allSelected && isSelected) onToggleGroup(g);
       if (!allSelected && !isSelected) onToggleGroup(g);
     });
-
-    if (region === 'Whole Body') {
-      setWholeActive(!allSelected);
-    } else if (allSelected) {
-      // Clearing an entire half while Whole Body was active means it's
-      // no longer fully selected, even though the other half remains.
-      setWholeActive(false);
-    }
+    setBundleActive(label, !allSelected);
+    // Clearing Upper/Lower/Legs entirely also breaks Whole Body's own
+    // highlight, even though the other half's muscles are untouched —
+    // there's no such thing as a whole-body session missing a whole half.
+    if (allSelected && label !== 'Whole Body') setBundleActive('Whole Body', false);
   }
 
-  // There's no such thing as a whole-body session with no leg work in
-  // it — so once every leg-bundle muscle is gone, Whole Body's highlight
-  // breaks too, even though individually deselecting an upper-body
-  // muscle doesn't do the same.
+  // Deselecting a single leg-bundle muscle (not via the bundle button)
+  // should also break Whole Body once no leg coverage is left at all.
   function breakWholeIfLegsGone(groupBeingDeselected) {
-    if (!wholeActive || !LEGS_BUNDLE.includes(groupBeingDeselected)) return;
+    if (!active.has('Whole Body') || !LEGS_BUNDLE.includes(groupBeingDeselected)) return;
     const stillHasLegs = LEGS_BUNDLE.some((g) => g !== groupBeingDeselected && selectedGroups.includes(g));
-    if (!stillHasLegs) setWholeActive(false);
-  }
-
-  function toggleBundle(bundle, isLegs) {
-    const allSelected = bundle.every((g) => selectedGroups.includes(g));
-    if (allSelected && isLegs && wholeActive) setWholeActive(false); // whole leg bundle clearing out
-    bundle.forEach((g) => {
-      const isSelected = selectedGroups.includes(g);
-      if (allSelected && isSelected) onToggleGroup(g);
-      if (!allSelected && !isSelected) onToggleGroup(g);
-    });
+    if (!stillHasLegs) setBundleActive('Whole Body', false);
   }
 
   // "Legs" and "Arms" act as bundle shortcuts right in the chip row —
   // clicking them fills in (or clears) their whole bundle. Everything
   // else is a plain single toggle.
   function handleGroupClick(group) {
-    if (group === 'Legs') { toggleBundle(LEGS_BUNDLE, true); return; }
-    if (group === 'Arms') { toggleBundle(ARMS_BUNDLE, false); return; }
+    if (BUNDLE_DEFS[group]) { toggleBundle(group, BUNDLE_DEFS[group]); return; }
     if (selectedGroups.includes(group)) breakWholeIfLegsGone(group);
     onToggleGroup(group);
   }
@@ -71,15 +78,11 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
     <>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {Object.keys(BODY_REGION_GROUPS).map((region) => {
-          // Upper/Lower stay highlighted as long as ANY of their groups
-          // are still selected — deselecting one or two muscles
-          // individually shouldn't make the shortcut look unused. Whole
-          // Body uses its own explicit flag instead (see above).
-          const selected = region === 'Whole Body' ? wholeActive : BODY_REGION_GROUPS[region].some((g) => selectedGroups.includes(g));
+          const selected = active.has(region);
           return (
             <button
               key={region}
-              onClick={() => toggleRegion(region)}
+              onClick={() => toggleBundle(region, BODY_REGION_GROUPS[region])}
               style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM, borderLeft: `3px solid ${SKY}` }}
               className="px-3 py-2 rounded-full text-sm font-medium"
             >
@@ -91,13 +94,7 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">or pick specific muscle groups</div>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {MUSCLE_GROUPS.map((group) => {
-          // Legs/Arms stay highlighted as long as ANY bundle member is
-          // still selected, same "some, not all" rule as the region
-          // shortcuts above — Arms itself is never actually stored.
-          const selected =
-            group === 'Legs' ? LEGS_BUNDLE.some((g) => selectedGroups.includes(g)) :
-            group === 'Arms' ? ARMS_BUNDLE.some((g) => selectedGroups.includes(g)) :
-            selectedGroups.includes(group);
+          const selected = BUNDLE_DEFS[group] ? active.has(group) : selectedGroups.includes(group);
           return (
             <button
               key={group}

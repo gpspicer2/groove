@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Search, Heart, X } from 'lucide-react';
+import { ExternalLink, Search, Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS, BRICK } from '../../theme';
@@ -13,6 +13,15 @@ function mapArticle(row) {
   return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at };
 }
 
+// A rough "first sentence or two" teaser — good enough for the short,
+// plain-language tidbits these are written as; falls back to the whole
+// thing if it's already short.
+function teaser(text, maxSentences = 2) {
+  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g);
+  if (!sentences || sentences.length <= maxSentences) return { teaser: text, hasMore: false };
+  return { teaser: sentences.slice(0, maxSentences).join('').trim(), hasMore: true };
+}
+
 export default function LearnTab() {
   const { user } = useAuth();
   const [articles, setArticles] = useState([]);
@@ -20,6 +29,15 @@ export default function LearnTab() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [expandedIds, setExpandedIds] = useState(new Set());
+
+  function toggleExpanded(id) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     (async () => {
@@ -106,6 +124,8 @@ export default function LearnTab() {
             const originalIndex = articles.indexOf(a);
             const color = TITLE_COLORS[originalIndex % TITLE_COLORS.length];
             const isFav = favoriteIds.has(a.id);
+            const { teaser: shortText, hasMore } = teaser(a.summary);
+            const expanded = expandedIds.has(a.id);
             return (
               <div key={a.id} style={{ background: INK_2, borderLeft: `3px solid ${color}` }} className="rounded-md px-4 py-3 text-center relative">
                 <button
@@ -132,7 +152,17 @@ export default function LearnTab() {
                 ) : (
                   <div style={{ color: PAPER }} className="text-sm font-medium mb-1 pr-5">{a.title}</div>
                 )}
-                <div style={{ color: PAPER_DIM }} className="text-sm">{a.summary}</div>
+                <div style={{ color: PAPER_DIM }} className="text-sm">{expanded ? a.summary : shortText}</div>
+                {hasMore && (
+                  <button
+                    onClick={() => toggleExpanded(a.id)}
+                    style={{ color: TEXT_SOFT }}
+                    className="text-sm mt-1.5 inline-flex items-center gap-1"
+                  >
+                    {expanded ? 'Show less' : 'Read more'}
+                    {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                )}
               </div>
             );
           })}

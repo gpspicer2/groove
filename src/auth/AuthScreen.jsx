@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../theme';
-import GrooveLogo from '../GrooveLogo';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
@@ -33,7 +32,9 @@ export default function AuthScreen() {
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
       <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
-        <GrooveLogo style={{ color: LIME }} className="w-full max-w-[260px] mx-auto mb-4" />
+        <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-3xl font-medium tracking-wide italic mb-6">
+          GROOVE
+        </div>
         <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>
