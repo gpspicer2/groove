@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import AuthScreen from './auth/AuthScreen';
-import BaselineFlow from './features/baseline/BaselineFlow';
+import OnboardingTour from './features/onboarding/OnboardingTour';
 import ClientApp from './ClientApp';
 import TrainerApp from './TrainerApp';
-import { supabase } from './lib/supabaseClient';
 import { INK, TEXT_SOFT } from './theme';
 
 function Shell() {
-  const { user, profile, isTrainer, loading } = useAuth();
-  const [baselineDone, setBaselineDone] = useState(null); // null = not checked yet
-  const [checkingBaseline, setCheckingBaseline] = useState(true);
+  const { user, profile, isTrainer, loading, updateProfile } = useAuth();
+  // A signed-up client sees a quick one-time tour before anything else —
+  // NOT the full baseline intake, which used to gate access here and
+  // made people fill out a 5-page form before they'd even seen the app.
+  // Baseline itself is now prompted from inside Birdseye instead, so
+  // someone can look around first and fill it out on their own time.
+  const [tourJustFinished, setTourJustFinished] = useState(false);
 
-  useEffect(() => {
-    if (!user || isTrainer) { setCheckingBaseline(false); return; }
-    (async () => {
-      const { data } = await supabase.from('baseline_responses').select('submitted_at').eq('user_id', user.id).maybeSingle();
-      setBaselineDone(Boolean(data?.submitted_at));
-      setCheckingBaseline(false);
-    })();
-  }, [user, isTrainer]);
-
-  if (loading || (user && !profile) || (user && !isTrainer && checkingBaseline)) {
+  if (loading || (user && !profile)) {
     return (
       <div style={{ background: INK }} className="min-h-[100svh] flex items-center justify-center">
         <span style={{ color: TEXT_SOFT, fontFamily: 'Inter, sans-serif' }} className="text-sm">Loading…</span>
@@ -31,7 +25,16 @@ function Shell() {
 
   if (!user) return <AuthScreen />;
   if (isTrainer) return <TrainerApp />;
-  if (!baselineDone) return <BaselineFlow userId={user.id} onComplete={() => setBaselineDone(true)} />;
+  if (!profile.tour_done && !tourJustFinished) {
+    return (
+      <OnboardingTour
+        onComplete={() => {
+          setTourJustFinished(true);
+          updateProfile({ tour_done: true });
+        }}
+      />
+    );
+  }
   return <ClientApp />;
 }
 

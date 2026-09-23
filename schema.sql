@@ -43,6 +43,10 @@ create table profiles (
   -- cosmetic emoji next to "Start workout" in Move
   age integer,
   gender text,
+  -- one-time app walkthrough shown right after signup, gating access the
+  -- way the full baseline intake used to — baseline itself no longer
+  -- blocks entry, it's prompted from inside Birdseye instead
+  tour_done boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;

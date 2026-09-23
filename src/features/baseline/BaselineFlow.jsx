@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { useAuth } from '../../auth/AuthContext';
+import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
 import { BASELINE_SECTIONS, estimateSecondsRemaining } from './baselineQuestions';
 
 const PAGES = BASELINE_SECTIONS.map((s) => ({ type: 'section', section: s }));
 
-export default function BaselineFlow({ userId, onComplete }) {
-  const { signOut } = useAuth();
+// onClose is optional — when provided (launched from Birdseye's prompt
+// banner, rather than as the old full-app gate) a client can back out
+// and pick this up again later instead of being stuck here.
+export default function BaselineFlow({ userId, onComplete, onClose }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
@@ -61,20 +63,23 @@ export default function BaselineFlow({ userId, onComplete }) {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex flex-col">
+    <Portal>
+    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="fixed inset-0 z-50 flex flex-col">
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />
           <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic">
             <em>GROOVE</em>
           </div>
-          <button
-            onClick={() => { if (window.confirm("Sign out now? What you've entered on this form hasn't been saved yet, so you'll start over from the beginning next time.")) signOut(); }}
-            style={{ color: TEXT_SOFT }}
-            className="flex items-center gap-1 text-sm p-2 -m-2 justify-self-end"
-          >
-            <LogOut size={16} />
-          </button>
+          {onClose ? (
+            <button
+              onClick={() => { if (window.confirm("Close for now? What you've entered on this form hasn't been saved yet, so you'll start over from the beginning next time you open it.")) onClose(); }}
+              style={{ color: TEXT_SOFT }}
+              className="flex items-center gap-1 text-sm p-2 -m-2 justify-self-end"
+            >
+              <X size={16} />
+            </button>
+          ) : <div />}
         </div>
         <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-1">
           {page.section.title}
@@ -90,7 +95,7 @@ export default function BaselineFlow({ userId, onComplete }) {
         </div>
       </div>
 
-      <div className="flex-1 max-w-md mx-auto w-full px-4 pb-4 space-y-5">
+      <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-4 space-y-5">
         {page.section.questions.map((q) => (
           <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} allAnswers={answers} setAnswer={setAnswer} />
         ))}
@@ -118,6 +123,7 @@ export default function BaselineFlow({ userId, onComplete }) {
         </button>
       </div>
     </div>
+    </Portal>
   );
 }
 

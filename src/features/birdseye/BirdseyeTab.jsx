@@ -5,6 +5,7 @@ import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
+import BaselineFlow from '../baseline/BaselineFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
@@ -34,6 +35,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [workouts, setWorkouts] = useState([]);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [assessmentDone, setAssessmentDone] = useState(true);
+  const [intakeDone, setIntakeDone] = useState(true);
+  const [showBaseline, setShowBaseline] = useState(false);
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
@@ -56,7 +59,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
-      supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
+      supabase.from('baseline_responses').select('fitness_assessment, form_answers, submitted_at').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
@@ -73,6 +76,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     const loggedWorkoutIds = new Set((setRows || []).map((s) => s.workout_id));
     setWorkouts((w || []).filter((row) => row.completed_at || loggedWorkoutIds.has(row.id)));
     setAssessmentDone(Boolean(baseline?.fitness_assessment && Object.keys(baseline.fitness_assessment).length > 0));
+    setIntakeDone(Boolean(baseline?.submitted_at));
     const resolvedAge = profileRow?.age != null ? Number(profileRow.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null);
     setAge(resolvedAge);
     setPrescribedZone(profileRow?.prescribed_hr_zone || null);
@@ -242,6 +246,18 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         </div>
       )}
       <div className="flex flex-col gap-4">
+        {!intakeDone && (
+          <button
+            onClick={() => setShowBaseline(true)}
+            style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
+            className="w-full rounded-lg px-5 py-4 text-center"
+          >
+            <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Let's get to know you</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account →</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">A few questions so I can actually coach you — takes about 10 minutes, whenever you're ready.</div>
+          </button>
+        )}
+
         {insight && (
           <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
             <div style={{ color: PAPER }} className="text-sm">{insight}</div>
@@ -320,6 +336,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           userId={userId}
           onClose={() => setShowAssessment(false)}
           onComplete={async () => { setShowAssessment(false); setAssessmentDone(true); await loadAll(); }}
+        />
+      )}
+
+      {showBaseline && (
+        <BaselineFlow
+          userId={userId}
+          onClose={() => setShowBaseline(false)}
+          onComplete={async () => { setShowBaseline(false); setIntakeDone(true); await loadAll(); }}
         />
       )}
 
