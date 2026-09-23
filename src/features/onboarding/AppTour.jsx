@@ -39,7 +39,14 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
     let cancelled = false;
     function measure() {
       const el = document.querySelector(step.selector);
-      if (el && !cancelled) setRect(el.getBoundingClientRect());
+      if (!el || cancelled) return;
+      // Bring it fully into view first — a target lower on the page
+      // (like the calendar) can otherwise sit partly or entirely below
+      // the visible viewport, cutting off the spotlight around it.
+      el.scrollIntoView({ behavior: 'instant', block: 'center' });
+      requestAnimationFrame(() => {
+        if (!cancelled) setRect(el.getBoundingClientRect());
+      });
     }
     const t = setTimeout(measure, tab === step.tab ? 30 : TAB_SETTLE_MS);
     window.addEventListener('resize', measure);
