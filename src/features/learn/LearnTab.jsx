@@ -29,12 +29,18 @@ function renderEmphasis(text) {
 // plain-language tidbits these are written as; falls back to the whole
 // thing if it's already short.
 function teaser(text, maxSentences = 2) {
-  // A sentence-ending mark can be followed by a closing quote before the
-  // whitespace (e.g. `instinct to "exercise." For nearly...`) — without
-  // allowing for that, the split misses the boundary and the teaser can
-  // start mid-sentence.
-  const sentences = text.match(/[^.!?]+[.!?]+["')]*(\s|$)/g);
-  if (!sentences || sentences.length <= maxSentences) return { teaser: text, hasMore: false };
+  // Real sentence segmentation (handles quotes, ellipses, abbreviations,
+  // etc. correctly) — a hand-rolled regex kept mis-splitting on embedded
+  // quotes like `("I felt...", "I thought...")`. Supported in every
+  // modern browser; fall back to treating the whole thing as one
+  // "sentence" on the rare engine without it.
+  let sentences;
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    sentences = [...new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text)].map((s) => s.segment);
+  } else {
+    sentences = [text];
+  }
+  if (sentences.length <= maxSentences) return { teaser: text, hasMore: false };
   return { teaser: sentences.slice(0, maxSentences).join('').trim(), hasMore: true };
 }
 
