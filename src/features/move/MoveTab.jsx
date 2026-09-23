@@ -45,6 +45,9 @@ function mapSet(row) {
     isBodyweight: Boolean(row.is_bodyweight),
     durationSeconds: row.duration_seconds != null ? Number(row.duration_seconds) : null,
     distance: row.distance || null,
+    lightMinutes: row.light_minutes != null ? Number(row.light_minutes) : null,
+    moderateMinutes: row.moderate_minutes != null ? Number(row.moderate_minutes) : null,
+    vigorousMinutes: row.vigorous_minutes != null ? Number(row.vigorous_minutes) : null,
   };
 }
 
@@ -59,6 +62,35 @@ function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// A logged aerobic set's intensity breakdown, e.g. "20m moderate, 10m
+// vigorous" — falls back to the old total-duration display for sets
+// logged before the light/moderate/vigorous split existed.
+function formatIntensityMinutes(s) {
+  const parts = [];
+  if (s.lightMinutes) parts.push(`${s.lightMinutes}m light`);
+  if (s.moderateMinutes) parts.push(`${s.moderateMinutes}m moderate`);
+  if (s.vigorousMinutes) parts.push(`${s.vigorousMinutes}m vigorous`);
+  if (parts.length > 0) return parts.join(', ');
+  return formatDuration(s.durationSeconds) || '—';
+}
+
+function LabeledMinutesInput({ label, value, onChange }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <span style={{ color: TEXT_SOFT }} className="text-sm">{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+        className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+      />
+    </div>
+  );
 }
 
 // Groups planExercises into render units: pairs sharing a supersetId
@@ -303,7 +335,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   // Lets a past resistance (or flexibility) movement pick up aerobic
   // work after the fact, bumping it to Combined so it counts toward
   // both goals — same idea as mid-session mixing, just for history.
-  async function addAerobicToHistory(workoutId, name, durationSeconds, distance) {
+  async function addAerobicToHistory(workoutId, name, { light, moderate, vigorous }, distance) {
+    const durationSeconds = ((light || 0) + (moderate || 0) + (vigorous || 0)) * 60;
     const { data, error } = await supabase
       .from('workout_sets')
       .insert({
@@ -314,6 +347,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         movement_type: 'aerobic',
         duration_seconds: durationSeconds || null,
         distance: distance || null,
+        light_minutes: light || null,
+        moderate_minutes: moderate || null,
+        vigorous_minutes: vigorous || null,
       })
       .select()
       .single();
@@ -449,6 +485,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         is_bodyweight: Boolean(payload.isBodyweight),
         duration_seconds: payload.durationSeconds ?? null,
         distance: payload.distance ?? null,
+        light_minutes: payload.lightMinutes ?? null,
+        moderate_minutes: payload.moderateMinutes ?? null,
+        vigorous_minutes: payload.vigorousMinutes ?? null,
       })
       .select()
       .single();
@@ -599,7 +638,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                                   <div key={s.id} className="flex items-center gap-2 justify-center">
                                     {isAerobic ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
-                                        {formatDuration(s.durationSeconds) || '—'}{s.distance ? ` · ${s.distance}` : ''}
+                                        {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
                                       </span>
                                     ) : isFlexibility ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
@@ -633,7 +672,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                             ) : (
                               <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
                                 {isAerobic
-                                  ? exSets.map((s) => `${formatDuration(s.durationSeconds) || '—'}${s.distance ? ` · ${s.distance}` : ''}`).join(', ')
+                                  ? exSets.map((s) => `${formatIntensityMinutes(s)}${s.distance ? ` · ${s.distance}` : ''}`).join(', ')
                                   : isFlexibility
                                   ? exSets.map((s) => (s.durationSeconds ? `${s.durationSeconds}s` : '—')).join(', ')
                                   : exSets.map((s) => `${s.weight ?? '—'}×${s.reps ?? '—'}`).join(', ')}
@@ -645,7 +684,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                       {editing && (
                         addingAerobicToId === w.id ? (
                           <AddAerobicToHistoryForm
-                            onAdd={(name, durationSeconds, distance) => addAerobicToHistory(w.id, name, durationSeconds, distance)}
+                            onAdd={(name, minutesByZone, distance) => addAerobicToHistory(w.id, name, minutesByZone, distance)}
                             onCancel={() => setAddingAerobicToId(null)}
                           />
                         ) : (
@@ -1254,13 +1293,17 @@ function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
 
 function AddAerobicToHistoryForm({ onAdd, onCancel }) {
   const [name, setName] = useState('');
-  const [minutes, setMinutes] = useState('');
-  const [seconds, setSeconds] = useState('');
+  const [light, setLight] = useState('');
+  const [moderate, setModerate] = useState('');
+  const [vigorous, setVigorous] = useState('');
   const [distance, setDistance] = useState('');
 
   function handleAdd() {
-    const durationSeconds = (parseInt(minutes, 10) || 0) * 60 + (parseInt(seconds, 10) || 0);
-    onAdd(name.trim(), durationSeconds || null, distance.trim() || null);
+    onAdd(
+      name.trim(),
+      { light: parseInt(light, 10) || 0, moderate: parseInt(moderate, 10) || 0, vigorous: parseInt(vigorous, 10) || 0 },
+      distance.trim() || null
+    );
   }
 
   return (
@@ -1273,34 +1316,20 @@ function AddAerobicToHistoryForm({ onAdd, onCancel }) {
         style={{ background: INK_2, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
       />
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
       <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
-          placeholder="min"
-          style={{ background: INK_2, color: PAPER }}
-          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
-        <input
-          type="number"
-          inputMode="numeric"
-          value={seconds}
-          onChange={(e) => setSeconds(e.target.value)}
-          placeholder="sec"
-          style={{ background: INK_2, color: PAPER }}
-          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
-        <input
-          type="text"
-          value={distance}
-          onChange={(e) => setDistance(e.target.value)}
-          placeholder="distance (optional)"
-          style={{ background: INK_2, color: PAPER }}
-          className="flex-1 min-w-[7rem] rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
+        <LabeledMinutesInput label="Light" value={light} onChange={setLight} />
+        <LabeledMinutesInput label="Moderate" value={moderate} onChange={setModerate} />
+        <LabeledMinutesInput label="Vigorous" value={vigorous} onChange={setVigorous} />
       </div>
+      <input
+        type="text"
+        value={distance}
+        onChange={(e) => setDistance(e.target.value)}
+        placeholder="distance (optional)"
+        style={{ background: INK_2, color: PAPER }}
+        className="w-full rounded-md px-2 py-2 text-sm outline-none text-center mb-2"
+      />
       <div className="flex items-center gap-2">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
           Cancel
@@ -1570,12 +1599,16 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
 }
 
 function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
-  const [minutes, setMinutes] = useState('');
-  const [seconds, setSeconds] = useState('');
+  const [light, setLight] = useState('');
+  const [moderate, setModerate] = useState('');
+  const [vigorous, setVigorous] = useState('');
   const [distance, setDistance] = useState('');
 
   function handleLog() {
-    const durationSeconds = (minutes === '' ? 0 : parseInt(minutes, 10) * 60) + (seconds === '' ? 0 : parseInt(seconds, 10));
+    const l = parseInt(light, 10) || 0;
+    const m = parseInt(moderate, 10) || 0;
+    const v = parseInt(vigorous, 10) || 0;
+    const durationSeconds = (l + m + v) * 60;
     if (durationSeconds === 0 && !distance.trim()) return;
     onLogSet({
       exerciseName: exercise.name,
@@ -1586,9 +1619,13 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
       reps: null,
       durationSeconds: durationSeconds || null,
       distance: distance.trim() || null,
+      lightMinutes: l || null,
+      moderateMinutes: m || null,
+      vigorousMinutes: v || null,
     });
-    setMinutes('');
-    setSeconds('');
+    setLight('');
+    setModerate('');
+    setVigorous('');
     setDistance('');
   }
 
@@ -1604,7 +1641,7 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
           {loggedSets.map((s) => (
             <div key={s.id} className="flex items-center justify-center gap-2">
               <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                {formatDuration(s.durationSeconds) || '—'}{s.distance ? ` · ${s.distance}` : ''}
+                {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
               </span>
               <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
                 <X size={14} />
@@ -1614,38 +1651,24 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
         </div>
       )}
 
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
-          placeholder="min"
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-          className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
-        <input
-          type="number"
-          inputMode="numeric"
-          value={seconds}
-          onChange={(e) => setSeconds(e.target.value)}
-          placeholder="sec"
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-          className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
-        <input
-          type="text"
-          value={distance}
-          onChange={(e) => setDistance(e.target.value)}
-          placeholder="distance (optional)"
-          style={{ background: INK_3, color: PAPER }}
-          className="flex-1 min-w-[7rem] rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
+      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
+        <LabeledMinutesInput label="Light" value={light} onChange={setLight} />
+        <LabeledMinutesInput label="Moderate" value={moderate} onChange={setModerate} />
+        <LabeledMinutesInput label="Vigorous" value={vigorous} onChange={setVigorous} />
       </div>
+      <input
+        type="text"
+        value={distance}
+        onChange={(e) => setDistance(e.target.value)}
+        placeholder="distance (optional)"
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-2 py-2 text-sm outline-none text-center mb-2"
+      />
       <button
         onClick={handleLog}
         style={{ background: SKY, color: INK }}
-        className="w-full rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1 mt-2"
+        className="w-full rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
       >
         <Plus size={14} /> Log activity
       </button>

@@ -28,6 +28,12 @@ create table profiles (
   resistance_goal integer not null default 3,
   aerobic_goal integer not null default 3,
   flexibility_goal integer not null default 2,
+  -- Aerobic's real target: moderate-equivalent minutes/week (moderate +
+  -- 2x vigorous), matching how ACSM actually phrases the guideline.
+  -- aerobic_goal (session count) stays too, purely for clients who'd
+  -- rather see progress in sessions than minutes — a view toggle, not a
+  -- second target.
+  aerobic_goal_minutes integer not null default 150,
   -- lets a client hide any of the three modes' rows from Weekly Goals
   track_flexibility_goal boolean not null default true,
   track_aerobic_goal boolean not null default true,
@@ -169,6 +175,14 @@ create table workout_sets (
   is_bodyweight boolean not null default false,
   duration_seconds integer,
   distance text,
+  -- For aerobic sets: minutes spent at each intensity, so weekly aerobic
+  -- progress can be tracked the way ACSM actually phrases the
+  -- guideline (150 min/week moderate, or a moderate-equivalent
+  -- combination) instead of just a session count. duration_seconds
+  -- stays as light+moderate+vigorous summed, for display/back-compat.
+  light_minutes numeric,
+  moderate_minutes numeric,
+  vigorous_minutes numeric,
   created_at timestamptz not null default now()
 );
 alter table workout_sets enable row level security;

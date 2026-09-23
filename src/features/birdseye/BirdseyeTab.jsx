@@ -44,7 +44,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [maxHrIsPredicted, setMaxHrIsPredicted] = useState(false);
   const [resistanceGoal, setResistanceGoal] = useState(3);
   const [aerobicGoal, setAerobicGoal] = useState(3);
+  const [aerobicGoalMinutes, setAerobicGoalMinutes] = useState(150);
   const [flexibilityGoal, setFlexibilityGoal] = useState(2);
+  const [aerobicMinutesByWorkout, setAerobicMinutesByWorkout] = useState({});
   const [trackFlexibilityGoal, setTrackFlexibilityGoal] = useState(true);
   const [trackAerobicGoal, setTrackAerobicGoal] = useState(true);
   const [trackResistanceGoal, setTrackResistanceGoal] = useState(true);
@@ -55,8 +57,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
-      supabase.from('workout_sets').select('workout_id, movement_type').eq('user_id', userId),
+      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
+      supabase.from('workout_sets').select('workout_id, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
     setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
@@ -82,17 +84,27 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     setMaxHrIsPredicted(maxMeasured == null && maxResolved != null);
     setResistanceGoal(profileRow?.resistance_goal || 3);
     setAerobicGoal(profileRow?.aerobic_goal || 3);
+    setAerobicGoalMinutes(profileRow?.aerobic_goal_minutes || 150);
     setFlexibilityGoal(profileRow?.flexibility_goal || 2);
     setTrackFlexibilityGoal(profileRow?.track_flexibility_goal !== false);
     setTrackAerobicGoal(profileRow?.track_aerobic_goal !== false);
     setTrackResistanceGoal(profileRow?.track_resistance_goal !== false);
 
     const types = {};
+    const aerobicMinutes = {};
     (setRows || []).forEach((s) => {
       if (!types[s.workout_id]) types[s.workout_id] = new Set();
       types[s.workout_id].add(s.movement_type || 'resistance');
+      if (s.movement_type === 'aerobic') {
+        const bucket = aerobicMinutes[s.workout_id] || { light: 0, moderate: 0, vigorous: 0 };
+        bucket.light += Number(s.light_minutes) || 0;
+        bucket.moderate += Number(s.moderate_minutes) || 0;
+        bucket.vigorous += Number(s.vigorous_minutes) || 0;
+        aerobicMinutes[s.workout_id] = bucket;
+      }
     });
     setWorkoutTypes(types);
+    setAerobicMinutesByWorkout(aerobicMinutes);
   }
 
   useEffect(() => {
@@ -139,6 +151,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
   }
 
+  async function saveAerobicGoalMinutes(value) {
+    const clamped = Math.max(10, Math.min(600, value));
+    setAerobicGoalMinutes(clamped);
+    await supabase.from('profiles').update({ aerobic_goal_minutes: clamped }).eq('id', userId);
+  }
+
   async function setGoalTracked(mode, next) {
     const field = mode === 'Aerobic' ? 'track_aerobic_goal' : mode === 'Resistance' ? 'track_resistance_goal' : 'track_flexibility_goal';
     if (mode === 'Aerobic') setTrackAerobicGoal(next);
@@ -171,6 +189,21 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
   const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
 
+  // ACSM phrases the aerobic guideline in moderate-equivalent minutes —
+  // vigorous minutes count double — not a session count, so that's the
+  // real target. Light activity doesn't count toward the guideline.
+  let lightMinutesThisWeek = 0;
+  let moderateMinutesThisWeek = 0;
+  let vigorousMinutesThisWeek = 0;
+  workoutsThisWeek.forEach((w) => {
+    const b = aerobicMinutesByWorkout[w.id];
+    if (!b) return;
+    lightMinutesThisWeek += b.light;
+    moderateMinutesThisWeek += b.moderate;
+    vigorousMinutesThisWeek += b.vigorous;
+  });
+  const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
+
   // Streak: consecutive weeks (including this one) hitting BOTH goals.
   let streak = 0;
   for (let i = 0; ; i++) {
@@ -183,14 +216,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
       return d >= ws && d < we;
     });
     const rCount = weekWorkouts.filter(hasResistance).length;
-    const aCount = weekWorkouts.filter(hasAerobic).length;
-    if (rCount >= resistanceGoal && aCount >= aerobicGoal) streak++;
+    const aMinutes = weekWorkouts.reduce((sum, w) => {
+      const b = aerobicMinutesByWorkout[w.id];
+      return sum + (b ? b.moderate + b.vigorous * 2 : 0);
+    }, 0);
+    if (rCount >= resistanceGoal && aMinutes >= aerobicGoalMinutes) streak++;
     else break;
     if (i > 52) break;
   }
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
-  const insight = buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aerobicGoal, daysSinceLast });
+  const insight = buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
 
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, field: 'aerobic_goal' },
@@ -238,6 +274,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
               key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
               onEdit={() => setEditingGoals(true)}
               onDelete={() => setGoalTracked(g.mode, false)}
+              aerobic={g.mode === 'Aerobic' ? {
+                goalMinutes: aerobicGoalMinutes,
+                moderateEquivMinutes: moderateEquivMinutesThisWeek,
+                lightMinutes: lightMinutesThisWeek,
+                moderateMinutes: moderateMinutesThisWeek,
+                vigorousMinutes: vigorousMinutesThisWeek,
+              } : null}
             />
           ))}
 
@@ -262,7 +305,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           assessmentDone={assessmentDone}
           onStartAssessment={() => setShowAssessment(true)}
           resistanceGoal={resistanceGoal}
-          aerobicGoal={aerobicGoal}
+          aerobicGoalMinutes={aerobicGoalMinutes}
           restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
           prescribedZone={prescribedZone}
         />
@@ -298,6 +341,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           goals={{ Aerobic: aerobicGoal, Resistance: resistanceGoal, Flexibility: flexibilityGoal }}
           onToggle={setGoalTracked}
           onChangeGoal={(mode, v) => saveGoal(mode === 'Aerobic' ? 'aerobic_goal' : mode === 'Resistance' ? 'resistance_goal' : 'flexibility_goal', v)}
+          aerobicGoalMinutes={aerobicGoalMinutes}
+          onChangeAerobicMinutes={saveAerobicGoalMinutes}
           onClose={() => setEditingGoals(false)}
         />
       )}
@@ -306,12 +351,21 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   );
 }
 
-function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, onClose }) {
+const ACSM_AEROBIC_MINIMUM = 150;
+
+function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMinutes, onChangeAerobicMinutes, onClose }) {
   const MODES = [
     { mode: 'Aerobic', icon: Activity, color: MOSS },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
     { mode: 'Flexibility', icon: StretchHorizontal, color: BRICK },
   ];
+  const [confirmingLow, setConfirmingLow] = useState(null); // the value they tried to set below the ACSM floor
+
+  function requestAerobicChange(next) {
+    if (next < ACSM_AEROBIC_MINIMUM) { setConfirmingLow(next); return; }
+    onChangeAerobicMinutes(next);
+  }
+
   return (
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
@@ -320,50 +374,93 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, onClose }) {
             <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Weekly Goals</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
           </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Choose which modes show up, and how many sessions/week to aim for.</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Choose which modes show up, and what to aim for each week.</div>
           <div className="space-y-2">
             {MODES.map(({ mode, icon: Icon, color }) => {
               const active = tracked[mode];
+              const isAerobic = mode === 'Aerobic';
               return (
-                <div key={mode} style={{ background: INK_3 }} className="rounded-md px-4 py-3 flex items-center justify-between">
-                  <button onClick={() => onToggle(mode, !active)} className="flex items-center gap-2">
-                    <span
-                      style={{ background: active ? color : 'transparent', borderColor: active ? color : TEXT_SOFT }}
-                      className="w-5 h-5 rounded-full border flex items-center justify-center"
-                    >
-                      {active && <Check size={12} color={INK} />}
-                    </span>
-                    <Icon size={16} color={color} />
-                    <span style={{ color: PAPER }} className="text-sm">{mode}</span>
-                  </button>
-                  {active && (
-                    <span className="flex items-center gap-2">
-                      <button onClick={() => onChangeGoal(mode, goals[mode] - 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-                        <Minus size={13} />
-                      </button>
-                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium w-6 text-center">
-                        {goals[mode]}
+                <div key={mode} style={{ background: INK_3 }} className="rounded-md px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => onToggle(mode, !active)} className="flex items-center gap-2">
+                      <span
+                        style={{ background: active ? color : 'transparent', borderColor: active ? color : TEXT_SOFT }}
+                        className="w-5 h-5 rounded-full border flex items-center justify-center"
+                      >
+                        {active && <Check size={12} color={INK} />}
                       </span>
-                      <button onClick={() => onChangeGoal(mode, goals[mode] + 1)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-                        <Plus size={13} />
-                      </button>
-                    </span>
+                      <Icon size={16} color={color} />
+                      <span style={{ color: PAPER }} className="text-sm">{mode}</span>
+                    </button>
+                    {active && (
+                      <span className="flex items-center gap-2">
+                        <button
+                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes - 15) : onChangeGoal(mode, goals[mode] - 1))}
+                          style={{ color: TEXT_SOFT }}
+                          className="p-1 -m-1"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium w-14 text-center">
+                          {isAerobic ? `${aerobicGoalMinutes} min` : goals[mode]}
+                        </span>
+                        <button
+                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes + 15) : onChangeGoal(mode, goals[mode] + 1))}
+                          style={{ color: TEXT_SOFT }}
+                          className="p-1 -m-1"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  {isAerobic && active && (
+                    <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
+                      ACSM recommends at least {ACSM_AEROBIC_MINIMUM} min/week (moderate-equivalent)
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
+
+          {confirmingLow != null && (
+            <div style={{ background: INK_3, borderTop: `2px solid ${BRICK}` }} className="rounded-md px-4 py-4 mt-4 text-center">
+              <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Below ACSM's recommendation</div>
+              <p style={{ color: PAPER_DIM }} className="text-sm mb-3">
+                {ACSM_AEROBIC_MINIMUM} min/week is the minimum ACSM recommends for adults. A lower goal isn't advised unless it's clinically warranted — talk to your coach first if that's not the case for you.
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setConfirmingLow(null)} style={{ color: TEXT_SOFT }} className="flex-1 py-2.5 text-sm">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { onChangeAerobicMinutes(confirmingLow); setConfirmingLow(null); }}
+                  style={{ background: BRICK, color: PAPER }}
+                  className="flex-1 rounded-md py-2.5 text-sm font-medium"
+                >
+                  Set anyway
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Portal>
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
+function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aerobic }) {
   const [revealed, setRevealed] = useState(false);
+  const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
+  const [expanded, setExpanded] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
-  const pct = Math.min(100, (count / goal) * 100);
+
+  const showingMinutes = Boolean(aerobic) && view === 'minutes';
+  const displayCount = showingMinutes ? aerobic.moderateEquivMinutes : count;
+  const displayGoal = showingMinutes ? aerobic.goalMinutes : goal;
+  const pct = Math.min(100, (displayCount / displayGoal) * 100);
 
   function handleTouchStart(e) {
     startX.current = e.touches[0].clientX;
@@ -404,23 +501,69 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
           <X size={14} />
         </button>
       </div>
-      <div className="flex items-center justify-between mb-1 py-0.5">
+      <button
+        onClick={() => aerobic && setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between mb-1 py-0.5"
+      >
         <span className="flex items-center gap-1.5">
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+          {aerobic && (expanded ? <ChevronUp size={13} color={TEXT_SOFT} /> : <ChevronDown size={13} color={TEXT_SOFT} />)}
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-            {count} / {goal}
+            {displayCount} / {displayGoal}{showingMinutes ? ' min' : ''}
           </span>
           <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
             <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
             <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
           </span>
         </span>
-      </div>
+      </button>
       <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+      </div>
+
+      {aerobic && expanded && (
+        <div className="mt-3 pt-3 space-y-2.5" style={{ borderTop: `1px dashed ${INK_3}` }}>
+          <div className="flex items-center justify-center gap-2">
+            {['minutes', 'sessions'].map((v) => (
+              <button
+                key={v}
+                onClick={(e) => { e.stopPropagation(); setView(v); }}
+                style={{ background: view === v ? color : INK_3, color: view === v ? INK : PAPER_DIM }}
+                className="px-3 py-1 rounded-full text-sm font-medium capitalize"
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <AerobicSubBar label="Moderate" minutes={aerobic.moderateMinutes} color={SKY} />
+          <AerobicSubBar label="Vigorous" minutes={aerobic.vigorousMinutes} color={BRICK} />
+          {aerobic.lightMinutes > 0 && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
+              + {Math.round(aerobic.lightMinutes)} min light activity (doesn't count toward the guideline, but still counts)
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// An informational breakdown bar — not its own separate target, just
+// showing how this intensity is contributing toward the moderate-
+// equivalent total above (vigorous counts double there).
+function AerobicSubBar({ label, minutes, color }) {
+  const rounded = Math.round(minutes);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
+        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{rounded} min</span>
+      </div>
+      <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden">
+        <div style={{ width: `${Math.min(100, (rounded / 150) * 100)}%`, background: color }} className="h-full rounded-full transition-all" />
       </div>
     </div>
   );
@@ -428,9 +571,9 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete }) {
 
 // Light, in-app encouragement — friendly and specific, never guilt-driven,
 // and reflects whichever of the two goals actually needs attention.
-function buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aerobicGoal, daysSinceLast }) {
+function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast }) {
   const rDone = resistanceThisWeek >= resistanceGoal;
-  const aDone = aerobicThisWeek >= aerobicGoal;
+  const aDone = aerobicMinutesThisWeek >= aerobicGoalMinutes;
 
   if (rDone && aDone) {
     return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
@@ -441,7 +584,7 @@ function buildInsight({ resistanceThisWeek, aerobicThisWeek, resistanceGoal, aer
   if (rDone && !aDone) {
     return "Howdy! Resistance goal is done for the week — got time for some aerobic activity, like a walk, today or tomorrow?";
   }
-  if (resistanceThisWeek === resistanceGoal - 1 || aerobicThisWeek === aerobicGoal - 1) {
+  if (resistanceThisWeek === resistanceGoal - 1 || (aerobicGoalMinutes - aerobicMinutesThisWeek > 0 && aerobicGoalMinutes - aerobicMinutesThisWeek <= 20)) {
     return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
   }
   if (daysSinceLast != null && daysSinceLast >= 4) {
@@ -540,7 +683,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 
 // The permanent, personalized companion to the ACSM reference below: your
 // own individualized exercise prescription, not just an abstract standard.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoal, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
 
   return (
@@ -557,10 +700,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
         <div>
           <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
           <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-            {aerobicGoal
-              ? `Aim for ${aerobicGoal} session${aerobicGoal === 1 ? '' : 's'}/week — `
-              : "No specific aerobic goal set, so here's ACSM's recommendation: "}
-            150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days.
+            Aim for {aerobicGoalMinutes} min/week (moderate-equivalent — vigorous minutes count double), spread across 3+ days.
           </p>
           {zones ? (
             <>
@@ -723,7 +863,10 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
     const setRows = selectedActivities
       .map((activity) => {
         const d = details[activity] || {};
-        const durationSeconds = (parseInt(d.minutes, 10) || 0) * 60 + (parseInt(d.seconds, 10) || 0);
+        const light = parseInt(d.light, 10) || 0;
+        const moderate = parseInt(d.moderate, 10) || 0;
+        const vigorous = parseInt(d.vigorous, 10) || 0;
+        const durationSeconds = (light + moderate + vigorous) * 60;
         const distance = (d.distance || '').trim();
         if (!durationSeconds && !distance) return null;
         return {
@@ -734,6 +877,9 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
           movement_type: 'aerobic',
           duration_seconds: durationSeconds || null,
           distance: distance || null,
+          light_minutes: light || null,
+          moderate_minutes: moderate || null,
+          vigorous_minutes: vigorous || null,
         };
       })
       .filter(Boolean);
@@ -801,34 +947,31 @@ function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActiv
             {selectedActivities.map((activity) => (
               <div key={activity} style={{ background: INK_3 }} className="rounded-md px-3 py-3">
                 <div style={{ color: PAPER }} className="text-sm mb-2 text-center">{activity}</div>
-                <div className="flex items-center justify-center gap-2 flex-wrap">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={details[activity]?.minutes || ''}
-                    onChange={(e) => updateDetail(activity, 'minutes', e.target.value)}
-                    placeholder="min"
-                    style={{ background: INK_2, color: PAPER }}
-                    className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-                  />
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={details[activity]?.seconds || ''}
-                    onChange={(e) => updateDetail(activity, 'seconds', e.target.value)}
-                    placeholder="sec"
-                    style={{ background: INK_2, color: PAPER }}
-                    className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-                  />
-                  <input
-                    type="text"
-                    value={details[activity]?.distance || ''}
-                    onChange={(e) => updateDetail(activity, 'distance', e.target.value)}
-                    placeholder="distance (optional)"
-                    style={{ background: INK_2, color: PAPER }}
-                    className="flex-1 min-w-[7rem] rounded-md px-2 py-2 text-sm outline-none text-center"
-                  />
+                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
+                <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
+                  {[['light', 'Light'], ['moderate', 'Moderate'], ['vigorous', 'Vigorous']].map(([field, label]) => (
+                    <div key={field} className="flex flex-col items-center gap-1">
+                      <span style={{ color: TEXT_SOFT }} className="text-sm">{label}</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={details[activity]?.[field] || ''}
+                        onChange={(e) => updateDetail(activity, field, e.target.value)}
+                        placeholder="0"
+                        style={{ background: INK_2, color: PAPER }}
+                        className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+                      />
+                    </div>
+                  ))}
                 </div>
+                <input
+                  type="text"
+                  value={details[activity]?.distance || ''}
+                  onChange={(e) => updateDetail(activity, 'distance', e.target.value)}
+                  placeholder="distance (optional)"
+                  style={{ background: INK_2, color: PAPER }}
+                  className="w-full rounded-md px-2 py-2 text-sm outline-none text-center"
+                />
               </div>
             ))}
           </div>
