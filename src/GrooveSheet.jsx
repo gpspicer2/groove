@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { X } from 'lucide-react';
 import Portal from './Portal';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
@@ -21,11 +21,18 @@ export default function GrooveSheet({ onClose }) {
   const [dragX, setDragX] = useState(0); // live offset while a finger is down, 0 or negative
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef(0);
-  const widthRef = useRef(320);
+  const [width, setWidth] = useState(0);
   const trackingRef = useRef(false);
 
+  // Measured before the browser paints (unlike a plain effect, which
+  // runs after) — otherwise the panel's first frame renders its closed
+  // resting position using a guessed width, and visibly snaps once the
+  // real width is known a moment later.
+  useLayoutEffect(() => {
+    if (panelRef.current) setWidth(panelRef.current.offsetWidth);
+  }, []);
+
   useEffect(() => {
-    if (panelRef.current) widthRef.current = panelRef.current.offsetWidth;
     const id = requestAnimationFrame(() => setOpen(true));
     return () => cancelAnimationFrame(id);
   }, []);
@@ -46,7 +53,7 @@ export default function GrooveSheet({ onClose }) {
     if (!trackingRef.current) return;
     trackingRef.current = false;
     setDragging(false);
-    const closedEnough = -dragX > widthRef.current * 0.3;
+    const closedEnough = -dragX > width * 0.3;
     setDragX(0);
     if (closedEnough) {
       setOpen(false);
@@ -59,7 +66,7 @@ export default function GrooveSheet({ onClose }) {
   // The offset actually applied: fully open (0) or fully closed
   // (-100%) as a resting position, live-adjusted by finger movement
   // while a touch is active — same feel as SwipeTabs' own drag.
-  const baseX = open ? 0 : -widthRef.current;
+  const baseX = open ? 0 : -width;
   const translate = baseX + dragX;
 
   function handleBackdropClick() {
