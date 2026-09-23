@@ -13,6 +13,18 @@ function mapArticle(row) {
   return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at, pinned: row.pinned || false };
 }
 
+// Lightweight markdown for titles — *word* renders italic. Lets a
+// specific word be emphasized (e.g. "...Meant to *Move*") without
+// needing a rich-text editor for what's otherwise plain text.
+function renderEmphasis(text) {
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith('*') && part.endsWith('*')
+      ? <em key={i}>{part.slice(1, -1)}</em>
+      : part
+  );
+}
+
 // A rough "first sentence or two" teaser — good enough for the short,
 // plain-language tidbits these are written as; falls back to the whole
 // thing if it's already short.
@@ -153,10 +165,10 @@ export default function LearnTab() {
                     style={{ color }}
                     className="text-sm font-medium mb-1 inline-flex items-center gap-1 pr-5"
                   >
-                    {a.title} <ExternalLink size={12} />
+                    {renderEmphasis(a.title)} <ExternalLink size={12} />
                   </a>
                 ) : (
-                  <div style={{ color: PAPER }} className="text-sm font-medium mb-1 pr-5">{a.title}</div>
+                  <div style={{ color: PAPER }} className="text-sm font-medium mb-1 pr-5">{renderEmphasis(a.title)}</div>
                 )}
                 <div style={{ color: PAPER_DIM }} className="text-sm">{expanded ? a.summary : shortText}</div>
                 {hasMore && (
