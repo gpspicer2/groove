@@ -116,7 +116,20 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
     // A column flex container of its own, so the sliding strip below can
     // use flex:1 (reliable) instead of a percentage height (which needs
     // an explicit, not merely min-, height on every ancestor to resolve).
-    <div ref={containerRef} style={{ touchAction: 'pan-y', overflow: 'hidden', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div
+      ref={containerRef}
+      style={{ touchAction: 'pan-y', overflow: 'hidden', minHeight: '100%', display: 'flex', flexDirection: 'column' }}
+      onScroll={() => {
+        // This element is only overflow:hidden to clip the sliding strip —
+        // it should never itself scroll. But overflow:hidden still makes it
+        // a real scroll container, so a descendant's el.scrollIntoView()
+        // (e.g. Move's deep-link-to-workout handler) can silently give it a
+        // horizontal scrollLeft to bring that element "into view" here.
+        // That offset then stacks on top of our own translateX transform,
+        // desyncing what's on screen from the active tab. Force it back.
+        if (containerRef.current) containerRef.current.scrollLeft = 0;
+      }}
+    >
       <div
         style={{
           display: 'flex',
