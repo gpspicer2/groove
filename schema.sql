@@ -240,6 +240,9 @@ create table articles (
   title text not null,
   summary text not null,
   url text,
+  -- keeps a tidbit pinned at the top of Learn regardless of when it was
+  -- posted (Greg calling out a specific must-read) until he unpins it
+  pinned boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table articles enable row level security;

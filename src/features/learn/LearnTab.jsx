@@ -10,7 +10,7 @@ import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS
 const TITLE_COLORS = [VIOLET, SKY, LIME, AMBER, MOSS, BRICK];
 
 function mapArticle(row) {
-  return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at };
+  return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at, pinned: row.pinned || false };
 }
 
 // A rough "first sentence or two" teaser — good enough for the short,
@@ -42,7 +42,7 @@ export default function LearnTab() {
   useEffect(() => {
     (async () => {
       const [{ data: articleRows }, { data: favRows }] = await Promise.all([
-        supabase.from('articles').select('*').order('created_at', { ascending: false }),
+        supabase.from('articles').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }),
         user ? supabase.from('article_favorites').select('article_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
       ]);
       setArticles((articleRows || []).map(mapArticle));
@@ -136,9 +136,6 @@ export default function LearnTab() {
                 >
                   <Heart size={15} fill={isFav ? BRICK : 'none'} />
                 </button>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-                  {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </div>
                 {a.url ? (
                   <a
                     href={a.url}

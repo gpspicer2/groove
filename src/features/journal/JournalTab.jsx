@@ -176,7 +176,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
       <div
         onClick={() => { if (!revealed) setShowActions(true); }}
         style={{ background: INK_2 }}
-        className="relative flex items-center justify-between gap-2 px-4 py-3"
+        className="flex items-center justify-between gap-2 px-4 py-3"
       >
         <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">
           {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
