@@ -141,6 +141,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
+  const [addingExerciseToId, setAddingExerciseToId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
 
@@ -507,6 +508,36 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSets((prev) => prev.map((s) => (s.id === id ? mapSet(data) : s)));
   }
 
+  // Adding a brand-new resistance exercise to a past (already-finished)
+  // movement — same idea as addAerobicToHistory, since planExercises
+  // (used for the active-workout flow) doesn't apply to history at all.
+  async function addExerciseToHistory(workoutId, name, muscleGroup, weight, reps) {
+    const { data, error } = await supabase
+      .from('workout_sets')
+      .insert({
+        workout_id: workoutId,
+        exercise_name: name,
+        muscle_group: muscleGroup,
+        set_number: 1,
+        movement_type: 'resistance',
+        weight: weight,
+        reps: reps,
+      })
+      .select()
+      .single();
+    if (error) { setLoadError(error.message); return; }
+    setSets((prev) => [...prev, mapSet(data)]);
+    // If this muscle group wasn't already part of the workout's own
+    // record, add it so Birdseye/History summaries reflect it too.
+    const w = workouts.find((x) => x.id === workoutId);
+    if (w && !w.muscleGroups.includes(muscleGroup)) {
+      const nextGroups = [...w.muscleGroups, muscleGroup];
+      const { data: wdata, error: werror } = await supabase.from('workouts').update({ muscle_groups: nextGroups }).eq('id', workoutId).select().single();
+      if (!werror) setWorkouts((prev) => prev.map((x) => (x.id === workoutId ? mapWorkout(wdata) : x)));
+    }
+    setAddingExerciseToId(null);
+  }
+
   async function finishWorkout() {
     const { data, error } = await supabase
       .from('workouts')
@@ -682,24 +713,38 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                         );
                       })}
                       {editing && (
-                        addingAerobicToId === w.id ? (
+                        addingExerciseToId === w.id ? (
+                          <AddExerciseToHistoryForm
+                            onAdd={(name, muscleGroup, weight, reps) => addExerciseToHistory(w.id, name, muscleGroup, weight, reps)}
+                            onCancel={() => setAddingExerciseToId(null)}
+                          />
+                        ) : addingAerobicToId === w.id ? (
                           <AddAerobicToHistoryForm
                             onAdd={(name, minutesByZone, distance) => addAerobicToHistory(w.id, name, minutesByZone, distance)}
                             onCancel={() => setAddingAerobicToId(null)}
                           />
                         ) : (
-                          <button
-                            onClick={() => setAddingAerobicToId(w.id)}
-                            style={{ background: INK_3, color: SKY }}
-                            className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
-                          >
-                            <Plus size={14} /> Add aerobic work
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setAddingExerciseToId(w.id)}
+                              style={{ background: INK_3, color: SKY }}
+                              className="flex-1 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+                            >
+                              <Plus size={14} /> Add exercise
+                            </button>
+                            <button
+                              onClick={() => setAddingAerobicToId(w.id)}
+                              style={{ background: INK_3, color: SKY }}
+                              className="flex-1 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+                            >
+                              <Plus size={14} /> Add aerobic
+                            </button>
+                          </div>
                         )
                       )}
                       <div className="flex items-center justify-center gap-4">
                         <button
-                          onClick={() => { setEditingHistoryId(editing ? null : w.id); setAddingAerobicToId(null); }}
+                          onClick={() => { setEditingHistoryId(editing ? null : w.id); setAddingAerobicToId(null); setAddingExerciseToId(null); }}
                           style={{ color: SKY }}
                           className="text-sm py-2 text-center underline"
                         >
@@ -1285,6 +1330,82 @@ function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
           className="flex-1 rounded-md py-2.5 text-sm font-medium"
         >
           Add superset
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddExerciseToHistoryForm({ onAdd, onCancel }) {
+  const [name, setName] = useState('');
+  const [muscleGroup, setMuscleGroup] = useState(MUSCLE_GROUPS[0]);
+  const [weight, setWeight] = useState('');
+  const [reps, setReps] = useState('');
+
+  function handleAdd() {
+    onAdd(
+      name.trim(),
+      muscleGroup,
+      weight.trim() === '' ? null : parseFloat(weight),
+      reps.trim() === '' ? null : parseInt(reps, 10)
+    );
+  }
+
+  return (
+    <div style={{ background: INK_3 }} className="rounded-md px-3 py-3">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Exercise name"
+        style={{ background: INK_2, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
+      />
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Muscle group</div>
+      <div className="flex flex-wrap justify-center gap-2 mb-2">
+        {MUSCLE_GROUPS.map((g) => (
+          <button
+            key={g}
+            onClick={() => setMuscleGroup(g)}
+            style={{ background: muscleGroup === g ? SKY : INK_2, color: muscleGroup === g ? INK : PAPER_DIM }}
+            className="px-3 py-1.5 rounded-full text-sm font-medium"
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <input
+          type="number"
+          inputMode="decimal"
+          value={weight}
+          onChange={(e) => setWeight(e.target.value)}
+          placeholder="weight"
+          style={{ background: INK_2, color: PAPER }}
+          className="w-20 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <span style={{ color: TEXT_SOFT }} className="text-sm">×</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={reps}
+          onChange={(e) => setReps(e.target.value)}
+          placeholder="reps"
+          style={{ background: INK_2, color: PAPER }}
+          className="w-20 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
+          Cancel
+        </button>
+        <button
+          onClick={handleAdd}
+          disabled={!name.trim()}
+          style={{ background: name.trim() ? SKY : INK_2, color: name.trim() ? INK : TEXT_SOFT }}
+          className="flex-1 rounded-md py-2.5 text-sm font-medium"
+        >
+          Add
         </button>
       </div>
     </div>
