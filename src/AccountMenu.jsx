@@ -11,7 +11,7 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{ color: TEXT_SOFT }} className="p-2 -m-2 justify-self-end">
+      <button data-tour="account-button" onClick={() => setOpen(true)} style={{ color: TEXT_SOFT }} className="p-2 -m-2 justify-self-end">
         <User size={18} />
       </button>
       {open && <AccountModal onClose={() => setOpen(false)} />}

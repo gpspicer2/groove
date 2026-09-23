@@ -8,16 +8,21 @@ import MoveTab from './features/move/MoveTab';
 import JournalTab from './features/journal/JournalTab';
 import LearnTab from './features/learn/LearnTab';
 import GrooveSheet from './GrooveSheet';
+import AppTour from './features/onboarding/AppTour';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
 const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', learn: 'Learn' };
 const TAB_COLORS = { birdseye: LIME, move: SKY, journal: AMBER, learn: VIOLET };
 
 export default function ClientApp() {
-  const { user } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [tab, setTab] = useState('birdseye');
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [showGroove, setShowGroove] = useState(false);
+  // A local override alongside profile.tour_done: updateProfile()'s
+  // round trip can lag a render behind, and without this the tour would
+  // flash back on screen for a moment right after finishing it.
+  const [tourJustFinished, setTourJustFinished] = useState(false);
   const scrollRef = useRef(null);
 
   function openWorkout(workoutId) {
@@ -26,6 +31,7 @@ export default function ClientApp() {
   }
 
   const activeIndex = TABS.indexOf(tab);
+  const showTour = !profile.tour_done && !tourJustFinished;
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="h-[100svh] flex flex-col">
@@ -46,7 +52,7 @@ export default function ClientApp() {
           </span>
           <AccountMenu />
         </div>
-        <div className="flex gap-1.5 pb-4">
+        <div data-tour="tab-bar" className="flex gap-1.5 pb-4">
           {TABS.map((key) => {
             const active = tab === key;
             const color = TAB_COLORS[key];
@@ -83,6 +89,17 @@ export default function ClientApp() {
       </div>
 
       {showGroove && <GrooveSheet onClose={() => setShowGroove(false)} />}
+
+      {showTour && (
+        <AppTour
+          tab={tab}
+          onChangeTab={setTab}
+          onComplete={() => {
+            setTourJustFinished(true);
+            updateProfile({ tour_done: true });
+          }}
+        />
+      )}
     </div>
   );
 }

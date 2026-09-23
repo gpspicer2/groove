@@ -687,6 +687,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         />
       ) : (
         <StartWorkout
+          dataTour="move-start"
           gender={profile?.gender}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
@@ -712,7 +713,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         />
       )}
 
-      <div className="mt-8">
+      <div data-tour="move-history" className="mt-8">
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">History</div>
         {completedWorkouts.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
@@ -922,6 +923,7 @@ function StartWorkout({
   customActivities, onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
+  dataTour,
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
@@ -937,7 +939,7 @@ function StartWorkout({
   const friendlyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
+    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div className="flex items-center justify-center gap-2 mb-5">
         <button
           onClick={() => { onSelectDate(todayLocalISO()); setPickingDate(false); }}

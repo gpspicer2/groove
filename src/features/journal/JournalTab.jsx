@@ -91,7 +91,7 @@ export default function JournalTab() {
       ) : mode === 'freeform' ? (
         <FreeformEntry onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : (
-        <div className="space-y-2 mb-4">
+        <div data-tour="journal-prompts" className="space-y-2 mb-4">
           <button
             onClick={() => setMode('checkin')}
             style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
@@ -111,18 +111,20 @@ export default function JournalTab() {
         </div>
       )}
 
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Past entries</div>
-      {entries.length === 0 ? (
-        <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
-          Nothing logged yet — your first entry will show up here.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {entries.map((e) => (
-            <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
-          ))}
-        </div>
-      )}
+      <div data-tour="journal-entries">
+        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Past entries</div>
+        {entries.length === 0 ? (
+          <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
+            Nothing logged yet — your first entry will show up here.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {entries.map((e) => (
+              <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
+            ))}
+          </div>
+        )}
+      </div>
 
       {editingEntry && (
         <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} onSaved={updateEntry} />

@@ -276,7 +276,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           </button>
         )}
 
-        <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6">
+        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6">
           <div className="flex items-center justify-between mb-3">
             <span />
             <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
@@ -308,6 +308,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         </div>
 
         <WorkoutCalendar
+          dataTour="birdseye-calendar"
           workouts={workouts}
           hasResistance={hasResistance}
           hasAerobic={hasAerobic}
@@ -318,6 +319,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         />
 
         <ScienceStrategy
+          dataTour="birdseye-science"
           assessmentDone={assessmentDone}
           onStartAssessment={() => setShowAssessment(true)}
           resistanceGoal={resistanceGoal}
@@ -630,7 +632,7 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onAddWorkout, weekStartDay }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onAddWorkout, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -654,7 +656,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
   }
 
   return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-2.5">
+    <div data-tour={dataTour} style={{ background: INK_2 }} className="rounded-md px-4 py-2.5">
       <div className="flex items-center justify-between mb-2">
         <button onClick={() => setMonthOffset((m) => m - 1)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
           <ChevronLeft size={16} />
@@ -717,11 +719,11 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 
 // The permanent, personalized companion to the ACSM reference below: your
 // own individualized exercise prescription, not just an abstract standard.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone }) {
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-5 text-center">
+    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-5 text-center">
       <div style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold mb-3">
         My Science-Supported Strategy
       </div>

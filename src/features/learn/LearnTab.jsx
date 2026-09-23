@@ -115,7 +115,7 @@ export default function LearnTab() {
         </div>
       )}
 
-      <div className="relative mb-2">
+      <div data-tour="learn-search" className="relative mb-2">
         <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           type="text"
@@ -141,6 +141,7 @@ export default function LearnTab() {
         {showFavoritesOnly ? 'Showing favorites' : 'Show favorites only'}
       </button>
 
+      <div data-tour="learn-list">
       {visibleArticles.length === 0 ? (
         <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
           {articles.length === 0
@@ -196,6 +197,7 @@ export default function LearnTab() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
