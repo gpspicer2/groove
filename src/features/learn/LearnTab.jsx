@@ -169,7 +169,7 @@ export default function LearnTab() {
                     style={{ color }}
                     className="text-sm font-medium mb-1 inline-flex items-center gap-1 pr-5"
                   >
-                    {renderEmphasis(a.title)} <ExternalLink size={12} />
+                    <span>{renderEmphasis(a.title)}</span> <ExternalLink size={12} />
                   </a>
                 ) : (
                   <div style={{ color: PAPER }} className="text-sm font-medium mb-1 pr-5">{renderEmphasis(a.title)}</div>
