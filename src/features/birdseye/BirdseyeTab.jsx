@@ -524,6 +524,16 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aero
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
       </div>
 
+      {/* Logging everything as "light" is a common first mistake (light
+          intensity is real movement, just not what the ACSM guideline
+          counts) — surface that immediately instead of only after
+          expanding, so "0 min" never looks like the log went nowhere. */}
+      {aerobic && !expanded && showingMinutes && aerobic.moderateEquivMinutes === 0 && aerobic.lightMinutes > 0 && (
+        <button onClick={() => setExpanded(true)} style={{ color: TEXT_SOFT }} className="text-sm mt-1 underline underline-offset-2">
+          {Math.round(aerobic.lightMinutes)} min logged as light — doesn't count toward this goal, tap for details
+        </button>
+      )}
+
       {aerobic && expanded && (
         <div className="mt-3 pt-3 space-y-2.5" style={{ borderTop: `1px dashed ${INK_3}` }}>
           <div className="flex items-center justify-center gap-2">

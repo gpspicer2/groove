@@ -7,6 +7,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
+import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -93,6 +94,73 @@ function LabeledMinutesInput({ label, value, onChange }) {
   );
 }
 
+// RPE + talk-test description for each intensity, plus this client's own
+// HR range when we have enough data (resting + max) to compute one —
+// same Karvonen math Birdseye's Science & Strategy card uses, so the
+// numbers always agree with each other.
+const INTENSITY_GUIDE = [
+  { label: 'Light', rpe: '2–3', talk: 'Easy — you could sing.' },
+  { label: 'Moderate', rpe: '4–6', talk: 'You can talk, but not sing.' },
+  { label: 'Vigorous', rpe: '7–8', talk: 'Hard to say more than a few words at a time.' },
+];
+
+function IntensityGuideModal({ onClose, hrZones }) {
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
+        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 style={{ color: PAPER }} className="text-base font-medium">Which intensity was it?</h3>
+            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
+          </div>
+          <div className="space-y-4">
+            {INTENSITY_GUIDE.map((tier) => {
+              const zone = hrZones?.find((z) => z.label === tier.label);
+              return (
+                <div key={tier.label}>
+                  <div style={{ color: SKY }} className="text-sm font-medium mb-0.5">{tier.label}</div>
+                  <div style={{ color: PAPER_DIM }} className="text-sm">{tier.talk}</div>
+                  <div style={{ color: TEXT_SOFT }} className="text-sm">
+                    RPE {tier.rpe}/10{zone ? ` · ${zone.lowBpm}–${zone.highBpm} bpm` : ''}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {!hrZones && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-4 pt-4 border-t border-white/10">
+              Add your resting heart rate in Account to see your own personal bpm ranges here.
+            </div>
+          )}
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// The Light/Moderate/Vigorous minute inputs shared by every aerobic
+// logging form, plus a "Not sure?" link into the intensity guide —
+// kept in one place so it's identical everywhere it appears.
+function IntensityMinutesGroup({ light, setLight, moderate, setModerate, vigorous, setVigorous, hrZones }) {
+  const [showGuide, setShowGuide] = useState(false);
+  return (
+    <>
+      <div className="flex items-center justify-center gap-1.5 mb-1.5">
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Minutes spent at each intensity</span>
+        <button onClick={() => setShowGuide(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2">
+          Not sure?
+        </button>
+      </div>
+      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
+        <LabeledMinutesInput label="Light" value={light} onChange={setLight} />
+        <LabeledMinutesInput label="Moderate" value={moderate} onChange={setModerate} />
+        <LabeledMinutesInput label="Vigorous" value={vigorous} onChange={setVigorous} />
+      </div>
+      {showGuide && <IntensityGuideModal onClose={() => setShowGuide(false)} hrZones={hrZones} />}
+    </>
+  );
+}
+
 // Groups planExercises into render units: pairs sharing a supersetId
 // become one unit, everything else stands alone. Superset members are
 // always kept adjacent by the functions that build/edit the plan.
@@ -124,13 +192,26 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// Local calendar date as YYYY-MM-DD — new Date().toISOString() gives the
+// UTC date instead, which can silently land on the wrong day depending
+// on time zone and time of day.
+function todayLocalISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const { user, profile, updateProfile } = useAuth();
+  const hrZones = computeHrZones(
+    profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
+    profile?.max_hr_bpm != null ? Number(profile.max_hr_bpm) : predictedMaxHR(profile?.age != null ? Number(profile.age) : null)
+  );
   const [workouts, setWorkouts] = useState([]);
   const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [movementMode, setMovementMode] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
@@ -310,6 +391,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       plan = [...plan, ...activityEntries];
     }
 
+    const isToday = selectedDate === todayLocalISO();
+    // Noon avoids the date silently shifting by a day if this ever
+    // crosses a UTC day boundary near midnight in the client's time zone.
+    const startedAt = isToday ? new Date().toISOString() : new Date(`${selectedDate}T12:00:00`).toISOString();
+
     const { data, error } = await supabase
       .from('workouts')
       .insert({
@@ -318,6 +404,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         movement_mode: movementMode,
         style: usesResistance ? selectedStyle : null,
         location: selectedLocation,
+        started_at: startedAt,
       })
       .select()
       .single();
@@ -331,6 +418,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSelectedStyle('');
     setSelectedLocation('');
     setMovementMode('');
+    setSelectedDate(todayLocalISO());
   }
 
   // Lets a past resistance (or flexibility) movement pick up aerobic
@@ -600,6 +688,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       ) : (
         <StartWorkout
           gender={profile?.gender}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
           selectedLocation={selectedLocation}
           onSelectLocation={setSelectedLocation}
           movementMode={movementMode}
@@ -722,6 +812,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                           <AddAerobicToHistoryForm
                             onAdd={(name, minutesByZone, distance) => addAerobicToHistory(w.id, name, minutesByZone, distance)}
                             onCancel={() => setAddingAerobicToId(null)}
+                            hrZones={hrZones}
                           />
                         ) : (
                           <div className="flex items-center gap-2">
@@ -822,6 +913,7 @@ function WeeklyTracker({ completedWorkouts, weekStartDay }) {
 
 function StartWorkout({
   gender,
+  selectedDate, onSelectDate,
   selectedLocation, onSelectLocation,
   movementMode, onSelectMode,
   selectedGroups, onToggleGroup,
@@ -833,6 +925,7 @@ function StartWorkout({
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
+  const [pickingDate, setPickingDate] = useState(false);
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
 
   const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
@@ -840,10 +933,41 @@ function StartWorkout({
   const needsFlexActivities = movementMode === 'Flexibility';
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
 
+  const isToday = selectedDate === todayLocalISO();
+  const friendlyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
+      <div className="flex items-center justify-center gap-2 mb-5">
+        <button
+          onClick={() => { onSelectDate(todayLocalISO()); setPickingDate(false); }}
+          style={{ background: isToday ? SKY : INK_3, color: isToday ? INK : PAPER_DIM }}
+          className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+        >
+          Today
+        </button>
+        <button
+          onClick={() => setPickingDate((v) => !v)}
+          style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
+          className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+        >
+          {isToday ? 'A past day' : friendlyDate}
+        </button>
+      </div>
+      {pickingDate && (
+        <div className="flex justify-center mb-5">
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayLocalISO()}
+            onChange={(e) => { if (e.target.value) { onSelectDate(e.target.value); setPickingDate(false); } }}
+            style={{ background: INK_3, color: PAPER, colorScheme: 'dark' }}
+            className="rounded-md px-3 py-2 text-sm outline-none"
+          />
+        </div>
+      )}
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        Where are you getting your movement in today?
+        {isToday ? 'Where are you getting your movement in today?' : `What did you do on ${friendlyDate}?`}
       </div>
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
@@ -1065,6 +1189,7 @@ function ActiveWorkout({
                 onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
                 onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                 onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
+                hrZones={hrZones}
               />
             );
           }
@@ -1412,7 +1537,7 @@ function AddExerciseToHistoryForm({ onAdd, onCancel }) {
   );
 }
 
-function AddAerobicToHistoryForm({ onAdd, onCancel }) {
+function AddAerobicToHistoryForm({ onAdd, onCancel, hrZones }) {
   const [name, setName] = useState('');
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
@@ -1437,12 +1562,7 @@ function AddAerobicToHistoryForm({ onAdd, onCancel }) {
         style={{ background: INK_2, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
       />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
-      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-        <LabeledMinutesInput label="Light" value={light} onChange={setLight} />
-        <LabeledMinutesInput label="Moderate" value={moderate} onChange={setModerate} />
-        <LabeledMinutesInput label="Vigorous" value={vigorous} onChange={setVigorous} />
-      </div>
+      <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
       <input
         type="text"
         value={distance}
@@ -1719,7 +1839,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
   );
 }
 
-function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
+function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove, hrZones }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -1772,12 +1892,7 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
         </div>
       )}
 
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
-      <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-        <LabeledMinutesInput label="Light" value={light} onChange={setLight} />
-        <LabeledMinutesInput label="Moderate" value={moderate} onChange={setModerate} />
-        <LabeledMinutesInput label="Vigorous" value={vigorous} onChange={setVigorous} />
-      </div>
+      <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
       <input
         type="text"
         value={distance}
