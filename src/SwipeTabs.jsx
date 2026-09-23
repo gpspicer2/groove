@@ -133,7 +133,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
         {/* align-items defaults to 'stretch' in a row flex container, so
             each page fills the strip's full height with no extra CSS. */}
         {pages.map((page, i) => (
-          <div key={i} style={{ width: `${100 / pages.length}%`, flexShrink: 0 }}>
+          <div key={page.key ?? i} style={{ width: `${100 / pages.length}%`, flexShrink: 0 }}>
             {page}
           </div>
         ))}
