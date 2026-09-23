@@ -30,6 +30,7 @@ export default function LearnTab() {
   const [query, setQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [loadError, setLoadError] = useState('');
 
   function toggleExpanded(id) {
     setExpandedIds((prev) => {
@@ -41,12 +42,14 @@ export default function LearnTab() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: articleRows }, { data: favRows }] = await Promise.all([
+      const [articlesRes, favRes] = await Promise.all([
         supabase.from('articles').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }),
-        user ? supabase.from('article_favorites').select('article_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
+        user ? supabase.from('article_favorites').select('article_id').eq('user_id', user.id) : Promise.resolve({ data: [], error: null }),
       ]);
-      setArticles((articleRows || []).map(mapArticle));
-      setFavoriteIds(new Set((favRows || []).map((f) => f.article_id)));
+      const firstError = articlesRes.error || favRes.error;
+      setLoadError(firstError ? `Couldn't load Learn: ${firstError.message}` : '');
+      setArticles((articlesRes.data || []).map(mapArticle));
+      setFavoriteIds(new Set((favRes.data || []).map((f) => f.article_id)));
       setLoading(false);
     })();
   }, [user]);
@@ -83,6 +86,12 @@ export default function LearnTab() {
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-4 text-center">Reasons to Move</div>
+
+      {loadError && (
+        <div style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4 text-sm">
+          {loadError}
+        </div>
+      )}
 
       <div className="relative mb-2">
         <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
