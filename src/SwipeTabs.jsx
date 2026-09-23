@@ -16,13 +16,26 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   const suppressedRef = useRef(false); // gesture started on a control that needs its own horizontal drag
   const rawDxRef = useRef(0); // actual finger movement, before rubber-band dampening
 
+  // Re-measures on ANY actual size change to the container, not just
+  // window resize — a scrollbar appearing/disappearing as different
+  // tabs' content changes height (desktop, non-overlay scrollbars) can
+  // silently change this width without a resize event ever firing. A
+  // stale width here compounds with each tab change (translate = -index
+  // * width), which is what turns into "the wrong tab shows and it gets
+  // worse the more you swipe."
   useEffect(() => {
+    if (!containerRef.current) return;
     function measure() {
       if (containerRef.current) setWidth(containerRef.current.offsetWidth);
     }
     measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(containerRef.current);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, []);
 
   // All pages share one scroll position (they sit side by side, not each
