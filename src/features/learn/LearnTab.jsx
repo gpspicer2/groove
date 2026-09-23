@@ -29,7 +29,11 @@ function renderEmphasis(text) {
 // plain-language tidbits these are written as; falls back to the whole
 // thing if it's already short.
 function teaser(text, maxSentences = 2) {
-  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g);
+  // A sentence-ending mark can be followed by a closing quote before the
+  // whitespace (e.g. `instinct to "exercise." For nearly...`) — without
+  // allowing for that, the split misses the boundary and the teaser can
+  // start mid-sentence.
+  const sentences = text.match(/[^.!?]+[.!?]+["')]*(\s|$)/g);
   if (!sentences || sentences.length <= maxSentences) return { teaser: text, hasMore: false };
   return { teaser: sentences.slice(0, maxSentences).join('').trim(), hasMore: true };
 }
