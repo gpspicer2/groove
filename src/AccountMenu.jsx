@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount } from './lib/api';
@@ -77,6 +77,16 @@ function AccountModal({ onClose }) {
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Signed in as</div>
           <div style={{ color: PAPER }} className="text-sm">{user.email}</div>
         </div>
+
+        {!isTrainer && (
+          <a
+            href="sms:+16034754544"
+            style={{ background: LIME, color: INK }}
+            className="w-full flex items-center justify-center gap-2 rounded-md px-4 py-3 mb-2 text-sm font-medium"
+          >
+            <MessageCircle size={16} /> Message Greg
+          </a>
+        )}
 
         <LinkRow label="Change Password" onClick={() => setShowPassword(true)} />
         <LinkRow label="Payment Information" onClick={() => setShowPassword('payment')} />
