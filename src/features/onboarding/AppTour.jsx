@@ -74,7 +74,34 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
   useEffect(() => {
     const header = document.querySelector('[data-tour="app-header"]');
     if (header) setHeaderRect(header.getBoundingClientRect());
-  }, [tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, index]);
+
+  // Mobile Safari's address bar collapsing/expanding as you scroll
+  // resizes the visual viewport without firing a normal window
+  // "resize" event — every position measured against the viewport
+  // (the header, and any header-based ring like the tab buttons or the
+  // G/account buttons) goes stale until this fires and re-measures.
+  useEffect(() => {
+    function remeasure() {
+      const header = document.querySelector('[data-tour="app-header"]');
+      if (header) setHeaderRect(header.getBoundingClientRect());
+      if (elRef.current) setRect(elRef.current.getBoundingClientRect());
+    }
+    const vv = window.visualViewport;
+    window.addEventListener('resize', remeasure);
+    if (vv) {
+      vv.addEventListener('resize', remeasure);
+      vv.addEventListener('scroll', remeasure);
+    }
+    return () => {
+      window.removeEventListener('resize', remeasure);
+      if (vv) {
+        vv.removeEventListener('resize', remeasure);
+        vv.removeEventListener('scroll', remeasure);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (tab !== step.tab) onChangeTab(step.tab);
