@@ -28,7 +28,7 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, active }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
@@ -37,6 +37,16 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [assessmentDone, setAssessmentDone] = useState(true);
   const [intakeDone, setIntakeDone] = useState(true);
   const [showBaseline, setShowBaseline] = useState(false);
+
+  // The tour's exit prompt can send someone straight here instead of
+  // making them find and tap the "let's get to know you" banner.
+  useEffect(() => {
+    if (openBaselineOnLoad) {
+      setShowBaseline(true);
+      onBaselineAutoOpened && onBaselineAutoOpened();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openBaselineOnLoad]);
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);

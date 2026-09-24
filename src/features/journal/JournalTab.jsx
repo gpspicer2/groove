@@ -91,11 +91,11 @@ export default function JournalTab() {
       ) : mode === 'freeform' ? (
         <FreeformEntry onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : (
-        <div data-tour="journal-prompts" className="space-y-2 mb-4">
+        <div data-tour="journal-prompts" className="flex gap-2 mb-4">
           <button
             onClick={() => setMode('checkin')}
             style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
-            className="w-full rounded-lg px-5 py-4 text-center"
+            className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Post-movement reflection</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Right after training — mood, favorite movement, and more.</div>
@@ -103,7 +103,7 @@ export default function JournalTab() {
           <button
             onClick={() => setMode('freeform')}
             style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
-            className="w-full rounded-lg px-5 py-4 text-center"
+            className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Choose a prompt</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Anytime, on your own time — pick a prompt and write freely.</div>

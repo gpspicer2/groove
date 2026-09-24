@@ -23,6 +23,7 @@ export default function ClientApp() {
   // round trip can lag a render behind, and without this the tour would
   // flash back on screen for a moment right after finishing it.
   const [tourJustFinished, setTourJustFinished] = useState(false);
+  const [openBaselineOnLoad, setOpenBaselineOnLoad] = useState(false);
   const scrollRef = useRef(null);
 
   function openWorkout(workoutId) {
@@ -35,7 +36,7 @@ export default function ClientApp() {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="h-[100svh] flex flex-col">
-      <div style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
+      <div data-tour="app-header" style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           {tab === 'birdseye' ? (
             <button
@@ -80,7 +81,15 @@ export default function ClientApp() {
           onEdgeSwipeRight={tab === 'birdseye' ? () => setShowGroove(true) : null}
           scrollContainerRef={scrollRef}
           pages={[
-            <BirdseyeTab key="birdseye" userId={user.id} onOpenWorkout={openWorkout} onOpenGroove={() => setShowGroove(true)} active={tab === 'birdseye'} />,
+            <BirdseyeTab
+              key="birdseye"
+              userId={user.id}
+              onOpenWorkout={openWorkout}
+              onOpenGroove={() => setShowGroove(true)}
+              active={tab === 'birdseye'}
+              openBaselineOnLoad={openBaselineOnLoad}
+              onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
+            />,
             <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
             <JournalTab key="journal" />,
             <LearnTab key="learn" />,
@@ -94,9 +103,13 @@ export default function ClientApp() {
         <AppTour
           tab={tab}
           onChangeTab={setTab}
-          onComplete={() => {
+          onComplete={(startBaseline) => {
             setTourJustFinished(true);
             updateProfile({ tour_done: true });
+            if (startBaseline) {
+              setTab('birdseye');
+              setOpenBaselineOnLoad(true);
+            }
           }}
         />
       )}

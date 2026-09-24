@@ -953,7 +953,7 @@ function StartWorkout({
           style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
           className="rounded-full px-3.5 py-1.5 text-sm font-medium"
         >
-          {isToday ? 'A past day' : friendlyDate}
+          {isToday ? 'A PAST DAY' : friendlyDate}
         </button>
       </div>
       {pickingDate && (
