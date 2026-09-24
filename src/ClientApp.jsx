@@ -40,6 +40,7 @@ export default function ClientApp() {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           {tab === 'birdseye' ? (
             <button
+              data-tour="groove-button"
               onClick={() => setShowGroove(true)}
               style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }}
               className="justify-self-start text-lg font-bold w-8 h-8 flex items-center justify-center -ml-1"

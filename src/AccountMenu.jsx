@@ -6,6 +6,7 @@ import { deleteAccount } from './lib/api';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from './theme';
 import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
+import BaselineFlow from './features/baseline/BaselineFlow';
 
 export default function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -362,18 +363,21 @@ function BaselineDataSection({ userId }) {
   const [maxHr, setMaxHr] = useState('');
   const [prescribedZone, setPrescribedZone] = useState(null);
   const [showPeakInfo, setShowPeakInfo] = useState(false);
+  const [intakeDone, setIntakeDone] = useState(true);
+  const [showBaselineForm, setShowBaselineForm] = useState(false);
 
   useEffect(() => {
     (async () => {
       const [{ data: profileRow }, { data: baseline }] = await Promise.all([
         supabase.from('profiles').select('age, bodyweight_lb, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone').eq('id', userId).maybeSingle(),
-        supabase.from('baseline_responses').select('form_answers').eq('user_id', userId).maybeSingle(),
+        supabase.from('baseline_responses').select('form_answers, submitted_at').eq('user_id', userId).maybeSingle(),
       ]);
       setAge(profileRow?.age != null ? Number(profileRow.age) : (baseline?.form_answers?.age ? Number(baseline.form_answers.age) : null));
       setBodyweight(profileRow?.bodyweight_lb != null ? String(profileRow.bodyweight_lb) : '');
       setRestingHr(profileRow?.resting_hr_bpm != null ? String(profileRow.resting_hr_bpm) : '');
       setMaxHr(profileRow?.max_hr_bpm != null ? String(profileRow.max_hr_bpm) : '');
       setPrescribedZone(profileRow?.prescribed_hr_zone || null);
+      setIntakeDone(Boolean(baseline?.submitted_at));
       setLoading(false);
     })();
   }, [userId]);
@@ -402,6 +406,15 @@ function BaselineDataSection({ userId }) {
         <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-3">Loading…</div>
       ) : (
         <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3 space-y-4">
+          {!intakeDone && (
+            <button
+              onClick={() => setShowBaselineForm(true)}
+              style={{ background: INK_2, color: SKY }}
+              className="w-full rounded-md py-2.5 text-sm font-medium"
+            >
+              Finish your intake questionnaire →
+            </button>
+          )}
           <div>
             <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1 text-center">Bodyweight</div>
             <div className="flex items-center justify-center gap-2">
@@ -464,6 +477,13 @@ function BaselineDataSection({ userId }) {
           </div>
         </div>
       ))}
+      {showBaselineForm && (
+        <BaselineFlow
+          userId={userId}
+          onClose={() => setShowBaselineForm(false)}
+          onComplete={() => { setShowBaselineForm(false); setIntakeDone(true); }}
+        />
+      )}
     </div>
   );
 }
