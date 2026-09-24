@@ -68,7 +68,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />
-          <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tracking-widest uppercase italic">
+          <div style={{ color: LIME, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
             <em>GROOVE</em>
           </div>
           {onClose ? (

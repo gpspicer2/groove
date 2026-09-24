@@ -49,7 +49,7 @@ export default function ClientApp() {
               G
             </button>
           ) : <div />}
-          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
+          <span style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-base font-extrabold tracking-wide text-center italic">
             GROOVE
           </span>
           <AccountMenu />
@@ -61,6 +61,7 @@ export default function ClientApp() {
             return (
               <button
                 key={key}
+                data-tour={`tab-${key}`}
                 onClick={() => setTab(key)}
                 style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
                 className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors"

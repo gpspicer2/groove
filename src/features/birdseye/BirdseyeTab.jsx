@@ -274,18 +274,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           </div>
         )}
 
-        {!assessmentDone && (
-          <button
-            onClick={() => setShowAssessment(true)}
-            style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
-            className="w-full rounded-lg px-5 py-4 text-center"
-          >
-            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Optional, recommended</div>
-            <div style={{ color: PAPER }} className="text-sm font-medium">Complete your fitness baseline →</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Helps Greg help you — takes about 2 minutes.</div>
-          </button>
-        )}
-
         <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6">
           <div className="flex items-center justify-between mb-3">
             <span />

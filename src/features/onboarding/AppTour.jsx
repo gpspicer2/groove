@@ -19,7 +19,7 @@ const STEPS = [
     body: "This is your space to move more, feel better, and actually stick with it. Everything lives in four tabs along the top — Birdseye, Move, Journal, and Learn — and you can swipe left or right anywhere on the screen to move between them, same as tapping the tab names. Let's walk through what each one does.",
   },
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Birdseye',
+    tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
     body: "Birdseye is your weekly overview — the progress you're making towards your goals, your workout calendar, and the science behind your plan. It's the best place to check in and see how your week is shaping up.",
   },
   { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Your aerobic, resistance, and flexibility targets for the week. Tap a row to see a breakdown, or the pencil to adjust your goals.' },
@@ -30,22 +30,25 @@ const STEPS = [
     body: "The American College of Sports Medicine — the leading scientific authority on exercise. Their guidelines are built from decades of peer-reviewed research, not guesswork. Every recommendation you just saw reflects that same evidence base, and it's exactly what informs how I coach you.",
   },
   {
-    tab: 'move', selector: null, pos: 'top', color: SKY, title: 'Move',
+    tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
     body: "Move is where you log your workouts — resistance, aerobic, flexibility, or a mix. Log one in the moment, or add one you already did on a past day.",
   },
   { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Start a Workout', body: 'Pick where you are and what kind of movement, and Move builds the session for you. Use the toggle at the top to log today, or switch to a past day.' },
   {
-    tab: 'journal', selector: null, pos: 'top', color: AMBER, title: 'Journal',
+    tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
     body: "A few minutes of reflection after a session — or anytime you want to check in with yourself. It's private by default, just for you.",
   },
   { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided post-movement check-in, or your own freeform prompt anytime. A few honest minutes here genuinely helps things stick.' },
   {
-    tab: 'learn', selector: null, pos: 'top', color: VIOLET, title: 'Learn',
+    tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
     body: "Short, easy reads on the science behind why movement works — real research, minus the jargon. Think of it as a running list of reasons to move.",
   },
   { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Reasons to Move', body: 'New tidbits get posted here regularly — check back for more.' },
-  { tab: 'birdseye', selector: '[data-tour="groove-button"]', pos: 'bottom', color: LIME, title: "What's a Groove?", body: "Tap the G in the corner anytime for a few short thoughts on what finding your groove actually means." },
-  { tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'One More Thing', body: "Tap here to message me directly — it's right at the top — plus update your info or pick up your intake questionnaire anytime." },
+  { tab: 'birdseye', selector: '[data-tour="groove-button"]', pos: 'bottom', color: LIME, title: 'What Does It Mean to Groove?', body: "Tap the G in the corner anytime for a few short thoughts on what finding your groove actually means." },
+  {
+    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account Settings',
+    body: "Tap here to message me directly (right at the top), change your password or payment info, update your age, gender, or which day your week starts on, and manage your baseline data — including your intake questionnaire if you skipped it.",
+  },
 ];
 
 // SwipeTabs' own slide transition — the spotlight can't measure a
@@ -93,19 +96,27 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         // Fixed in place, not part of the scrollable area — nothing to
         // bring into view.
       } else if (header && scroller) {
+        // Smooth, not instant — sections should visibly scroll from one
+        // to the next rather than snapping into place. The spotlight
+        // itself re-measures on every scroll tick (see the scroll
+        // listener below) so it stays glued to the target the whole way.
         const availTop = header.getBoundingClientRect().bottom + 12;
-        scroller.scrollTop += el.getBoundingClientRect().top - availTop;
+        const delta = el.getBoundingClientRect().top - availTop;
+        scroller.scrollBy({ top: delta, behavior: 'smooth' });
       } else {
-        el.scrollIntoView({ behavior: 'instant', block: 'start' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       requestAnimationFrame(updateRect);
     }
     const t = setTimeout(measure, tab === step.tab ? 30 : TAB_SETTLE_MS);
+    const scrollerEl = document.getElementById('app-scroll');
     window.addEventListener('resize', updateRect);
+    if (scrollerEl) scrollerEl.addEventListener('scroll', updateRect, { passive: true });
     return () => {
       cancelled = true;
       clearTimeout(t);
       window.removeEventListener('resize', updateRect);
+      if (scrollerEl) scrollerEl.removeEventListener('scroll', updateRect);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
@@ -220,6 +231,25 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
               borderRadius: 14,
               border: `2px solid ${step.color}`,
               transition: 'top 0.32s cubic-bezier(0.22,1,0.36,1), left 0.32s cubic-bezier(0.22,1,0.36,1), width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          />
+        )}
+
+        {/* A small arrow bridging the card up to whichever tab it's
+            describing, so it reads as "that one" rather than a caption
+            floating near the top of the screen. */}
+        {phase === 'steps' && spot && spot.top < headerBottom && step.pos === 'top' && (
+          <div
+            style={{
+              position: 'fixed',
+              top: headerBottom,
+              left: spot.left + spot.width / 2 - 7,
+              width: 0,
+              height: 0,
+              borderLeft: '7px solid transparent',
+              borderRight: '7px solid transparent',
+              borderBottom: `9px solid ${step.color}`,
+              transition: 'left 0.32s cubic-bezier(0.22,1,0.36,1)',
             }}
           />
         )}

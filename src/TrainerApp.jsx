@@ -47,7 +47,7 @@ export default function TrainerApp() {
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <span style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-base font-medium tracking-wide text-center italic">
+          <span style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-base font-extrabold tracking-wide text-center italic">
             GROOVE
           </span>
           <AccountMenu />

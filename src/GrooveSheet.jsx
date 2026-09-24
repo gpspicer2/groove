@@ -103,7 +103,7 @@ export default function GrooveSheet({ onClose }) {
           >
             <X size={20} />
           </button>
-          <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium tracking-wide italic mb-8 mt-4">
+          <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-2xl font-extrabold tracking-wide italic mb-8 mt-4">
             GROOVE
           </div>
           <div className="space-y-6">

@@ -28,7 +28,7 @@ function renderEmphasis(text) {
 // A rough "first sentence or two" teaser — good enough for the short,
 // plain-language tidbits these are written as; falls back to the whole
 // thing if it's already short.
-function teaser(text, maxSentences = 2) {
+function teaser(text, maxSentences = 1) {
   // Real sentence segmentation (handles quotes, ellipses, abbreviations,
   // etc. correctly) — a hand-rolled regex kept mis-splitting on embedded
   // quotes like `("I felt...", "I thought...")`. Supported in every
