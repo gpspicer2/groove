@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../theme';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
@@ -11,6 +11,9 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
 
   const canSubmit = email.trim().length > 0 && password.length >= 6 && !busy;
+  // Sign in and sign up look distinct at a glance — otherwise it takes a
+  // beat to notice which mode you're actually in.
+  const accent = mode === 'signin' ? LIME : SKY;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,11 +34,11 @@ export default function AuthScreen() {
 
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
-      <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
+      <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
         <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-3xl font-extrabold tracking-wide italic mb-6">
           GROOVE
         </div>
-        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
+        <h1 style={{ color: accent, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>
 
@@ -68,7 +71,7 @@ export default function AuthScreen() {
           <button
             type="submit"
             disabled={!canSubmit}
-            style={{ background: canSubmit ? LIME : INK_3, color: canSubmit ? INK : TEXT_SOFT }}
+            style={{ background: canSubmit ? accent : INK_3, color: canSubmit ? INK : TEXT_SOFT }}
             className="w-full rounded-md py-3 text-sm font-medium mb-4"
           >
             {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Sign up'}

@@ -50,6 +50,12 @@ create table profiles (
   -- public URL of the account photo shown in the header, once uploaded
   -- (see the "avatars" storage bucket + policies below)
   avatar_url text,
+  -- Best VO2max estimate on file, from whichever submaximal field test
+  -- (Rockport walk / Queens College step / 1-mile jog) produced it —
+  -- see estimated_1rms below for the strength-side equivalent.
+  vo2max_estimate numeric,
+  vo2max_method text,
+  vo2max_tested_at timestamptz,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
@@ -268,6 +274,20 @@ create table article_favorites (
 );
 alter table article_favorites enable row level security;
 create policy "article_favorites_own" on article_favorites for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Submaximal 1RM estimates (Epley formula from a near-failure set, not
+-- an actual max attempt) — one row per lift per time it's estimated, so
+-- history builds up rather than overwriting.
+create table estimated_1rms (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) default auth.uid(),
+  exercise_name text not null,
+  estimated_1rm_lb numeric not null,
+  created_at timestamptz not null default now()
+);
+alter table estimated_1rms enable row level security;
+create policy "estimated_1rms_own" on estimated_1rms for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Account photos: one public bucket, each user can only write inside

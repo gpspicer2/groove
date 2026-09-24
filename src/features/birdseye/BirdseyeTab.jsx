@@ -286,6 +286,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           {trackedGoals.map((g) => (
             <GoalRow
               key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
+              active={active}
               onEdit={() => setEditingGoals(true)}
               onDelete={() => setGoalTracked(g.mode, false)}
               aerobic={g.mode === 'Aerobic' ? {
@@ -474,12 +475,31 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aerobic }) {
+function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aerobic, active }) {
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
+
+  // Swiping to Move and back left this open indefinitely — close it
+  // whenever this tab isn't the one showing, or once the page itself
+  // has scrolled a meaningful amount (both read as "I'm done with
+  // this row" even without an explicit tap elsewhere).
+  useEffect(() => {
+    if (!active) setRevealed(false);
+  }, [active]);
+  useEffect(() => {
+    if (!revealed) return;
+    const scroller = document.getElementById('app-scroll');
+    if (!scroller) return;
+    const startTop = scroller.scrollTop;
+    function onScroll() {
+      if (Math.abs(scroller.scrollTop - startTop) > 40) setRevealed(false);
+    }
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [revealed]);
 
   const showingMinutes = Boolean(aerobic) && view === 'minutes';
   const displayCount = showingMinutes ? aerobic.moderateEquivMinutes : count;
