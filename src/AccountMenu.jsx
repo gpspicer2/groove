@@ -7,6 +7,8 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from
 import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
 import BaselineFlow from './features/baseline/BaselineFlow';
+import Cropper from 'react-easy-crop';
+import { getCroppedImageBlob } from './lib/cropImage';
 
 export default function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -210,18 +212,24 @@ function AvatarPicker({ userId }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [pickedImage, setPickedImage] = useState(null); // object URL awaiting crop
 
-  async function handleFile(e) {
+  function handleFile(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; }
-    if (file.size > 5 * 1024 * 1024) { setError('Please choose an image under 5MB.'); return; }
+    if (file.size > 15 * 1024 * 1024) { setError('Please choose an image under 15MB.'); return; }
+    setError('');
+    setPickedImage(URL.createObjectURL(file));
+  }
+
+  async function handleCropped(blob) {
+    setPickedImage(null);
     setUploading(true);
     setError('');
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${userId}/avatar.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '3600' });
+    const path = `${userId}/avatar.jpg`;
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' });
     if (uploadError) { setUploading(false); setError(uploadError.message); return; }
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     // Same filename every time (one avatar per user) — bust the cache so
@@ -252,7 +260,69 @@ function AvatarPicker({ userId }) {
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
       <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">{uploading ? 'Uploading…' : 'Tap to change photo'}</div>
       {error && <div style={{ color: BRICK }} className="text-sm mt-1">{error}</div>}
+      {pickedImage && (
+        <AvatarCropModal
+          image={pickedImage}
+          onCancel={() => { URL.revokeObjectURL(pickedImage); setPickedImage(null); }}
+          onSave={handleCropped}
+        />
+      )}
     </div>
+  );
+}
+
+function AvatarCropModal({ image, onCancel, onSave }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!croppedAreaPixels) return;
+    setSaving(true);
+    const blob = await getCroppedImageBlob(image, croppedAreaPixels);
+    URL.revokeObjectURL(image);
+    onSave(blob);
+  }
+
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-4">
+        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-2xl px-5 py-6">
+          <h3 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-base text-center mb-4">Adjust your photo</h3>
+          <div className="relative w-full" style={{ height: 280, background: INK_3, borderRadius: 12, overflow: 'hidden' }}>
+            <Cropper
+              image={image}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={(_, areaPixels) => setCroppedAreaPixels(areaPixels)}
+            />
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.01}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-full mt-4"
+          />
+          <div className="flex items-center gap-3 mt-4">
+            <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="flex-1 text-sm py-2.5">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving} style={{ background: LIME, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Portal>
   );
 }
 

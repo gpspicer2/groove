@@ -105,7 +105,7 @@ export default function JournalTab() {
             style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
-            <div style={{ color: PAPER }} className="text-sm font-medium">Choose a Prompt</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Just Journal</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Anytime, on your own time — pick a prompt and write freely.</div>
           </button>
         </div>

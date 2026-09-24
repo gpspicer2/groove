@@ -15,6 +15,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmingIncomplete, setConfirmingIncomplete] = useState(false);
 
   const page = PAGES[pageIndex];
   const isLast = pageIndex === PAGES.length - 1;
@@ -30,6 +31,19 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
     return page.section.questions
       .filter((q) => q.required)
       .every((q) => (answers[q.key] || '').toString().trim().length > 0);
+  }
+
+  // Checked only when actually finishing, across every page — someone
+  // can freely move through the whole form leaving things blank, and
+  // only gets asked about it once, at the very end, rather than being
+  // silently blocked on whichever page happens to have a required
+  // question.
+  function allRequiredAnswered() {
+    return BASELINE_SECTIONS.every((section) =>
+      section.questions
+        .filter((q) => q.required)
+        .every((q) => (answers[q.key] || '').toString().trim().length > 0)
+    );
   }
 
   async function handleFinish() {
@@ -57,8 +71,12 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
   }
 
   function handleNext() {
+    if (isLast) {
+      if (!allRequiredAnswered() && !confirmingIncomplete) { setConfirmingIncomplete(true); return; }
+      handleFinish();
+      return;
+    }
     if (!canAdvance()) return;
-    if (isLast) { handleFinish(); return; }
     setPageIndex((i) => i + 1);
   }
 
@@ -102,8 +120,24 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
         {error && <div style={{ color: BRICK }} className="text-sm text-center">{error}</div>}
       </div>
 
+      {confirmingIncomplete && (
+        <div className="max-w-md mx-auto w-full px-4 pb-3">
+          <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-3 text-sm text-center mb-2">
+            A few questions are still blank — that's okay, but the more I know, the better I can coach you. Finish anyway?
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setConfirmingIncomplete(false)} style={{ color: TEXT_SOFT }} className="flex-1 text-sm py-3">
+              Keep answering
+            </button>
+            <button onClick={handleFinish} disabled={saving} style={{ background: LIME, color: INK }} className="flex-1 rounded-md py-3 text-sm font-medium">
+              {saving ? 'Saving…' : 'Finish anyway'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md mx-auto w-full px-4 pb-8 flex items-center gap-3">
-        {pageIndex > 0 && (
+        {pageIndex > 0 && !confirmingIncomplete && (
           <button
             onClick={() => setPageIndex((i) => i - 1)}
             style={{ color: TEXT_SOFT }}
@@ -112,15 +146,17 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
             <ChevronLeft size={16} /> Back
           </button>
         )}
+        {!confirmingIncomplete && (
         <button
           onClick={handleNext}
-          disabled={!canAdvance() || saving}
-          style={{ background: canAdvance() ? LIME : INK_3, color: canAdvance() ? INK : TEXT_SOFT }}
+          disabled={(!isLast && !canAdvance()) || saving}
+          style={{ background: (isLast || canAdvance()) ? LIME : INK_3, color: (isLast || canAdvance()) ? INK : TEXT_SOFT }}
           className="flex-1 rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
         >
           {saving ? 'Saving…' : isLast ? 'Finish' : 'Next'}
           {!isLast && !saving && <ChevronRight size={16} />}
         </button>
+        )}
       </div>
     </div>
     </Portal>
