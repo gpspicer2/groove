@@ -250,7 +250,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         )}
 
         {phase === 'steps' && (
-          <button onClick={() => setPhase('exitPrompt')} style={{ color: 'rgba(255,255,255,0.6)' }} className="absolute top-4 right-4 p-2 z-10">
+          <button onClick={() => setPhase('exitPrompt')} style={{ color: 'rgba(255,255,255,0.6)' }} className="absolute top-4 right-4 p-2 z-20">
             <X size={20} />
           </button>
         )}
