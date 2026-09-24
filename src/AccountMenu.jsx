@@ -468,11 +468,14 @@ function BaselineDataSection({ userId }) {
   }
   async function saveBodyweight(value) {
     const numeric = value.trim() === '' ? null : parseFloat(value);
-    await supabase.from('profiles').update({ bodyweight_lb: numeric }).eq('id', userId);
+    // Through AuthContext's updateProfile, not a raw supabase call —
+    // otherwise the cached profile (which VO2maxEstimator's prefill
+    // nudge reads) never learns about the change until a full reload.
+    await updateProfile({ bodyweight_lb: numeric });
   }
   async function saveHr(field, value) {
     const numeric = value.trim() === '' ? null : parseFloat(value);
-    await supabase.from('profiles').update({ [field]: numeric, ...(field === 'max_hr_bpm' ? { max_hr_measured: numeric != null } : {}) }).eq('id', userId);
+    await updateProfile({ [field]: numeric, ...(field === 'max_hr_bpm' ? { max_hr_measured: numeric != null } : {}) });
   }
 
   const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);
