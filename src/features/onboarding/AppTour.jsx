@@ -16,7 +16,7 @@ import { GROOVE_DEFINITIONS } from '../../GrooveSheet';
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: 'Meet Groove', type: 'groove',
+    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove", type: 'groove',
   },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Welcome to Groove',
