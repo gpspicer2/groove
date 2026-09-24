@@ -73,8 +73,22 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
       if (!el || cancelled) return;
       // Bring it fully into view first — a target lower on the page
       // (like the calendar) can otherwise sit partly or entirely below
-      // the visible viewport, cutting off the spotlight around it.
-      el.scrollIntoView({ behavior: 'instant', block: 'center' });
+      // the visible viewport, cutting off the spotlight around it. The
+      // tooltip card is bottom-anchored and covers roughly the lower
+      // third of the screen, so center the target in the space ABOVE
+      // that instead of the full viewport (plain scrollIntoView/center
+      // would tuck the target's bottom half right under the card).
+      const header = document.querySelector('[data-tour="app-header"]');
+      const scroller = document.getElementById('app-scroll');
+      if (header && scroller) {
+        const availTop = header.getBoundingClientRect().bottom + 12;
+        const availBottom = window.innerHeight * 0.62;
+        const elRect = el.getBoundingClientRect();
+        const delta = elRect.top + elRect.height / 2 - (availTop + availBottom) / 2;
+        scroller.scrollTop += delta;
+      } else {
+        el.scrollIntoView({ behavior: 'instant', block: 'center' });
+      }
       requestAnimationFrame(() => {
         if (!cancelled) setRect(el.getBoundingClientRect());
       });
