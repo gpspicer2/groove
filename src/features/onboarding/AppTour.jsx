@@ -284,25 +284,6 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         )}
 
         {phase === 'steps' && (
-          <button
-            onClick={() => setPhase('exitPrompt')}
-            style={{
-              color: 'rgba(255,255,255,0.85)',
-              // Unlike the real header (which uses the app's own
-              // pt-safe class), this sits in a bare fixed overlay with
-              // no safe-area awareness — on a phone with a notch/Dynamic
-              // Island, a plain "1rem from the top" can land up under
-              // that system UI, where touches never reach it at all.
-              top: 'max(1rem, env(safe-area-inset-top))',
-              right: 'max(1rem, env(safe-area-inset-right))',
-            }}
-            className="absolute p-3 -m-1 z-20 flex items-center gap-1 text-sm font-medium"
-          >
-            Skip <X size={16} />
-          </button>
-        )}
-
-        {phase === 'steps' && (
           <div
             style={{
               ...cardStyle,
@@ -349,6 +330,9 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
                 {isLast ? "I'm ready" : 'Next'}
               </button>
             </div>
+            <button onClick={() => setPhase('exitPrompt')} style={{ color: TEXT_SOFT }} className="w-full flex items-center justify-center gap-1 text-sm py-2.5 mt-1">
+              Skip tutorial <X size={14} />
+            </button>
           </div>
         )}
 
