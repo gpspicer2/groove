@@ -47,6 +47,9 @@ create table profiles (
   -- way the full baseline intake used to — baseline itself no longer
   -- blocks entry, it's prompted from inside Birdseye instead
   tour_done boolean not null default false,
+  -- public URL of the account photo shown in the header, once uploaded
+  -- (see the "avatars" storage bucket + policies below)
+  avatar_url text,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
@@ -266,6 +269,20 @@ create table article_favorites (
 alter table article_favorites enable row level security;
 create policy "article_favorites_own" on article_favorites for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Account photos: one public bucket, each user can only write inside
+-- their own folder (avatars/<user id>/...). Public read since these are
+-- just profile pictures shown in the header, nothing sensitive.
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true)
+  on conflict (id) do nothing;
+create policy "avatars_public_read" on storage.objects for select
+  using (bucket_id = 'avatars');
+create policy "avatars_owner_write" on storage.objects for insert
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars_owner_update" on storage.objects for update
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars_owner_delete" on storage.objects for delete
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ── After running everything above, run this ONE line yourself, once ──
 -- ── you've signed up your own account in the app, to make yourself   ──

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../../Portal';
 import { INK, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../../theme';
+import { GROOVE_DEFINITIONS } from '../../GrooveSheet';
 
 // A real guided tour over the live app — dims everything but the thing
 // being explained, rather than standalone illustration slides. Each
@@ -14,6 +15,9 @@ import { INK, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../.
 // feature. Steps with a selector always anchor their card to the
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
+  {
+    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: 'Meet Groove', type: 'groove',
+  },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Welcome to Groove',
     body: "This is your space to move more, feel better, and actually stick with it. Everything lives in four tabs along the top — Birdseye, Move, Journal, and Learn — and you can swipe left or right anywhere on the screen to move between them, same as tapping the tab names. Let's walk through what each one does.",
@@ -44,7 +48,6 @@ const STEPS = [
     body: "Short, easy reads on the science behind why movement works — real research, minus the jargon. Think of it as a running list of reasons to move.",
   },
   { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Reasons to Move', body: 'New tidbits get posted here regularly — check back for more.' },
-  { tab: 'birdseye', selector: '[data-tour="groove-button"]', pos: 'bottom', color: LIME, title: 'What Does It Mean to Groove?', body: "Tap the G in the corner anytime for a few short thoughts on what finding your groove actually means." },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account Settings',
     body: "Tap here to message me directly (right at the top), change your password or payment info, update your age, gender, or which day your week starts on, and manage your baseline data — including your intake questionnaire if you skipped it.",
@@ -129,15 +132,14 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
     if (!isFirst) setIndex((i) => i - 1);
   }
 
-  // A tall spotlighted section (Science & Strategy) can run past the
-  // bottom of the visible area — rather than block all touch input,
-  // a vertical drag here scrolls the real page underneath and the
-  // spotlight tracks it live. A horizontal drag instead pages through
-  // the tour, same gesture as swiping between tabs in the real app.
+  // Side-to-side only — letting a vertical drag also scroll the real
+  // page underneath (an earlier version did this, to reach the bottom
+  // of tall sections) turned out to feel finicky rather than helpful,
+  // so a vertical drag here does nothing at all now.
   function handleTouchStart(e) {
     if (phase !== 'steps') return;
     const t = e.touches[0];
-    touchRef.current = { x: t.clientX, y: t.clientY, lastY: t.clientY, axis: null };
+    touchRef.current = { x: t.clientX, y: t.clientY, axis: null };
     setDragging(true);
   }
   function handleTouchMove(e) {
@@ -150,14 +152,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       tr.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     }
-    if (tr.axis === 'x') {
-      setDragX(dx);
-    } else {
-      const scroller = document.getElementById('app-scroll');
-      if (scroller) scroller.scrollTop -= t.clientY - tr.lastY;
-      tr.lastY = t.clientY;
-      if (elRef.current) setRect(elRef.current.getBoundingClientRect());
-    }
+    if (tr.axis === 'x') setDragX(dx);
   }
   function handleTouchEnd() {
     if (phase !== 'steps') return;
@@ -269,6 +264,8 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
               transform: `${cardStyle.transform || ''} translateX(${dragX}px)`.trim(),
               opacity: 1 - Math.min(0.5, Math.abs(dragX) / 400),
               transition: dragging ? 'none' : 'transform 0.25s ease, opacity 0.25s ease',
+              maxHeight: '80vh',
+              overflowY: 'auto',
             }}
             className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-5 z-10 text-center"
           >
@@ -280,9 +277,21 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
             <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">
               {step.title}
             </div>
-            <div style={{ color: PAPER_DIM }} className="text-sm mb-4">
-              {step.body}
-            </div>
+            {step.type === 'groove' ? (
+              <div className="text-left space-y-3 mb-4">
+                {GROOVE_DEFINITIONS.map((d) => (
+                  <div key={d.term}>
+                    <div style={{ color: d.color }} className="text-sm uppercase tracking-wide font-bold mb-0.5">{d.term}</div>
+                    <div style={{ color: PAPER_DIM }} className="text-sm">{d.text}</div>
+                  </div>
+                ))}
+                <div style={{ color: TEXT_SOFT }} className="text-sm text-center pt-1">Tap the G in the corner anytime to see this again.</div>
+              </div>
+            ) : (
+              <div style={{ color: PAPER_DIM }} className="text-sm mb-4">
+                {step.body}
+              </div>
+            )}
             <div className="flex items-center gap-3">
               {!isFirst && (
                 <button onClick={back} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-2">

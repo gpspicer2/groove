@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount } from './lib/api';
@@ -10,10 +10,15 @@ import BaselineFlow from './features/baseline/BaselineFlow';
 
 export default function AccountMenu() {
   const [open, setOpen] = useState(false);
+  const { profile } = useAuth();
   return (
     <>
-      <button data-tour="account-button" onClick={() => setOpen(true)} style={{ color: TEXT_SOFT }} className="p-2 -m-2 justify-self-end">
-        <User size={18} />
+      <button data-tour="account-button" onClick={() => setOpen(true)} className="p-0.5 -m-0.5 justify-self-end">
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="Account" className="w-7 h-7 rounded-full object-cover" />
+        ) : (
+          <User size={18} color={TEXT_SOFT} />
+        )}
       </button>
       {open && <AccountModal onClose={() => setOpen(false)} />}
     </>
@@ -73,6 +78,8 @@ function AccountModal({ onClose }) {
           <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Account</h2>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
         </div>
+
+        <AvatarPicker userId={user.id} />
 
         <div className="text-center mb-5">
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Signed in as</div>
@@ -195,6 +202,57 @@ function AccountModal({ onClose }) {
     {showPassword === 'payment' && <PaymentModal onClose={() => setShowPassword(false)} />}
     {showMovements && <MovementsModal onClose={() => setShowMovements(false)} />}
     </Portal>
+  );
+}
+
+function AvatarPicker({ userId }) {
+  const { profile, updateProfile } = useAuth();
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('Please choose an image under 5MB.'); return; }
+    setUploading(true);
+    setError('');
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${userId}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '3600' });
+    if (uploadError) { setUploading(false); setError(uploadError.message); return; }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    // Same filename every time (one avatar per user) — bust the cache so
+    // the new photo actually shows instead of a stale cached fetch.
+    const url = `${data.publicUrl}?t=${Date.now()}`;
+    const { error: profileError } = await updateProfile({ avatar_url: url });
+    setUploading(false);
+    if (profileError) setError(profileError.message);
+  }
+
+  return (
+    <div className="flex flex-col items-center mb-4">
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        style={{ background: INK_3 }}
+        className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center"
+      >
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="Account" className="w-full h-full object-cover" />
+        ) : (
+          <User size={28} color={TEXT_SOFT} />
+        )}
+        <div style={{ background: 'rgba(0,0,0,0.45)' }} className="absolute inset-0 flex items-center justify-center">
+          <Camera size={18} color={PAPER} />
+        </div>
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">{uploading ? 'Uploading…' : 'Tap to change photo'}</div>
+      {error && <div style={{ color: BRICK }} className="text-sm mt-1">{error}</div>}
+    </div>
   );
 }
 
