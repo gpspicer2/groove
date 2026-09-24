@@ -88,7 +88,11 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
       // gets its bottom cut off, with no way to see the rest of it.
       const header = document.querySelector('[data-tour="app-header"]');
       const scroller = document.getElementById('app-scroll');
-      if (header && scroller) {
+      const isInHeader = header && header.contains(el);
+      if (isInHeader) {
+        // Fixed in place, not part of the scrollable area — nothing to
+        // bring into view.
+      } else if (header && scroller) {
         const availTop = header.getBoundingClientRect().bottom + 12;
         scroller.scrollTop += el.getBoundingClientRect().top - availTop;
       } else {
@@ -200,6 +204,25 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
             <div className="absolute inset-0" style={{ background: 'rgba(10,6,14,0.85)' }} />
           )}
         </div>
+
+        {/* A target that lives IN the header (the G button) sits inside
+            the always-visible region above, outside the clipped scrim
+            entirely — draw its ring directly, in real screen coords,
+            since there's nothing to cut a hole out of there anyway. */}
+        {phase === 'steps' && spot && spot.top < headerBottom && (
+          <div
+            style={{
+              position: 'fixed',
+              top: spot.top,
+              left: spot.left,
+              width: spot.width,
+              height: spot.height,
+              borderRadius: 14,
+              border: `2px solid ${step.color}`,
+              transition: 'top 0.32s cubic-bezier(0.22,1,0.36,1), left 0.32s cubic-bezier(0.22,1,0.36,1), width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          />
+        )}
 
         {phase === 'steps' && (
           <button onClick={() => setPhase('exitPrompt')} style={{ color: 'rgba(255,255,255,0.6)' }} className="absolute top-4 right-4 p-2 z-10">
