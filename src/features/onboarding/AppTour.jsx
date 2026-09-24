@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../../Portal';
-import { INK, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../../theme';
+import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../../theme';
 import { GROOVE_DEFINITIONS } from '../../GrooveSheet';
 
 // A real guided tour over the live app — dims everything but the thing
