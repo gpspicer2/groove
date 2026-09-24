@@ -19,7 +19,7 @@ const STEPS = [
     tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove", type: 'groove',
   },
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Welcome to Groove',
+    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Getting Around',
     body: "This is your space to move more, feel better, and actually stick with it. Everything lives in four tabs along the top — Birdseye, Move, Journal, and Learn — and you can swipe left or right anywhere on the screen to move between them, same as tapping the tab names. Let's walk through what each one does.",
   },
   {
@@ -286,8 +286,17 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         {phase === 'steps' && (
           <button
             onClick={() => setPhase('exitPrompt')}
-            style={{ color: 'rgba(255,255,255,0.85)' }}
-            className="absolute top-4 right-4 p-2 z-20 flex items-center gap-1 text-sm font-medium"
+            style={{
+              color: 'rgba(255,255,255,0.85)',
+              // Unlike the real header (which uses the app's own
+              // pt-safe class), this sits in a bare fixed overlay with
+              // no safe-area awareness — on a phone with a notch/Dynamic
+              // Island, a plain "1rem from the top" can land up under
+              // that system UI, where touches never reach it at all.
+              top: 'max(1rem, env(safe-area-inset-top))',
+              right: 'max(1rem, env(safe-area-inset-right))',
+            }}
+            className="absolute p-3 -m-1 z-20 flex items-center gap-1 text-sm font-medium"
           >
             Skip <X size={16} />
           </button>
