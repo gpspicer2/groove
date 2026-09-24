@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight } from 'lucide-react';
+import { X, ChevronRight, Wind, Dumbbell } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK } from '../../theme';
 
 // Three submaximal, exercise-based field tests — deliberately not the
 // Bruce Protocol or any other maximal/symptom-limited test, which
@@ -114,6 +114,22 @@ function vo2Category(vo2) {
   return 'Needs work';
 }
 
+// A shared "this is a big deal" card shell — vivid colored top border,
+// bigger type, an icon — so these two sections read as headline
+// features of Baseline Data rather than blending into the plain
+// age/weight/HR inputs around them.
+function FeatureCard({ color, icon: Icon, title, children }) {
+  return (
+    <div style={{ background: INK_2, border: `1px solid ${color}33`, borderTop: `3px solid ${color}` }} className="rounded-lg px-4 py-4 mb-3">
+      <div className="flex items-center justify-center gap-2 mb-1">
+        <Icon size={16} color={color} />
+        <span style={{ color, fontFamily: 'Manrope, sans-serif' }} className="text-sm uppercase tracking-wide font-bold">{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function VO2maxEstimator({ userId, profile, updateProfile }) {
   const [activeTest, setActiveTest] = useState(null);
   const [values, setValues] = useState({});
@@ -147,23 +163,21 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
     setActiveTest(null);
   }
 
-  const missingInputs = !profile?.bodyweight_lb || (activeTest?.key !== 'queens' && !profile?.bodyweight_lb);
-
   return (
-    <div className="mb-2">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Aerobic Capacity (VO2max)</div>
+    <FeatureCard color={MOSS} icon={Wind} title="Aerobic Capacity — VO2max">
       {profile?.vo2max_estimate ? (
-        <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 text-center mb-2">
-          <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg">
-            {profile.vo2max_estimate} <span style={{ color: TEXT_SOFT }} className="text-sm">ml/kg/min</span>
+        <div className="text-center mb-3">
+          <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-4xl font-bold leading-none">
+            {profile.vo2max_estimate}
           </div>
-          <div style={{ color: LIME }} className="text-sm">{vo2Category(profile.vo2max_estimate)}</div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">ml/kg/min</div>
+          <div style={{ color: MOSS }} className="text-sm font-medium">{vo2Category(profile.vo2max_estimate)}</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">
             via {profile.vo2max_method}{profile.vo2max_tested_at ? ` · ${new Date(profile.vo2max_tested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
           </div>
         </div>
       ) : (
-        <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">No estimate yet — pick a test below.</div>
+        <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">No estimate yet — pick a test below.</div>
       )}
       <div className="space-y-2">
         {VO2_TESTS.map((t) => (
@@ -198,7 +212,7 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
               )}
               {activeTest.fields({ values, setValue })}
               {result == null ? (
-                <button onClick={handleCalculate} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mt-2">
+                <button onClick={handleCalculate} style={{ background: MOSS, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mt-2">
                   Calculate
                 </button>
               ) : result <= 0 || Number.isNaN(result) ? (
@@ -210,8 +224,8 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
                   <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl mb-1">
                     {Math.round(result * 10) / 10} <span style={{ color: TEXT_SOFT }} className="text-sm">ml/kg/min</span>
                   </div>
-                  <div style={{ color: LIME }} className="text-sm mb-3">{vo2Category(result)}</div>
-                  <button onClick={handleSave} disabled={saving} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                  <div style={{ color: MOSS }} className="text-sm mb-3">{vo2Category(result)}</div>
+                  <button onClick={handleSave} disabled={saving} style={{ background: MOSS, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
                     {saving ? 'Saving…' : 'Save Estimate'}
                   </button>
                 </div>
@@ -220,17 +234,18 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
           </div>
         </Portal>
       )}
-    </div>
+    </FeatureCard>
   );
 }
 
+const REP_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
 export function OneRMEstimator({ userId }) {
-  const [open, setOpen] = useState(false);
   const [estimates, setEstimates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [weight, setWeight] = useState('');
-  const [reps, setReps] = useState('');
+  const [reps, setReps] = useState(1);
 
   useEffect(() => {
     (async () => {
@@ -241,8 +256,9 @@ export function OneRMEstimator({ userId }) {
   }, [userId]);
 
   const w = Number(weight);
-  const r = Number(reps);
-  const estimate = w > 0 && r > 0 && r <= 15 ? Math.round(w * (1 + r / 30)) : null;
+  // reps === 1 just means "this weight IS my 1RM" — no formula needed,
+  // it's already the max. Epley only kicks in above that.
+  const estimate = w > 0 ? (reps === 1 ? Math.round(w) : Math.round(w * (1 + reps / 30))) : null;
 
   async function handleSave() {
     if (!name.trim() || !estimate) return;
@@ -253,70 +269,70 @@ export function OneRMEstimator({ userId }) {
       .single();
     if (!error) {
       setEstimates((prev) => [data, ...prev]);
-      setName(''); setWeight(''); setReps('');
+      setName(''); setWeight(''); setReps(1);
     }
   }
 
   return (
-    <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Strength (Estimated 1RM)</span>
-        <ChevronRight size={16} color={TEXT_SOFT} className="justify-self-end" style={{ transform: open ? 'rotate(90deg)' : 'none' }} />
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">
-            Not a real max-effort attempt — pick a weight you can lift for 5-10 reps with good form, stopping just short of failure. Warm up first.
-          </div>
-          {!loading && estimates.length > 0 && (
-            <div className="space-y-1.5 mb-3">
-              {estimates.map((e) => (
-                <div key={e.id} className="flex items-center justify-between">
-                  <span style={{ color: PAPER }} className="text-sm">{e.exercise_name}</span>
-                  <span style={{ color: TEXT_SOFT, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{Math.round(e.estimated_1rm_lb)} lb</span>
-                </div>
-              ))}
+    <FeatureCard color={SKY} icon={Dumbbell} title="Strength — Estimated 1RM">
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">
+        Know a recent rep max? Enter it below — a 1RM needs no math, anything more (say a solid 5RM or 8RM) gets converted to an estimated 1RM. Not a real max-effort attempt: stop short of failure, warm up first.
+      </div>
+      {!loading && estimates.length > 0 && (
+        <div className="space-y-1.5 mb-3">
+          {estimates.map((e) => (
+            <div key={e.id} className="flex items-center justify-between">
+              <span style={{ color: PAPER }} className="text-sm">{e.exercise_name}</span>
+              <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg font-bold">{Math.round(e.estimated_1rm_lb)} lb</span>
             </div>
-          )}
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Exercise (e.g. Back Squat)"
-            style={{ background: INK_2, color: PAPER }}
-            className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
-          />
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)}
-              placeholder="Weight (lb)" style={{ background: INK_2, color: PAPER }}
-              className="flex-1 rounded-md px-3 py-2.5 text-sm outline-none text-center"
-            />
-            <input
-              type="number" inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)}
-              placeholder="Reps" style={{ background: INK_2, color: PAPER }}
-              className="flex-1 rounded-md px-3 py-2.5 text-sm outline-none text-center"
-            />
-          </div>
-          {reps && Number(reps) > 15 && (
-            <div style={{ color: BRICK }} className="text-sm text-center mb-2">Keep it under ~15 reps for the estimate to hold up.</div>
-          )}
-          {estimate && (
-            <div style={{ color: PAPER }} className="text-sm text-center mb-2">
-              Estimated 1RM: <span style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{estimate} lb</span>
-            </div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={!name.trim() || !estimate}
-            style={{ background: name.trim() && estimate ? SKY : INK_2, color: name.trim() && estimate ? INK : TEXT_SOFT }}
-            className="w-full rounded-md py-2.5 text-sm font-medium"
-          >
-            Save
-          </button>
+          ))}
         </div>
       )}
-    </div>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Exercise (e.g. Back Squat)"
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
+      />
+      <input
+        type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)}
+        placeholder="Weight lifted (lb)" style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
+      />
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-1.5">
+        That weight was your <span style={{ color: PAPER }}>{reps}RM</span> — reps completed
+      </div>
+      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+        {REP_OPTIONS.map((n) => {
+          const selected = reps === n;
+          return (
+            <button
+              key={n}
+              onClick={() => setReps(n)}
+              style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM, width: 34, height: 34 }}
+              className="rounded-full text-sm font-medium flex-shrink-0"
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      {estimate && (
+        <div className="text-center mb-3">
+          <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-3xl font-bold leading-none">{estimate}</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm">lb estimated 1RM</div>
+        </div>
+      )}
+      <button
+        onClick={handleSave}
+        disabled={!name.trim() || !estimate}
+        style={{ background: name.trim() && estimate ? SKY : INK_3, color: name.trim() && estimate ? INK : TEXT_SOFT }}
+        className="w-full rounded-md py-2.5 text-sm font-medium"
+      >
+        Save
+      </button>
+    </FeatureCard>
   );
 }
