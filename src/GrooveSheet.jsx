@@ -103,10 +103,10 @@ export default function GrooveSheet({ onClose }) {
           >
             <X size={20} />
           </button>
-          <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-2xl font-extrabold tracking-wide italic mb-8 mt-4">
+          <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-2xl font-extrabold tracking-wide italic mb-8 mt-4 text-center">
             GROOVE
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 text-center">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>
                 <div style={{ color: d.color }} className="text-sm uppercase tracking-wide font-bold mb-1">{d.term}</div>

@@ -165,12 +165,18 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
   // so a vertical drag here does nothing at all now.
   function handleTouchStart(e) {
     if (phase !== 'steps') return;
+    // Any real button (Skip, Back, Next, or a card in the "groove"
+    // step) handles its own tap — don't let the drag-gesture tracking
+    // on the outer container get involved at all, or it can end up
+    // swallowing what should've been a plain click.
+    if (e.target.closest('button')) return;
     const t = e.touches[0];
     touchRef.current = { x: t.clientX, y: t.clientY, axis: null };
     setDragging(true);
   }
   function handleTouchMove(e) {
     if (phase !== 'steps') return;
+    if (e.target.closest('button')) return;
     const t = e.touches[0];
     const tr = touchRef.current;
     const dx = t.clientX - tr.x;
@@ -181,8 +187,9 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
     }
     if (tr.axis === 'x') setDragX(dx);
   }
-  function handleTouchEnd() {
+  function handleTouchEnd(e) {
     if (phase !== 'steps') return;
+    if (e.target.closest('button')) { touchRef.current.axis = null; return; }
     const tr = touchRef.current;
     if (tr.axis === 'x') {
       const threshold = 70;
@@ -277,8 +284,12 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         )}
 
         {phase === 'steps' && (
-          <button onClick={() => setPhase('exitPrompt')} style={{ color: 'rgba(255,255,255,0.6)' }} className="absolute top-4 right-4 p-2 z-20">
-            <X size={20} />
+          <button
+            onClick={() => setPhase('exitPrompt')}
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+            className="absolute top-4 right-4 p-2 z-20 flex items-center gap-1 text-sm font-medium"
+          >
+            Skip <X size={16} />
           </button>
         )}
 
@@ -305,7 +316,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
               {step.title}
             </div>
             {step.type === 'groove' ? (
-              <div className="text-left space-y-3 mb-4">
+              <div className="text-center space-y-3 mb-4">
                 {GROOVE_DEFINITIONS.map((d) => (
                   <div key={d.term}>
                     <div style={{ color: d.color }} className="text-sm uppercase tracking-wide font-bold mb-0.5">{d.term}</div>
