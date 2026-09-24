@@ -62,7 +62,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState(null);
   const [headerRect, setHeaderRect] = useState(null);
-  const [phase, setPhase] = useState('steps'); // 'steps' | 'exitPrompt' | 'confirmSkip'
+  const [phase, setPhase] = useState('steps'); // 'steps' | 'confirmSkipTour' | 'exitPrompt' | 'confirmSkip'
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const elRef = useRef(null);
@@ -330,8 +330,23 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
                 {isLast ? "I'm ready" : 'Next'}
               </button>
             </div>
-            <button onClick={() => setPhase('exitPrompt')} style={{ color: TEXT_SOFT }} className="w-full flex items-center justify-center gap-1 text-sm py-2.5 mt-1">
+            <button onClick={() => setPhase('confirmSkipTour')} style={{ color: TEXT_SOFT }} className="w-full flex items-center justify-center gap-1 text-sm py-2.5 mt-1">
               Skip tutorial <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {phase === 'confirmSkipTour' && (
+          <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+            <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
+            <div style={{ color: PAPER_DIM }} className="text-sm mb-5">
+              No worries — you can look around on your own instead.
+            </div>
+            <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
+              Yes, skip it
+            </button>
+            <button onClick={() => setPhase('steps')} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
+              Keep going
             </button>
           </div>
         )}

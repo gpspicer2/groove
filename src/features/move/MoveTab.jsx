@@ -953,7 +953,7 @@ function StartWorkout({
           style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
           className="rounded-full px-3.5 py-1.5 text-sm font-medium"
         >
-          {isToday ? 'A PAST DAY' : friendlyDate}
+          {isToday ? 'Enter Date' : friendlyDate}
         </button>
       </div>
       {pickingDate && (
@@ -969,7 +969,7 @@ function StartWorkout({
         </div>
       )}
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        {isToday ? 'Where are you getting your movement in today?' : `What did you do on ${friendlyDate}?`}
+        {isToday ? 'Where are you getting your movement in today?' : 'Where did you get your movement in?'}
       </div>
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
