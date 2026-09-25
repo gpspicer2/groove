@@ -78,19 +78,35 @@ function formatIntensityMinutes(s) {
   return formatDuration(s.durationSeconds) || '—';
 }
 
+// A tap-to-step minute count instead of a text field that summons the
+// keyboard — quicker for the common case of a short cardio burst
+// between resistance sets (a couple of taps to "2 min", not typing).
 function LabeledMinutesInput({ label, value, onChange }) {
+  const n = parseInt(value, 10) || 0;
   return (
     <div className="flex flex-col items-center gap-1">
       <span style={{ color: TEXT_SOFT }} className="text-sm">{label}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="0"
-        style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-        className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-      />
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(String(Math.max(0, n - 1)))}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-7 h-7 rounded-md text-base font-medium leading-none"
+        >
+          −
+        </button>
+        <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="w-7 text-center text-base font-semibold tabular-nums">
+          {n}
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(String(n + 1))}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-7 h-7 rounded-md text-base font-medium leading-none"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
@@ -483,7 +499,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   async function deleteWorkout(workoutId) {
-    if (!window.confirm('Delete this movement? You can restore it later from Birdseye if you change your mind.')) return;
+    if (!window.confirm('Delete this workout? You can restore it later from Birdseye if you change your mind.')) return;
     const { error } = await supabase.from('workouts').update({ deleted_at: new Date().toISOString() }).eq('id', workoutId).select().single();
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, deletedAt: new Date().toISOString() } : w)));
@@ -597,7 +613,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   function removeExercise(index, hasLoggedSets) {
-    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this movement.')) {
+    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
       return;
     }
     setPlanExercises((prev) => cleanupSupersets(prev.filter((_, i) => i !== index)));
@@ -683,7 +699,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   async function discardWorkout() {
-    if (!window.confirm('Discard this movement? Any sets you logged will be deleted.')) return;
+    if (!window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
@@ -695,7 +711,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading your movement…</span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading your workout…</span>
       </div>
     );
   }
@@ -762,7 +778,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">History</div>
         {completedWorkouts.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
-            No movement logged yet — finish one and it'll show up here.
+            No workouts logged yet — finish one and it'll show up here.
           </div>
         ) : (
           <div className="space-y-2">
@@ -885,14 +901,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
                           style={{ color: SKY }}
                           className="text-sm py-2 text-center underline"
                         >
-                          {editing ? 'Done editing' : 'Edit this movement'}
+                          {editing ? 'Done editing' : 'Edit this workout'}
                         </button>
                         <button
                           onClick={() => deleteWorkout(w.id)}
                           style={{ color: BRICK }}
                           className="text-sm py-2 text-center underline"
                         >
-                          Delete movement
+                          Delete workout
                         </button>
                       </div>
                     </div>
@@ -1014,7 +1030,7 @@ function StartWorkout({
         </div>
       )}
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        {isToday ? 'Where are you getting your movement in today?' : 'Where did you get your movement in?'}
+        {isToday ? 'Where are you working out today?' : 'Where did you work out?'}
       </div>
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
@@ -1053,7 +1069,7 @@ function StartWorkout({
       {selectedLocation && !showProgramOffer && (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Movement Mode
+            Select Workout Type
           </div>
           <div className="space-y-2 mb-5">
             {MOVEMENT_MODES.map((mode) => {
@@ -1142,7 +1158,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
-          🪩 Start Movement{startEmoji}
+          🪩 Start Workout{startEmoji}
         </button>
       )}
     </div>
@@ -1380,7 +1396,7 @@ function ActiveWorkout({
                 Resistance
               </button>
               <button onClick={() => setAddMode('superset')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Superset (two paired movements)
+                Superset (two paired exercises)
               </button>
               <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
                 Aerobic / cardio
@@ -1425,11 +1441,11 @@ function ActiveWorkout({
         style={{ background: SKY, color: INK }}
         className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5 mb-3"
       >
-        <Check size={16} /> Finish Movement
+        <Check size={16} /> Finish Workout
       </button>
 
       <button onClick={onDiscard} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline text-center">
-        Discard this movement
+        Discard this workout
       </button>
 
       {swapIndex !== null && (
@@ -1566,7 +1582,7 @@ function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-3 text-center">
-        Paired movements, done back-to-back with no rest between them.
+        Paired exercises, done back-to-back with no rest between them.
       </div>
       <MovementPicker label="Movement 1" group={groupA} setGroup={setGroupA} name={nameA} setName={setNameA} location={location} />
       <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3">
@@ -1783,7 +1799,7 @@ function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone 
       <div style={{ color: PAPER }} className="text-sm font-medium">{title}</div>
       <div className="flex items-center gap-0.5">
         {onDone && (
-          <button onClick={onDone} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Done — collapse this movement">
+          <button onClick={onDone} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Done — collapse this exercise">
             <Check size={14} />
           </button>
         )}
@@ -1806,44 +1822,36 @@ function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone 
   );
 }
 
-// A horizontally-scrollable, snap-to-center chip list — replaces free-text
-// number entry for weight/reps so logging a set during a workout is a
-// thumb-scroll instead of summoning the keyboard. Scrolls its selected
-// chip into view once, on mount — not on every re-render, since the
-// parent (ActiveWorkout) re-renders every second while a rest timer is
-// running, which would otherwise recreate the `options` array and yank
-// the whole page back to this picker on every tick.
-function ScrollPicker({ options, value, onChange, unit }) {
-  const selectedRef = useRef(null);
-  useEffect(() => {
-    selectedRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+// A tap-to-step number control — replaces the old scroll-chip picker,
+// which feedback called slow and fiddly for something logged dozens of
+// times a workout. One tap changes the value by `step`; holding isn't
+// needed since the value carries over between sets, so most sets are
+// just a tap on "Log set" with no adjustment at all.
+function Stepper({ label, value, onChange, step, min = 0, format }) {
   return (
-    <div
-      className="flex gap-1.5 overflow-x-auto py-1 px-8"
-      style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
-    >
-      {options.map((opt) => {
-        const selected = opt === value;
-        return (
-          <button
-            key={opt}
-            ref={selected ? selectedRef : null}
-            type="button"
-            onClick={() => onChange(opt)}
-            style={{
-              background: selected ? SKY : INK_3,
-              color: selected ? INK : PAPER_DIM,
-              fontFamily: 'Space Grotesk, sans-serif',
-              scrollSnapAlign: 'center',
-            }}
-            className="shrink-0 w-14 h-10 rounded-md text-sm font-medium flex items-center justify-center"
-          >
-            {opt}{unit || ''}
-          </button>
-        );
-      })}
+    <div className="flex flex-col items-center">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - step))}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-9 h-9 rounded-md text-lg font-medium leading-none"
+        >
+          −
+        </button>
+        <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="w-14 text-center text-xl font-semibold tabular-nums">
+          {format ? format(value) : value}
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(value + step)}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-9 h-9 rounded-md text-lg font-medium leading-none"
+        >
+          +
+        </button>
+      </div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">{label}</div>
     </div>
   );
 }
@@ -1851,19 +1859,6 @@ function ScrollPicker({ options, value, onChange, unit }) {
 function roundToFive(n) {
   return Math.round(n / 5) * 5;
 }
-
-// A scrollable window of weight options in 5 lb increments, centered on
-// the lifter's last/suggested weight for this exercise so the relevant
-// values are already near the middle instead of off at one end.
-function weightOptions(start) {
-  const center = start != null ? roundToFive(start) : 0;
-  const lo = Math.max(0, center - 50);
-  const opts = [];
-  for (let w = lo; w <= lo + 200; w += 5) opts.push(w);
-  return opts;
-}
-
-const REP_PICKER_OPTIONS = Array.from({ length: 20 }, (_, i) => i + 1); // 1-20
 
 // "Use bodyweight" only makes sense for movements where the lifter's own
 // weight is the load — pull-ups, dips, chin-ups — not presses/push-ups
@@ -1878,11 +1873,12 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const [useBodyweight, setUseBodyweight] = useState(false);
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
-  // working-set rep range — per how the picker is meant to default.
+  // working-set rep range. Weight/reps then carry over set-to-set, so a
+  // straight set of identical sets is just repeated taps of "Log set"
+  // with no adjustment needed.
   const startWeight = suggestion?.weight ?? last?.weight ?? null;
   const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
   const [reps, setReps] = useState(8);
-  const weightOpts = weightOptions(startWeight);
 
   function handleLog() {
     if (useBodyweight) {
@@ -1892,18 +1888,18 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     }
   }
 
+  // One compact line instead of three stacked ones for target/last/suggested.
+  const contextBits = [
+    `Target ${exercise.sets}×${exercise.reps}`,
+    last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.reps ?? '—'}`,
+    suggestion && `Suggested ${formatMoneyLikeWeight(suggestion.weight)}`,
+  ].filter(Boolean);
+
   return (
     <>
-      {last && (
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
-          Last time ({formatDaysSince(last.daysSince)}): {last.isBodyweight ? 'BW' : ''}{formatMoneyLikeWeight(last.weight) ?? '—'} × {last.reps ?? '—'}
-        </div>
-      )}
-      {suggestion && (
-        <div style={{ color: SKY }} className="text-sm mb-2 text-center">
-          Suggested: {formatMoneyLikeWeight(suggestion.weight)} — {suggestion.note}
-        </div>
-      )}
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
+        {contextBits.join(' · ')}
+      </div>
       {bodyweight != null && bodyweightEligible && (
         <button
           onClick={() => setUseBodyweight((v) => !v)}
@@ -1913,16 +1909,19 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight} lb)
         </button>
       )}
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 text-center">
-        {useBodyweight ? 'Added weight (lb)' : 'Weight (lb)'}
+      <div className="flex items-center justify-center gap-5 mb-3">
+        <Stepper
+          label={useBodyweight ? 'added lb' : 'lb'}
+          value={weight}
+          onChange={setWeight}
+          step={5}
+        />
+        <Stepper label="reps" value={reps} onChange={setReps} step={1} min={1} />
       </div>
-      <ScrollPicker options={weightOpts} value={weight} onChange={setWeight} />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 mt-2 text-center">Reps</div>
-      <ScrollPicker options={REP_PICKER_OPTIONS} value={reps} onChange={setReps} />
       <button
         onClick={handleLog}
         style={{ background: SKY, color: INK }}
-        className="w-full rounded-md py-2.5 mt-3 text-sm font-medium flex items-center justify-center gap-1"
+        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1"
       >
         <Plus size={14} /> Log set {nextSetNumber}
       </button>
@@ -1954,9 +1953,6 @@ function ExerciseCard({ exercise, style, bodyweight, loggedSets, last, onLogSet,
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
       <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={loggedSets.length > 0 ? () => setCollapsed(true) : null} />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
-        Target: {exercise.sets} sets × {exercise.reps}
-      </div>
 
       {loggedSets.length > 0 && (
         <div className="space-y-1 mb-2">

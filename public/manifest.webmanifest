@@ -1,0 +1,13 @@
+{
+  "name": "GROOVE",
+  "short_name": "GROOVE",
+  "description": "Movement in every form.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EFE6D6",
+  "theme_color": "#EFE6D6",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

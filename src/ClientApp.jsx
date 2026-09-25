@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from './auth/AuthContext';
-import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET } from './theme';
+import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, PLUM } from './theme';
+import Wordmark from './Wordmark';
 import AccountMenu from './AccountMenu';
 import SwipeTabs from './SwipeTabs';
 import BirdseyeTab from './features/birdseye/BirdseyeTab';
@@ -42,16 +43,14 @@ export default function ClientApp() {
             <button
               data-tour="groove-button"
               onClick={() => setShowGroove(true)}
-              style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }}
+              style={{ color: PLUM, fontFamily: 'Manrope, sans-serif' }}
               className="justify-self-start text-lg font-bold w-8 h-8 flex items-center justify-center -ml-1"
               aria-label="Groove"
             >
               G
             </button>
           ) : <div />}
-          <span style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-base font-extrabold tracking-wide text-center italic">
-            GROOVE
-          </span>
+          <Wordmark className="text-base text-center" />
           <AccountMenu />
         </div>
         <div data-tour="tab-bar" className="flex gap-1.5 pb-4">

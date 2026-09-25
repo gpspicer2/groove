@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../theme';
+import Wordmark from '../Wordmark';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
@@ -35,9 +36,7 @@ export default function AuthScreen() {
   return (
     <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
       <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
-        <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-3xl font-extrabold tracking-wide italic mb-6">
-          GROOVE
-        </div>
+        <Wordmark className="text-3xl mb-6 block" />
         <h1 style={{ color: accent, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>

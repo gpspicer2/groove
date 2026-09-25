@@ -7,7 +7,7 @@
    which element's height computation is a pixel short. Keep in sync with
    theme.js's INK constant. */
 html, body {
-  background: #160C1A;
+  background: #EFE6D6;
   height: 100%;
 }
 

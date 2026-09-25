@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { X } from 'lucide-react';
 import Portal from './Portal';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
+import Wordmark from './Wordmark';
 
 export const GROOVE_DEFINITIONS = [
   { term: 'Feeling good', color: AMBER, text: '"Getting your groove on" — movement as something you enjoy, not a box to check.' },
@@ -103,9 +104,7 @@ export default function GrooveSheet({ onClose }) {
           >
             <X size={20} />
           </button>
-          <div style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-2xl font-extrabold tracking-wide italic mb-8 mt-4 text-center">
-            GROOVE
-          </div>
+          <Wordmark className="text-2xl mb-8 mt-4 block text-center" />
           <div className="space-y-6 text-center">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>

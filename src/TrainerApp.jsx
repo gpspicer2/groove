@@ -7,6 +7,7 @@ import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import { MUSCLE_GROUPS } from './features/move/exerciseLibrary';
 import { computeHrZones } from './lib/heartRate';
 import AccountMenu from './AccountMenu';
+import Wordmark from './Wordmark';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -47,9 +48,7 @@ export default function TrainerApp() {
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <span style={{ color: LIME, fontFamily: "'Segoe UI', Manrope, sans-serif" }} className="text-base font-extrabold tracking-wide text-center italic">
-            GROOVE
-          </span>
+          <Wordmark className="text-base text-center" />
           <AccountMenu />
         </div>
         {!selectedClient && (
