@@ -165,7 +165,12 @@ create table workouts (
   deleted_at timestamptz,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- the in-progress exercise plan (names, targets, order, supersets) for
+  -- an active session, kept in sync while the workout is open so it can
+  -- be rebuilt after a crash, app switch, or reload instead of leaving
+  -- the workout row orphaned (visible in Birdseye, unreachable from Move)
+  plan jsonb not null default '[]'::jsonb
 );
 alter table workouts enable row level security;
 create policy "workouts_client_all" on workouts for all

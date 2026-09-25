@@ -26,6 +26,7 @@ function mapWorkout(row) {
     startedAt: row.started_at,
     completedAt: row.completed_at,
     deletedAt: row.deleted_at || null,
+    plan: row.plan || [],
   };
 }
 
@@ -274,8 +275,36 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     })();
   }, [loadData]);
 
+  // Resume any workout left in progress (completed_at still null) after a
+  // reload, app switch, or crash — otherwise its row and logged sets stay
+  // in the database (still counted by Birdseye) with no way to reach it
+  // from Move, since activeWorkoutId/planExercises are plain React state
+  // that resets to empty on every mount.
+  useEffect(() => {
+    if (loading || activeWorkoutId) return;
+    const inProgress = workouts.find((w) => !w.completedAt && !w.deletedAt);
+    if (!inProgress) return;
+    setActiveWorkoutId(inProgress.id);
+    setPlanExercises(inProgress.plan || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, workouts]);
+
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+
+  // Keep the active workout's plan mirrored to the database as it's
+  // edited (exercises added/removed/reordered, supersets formed) so the
+  // resume effect above always has an up-to-date plan to rebuild from.
+  useEffect(() => {
+    if (!activeWorkoutId) return;
+    const t = setTimeout(() => {
+      supabase.from('workouts').update({ plan: planExercises }).eq('id', activeWorkoutId).then(({ error }) => {
+        if (error) setLoadError(error.message);
+      });
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkoutId, planExercises]);
 
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;
@@ -405,6 +434,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         style: usesResistance ? selectedStyle : null,
         location: selectedLocation,
         started_at: startedAt,
+        plan,
       })
       .select()
       .single();
