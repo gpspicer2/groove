@@ -240,11 +240,23 @@ export const STYLE_CONFIG = {
   Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, restSeconds: 45, blurb: 'Lighter loads, higher reps, minimal rest.' },
 };
 
+// NSCA program-design convention: multi-joint compound lifts (squat,
+// deadlift, press, row, pull-up...) are placed before single-joint
+// accessory/isolation work (curls, extensions, flys, raises...), since
+// they demand the most technique and energy and should be done while
+// fresh.
+const COMPOUND_PATTERN = /Squat|Deadlift|Press|Push-Up|Row|Pulldown|Pull-Up|Chin-Up|Dip|Hip Thrust|Lunge|Step-Up|Good Morning/i;
+function isCompound(name) {
+  return COMPOUND_PATTERN.test(name);
+}
+
 // Picks `count` exercises per selected muscle group, preferring ones not
 // in `recentNames` (last workout's picks) so back-to-back sessions don't
 // look identical — falls back to repeats only if a group runs out of
 // fresh options. Sets/reps on each pick are overridden by the chosen
-// training style rather than the library's default.
+// training style rather than the library's default. The final list is
+// then stably sorted compound-first (see COMPOUND_PATTERN above),
+// preserving the muscle-group order otherwise.
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
@@ -262,7 +274,10 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       });
     }
   }
-  return picked;
+  return picked
+    .map((ex, i) => ({ ex, i }))
+    .sort((a, b) => (isCompound(b.ex.name) - isCompound(a.ex.name)) || (a.i - b.i))
+    .map(({ ex }) => ex);
 }
 
 function parseRepRange(repsStr) {
