@@ -674,6 +674,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           sets={sets.filter((s) => s.workoutId === activeWorkout.id)}
           lastPerformance={lastPerformance}
           bodyweight={bodyweight}
+          hrZones={hrZones}
           onLogSet={logSet}
           onDeleteSet={deleteSet}
           onReplace={replaceExercise}
@@ -1105,7 +1106,7 @@ function StartWorkout({
 }
 
 function ActiveWorkout({
-  workout, exercises, sets, lastPerformance, bodyweight,
+  workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onRemoveExercise, onFinish, onDiscard,
 }) {
