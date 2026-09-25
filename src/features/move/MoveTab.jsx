@@ -1271,7 +1271,13 @@ function ActiveWorkout({
       <div className="space-y-3 mb-4">
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
-          const groupKey = group.length === 2 ? `superset-${group[0].index}` : `${group[0].type || 'ex'}-${group[0].index}`;
+          // Keyed by name (already the app's implicit unique identifier for
+          // an exercise within one workout — loggedSets/lastPerformance are
+          // both looked up by name too), not by array position: `index`
+          // above is reassigned by groupPlan on every render, so keying on
+          // it would remount each card's local state (like the collapsed
+          // "Done" toggle) whenever reordering shifted its position.
+          const groupKey = group.length === 2 ? `superset-${group[0].name}-${group[1].name}` : `${group[0].type || 'ex'}-${group[0].name}`;
           let card;
 
           if (group.length === 2) {
