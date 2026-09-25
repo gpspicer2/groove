@@ -1803,14 +1803,16 @@ function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone 
 // A horizontally-scrollable, snap-to-center chip list — replaces free-text
 // number entry for weight/reps so logging a set during a workout is a
 // thumb-scroll instead of summoning the keyboard. Scrolls its selected
-// chip into view on mount/when the option list changes (e.g. a fresh
-// weight window centered on a new suggestion).
+// chip into view once, on mount — not on every re-render, since the
+// parent (ActiveWorkout) re-renders every second while a rest timer is
+// running, which would otherwise recreate the `options` array and yank
+// the whole page back to this picker on every tick.
 function ScrollPicker({ options, value, onChange, unit }) {
   const selectedRef = useRef(null);
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options]);
+  }, []);
   return (
     <div
       className="flex gap-1.5 overflow-x-auto py-1 px-8"
