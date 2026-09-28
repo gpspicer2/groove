@@ -1,11 +1,11 @@
-// The GROOVE logo: each letter in its own brand-palette color, carrying
-// a small illustrated glyph that echoes the full brand mark (tree-G,
-// runner-R, wheel-O, sun-O, dumbbell-V, heartbeat-E) — inline SVG so it
-// stays crisp at any size without shipping a raster asset.
+// The GROOVE logo — a row of pictograms in place of letters (pine-tree
+// G, running figure, bike wheel, sun, barbell bent into a V, heartbeat
+// line), matching the brand mark: inline SVG so it stays crisp at any
+// size without shipping a raster asset.
 export default function Wordmark({ className = '', height = 28 }) {
   return (
     <svg
-      viewBox="0 0 980 180"
+      viewBox="0 0 1150 180"
       height={height}
       className={className}
       role="img"
@@ -13,66 +13,67 @@ export default function Wordmark({ className = '', height = 28 }) {
     >
       <g>
         <path
-          d="M 90 30 A 60 60 0 1 0 150 90 L 150 100 L 112 100 L 112 84 L 138 84 A 42 42 0 1 1 90 54 Z"
+          d="M 95 20 A 70 70 0 1 0 165 90 L 165 104 L 116 104 L 116 80 L 151 80 A 50 50 0 1 1 95 40 Z"
           fill="#4B3854"
         />
         <g fill="#4B3854">
-          <path d="M 138 44 L 150 44 L 144 32 Z" />
-          <path d="M 135 52 L 153 52 L 144 36 Z" />
-          <rect x="141" y="52" width="6" height="7" />
+          <path d="M 90 100 Q 112 90 138 100 L 138 106 Q 112 98 90 106 Z" />
+          <path d="M 92 44 L 112 44 L 102 26 Z" />
+          <path d="M 88 56 L 116 56 L 102 34 Z" />
+          <rect x="98" y="56" width="8" height="10" />
+          <path d="M 116 52 L 136 52 L 126 34 Z" />
+          <path d="M 112 64 L 140 64 L 126 42 Z" />
+          <rect x="122" y="64" width="8" height="10" />
         </g>
       </g>
 
-      <g fill="#6A7B48">
-        <text x="180" y="140" fontFamily="Manrope, sans-serif" fontSize="150" fontWeight="800" fontStyle="italic">R</text>
-        <g transform="translate(196,18)">
-          <circle cx="10" cy="4" r="5" />
-          <path d="M8 12 L14 12 L20 26 L14 34 L18 46 L11 46 L7 34 L1 40 L-4 36 L4 28 L0 20 Z" />
+      <g transform="translate(230,10)" fill="none" stroke="#6A7B48" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="68" cy="16" r="14" fill="#6A7B48" stroke="none" />
+        <path d="M64 36 L52 64" />
+        <path d="M52 64 L76 74 L72 102" />
+        <path d="M52 64 L24 92" />
+        <path d="M64 36 L42 42 L32 60" />
+        <path d="M64 36 L96 54" />
+      </g>
+
+      <g transform="translate(430,90)">
+        <circle r="62" fill="none" stroke="#8FA17A" strokeWidth="20" />
+        <circle r="50" fill="none" stroke="#1E3D4F" strokeWidth="5" />
+        <line x1="0" y1="-50" x2="0" y2="50" stroke="#1E3D4F" strokeWidth="4" />
+        <line x1="-50" y1="0" x2="50" y2="0" stroke="#1E3D4F" strokeWidth="4" />
+        <line x1="-35" y1="-35" x2="35" y2="35" stroke="#1E3D4F" strokeWidth="4" />
+        <line x1="-35" y1="35" x2="35" y2="-35" stroke="#1E3D4F" strokeWidth="4" />
+        <circle r="8" fill="#1E3D4F" />
+      </g>
+
+      <g transform="translate(590,90)" stroke="#F2A029" strokeWidth="8" strokeLinecap="round" fill="none">
+        <circle r="34" />
+        <line x1="0" y1="-62" x2="0" y2="-48" />
+        <line x1="0" y1="62" x2="0" y2="48" />
+        <line x1="-62" y1="0" x2="-48" y2="0" />
+        <line x1="62" y1="0" x2="48" y2="0" />
+        <line x1="-44" y1="-44" x2="-34" y2="-34" />
+        <line x1="44" y1="44" x2="34" y2="34" />
+        <line x1="-44" y1="44" x2="-34" y2="34" />
+        <line x1="44" y1="-44" x2="34" y2="-34" />
+      </g>
+
+      <g fill="#D86A2A">
+        <path d="M700 20 L730 20 L770 130 L810 20 L840 20 L785 160 L755 160 Z" />
+        <g transform="translate(715,32) rotate(-24)">
+          <rect x="-8" y="-26" width="16" height="52" rx="5" />
+          <rect x="-20" y="-18" width="12" height="36" rx="4" />
+        </g>
+        <g transform="translate(825,32) rotate(24)">
+          <rect x="-8" y="-26" width="16" height="52" rx="5" />
+          <rect x="8" y="-18" width="12" height="36" rx="4" />
         </g>
       </g>
 
-      <g>
-        <text x="300" y="140" fontFamily="Manrope, sans-serif" fontSize="150" fontWeight="800" fontStyle="italic" fill="#8FA17A">O</text>
-        <g transform="translate(345,72)" stroke="#1E3D4F" strokeWidth="3" fill="none">
-          <circle r="17" />
-          <line x1="0" y1="-17" x2="0" y2="17" />
-          <line x1="-17" y1="0" x2="17" y2="0" />
-          <line x1="-12" y1="-12" x2="12" y2="12" />
-          <line x1="-12" y1="12" x2="12" y2="-12" />
-        </g>
-      </g>
-
-      <g>
-        <text x="430" y="140" fontFamily="Manrope, sans-serif" fontSize="150" fontWeight="800" fontStyle="italic" fill="#1E3D4F">O</text>
-        <g transform="translate(475,72)" stroke="#F2A029" strokeWidth="4" strokeLinecap="round">
-          <circle r="12" fill="#F2A029" stroke="none" />
-          <line x1="0" y1="-22" x2="0" y2="-16" />
-          <line x1="0" y1="22" x2="0" y2="16" />
-          <line x1="-22" y1="0" x2="-16" y2="0" />
-          <line x1="22" y1="0" x2="16" y2="0" />
-          <line x1="-15.5" y1="-15.5" x2="-11.5" y2="-11.5" />
-          <line x1="15.5" y1="15.5" x2="11.5" y2="11.5" />
-          <line x1="-15.5" y1="15.5" x2="-11.5" y2="11.5" />
-          <line x1="15.5" y1="-15.5" x2="11.5" y2="-11.5" />
-        </g>
-      </g>
-
-      <g>
-        <text x="560" y="140" fontFamily="Manrope, sans-serif" fontSize="150" fontWeight="800" fontStyle="italic" fill="#D86A2A">V</text>
-        <g transform="translate(627,58)" fill="#D86A2A">
-          <rect x="-24" y="-3" width="48" height="6" rx="2" />
-          <rect x="-32" y="-10" width="8" height="20" rx="2" />
-          <rect x="24" y="-10" width="8" height="20" rx="2" />
-          <rect x="-38" y="-6" width="6" height="12" rx="2" />
-          <rect x="32" y="-6" width="6" height="12" rx="2" />
-        </g>
-      </g>
-
-      <g>
-        <text x="700" y="140" fontFamily="Manrope, sans-serif" fontSize="150" fontWeight="800" fontStyle="italic" fill="#3FA7A0">E</text>
+      <g transform="translate(880,90)">
         <polyline
-          points="785,72 805,72 812,58 820,86 828,68 834,72 855,72"
-          fill="none" stroke="#3FA7A0" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+          points="0,0 40,0 52,-38 68,44 82,-14 92,0 130,0"
+          fill="none" stroke="#3FA7A0" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"
         />
       </g>
     </svg>
