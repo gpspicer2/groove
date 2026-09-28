@@ -48,7 +48,7 @@ export default function TrainerApp() {
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <Wordmark className="text-base text-center" />
+          <Wordmark height={20} className="justify-self-center" />
           <AccountMenu />
         </div>
         {!selectedClient && (

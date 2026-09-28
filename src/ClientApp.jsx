@@ -50,7 +50,7 @@ export default function ClientApp() {
               G
             </button>
           ) : <div />}
-          <Wordmark className="text-base text-center" />
+          <Wordmark height={20} className="justify-self-center" />
           <AccountMenu />
         </div>
         <div data-tour="tab-bar" className="flex gap-1.5 pb-4">
