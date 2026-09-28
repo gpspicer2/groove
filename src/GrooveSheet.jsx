@@ -104,7 +104,7 @@ export default function GrooveSheet({ onClose }) {
           >
             <X size={20} />
           </button>
-          <Wordmark height={30} className="mb-8 mt-4 mx-auto block" />
+          <Wordmark height={45} className="mb-8 mt-4 mx-auto block" />
           <div className="space-y-6 text-center">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>
