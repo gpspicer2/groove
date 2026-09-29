@@ -3,7 +3,7 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVer
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER } from '../../theme';
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
@@ -81,32 +81,22 @@ function formatIntensityMinutes(s) {
 // A tap-to-step minute count instead of a text field that summons the
 // keyboard — quicker for the common case of a short cardio burst
 // between resistance sets (a couple of taps to "2 min", not typing).
+// Plain typed number, not a stepper — feedback said the +/- arrows were
+// annoying for something that's often a specific known number (a timer
+// readout, a watch's screen) rather than a small count worth tapping up.
 function LabeledMinutesInput({ label, value, onChange }) {
-  const n = parseInt(value, 10) || 0;
   return (
     <div className="flex flex-col items-center gap-1">
       <span style={{ color: TEXT_SOFT }} className="text-sm">{label}</span>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onChange(String(Math.max(0, n - 1)))}
-          style={{ background: INK_3, color: PAPER }}
-          className="w-7 h-7 rounded-md text-base font-medium leading-none"
-        >
-          −
-        </button>
-        <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="w-7 text-center text-base font-semibold tabular-nums">
-          {n}
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange(String(n + 1))}
-          style={{ background: INK_3, color: PAPER }}
-          className="w-7 h-7 rounded-md text-base font-medium leading-none"
-        >
-          +
-        </button>
-      </div>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+        className="w-14 h-9 rounded-md text-center text-base font-semibold outline-none"
+      />
     </div>
   );
 }
@@ -1822,39 +1812,90 @@ function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone 
   );
 }
 
-// A tap-to-step number control — replaces the old scroll-chip picker,
-// which feedback called slow and fiddly for something logged dozens of
-// times a workout. One tap changes the value by `step`; holding isn't
-// needed since the value carries over between sets, so most sets are
-// just a tap on "Log set" with no adjustment at all.
-function Stepper({ label, value, onChange, step, min = 0, format }) {
+// Scroll-and-select, with tap-to-type as a fallback: a horizontal snap
+// list of values (mouse or touch scroll), and tapping the already-
+// selected chip switches it to a plain number field for typing an
+// exact value. Replaces the tap-stepper, which feedback said felt
+// like too many taps for entering a specific number.
+function ScrollSelect({ label, value, options, onChange, min = 0 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const selectedRef = useRef(null);
+
+  useEffect(() => {
+    if (!editing) selectedRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
+  function startEditing() {
+    setDraft(String(value));
+    setEditing(true);
+  }
+
+  function commit() {
+    const n = parseInt(draft, 10);
+    if (!Number.isNaN(n)) onChange(Math.max(min, n));
+    setEditing(false);
+  }
+
   return (
     <div className="flex flex-col items-center">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(min, value - step))}
-          style={{ background: INK_3, color: PAPER }}
-          className="w-9 h-9 rounded-md text-lg font-medium leading-none"
+      {editing ? (
+        <input
+          type="number"
+          inputMode="numeric"
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          className="w-20 h-10 rounded-md text-center text-lg font-semibold outline-none"
+        />
+      ) : (
+        <div
+          className="flex gap-1.5 overflow-x-auto py-1 px-6 max-w-[220px]"
+          style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
         >
-          −
-        </button>
-        <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="w-14 text-center text-xl font-semibold tabular-nums">
-          {format ? format(value) : value}
+          {options.map((opt) => {
+            const selected = opt === value;
+            return (
+              <button
+                key={opt}
+                ref={selected ? selectedRef : null}
+                type="button"
+                onClick={() => (selected ? startEditing() : onChange(opt))}
+                style={{
+                  background: selected ? SKY : INK_3,
+                  color: selected ? INK : PAPER_DIM,
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  scrollSnapAlign: 'center',
+                }}
+                className="shrink-0 w-12 h-10 rounded-md text-sm font-medium flex items-center justify-center"
+              >
+                {opt}
+              </button>
+            );
+          })}
         </div>
-        <button
-          type="button"
-          onClick={() => onChange(value + step)}
-          style={{ background: INK_3, color: PAPER }}
-          className="w-9 h-9 rounded-md text-lg font-medium leading-none"
-        >
-          +
-        </button>
+      )}
+      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">
+        {editing ? 'tap outside to set' : `${label} — tap to type`}
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">{label}</div>
     </div>
   );
 }
+
+function weightOptions(start) {
+  const center = start != null ? roundToFive(start) : 0;
+  const lo = Math.max(0, center - 50);
+  const opts = [];
+  for (let w = lo; w <= lo + 200; w += 5) opts.push(w);
+  return opts;
+}
+
+const REP_OPTIONS = Array.from({ length: 30 }, (_, i) => i + 1);
+const SECONDS_OPTIONS = Array.from({ length: 36 }, (_, i) => (i + 1) * 5); // 5-180s
 
 function roundToFive(n) {
   return Math.round(n / 5) * 5;
@@ -1867,31 +1908,41 @@ function isBodyweightEligible(name) {
   return /pull-up|dip|chin-up/i.test(name || '');
 }
 
-function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber }) {
+function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish }) {
   const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
   const bodyweightEligible = isBodyweightEligible(exercise?.name);
-  const [useBodyweight, setUseBodyweight] = useState(false);
+  // Bodyweight-eligible movements (pull-ups, dips, chin-ups) default to
+  // "Use bodyweight" on, since that's the load almost every time — added
+  // weight then starts at 0 and scrolls up in 5s, rather than starting
+  // from a guessed absolute weight.
+  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
   // working-set rep range. Weight/reps then carry over set-to-set, so a
   // straight set of identical sets is just repeated taps of "Log set"
   // with no adjustment needed.
-  const startWeight = suggestion?.weight ?? last?.weight ?? null;
+  const startWeight = bodyweightEligible ? 0 : (suggestion?.weight ?? last?.weight ?? null);
   const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
   const [reps, setReps] = useState(8);
+  const [seconds, setSeconds] = useState(30);
+  // Timed movements (planks, holds) log seconds instead of reps —
+  // switchable per set rather than baked into the exercise type.
+  const [byTime, setByTime] = useState(false);
+  const weightOpts = weightOptions(bodyweightEligible ? 0 : startWeight);
 
   function handleLog() {
+    const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
     if (useBodyweight) {
-      onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, reps, isBodyweight: true });
+      onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
     } else {
-      onLog({ setNumber: nextSetNumber, weight, reps, isBodyweight: false });
+      onLog({ setNumber: nextSetNumber, weight, isBodyweight: false, ...countPayload });
     }
   }
 
   // One compact line instead of three stacked ones for target/last/suggested.
   const contextBits = [
     `Target ${exercise.sets}×${exercise.reps}`,
-    last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.reps ?? '—'}`,
+    last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
     suggestion && `Suggested ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);
 
@@ -1909,22 +1960,54 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight} lb)
         </button>
       )}
+      <div className="flex items-center justify-center gap-1 mb-2">
+        <button
+          onClick={() => setByTime(false)}
+          style={{ background: !byTime ? SKY : INK_3, color: !byTime ? INK : PAPER_DIM }}
+          className="px-3 py-1 rounded-l-md text-sm font-medium"
+        >
+          Reps
+        </button>
+        <button
+          onClick={() => setByTime(true)}
+          style={{ background: byTime ? SKY : INK_3, color: byTime ? INK : PAPER_DIM }}
+          className="px-3 py-1 rounded-r-md text-sm font-medium"
+        >
+          Seconds
+        </button>
+      </div>
       <div className="flex items-center justify-center gap-5 mb-3">
-        <Stepper
+        <ScrollSelect
           label={useBodyweight ? 'added lb' : 'lb'}
           value={weight}
+          options={weightOpts}
           onChange={setWeight}
-          step={5}
         />
-        <Stepper label="reps" value={reps} onChange={setReps} step={1} min={1} />
+        {byTime ? (
+          <ScrollSelect label="sec" value={seconds} options={SECONDS_OPTIONS} onChange={setSeconds} min={5} />
+        ) : (
+          <ScrollSelect label="reps" value={reps} options={REP_OPTIONS} onChange={setReps} min={1} />
+        )}
       </div>
-      <button
-        onClick={handleLog}
-        style={{ background: SKY, color: INK }}
-        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1"
-      >
-        <Plus size={14} /> Log set {nextSetNumber}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleLog}
+          style={{ background: SKY, color: INK }}
+          className="flex-1 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1"
+        >
+          <Plus size={14} /> Log set {nextSetNumber}
+        </button>
+        {onFinish && nextSetNumber > 1 && (
+          <button
+            onClick={onFinish}
+            style={{ background: INK_3, color: PAPER }}
+            className="rounded-md py-2.5 px-3 text-sm font-medium flex items-center justify-center gap-1"
+            title="Finish this exercise"
+          >
+            <Check size={14} /> Finish
+          </button>
+        )}
+      </div>
     </>
   );
 }
@@ -1959,7 +2042,7 @@ function ExerciseCard({ exercise, style, bodyweight, loggedSets, last, onLogSet,
           {loggedSets.map((s) => (
             <div key={s.id} className="flex items-center justify-center gap-2">
               <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                Set {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.reps ?? '—'}
+                Set {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
               </span>
               <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
                 <X size={14} />
@@ -1969,7 +2052,7 @@ function ExerciseCard({ exercise, style, bodyweight, loggedSets, last, onLogSet,
         </div>
       )}
 
-      <WeightRepsInput exercise={exercise} style={style} bodyweight={bodyweight} last={last} onLog={onLogSet} nextSetNumber={nextSetNumber} />
+      <WeightRepsInput exercise={exercise} style={style} bodyweight={bodyweight} last={last} onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => setCollapsed(true) : null} />
     </div>
   );
 }
@@ -2015,7 +2098,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
                   {loggedSets.map((s) => (
                     <div key={s.id} className="flex items-center justify-center gap-2">
                       <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                        Round {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.reps ?? '—'}
+                        Round {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
                       </span>
                       <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
                         <X size={14} />
@@ -2072,7 +2155,7 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
+    <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3">
       <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
