@@ -42,20 +42,27 @@ export default function AuthScreen() {
         </h1>
 
         <form onSubmit={handleSubmit}>
-          <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Email</label>
+          <label htmlFor="email" style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Email</label>
           <input
             type="email"
+            name="email"
+            id="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="you@example.com"
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-3 mt-1 mb-4 text-sm outline-none"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
           />
 
           <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Password</label>
           <input
             type="password"
+            name="password"
+            id="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="At least 6 characters"
