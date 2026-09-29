@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET } from './theme';
 import Wordmark from './Wordmark';
@@ -26,6 +26,14 @@ export default function ClientApp() {
   const [tourJustFinished, setTourJustFinished] = useState(false);
   const [openBaselineOnLoad, setOpenBaselineOnLoad] = useState(false);
   const scrollRef = useRef(null);
+
+  // On some devices the page can land scrolled partway down right after
+  // login (e.g. a focused input from the auth screen still holding the
+  // browser's scroll anchor) — force it back to the top once, before
+  // the first paint, so login always opens on the top of Birdseye.
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, []);
 
   function openWorkout(workoutId) {
     setDeepLinkWorkoutId(workoutId);
