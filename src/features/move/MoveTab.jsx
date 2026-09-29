@@ -224,6 +224,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [selectedFlexActivities, setSelectedFlexActivities] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState('');
+  // Skips generateWorkout()'s suggested exercise picks in favor of an
+  // empty plan the client builds themselves via "Add to Workout".
+  const [cleanSlate, setCleanSlate] = useState(false);
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
@@ -404,7 +407,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     const usesFlexibility = movementMode === 'Flexibility';
 
     let plan = [];
-    if (usesResistance) {
+    if (usesResistance && !cleanSlate) {
       const lastWorkout = completedWorkouts[0];
       const recentNames = lastWorkout
         ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
@@ -454,6 +457,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSelectedStyle('');
     setSelectedLocation('');
     setMovementMode('');
+    setCleanSlate(false);
     setSelectedDate(todayLocalISO());
   }
 
@@ -761,6 +765,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           canStart={canStartMode()}
           assignedProgram={assignedProgram}
           onStartAssignedProgram={startAssignedProgram}
+          cleanSlate={cleanSlate}
+          onToggleCleanSlate={setCleanSlate}
         />
       )}
 
@@ -974,6 +980,7 @@ function StartWorkout({
   customActivities, onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
+  cleanSlate, onToggleCleanSlate,
   dataTour,
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
@@ -1139,6 +1146,25 @@ function StartWorkout({
             })}
           </div>
         </>
+      )}
+
+      {needsStyle && selectedLocation && selectedStyle && !showProgramOffer && (
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => onToggleCleanSlate(false)}
+            style={{ background: !cleanSlate ? SKY : INK_3, color: !cleanSlate ? INK : PAPER_DIM }}
+            className="flex-1 rounded-md py-2 text-sm font-medium"
+          >
+            Suggested workout
+          </button>
+          <button
+            onClick={() => onToggleCleanSlate(true)}
+            style={{ background: cleanSlate ? SKY : INK_3, color: cleanSlate ? INK : PAPER_DIM }}
+            className="flex-1 rounded-md py-2 text-sm font-medium"
+          >
+            Clean slate
+          </button>
+        </div>
       )}
 
       {!showProgramOffer && (

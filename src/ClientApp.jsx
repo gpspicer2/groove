@@ -43,10 +43,11 @@ export default function ClientApp() {
             <button
               data-tour="groove-button"
               onClick={() => setShowGroove(true)}
-              className="justify-self-start w-8 h-8 flex items-center justify-center -ml-1"
-              aria-label="Groove"
+              className="justify-self-start w-8 h-8 flex flex-col items-center justify-center gap-1.5 -ml-1"
+              aria-label="What's a Groove?"
             >
-              <img src="/g-mark.png" alt="" className="h-7 w-auto" />
+              <span style={{ background: PAPER_DIM }} className="block w-5 h-0.5 rounded-full" />
+              <span style={{ background: PAPER_DIM }} className="block w-5 h-0.5 rounded-full" />
             </button>
           ) : <div />}
           <Wordmark height={30} className="justify-self-center" />
