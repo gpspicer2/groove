@@ -1838,91 +1838,6 @@ function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone 
   );
 }
 
-// Scroll-and-select, with tap-to-type as a fallback: a horizontal snap
-// list of values (mouse or touch scroll), and tapping the already-
-// selected chip switches it to a plain number field for typing an
-// exact value. Replaces the tap-stepper, which feedback said felt
-// like too many taps for entering a specific number.
-function ScrollSelect({ label, value, options, onChange, min = 0 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-  const selectedRef = useRef(null);
-
-  useEffect(() => {
-    if (!editing) selectedRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing]);
-
-  function startEditing() {
-    setDraft(String(value));
-    setEditing(true);
-  }
-
-  function commit() {
-    const n = parseInt(draft, 10);
-    if (!Number.isNaN(n)) onChange(Math.max(min, n));
-    setEditing(false);
-  }
-
-  return (
-    <div className="flex flex-col items-center">
-      {editing ? (
-        <input
-          type="number"
-          inputMode="numeric"
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-          className="w-20 h-10 rounded-md text-center text-lg font-semibold outline-none"
-        />
-      ) : (
-        <div
-          className="flex gap-1.5 overflow-x-auto py-1 px-6 max-w-[220px]"
-          style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
-        >
-          {options.map((opt) => {
-            const selected = opt === value;
-            return (
-              <button
-                key={opt}
-                ref={selected ? selectedRef : null}
-                type="button"
-                onClick={() => (selected ? startEditing() : onChange(opt))}
-                style={{
-                  background: selected ? SKY : INK_3,
-                  color: selected ? INK : PAPER_DIM,
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  scrollSnapAlign: 'center',
-                }}
-                className="shrink-0 w-12 h-10 rounded-md text-sm font-medium flex items-center justify-center"
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">
-        {editing ? 'tap outside to set' : `${label} — tap to type`}
-      </div>
-    </div>
-  );
-}
-
-function weightOptions(start) {
-  const center = start != null ? roundToFive(start) : 0;
-  const lo = Math.max(0, center - 50);
-  const opts = [];
-  for (let w = lo; w <= lo + 200; w += 5) opts.push(w);
-  return opts;
-}
-
-const REP_OPTIONS = Array.from({ length: 30 }, (_, i) => i + 1);
-const SECONDS_OPTIONS = Array.from({ length: 36 }, (_, i) => (i + 1) * 5); // 5-180s
-
 function roundToFive(n) {
   return Math.round(n / 5) * 5;
 }
@@ -1954,7 +1869,6 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // Timed movements (planks, holds) log seconds instead of reps —
   // switchable per set rather than baked into the exercise type.
   const [byTime, setByTime] = useState(false);
-  const weightOpts = weightOptions(bodyweightEligible ? 0 : startWeight);
 
   function handleLog() {
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
@@ -1974,63 +1888,73 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 
   return (
     <>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
         {contextBits.join(' · ')}
       </div>
-      {bodyweight != null && bodyweightEligible && (
+      <div className="flex items-center justify-center gap-2 mb-2">
+        {bodyweight != null && bodyweightEligible && (
+          <button
+            onClick={() => setUseBodyweight((v) => !v)}
+            style={{ color: useBodyweight ? LIME : TEXT_SOFT }}
+            className="text-sm flex items-center gap-1"
+          >
+            <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> BW ({bodyweight})
+          </button>
+        )}
         <button
-          onClick={() => setUseBodyweight((v) => !v)}
-          style={{ color: useBodyweight ? LIME : TEXT_SOFT }}
-          className="text-sm mb-2 flex items-center gap-1 mx-auto"
+          onClick={() => setByTime((v) => !v)}
+          style={{ color: TEXT_SOFT }}
+          className="text-sm underline underline-offset-2"
         >
-          <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight} lb)
-        </button>
-      )}
-      <div className="flex items-center justify-center gap-1 mb-2">
-        <button
-          onClick={() => setByTime(false)}
-          style={{ background: !byTime ? SKY : INK_3, color: !byTime ? INK : PAPER_DIM }}
-          className="px-3 py-1 rounded-l-md text-sm font-medium"
-        >
-          Reps
-        </button>
-        <button
-          onClick={() => setByTime(true)}
-          style={{ background: byTime ? SKY : INK_3, color: byTime ? INK : PAPER_DIM }}
-          className="px-3 py-1 rounded-r-md text-sm font-medium"
-        >
-          Seconds
+          {byTime ? 'switch to reps' : 'switch to seconds'}
         </button>
       </div>
-      <div className="flex items-center justify-center gap-5 mb-3">
-        <ScrollSelect
-          label={useBodyweight ? 'added lb' : 'lb'}
+      <div className="flex items-center justify-center gap-2 mb-2.5">
+        <input
+          type="number"
+          inputMode="decimal"
           value={weight}
-          options={weightOpts}
-          onChange={setWeight}
+          onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+          placeholder={useBodyweight ? '+lb' : 'lb'}
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
         {byTime ? (
-          <ScrollSelect label="sec" value={seconds} options={SECONDS_OPTIONS} onChange={setSeconds} min={5} />
+          <input
+            type="number"
+            inputMode="numeric"
+            value={seconds}
+            onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="sec"
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
         ) : (
-          <ScrollSelect label="reps" value={reps} options={REP_OPTIONS} onChange={setReps} min={1} />
+          <input
+            type="number"
+            inputMode="numeric"
+            value={reps}
+            onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="reps"
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
         )}
-      </div>
-      <div className="flex items-center gap-2">
         <button
           onClick={handleLog}
           style={{ background: SKY, color: INK }}
-          className="flex-1 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1"
+          className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
-          <Plus size={14} /> Log set {nextSetNumber}
+          <Plus size={14} /> Log
         </button>
         {onFinish && nextSetNumber > 1 && (
           <button
             onClick={onFinish}
             style={{ background: INK_3, color: PAPER }}
-            className="rounded-md py-2.5 px-3 text-sm font-medium flex items-center justify-center gap-1"
+            className="rounded-md py-2 px-2.5"
             title="Finish this exercise"
           >
-            <Check size={14} /> Finish
+            <Check size={14} />
           </button>
         )}
       </div>
@@ -2064,16 +1988,17 @@ function ExerciseCard({ exercise, style, bodyweight, loggedSets, last, onLogSet,
       <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={loggedSets.length > 0 ? () => setCollapsed(true) : null} />
 
       {loggedSets.length > 0 && (
-        <div className="space-y-1 mb-2">
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
           {loggedSets.map((s) => (
-            <div key={s.id} className="flex items-center justify-center gap-2">
-              <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                Set {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
-              </span>
-              <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-                <X size={14} />
-              </button>
-            </div>
+            <button
+              key={s.id}
+              onClick={() => onDeleteSet(s.id)}
+              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+            >
+              {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+              <X size={11} />
+            </button>
           ))}
         </div>
       )}
@@ -2120,16 +2045,17 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
                 Target: {ex.sets} sets × {ex.reps}
               </div>
               {loggedSets.length > 0 && (
-                <div className="space-y-1 mb-2">
+                <div className="flex flex-wrap justify-center gap-1.5 mb-2">
                   {loggedSets.map((s) => (
-                    <div key={s.id} className="flex items-center justify-center gap-2">
-                      <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                        Round {s.setNumber}: {s.isBodyweight ? 'BW ' : ''}{s.weight ?? '—'} lb × {s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
-                      </span>
-                      <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-                        <X size={14} />
-                      </button>
-                    </div>
+                    <button
+                      key={s.id}
+                      onClick={() => onDeleteSet(s.id)}
+                      style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+                      className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+                    >
+                      {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                      <X size={11} />
+                    </button>
                   ))}
                 </div>
               )}
@@ -2188,16 +2114,17 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
       )}
 
       {loggedSets.length > 0 && (
-        <div className="space-y-1 mb-2">
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
           {loggedSets.map((s) => (
-            <div key={s.id} className="flex items-center justify-center gap-2">
-              <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
-              </span>
-              <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-                <X size={14} />
-              </button>
-            </div>
+            <button
+              key={s.id}
+              onClick={() => onDeleteSet(s.id)}
+              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+            >
+              {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
+              <X size={11} />
+            </button>
           ))}
         </div>
       )}
@@ -2249,16 +2176,17 @@ function FlexibilityCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp
       </div>
 
       {loggedSets.length > 0 && (
-        <div className="space-y-1 mb-2">
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
           {loggedSets.map((s) => (
-            <div key={s.id} className="flex items-center justify-center gap-2">
-              <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm tabular-nums">
-                Hold {s.setNumber}: {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
-              </span>
-              <button onClick={() => onDeleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-                <X size={14} />
-              </button>
-            </div>
+            <button
+              key={s.id}
+              onClick={() => onDeleteSet(s.id)}
+              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+            >
+              {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
+              <X size={11} />
+            </button>
           ))}
         </div>
       )}
