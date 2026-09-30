@@ -207,6 +207,16 @@ function todayLocalISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Starting, finishing, or discarding a workout swaps the whole view out
+// from under wherever the page happened to be scrolled — without this
+// it can land mid-scroll (e.g. still scrolled down from the exercise
+// list you were just looking at), which reads as broken.
+function scrollAppToTop() {
+  requestAnimationFrame(() => {
+    document.getElementById('app-scroll')?.scrollTo({ top: 0, behavior: 'auto' });
+  });
+}
+
 export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
@@ -459,6 +469,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setMovementMode('');
     setCleanSlate(false);
     setSelectedDate(todayLocalISO());
+    scrollAppToTop();
   }
 
   // Lets a past resistance (or flexibility) movement pick up aerobic
@@ -690,6 +701,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
     setActiveWorkoutId(null);
     setPlanExercises([]);
+    scrollAppToTop();
   }
 
   async function discardWorkout() {
@@ -700,6 +712,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setSets((prev) => prev.filter((s) => s.workoutId !== activeWorkoutId));
     setActiveWorkoutId(null);
     setPlanExercises([]);
+    scrollAppToTop();
   }
 
   if (loading) {
@@ -711,14 +724,21 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-12">
+    <div
+      style={activeWorkout ? { border: `2px solid ${SKY}`, borderRadius: 16 } : undefined}
+      className={`max-w-md mx-auto px-4 pb-12 ${activeWorkout ? 'pt-3' : ''}`}
+    >
       {loadError && (
         <div style={{ background: INK_2, color: BRICK }} className="rounded-md px-4 py-3 mb-4 text-sm text-center">
           {loadError}
         </div>
       )}
 
-      <WeeklyTracker completedWorkouts={completedWorkouts} weekStartDay={weekStartDay} />
+      {/* The weekly S-M-T-W tracker is a "planning" glance, not something
+          relevant mid-session — hiding it (and showing the border above
+          instead) while a workout is active makes that state visually
+          distinct at a glance, not just implied by which buttons show. */}
+      {!activeWorkout && <WeeklyTracker completedWorkouts={completedWorkouts} weekStartDay={weekStartDay} />}
 
       {activeWorkout ? (
         <ActiveWorkout
@@ -1444,6 +1464,26 @@ function ActiveWorkout({
         })}
       </div>
 
+      {(workout.movementMode === 'Resistance' || workout.movementMode === 'Combined') && !addMenuOpen && (
+        <QuickAerobicButton
+          onSubmit={(name, intensity, minutes) => {
+            onAddAerobic(name, '');
+            onLogSet({
+              exerciseName: name,
+              muscleGroup: 'Cardio',
+              setNumber: 1,
+              movementType: 'aerobic',
+              weight: null,
+              reps: null,
+              durationSeconds: minutes * 60,
+              lightMinutes: intensity === 'Light' ? minutes : null,
+              moderateMinutes: intensity === 'Moderate' ? minutes : null,
+              vigorousMinutes: intensity === 'Vigorous' ? minutes : null,
+            });
+          }}
+        />
+      )}
+
       {addMenuOpen ? (
         addMode === null ? (
           <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
@@ -1514,6 +1554,82 @@ function ActiveWorkout({
           onClose={() => setSwapIndex(null)}
         />
       )}
+    </div>
+  );
+}
+
+// A one-tap way to log a burst of cardio between resistance sets
+// (jump rope, a quick jog, etc.) without going through Add to Workout's
+// multi-step flow — one small form (activity, intensity, minutes) logs
+// it immediately instead of just adding an exercise card to fill in later.
+function QuickAerobicButton({ onSubmit }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(AEROBIC_ACTIVITIES_QUICK[0]);
+  const [intensity, setIntensity] = useState('Moderate');
+  const [minutes, setMinutes] = useState(5);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
+        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+      >
+        <Plus size={14} /> Add aerobic activity
+      </button>
+    );
+  }
+
+  function submit() {
+    onSubmit(name, intensity, minutes);
+    setOpen(false);
+    setMinutes(5);
+  }
+
+  return (
+    <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Quick-log a cardio burst</div>
+      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+        {[...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].slice(0, 8).map((a) => (
+          <button
+            key={a}
+            onClick={() => setName(a)}
+            style={{ background: name === a ? AMBER : INK_3, color: name === a ? INK : PAPER_DIM }}
+            className="px-2.5 py-1 rounded-full text-sm"
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-1.5 mb-3">
+        {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+          <button
+            key={lvl}
+            onClick={() => setIntensity(lvl)}
+            style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? INK : PAPER_DIM }}
+            className="flex-1 py-1.5 rounded-md text-sm"
+          >
+            {lvl}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <label className="flex flex-col items-center gap-0.5">
+          <span style={{ color: TEXT_SOFT }} className="text-sm">minutes</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
+        </label>
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setOpen(false)} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Cancel</button>
+        <button onClick={submit} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Log it</button>
+      </div>
     </div>
   );
 }

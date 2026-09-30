@@ -250,6 +250,8 @@ function isCompound(name) {
   return COMPOUND_PATTERN.test(name);
 }
 
+const MAX_EXERCISES = 6;
+
 // Picks `count` exercises per selected muscle group, preferring ones not
 // in `recentNames` (last workout's picks) so back-to-back sessions don't
 // look identical — falls back to repeats only if a group runs out of
@@ -274,10 +276,17 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       });
     }
   }
-  return picked
+  // Barbell compounds first (squat/bench/deadlift-type moves — heaviest,
+  // most technical, done while fresh), then other compounds, then
+  // isolation — same stable tie-break as before within each tier.
+  const tier = (ex) => (ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
+  const ordered = picked
     .map((ex, i) => ({ ex, i }))
-    .sort((a, b) => (isCompound(b.ex.name) - isCompound(a.ex.name)) || (a.i - b.i))
+    .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
     .map(({ ex }) => ex);
+  // A 10-exercise session runs too long — 6 keeps the heaviest/most
+  // important lifts (already sorted to the front) and trims the rest.
+  return ordered.slice(0, MAX_EXERCISES);
 }
 
 function parseRepRange(repsStr) {
@@ -298,29 +307,35 @@ function parseRepRange(repsStr) {
 export function suggestNextWeight(exercise, lastSet, style, daysSince = null) {
   if (!lastSet || lastSet.weight == null || lastSet.reps == null) return null;
   const [lo, hi] = parseRepRange(exercise.reps);
-  const baseIncrement = /Squat|Deadlift|Press|Row|Pulldown/.test(exercise.name) ? 5 : 2.5;
+  // Compound barbell-type lifts jump by a real plate increment (5 lb a
+  // side); isolation/dumbbell work jumps smaller — but either way, the
+  // final number always lands on a multiple of 5. Rounding only the
+  // increment (not the result) let fractional weights compound over
+  // time into odd suggestions like 77.5 lb.
+  const baseIncrement = isCompound(exercise.name) ? 10 : 5;
   const styleMultiplier = STYLE_CONFIG[style]?.incrementMultiplier ?? 1;
+  const roundToFive = (n) => Math.round(n / 5) * 5;
 
   // Been away a while — don't push added load onto detrained form.
   const longLayoff = daysSince != null && daysSince > 21;
-  const roundToHalf = (n) => Math.round(n * 2) / 2;
-  const increment = roundToHalf(baseIncrement * styleMultiplier * (longLayoff ? 0.5 : 1));
+  const increment = Math.max(5, roundToFive(baseIncrement * styleMultiplier * (longLayoff ? 0.5 : 1)));
+  const lastWeight = roundToFive(lastSet.weight);
 
-  if (hi == null) return { weight: lastSet.weight, note: 'Match last time' };
+  if (hi == null) return { weight: lastWeight, note: 'Match last time' };
 
   if (longLayoff) {
     return {
-      weight: lastSet.weight,
+      weight: lastWeight,
       note: `It's been ${daysSince} days — start back at your last weight and see how it feels`,
     };
   }
   if (lastSet.reps >= hi) {
-    return { weight: lastSet.weight + increment, note: `Hit ${lastSet.reps} last time — try +${increment} lb` };
+    return { weight: lastWeight + increment, note: `Hit ${lastSet.reps} last time — try +${increment} lb` };
   }
   if (lastSet.reps < lo) {
-    return { weight: Math.max(0, lastSet.weight - increment), note: `Came up short last time — try -${increment} lb` };
+    return { weight: Math.max(0, lastWeight - increment), note: `Came up short last time — try -${increment} lb` };
   }
-  return { weight: lastSet.weight, note: 'In range — repeat this weight for one more clean set' };
+  return { weight: lastWeight, note: 'In range — repeat this weight for one more clean set' };
 }
 
 function shuffle(arr) {
