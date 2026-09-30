@@ -1871,7 +1871,10 @@ function isBodyweightEligible(name) {
 
 function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish }) {
   const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
-  const bodyweightEligible = isBodyweightEligible(exercise?.name);
+  // The toggle itself only renders when bodyweight is known (see below) —
+  // defaulting this true regardless would silently log sets as
+  // bodyweight with no visible toggle to turn it off.
+  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
   // Bodyweight-eligible movements (pull-ups, dips, chin-ups) default to
   // "Use bodyweight" on, since that's the load almost every time — added
   // weight then starts at 0 and scrolls up in 5s, rather than starting
@@ -1929,36 +1932,42 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           {byTime ? 'switch to reps' : 'switch to seconds'}
         </button>
       </div>
-      <div className="flex items-center justify-center gap-2 mb-2.5">
-        <input
-          type="number"
-          inputMode="decimal"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
-          placeholder={useBodyweight ? '+lb' : 'lb'}
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
+      <div className="flex items-end justify-center gap-2 mb-2.5">
+        <label className="flex flex-col items-center gap-0.5">
+          <span style={{ color: TEXT_SOFT }} className="text-sm">{useBodyweight ? '+lb' : 'lb'}</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
+        </label>
         {byTime ? (
-          <input
-            type="number"
-            inputMode="numeric"
-            value={seconds}
-            onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="sec"
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-          />
+          <label className="flex flex-col items-center gap-0.5">
+            <span style={{ color: TEXT_SOFT }} className="text-sm">sec</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={seconds}
+              onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+            />
+          </label>
         ) : (
-          <input
-            type="number"
-            inputMode="numeric"
-            value={reps}
-            onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="reps"
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-          />
+          <label className="flex flex-col items-center gap-0.5">
+            <span style={{ color: TEXT_SOFT }} className="text-sm">reps</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={reps}
+              onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+            />
+          </label>
         )}
         <button
           onClick={handleLog}
