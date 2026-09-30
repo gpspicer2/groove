@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical } from 'lucide-react';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -1209,48 +1209,53 @@ function ActiveWorkout({
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
   const [swapIndex, setSwapIndex] = useState(null);
-  // Drag-to-reorder: groupRefs tracks each rendered group's DOM node so a
-  // drag can find which group the pointer is currently over; dragStateRef
-  // holds the in-progress drag (not state, since it needs to read/write
-  // synchronously on every pointermove without waiting on a re-render).
+  // The one exercise currently expanded for logging — the rest stay
+  // collapsed to a single numbered row. Starts on the first exercise so
+  // there's an obvious place to begin instead of an all-collapsed list.
+  const [activeGroupKey, setActiveGroupKey] = useState(null);
+  // Drag-to-reorder: the dragged card follows the finger via a live
+  // translateY (dragOffsetY) rather than snapping the list around mid-
+  // drag — the actual reorder only happens once, on release, based on
+  // where the card ended up. groupRefs tracks each rendered group's DOM
+  // node so drop-time can measure which slot the pointer is over.
   const groupRefs = useRef([]);
   const dragStateRef = useRef(null);
   const [draggingIndex, setDraggingIndex] = useState(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
 
   function handleDragStart(e, gi) {
     e.preventDefault();
-    dragStateRef.current = { fromIndex: gi, currentIndex: gi, pointerId: e.pointerId };
+    dragStateRef.current = { fromIndex: gi, startY: e.clientY, pointerId: e.pointerId };
     setDraggingIndex(gi);
+    setDragOffsetY(0);
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handleDragMove(e) {
     const state = dragStateRef.current;
     if (!state) return;
-    const y = e.clientY;
-    let closestIndex = state.currentIndex;
-    let closestDist = Infinity;
-    groupRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      const dist = Math.abs(y - mid);
-      if (dist < closestDist) { closestDist = dist; closestIndex = i; }
-    });
-    if (closestIndex !== state.currentIndex) {
-      onReorderGroup(state.currentIndex, closestIndex);
-      state.currentIndex = closestIndex;
-      setDraggingIndex(closestIndex);
-    }
+    setDragOffsetY(e.clientY - state.startY);
   }
 
   function handleDragEnd(e) {
     const state = dragStateRef.current;
     if (state) {
       try { e.currentTarget.releasePointerCapture(state.pointerId); } catch { /* already released */ }
+      const y = e.clientY;
+      let closestIndex = state.fromIndex;
+      let closestDist = Infinity;
+      groupRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const dist = Math.abs(y - mid);
+        if (dist < closestDist) { closestDist = dist; closestIndex = i; }
+      });
+      if (closestIndex !== state.fromIndex) onReorderGroup(state.fromIndex, closestIndex);
     }
     dragStateRef.current = null;
     setDraggingIndex(null);
+    setDragOffsetY(0);
   }
   // Counts UP from the moment a set is logged, rather than down from a
   // fixed target — a stalled count-up stays informative ("it's been a
@@ -1263,6 +1268,14 @@ function ActiveWorkout({
 
   const groups = groupPlan(exercises);
   const total = Math.round(totalWeightLifted(sets));
+
+  useEffect(() => {
+    if (activeGroupKey != null || groups.length === 0) return;
+    const first = groups[0];
+    const key = first.length === 2 ? `superset-${first[0].name}-${first[1].name}` : `${first[0].type || 'ex'}-${first[0].name}`;
+    setActiveGroupKey(key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups.length]);
 
   function closeAddForm() {
     setAddMenuOpen(false);
@@ -1330,11 +1343,13 @@ function ActiveWorkout({
           // it would remount each card's local state (like the collapsed
           // "Done" toggle) whenever reordering shifted its position.
           const groupKey = group.length === 2 ? `superset-${group[0].name}-${group[1].name}` : `${group[0].type || 'ex'}-${group[0].name}`;
+          const displayIndex = gi + 1;
           let card;
 
           if (group.length === 2) {
             card = (
               <SupersetCard
+                index={displayIndex}
                 members={group}
                 style={workout.style}
                 bodyweight={bodyweight}
@@ -1343,8 +1358,6 @@ function ActiveWorkout({
                 onLogSet={(payload) => handleResistanceLog(payload, gi)}
                 onDeleteSet={onDeleteSet}
                 onOpenSwap={setSwapIndex}
-                onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
-                onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                 onRemove={(index, hasLoggedSets) => onRemoveExercise(index, hasLoggedSets)}
               />
             );
@@ -1354,13 +1367,12 @@ function ActiveWorkout({
             if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
               card = (
                 <AerobicCard
+                  index={displayIndex}
                   exercise={ex}
                   movementType={ex.type === 'flexibility-activity' ? 'flexibility' : 'aerobic'}
                   loggedSets={loggedSets}
                   onLogSet={onLogSet}
                   onDeleteSet={onDeleteSet}
-                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
-                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   hrZones={hrZones}
                 />
@@ -1368,18 +1380,18 @@ function ActiveWorkout({
             } else if (ex.type === 'flexibility') {
               card = (
                 <FlexibilityCard
+                  index={displayIndex}
                   exercise={ex}
                   loggedSets={loggedSets}
                   onLogSet={onLogSet}
                   onDeleteSet={onDeleteSet}
-                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
-                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                 />
               );
             } else {
               card = (
                 <ExerciseCard
+                  index={displayIndex}
                   exercise={ex}
                   style={workout.style}
                   bodyweight={bodyweight}
@@ -1388,21 +1400,34 @@ function ActiveWorkout({
                   onLogSet={(payload) => handleResistanceLog({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup }, gi)}
                   onDeleteSet={onDeleteSet}
                   onOpenSwap={() => setSwapIndex(ex.index)}
-                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
-                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
+                  isActive={activeGroupKey === groupKey}
+                  onActivate={() => setActiveGroupKey(groupKey)}
+                  onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                 />
               );
             }
           }
 
+          const isDragging = draggingIndex === gi;
           return (
             <div
               key={groupKey}
               ref={(el) => (groupRefs.current[gi] = el)}
-              style={{ opacity: draggingIndex === gi ? 0.6 : 1 }}
+              style={{
+                opacity: isDragging ? 0.9 : 1,
+                transform: isDragging ? `translateY(${dragOffsetY}px)` : 'none',
+                position: isDragging ? 'relative' : 'static',
+                zIndex: isDragging ? 20 : 'auto',
+                boxShadow: isDragging ? '0 8px 20px rgba(0,0,0,0.25)' : 'none',
+                transition: isDragging ? 'none' : 'transform 0.15s ease',
+              }}
               className="flex items-stretch gap-1"
             >
+              <div className="flex-1 min-w-0 space-y-3">
+                {card}
+                {showRest && <RestBanner />}
+              </div>
               <button
                 onPointerDown={(e) => handleDragStart(e, gi)}
                 onPointerMove={handleDragMove}
@@ -1414,10 +1439,6 @@ function ActiveWorkout({
               >
                 <GripVertical size={16} />
               </button>
-              <div className="flex-1 min-w-0 space-y-3">
-                {card}
-                {showRest && <RestBanner />}
-              </div>
             </div>
           );
         })}
@@ -1829,22 +1850,18 @@ function formatDaysSince(days) {
   return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
 }
 
-function CardHeader({ title, onMoveUp, onMoveDown, onOpenSwap, onRemove, onDone }) {
+function CardHeader({ title, index, onOpenSwap, onRemove, onDone }) {
   return (
     <div className="flex items-center justify-between mb-1">
-      <div style={{ color: PAPER }} className="text-sm font-medium">{title}</div>
+      <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+        {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>} {title}
+      </div>
       <div className="flex items-center gap-0.5">
         {onDone && (
           <button onClick={onDone} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Done — collapse this exercise">
             <Check size={14} />
           </button>
         )}
-        <button onClick={onMoveUp || undefined} disabled={!onMoveUp} style={{ color: onMoveUp ? TEXT_SOFT : INK_3 }} className="p-2 -m-1">
-          <ChevronUp size={14} />
-        </button>
-        <button onClick={onMoveDown || undefined} disabled={!onMoveDown} style={{ color: onMoveDown ? TEXT_SOFT : INK_3 }} className="p-2 -m-1">
-          <ChevronDown size={14} />
-        </button>
         {onOpenSwap && (
           <button onClick={onOpenSwap} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Swap for another exercise">
             <Replace size={14} />
@@ -1869,29 +1886,21 @@ function isBodyweightEligible(name) {
   return /pull-up|dip|chin-up/i.test(name || '');
 }
 
-function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish }) {
+// byTime/useBodyweight are controlled from outside (ExerciseCard's swipe-
+// to-edit settings panel) so those toggles live in one place instead of
+// cluttering every card — callers that don't need that (SupersetCard)
+// just own the same two bits of state locally and pass them through.
+function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight }) {
   const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
-  // The toggle itself only renders when bodyweight is known (see below) —
-  // defaulting this true regardless would silently log sets as
-  // bodyweight with no visible toggle to turn it off.
-  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
-  // Bodyweight-eligible movements (pull-ups, dips, chin-ups) default to
-  // "Use bodyweight" on, since that's the load almost every time — added
-  // weight then starts at 0 and scrolls up in 5s, rather than starting
-  // from a guessed absolute weight.
-  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
   // working-set rep range. Weight/reps then carry over set-to-set, so a
   // straight set of identical sets is just repeated taps of "Log set"
   // with no adjustment needed.
-  const startWeight = bodyweightEligible ? 0 : (suggestion?.weight ?? last?.weight ?? null);
+  const startWeight = useBodyweight ? 0 : (suggestion?.weight ?? last?.weight ?? null);
   const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
   const [reps, setReps] = useState(8);
   const [seconds, setSeconds] = useState(30);
-  // Timed movements (planks, holds) log seconds instead of reps —
-  // switchable per set rather than baked into the exercise type.
-  const [byTime, setByTime] = useState(false);
 
   function handleLog() {
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
@@ -1911,26 +1920,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 
   return (
     <>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
         {contextBits.join(' · ')}
-      </div>
-      <div className="flex items-center justify-center gap-2 mb-2">
-        {bodyweight != null && bodyweightEligible && (
-          <button
-            onClick={() => setUseBodyweight((v) => !v)}
-            style={{ color: useBodyweight ? LIME : TEXT_SOFT }}
-            className="text-sm flex items-center gap-1"
-          >
-            <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> BW ({bodyweight})
-          </button>
-        )}
-        <button
-          onClick={() => setByTime((v) => !v)}
-          style={{ color: TEXT_SOFT }}
-          className="text-sm underline underline-offset-2"
-        >
-          {byTime ? 'switch to reps' : 'switch to seconds'}
-        </button>
       </div>
       <div className="flex items-end justify-center gap-2 mb-2.5">
         <label className="flex flex-col items-center gap-0.5">
@@ -1991,68 +1982,168 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   );
 }
 
-function ExerciseCard({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onMoveUp, onMoveDown, onRemove }) {
-  const nextSetNumber = loggedSets.length + 1;
-  const [collapsed, setCollapsed] = useState(false);
+// Swipe left reveals Swap/Edit/Delete — same reveal-a-drawer pattern as
+// Birdseye's goal rows (see GoalRow): the row's own content never moves,
+// three buttons slide in from off-screen to overlay it.
+function SwipeActions({ children, onSwap, onEdit, onRemove }) {
+  const [revealed, setRevealed] = useState(false);
+  const startX = useRef(0);
+  const dragging = useRef(false);
 
-  if (collapsed) {
-    return (
-      <button
-        onClick={() => setCollapsed(false)}
-        style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }}
-        className="w-full rounded-md px-4 py-2.5 flex items-center justify-between text-left"
-      >
-        <span style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5">
-          <Check size={14} color={LIME} /> {exercise.name}
-        </span>
-        <span style={{ color: TEXT_SOFT }} className="text-sm">
-          {loggedSets.length} set{loggedSets.length === 1 ? '' : 's'} logged
-        </span>
-      </button>
-    );
+  function handleTouchStart(e) {
+    startX.current = e.touches[0].clientX;
+    dragging.current = true;
+  }
+  function handleTouchMove(e) {
+    if (!dragging.current) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (dx < -30) setRevealed(true);
+    if (dx > 30) setRevealed(false);
+  }
+  function handleTouchEnd() {
+    dragging.current = false;
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={loggedSets.length > 0 ? () => setCollapsed(true) : null} />
-
-      {loggedSets.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
-          {loggedSets.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onDeleteSet(s.id)}
-              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
-              className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
-            >
-              {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
-              <X size={11} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      <WeightRepsInput exercise={exercise} style={style} bodyweight={bodyweight} last={last} onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => setCollapsed(true) : null} />
+    <div
+      data-no-swipe
+      className="relative rounded-md overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div
+        className="absolute right-0 top-0 bottom-0 flex z-10"
+        style={{ width: 144, transform: `translateX(${revealed ? 0 : 144}px)`, transition: 'transform 0.2s ease' }}
+      >
+        {onSwap && (
+          <button onClick={() => { onSwap(); setRevealed(false); }} style={{ background: LIME, color: INK }} className="flex-1 flex items-center justify-center">
+            <Replace size={16} />
+          </button>
+        )}
+        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
+          <SlidersHorizontal size={16} />
+        </button>
+        <button onClick={onRemove} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          <Trash2 size={16} />
+        </button>
+      </div>
+      <div className="relative bg-inherit">{children}</div>
     </div>
   );
 }
 
-function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onMoveUp, onMoveDown, onRemove }) {
+function ExerciseCard({
+  index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
+  isActive, onActivate, onCollapse,
+}) {
+  const nextSetNumber = loggedSets.length + 1;
+  const [showSettings, setShowSettings] = useState(false);
+  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
+  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
+  const [byTime, setByTime] = useState(false);
+
+  if (!isActive) {
+    return (
+      <SwipeActions onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove}>
+        <button
+          onClick={onActivate}
+          style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }}
+          className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+        >
+          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+          </span>
+          <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+            {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+          </span>
+        </button>
+      </SwipeActions>
+    );
+  }
+
+  return (
+    <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+      <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
+        <div className="flex items-center justify-between mb-1">
+          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+          </span>
+          <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
+            <ChevronUp size={16} />
+          </button>
+        </div>
+
+        {showSettings && (
+          <div style={{ background: INK_3 }} className="rounded-md px-3 py-2.5 mb-2.5 flex items-center justify-center gap-4">
+            <button onClick={() => setByTime((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
+              <Check size={12} style={{ opacity: byTime ? 1 : 0.25 }} /> Log by seconds
+            </button>
+            {bodyweightEligible && (
+              <button onClick={() => setUseBodyweight((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
+                <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight})
+              </button>
+            )}
+          </div>
+        )}
+
+        {loggedSets.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+            {loggedSets.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onDeleteSet(s.id)}
+                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+                className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+              >
+                {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                <X size={11} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <WeightRepsInput
+          exercise={exercise} style={style} bodyweight={bodyweight} last={last}
+          onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? onCollapse : null}
+          byTime={byTime} useBodyweight={useBodyweight}
+        />
+      </div>
+    </SwipeActions>
+  );
+}
+
+// Each superset member owns its own reps/seconds + bodyweight toggle —
+// supersets are rare enough that these stay inline rather than behind
+// a swipe-to-edit panel like the main list gets.
+function SupersetMemberInput(props) {
+  const bodyweightEligible = isBodyweightEligible(props.exercise?.name) && props.bodyweight != null;
+  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
+  const [byTime, setByTime] = useState(false);
+  return (
+    <>
+      <div className="flex items-center justify-center gap-3 mb-1.5">
+        <button onClick={() => setByTime((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2">
+          {byTime ? 'switch to reps' : 'switch to seconds'}
+        </button>
+        {bodyweightEligible && (
+          <button onClick={() => setUseBodyweight((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1">
+            <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> BW
+          </button>
+        )}
+      </div>
+      <WeightRepsInput {...props} byTime={byTime} useBodyweight={useBodyweight} />
+    </>
+  );
+}
+
+function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 mx-auto">
-          <Link2 size={12} color={LIME} />
-          <span style={{ color: LIME }} className="text-sm uppercase tracking-wide">Superset</span>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <button onClick={onMoveUp || undefined} disabled={!onMoveUp} style={{ color: onMoveUp ? TEXT_SOFT : INK_3 }} className="p-2 -m-1">
-            <ChevronUp size={14} />
-          </button>
-          <button onClick={onMoveDown || undefined} disabled={!onMoveDown} style={{ color: onMoveDown ? TEXT_SOFT : INK_3 }} className="p-2 -m-1">
-            <ChevronDown size={14} />
-          </button>
-        </div>
+      <div className="flex items-center justify-center gap-1.5 mb-2">
+        {index != null && <span style={{ color: TEXT_SOFT }} className="text-sm font-medium">{index}.</span>}
+        <Link2 size={12} color={LIME} />
+        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide">Superset</span>
       </div>
       <div className="space-y-4">
         {members.map((ex) => {
@@ -2060,7 +2151,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
           return (
             <div key={ex.index} style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3 first:border-0 first:pt-0">
               <div className="flex items-center justify-between mb-1">
-                <div style={{ color: PAPER }} className="text-sm font-medium mx-auto">{ex.name}</div>
+                <div style={{ color: PAPER }} className="text-base font-bold mx-auto">{ex.name}</div>
                 <div className="flex items-center gap-0.5">
                   <button onClick={() => onOpenSwap(ex.index)} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Swap for another exercise">
                     <Replace size={14} />
@@ -2088,7 +2179,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
                   ))}
                 </div>
               )}
-              <WeightRepsInput
+              <SupersetMemberInput
                 exercise={ex}
                 style={style}
                 bodyweight={bodyweight}
@@ -2104,7 +2195,7 @@ function SupersetCard({ members, style, bodyweight, sets, lastPerformance, onLog
   );
 }
 
-function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove, hrZones }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -2137,7 +2228,7 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
 
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
       )}
@@ -2178,7 +2269,7 @@ function AerobicCard({ exercise, movementType = 'aerobic', loggedSets, onLogSet,
   );
 }
 
-function FlexibilityCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp, onMoveDown, onRemove }) {
+function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
   const [seconds, setSeconds] = useState('');
   const nextSetNumber = loggedSets.length + 1;
 
@@ -2199,7 +2290,7 @@ function FlexibilityCard({ exercise, loggedSets, onLogSet, onDeleteSet, onMoveUp
 
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onRemove={onRemove} />
+      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
         Target: {exercise.sets} holds, {exercise.reps}
       </div>
