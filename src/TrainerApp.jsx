@@ -44,7 +44,7 @@ export default function TrainerApp() {
   const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
 
   return (
-    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh]">
+    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />

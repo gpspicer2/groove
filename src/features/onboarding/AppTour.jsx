@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../../Portal';
 import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../../theme';
-import { GROOVE_DEFINITIONS } from '../../GrooveSheet';
 
 // A real guided tour over the live app — dims everything but the thing
 // being explained, rather than standalone illustration slides. Each
@@ -16,41 +15,38 @@ import { GROOVE_DEFINITIONS } from '../../GrooveSheet';
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove", type: 'groove',
+    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove",
+    body: "Your space to move more, feel better, and actually stick with it. Tap the G in the corner anytime for what \"Groove\" means to us.",
   },
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Getting Around',
-    body: "This is your space to move more, feel better, and actually stick with it. Everything lives in four tabs along the top — Birdseye, Move, Journal, and Learn — and you can swipe left or right anywhere on the screen to move between them, same as tapping the tab names. Let's walk through what each one does.",
+    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Four Tabs, Swipe or Tap',
+    body: "Birdseye, Move, Journal, Learn — swipe left or right anywhere, or tap a name.",
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Birdseye is your weekly overview — the progress you're making towards your goals, your workout calendar, and the science behind your plan. It's the best place to check in and see how your week is shaping up.",
+    body: "Your weekly overview — progress, calendar, and the science behind your plan.",
   },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Your aerobic, resistance, and flexibility targets for the week. Tap a row to see a breakdown, or the pencil to adjust your goals.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', pos: 'bottom', color: LIME, title: 'Calendar', body: 'Every workout you log shows up here. Tap a day with a dot to view it, or an empty day to log one for that date.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Your Science & Strategy', body: "Your own plan, based on ACSM's exercise guidelines — including personal heart-rate zones once you've added a resting heart rate. Scroll up or down to see the whole thing." },
-  {
-    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: 'What Is ACSM?',
-    body: "The American College of Sports Medicine — the leading scientific authority on exercise. Their guidelines are built from decades of peer-reviewed research, not guesswork. Every recommendation you just saw reflects that same evidence base, and it's exactly what informs how I coach you.",
-  },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Tap a row for a breakdown, or the pencil to adjust it.' },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', pos: 'bottom', color: LIME, title: 'Calendar', body: 'A dot means a logged workout. Tap any day to view or log one.' },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Your Science & Strategy', body: "Your plan, from ACSM's exercise guidelines — with your own heart-rate zones once resting HR is set." },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Move is where you log your workouts — resistance, aerobic, flexibility, or a mix. Log one in the moment, or add one you already did on a past day.",
+    body: "Log resistance, aerobic, flexibility, or a mix — now or for a past day.",
   },
-  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Start a Workout', body: 'Pick where you are and what kind of movement, and Move builds the session for you. Use the toggle at the top to log today, or switch to a past day.' },
+  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Start a Workout', body: 'Pick where and what kind, and Move builds the session.' },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
-    body: "A few minutes of reflection after a session — or anytime you want to check in with yourself. It's private by default, just for you.",
+    body: "A private place to reflect, anytime — after a session or otherwise.",
   },
-  { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided post-movement check-in, or your own freeform prompt anytime. A few honest minutes here genuinely helps things stick.' },
+  { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided check-in, or your own freeform note.' },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
-    body: "Short, easy reads on the science behind why movement works — real research, minus the jargon. Think of it as a running list of reasons to move.",
+    body: "Short reads on the science behind why movement works.",
   },
-  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Reasons to Move', body: 'New tidbits get posted here regularly — check back for more.' },
+  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Reasons to Move', body: 'New ones posted regularly.' },
   {
-    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account Settings',
-    body: "Tap here to message me directly (right at the top), change your password or payment info, update your age, gender, or which day your week starts on, and manage your baseline data — including your intake questionnaire if you skipped it.",
+    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account',
+    body: "Message me, manage settings, and update your baseline data anytime.",
   },
 ];
 
@@ -302,24 +298,12 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
                 <span key={i} style={{ background: i === index ? step.color : '#3a2c42', width: i === index ? 16 : 5 }} className="h-1.5 rounded-full transition-all" />
               ))}
             </div>
-            <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">
+            <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold mb-2">
               {step.title}
             </div>
-            {step.type === 'groove' ? (
-              <div className="text-center space-y-3 mb-4">
-                {GROOVE_DEFINITIONS.map((d) => (
-                  <div key={d.term}>
-                    <div style={{ color: d.color }} className="text-sm uppercase tracking-wide font-bold mb-0.5">{d.term}</div>
-                    <div style={{ color: PAPER_DIM }} className="text-sm">{d.text}</div>
-                  </div>
-                ))}
-                <div style={{ color: TEXT_SOFT }} className="text-sm text-center pt-1">Tap the G in the corner anytime to see this again.</div>
-              </div>
-            ) : (
-              <div style={{ color: PAPER_DIM }} className="text-sm mb-4">
-                {step.body}
-              </div>
-            )}
+            <div style={{ color: PAPER_DIM }} className="text-base mb-4 leading-snug">
+              {step.body}
+            </div>
             <div className="flex items-center gap-3">
               {!isFirst && (
                 <button onClick={back} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-2">
@@ -339,7 +323,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         {phase === 'confirmSkipTour' && (
           <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm mb-5">
+            <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No worries — you can look around on your own instead.
             </div>
             <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
@@ -354,7 +338,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         {phase === 'exitPrompt' && (
           <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm mb-5">
+            <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               A few quick questions so I can actually coach you, not just hand you a generic plan. Takes about 10 minutes.
             </div>
             <button onClick={() => onComplete(true)} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
@@ -369,7 +353,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
         {phase === 'confirmSkip' && (
           <div style={{ background: INK, border: `1px solid ${BRICK}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: BRICK, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
-            <div style={{ color: PAPER_DIM }} className="text-sm mb-5">
+            <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               Without that info I'm really just guessing at how to help you. It only takes about 10 minutes, and you can pick it up anytime from Account → Baseline Data — no rush.
             </div>
             <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">

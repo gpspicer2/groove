@@ -44,7 +44,7 @@ export default function ClientApp() {
   const showTour = !profile.tour_done && !tourJustFinished;
 
   return (
-    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="h-[100svh] flex flex-col">
+    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="h-[100svh] flex flex-col">
       <div data-tour="app-header" style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           {tab === 'birdseye' ? (

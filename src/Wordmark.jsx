@@ -7,7 +7,7 @@ export default function Wordmark({ className = '', height = 28 }) {
       alt="GROOVE"
       height={height}
       className={className}
-      style={{ height, width: 'auto', display: 'inline-block' }}
+      style={{ height, width: 'auto' }}
     />
   );
 }

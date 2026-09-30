@@ -11,7 +11,7 @@ function Shell() {
   if (loading || (user && !profile)) {
     return (
       <div style={{ background: INK }} className="min-h-[100svh] flex items-center justify-center">
-        <span style={{ color: TEXT_SOFT, fontFamily: 'Inter, sans-serif' }} className="text-sm">Loading…</span>
+        <span style={{ color: TEXT_SOFT, fontFamily: 'Manrope, sans-serif' }} className="text-sm">Loading…</span>
       </div>
     );
   }

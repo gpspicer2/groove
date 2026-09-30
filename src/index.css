@@ -6,9 +6,22 @@
    white. Setting it here, app-wide, kills that regardless of exactly
    which element's height computation is a pixel short. Keep in sync with
    theme.js's INK constant. */
+html {
+  /* Nudges every Tailwind text-* size up uniformly (they're all rem-based)
+     without having to touch each component's classes individually —
+     feedback was that text throughout reads too small. */
+  font-size: 17.5px;
+}
+
 html, body {
   background: #EFE6D6;
   height: 100%;
+  /* Portal (see Portal.jsx) renders modals straight into document.body,
+     outside the app's own styled wrapper div — without a font set here,
+     every one of those (SwapPicker, IntensityGuideModal, etc.) silently
+     fell back to the browser's plain system default instead of the
+     app's actual font. */
+  font-family: 'Manrope', sans-serif;
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }

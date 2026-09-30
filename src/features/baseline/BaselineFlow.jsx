@@ -82,7 +82,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
 
   return (
     <Portal>
-    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="fixed inset-0 z-50 flex flex-col">
+    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 z-50 flex flex-col">
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />

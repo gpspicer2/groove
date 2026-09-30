@@ -34,7 +34,7 @@ export default function AuthScreen() {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Inter, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
+    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
       <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
         <Wordmark height={54} className="mb-6 mx-auto block" />
         <h1 style={{ color: accent, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-6">
