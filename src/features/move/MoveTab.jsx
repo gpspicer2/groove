@@ -986,12 +986,28 @@ function StartWorkout({
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
   const [pickingDate, setPickingDate] = useState(false);
+  // Tapping Start while something's missing used to just silently do
+  // nothing (the button was disabled, with no explanation) — which read
+  // as the app freezing. Now the button always responds: if something's
+  // missing, it flags which section needs attention instead of no-op'ing.
+  const [attemptedStart, setAttemptedStart] = useState(false);
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
 
   const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
   const needsActivities = movementMode === 'Aerobic' || movementMode === 'Combined';
   const needsFlexActivities = movementMode === 'Flexibility';
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
+
+  const styleMissing = attemptedStart && needsStyle && !selectedStyle;
+  const groupsMissing = attemptedStart && needsGroups && selectedGroups.length === 0;
+  const activitiesMissing = attemptedStart && needsActivities && selectedActivities.length === 0;
+  const flexActivitiesMissing = attemptedStart && needsFlexActivities && selectedFlexActivities.length === 0;
+  const modeMissing = attemptedStart && selectedLocation && !movementMode;
+
+  function handleStartClick() {
+    if (canStart) { onStart(); return; }
+    setAttemptedStart(true);
+  }
 
   const isToday = selectedDate === todayLocalISO();
   const friendlyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -1065,8 +1081,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && (
         <>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Workout Type
+          <div style={{ color: modeMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
             {MOVEMENT_MODES.map((mode) => {
@@ -1088,8 +1104,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsActivities && (
         <>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Aerobic Activity
+          <div style={{ color: activitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            Select Aerobic Activity{activitiesMissing ? ' — pick at least one to continue' : ''}
           </div>
           <ActivityPicker
             selectedActivities={selectedActivities}
@@ -1103,8 +1119,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsFlexActivities && (
         <>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Flexibility Activity
+          <div style={{ color: flexActivitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+            Select Flexibility Activity{flexActivitiesMissing ? ' — pick at least one to continue' : ''}
           </div>
           <ActivityPicker
             baseActivities={FLEXIBILITY_ACTIVITIES}
@@ -1119,8 +1135,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsGroups && (
         <>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
-            Select Targeted Muscle Groups
+          <div style={{ color: groupsMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
+            Select Targeted Muscle Groups{groupsMissing ? ' — pick at least one to continue' : ''}
           </div>
           <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
         </>
@@ -1128,7 +1144,9 @@ function StartWorkout({
 
       {selectedLocation && needsStyle && (
         <>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2 mt-3">Training style</div>
+          <div style={{ color: styleMissing ? BRICK : PAPER_DIM }} className="text-sm text-center mb-2 mt-3">
+            Training goal{styleMissing ? ' — pick one to continue' : ''}
+          </div>
           <div className="space-y-2 mb-5">
             {TRAINING_STYLES.map((style) => {
               const selected = selectedStyle === style;
@@ -1136,7 +1154,10 @@ function StartWorkout({
                 <button
                   key={style}
                   onClick={() => onSelectStyle(style)}
-                  style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
+                  style={{
+                    background: selected ? SKY : INK_3,
+                    borderLeft: `3px solid ${selected ? SKY : styleMissing ? BRICK : 'transparent'}`,
+                  }}
                   className="w-full text-center rounded-md px-4 py-2.5"
                 >
                   <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{style}</div>
@@ -1169,8 +1190,7 @@ function StartWorkout({
 
       {!showProgramOffer && (
         <button
-          onClick={onStart}
-          disabled={!canStart}
+          onClick={handleStartClick}
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
