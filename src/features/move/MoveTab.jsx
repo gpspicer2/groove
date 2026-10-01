@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
@@ -607,13 +607,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     setPlanExercises((prev) => [...prev, build(a), build(b)]);
   }
 
-  function addAerobic(name, targetNote) {
+  function addAerobic(name, targetNote, insertAt = null) {
     const trimmed = name.trim();
     if (!trimmed) return;
-    setPlanExercises((prev) => [
-      ...prev,
-      { name: trimmed, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: targetNote.trim() },
-    ]);
+    const newEx = { name: trimmed, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: targetNote.trim() };
+    setPlanExercises((prev) => {
+      if (insertAt == null || insertAt >= prev.length) return [...prev, newEx];
+      return [...prev.slice(0, insertAt), newEx, ...prev.slice(insertAt)];
+    });
     upgradeToCombinedIfNeeded('aerobic');
   }
 
@@ -1005,7 +1006,6 @@ function StartWorkout({
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
-  const [pickingDate, setPickingDate] = useState(false);
   // Tapping Start while something's missing used to just silently do
   // nothing (the button was disabled, with no explanation) — which read
   // as the app freezing. Now the button always responds: if something's
@@ -1042,26 +1042,29 @@ function StartWorkout({
         >
           Today
         </button>
-        <button
-          onClick={() => setPickingDate((v) => !v)}
-          style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
-          className="rounded-full px-3.5 py-1.5 text-sm font-medium"
-        >
-          {isToday ? 'Past Date' : friendlyDate}
-        </button>
-      </div>
-      {pickingDate && (
-        <div className="flex justify-center mb-5">
+        <div className="relative">
+          <button
+            type="button"
+            tabIndex={-1}
+            style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
+            className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+          >
+            {isToday ? 'Past Date' : friendlyDate}
+          </button>
+          {/* An invisible native date input sits directly on top of the
+              button so tapping it opens the OS calendar picker in one
+              tap, instead of first revealing this input and requiring a
+              second tap on it. */}
           <input
             type="date"
             value={selectedDate}
             max={todayLocalISO()}
-            onChange={(e) => { if (e.target.value) { onSelectDate(e.target.value); setPickingDate(false); } }}
-            style={{ background: INK_3, color: PAPER, colorScheme: 'dark' }}
-            className="rounded-md px-3 py-2 text-sm outline-none"
+            onChange={(e) => { if (e.target.value) onSelectDate(e.target.value); }}
+            style={{ colorScheme: 'dark' }}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </div>
-      )}
+      </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
         {isToday ? 'Where are you working out today?' : 'Where did you work out?'}
       </div>
@@ -1105,7 +1108,12 @@ function StartWorkout({
             Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
-            {MOVEMENT_MODES.map((mode) => {
+            {/* Combined isn't a pickable starting mode — it's what a
+                Resistance (or Aerobic) workout becomes automatically once
+                you add the other type mid-session (see
+                upgradeToCombinedIfNeeded), so nobody has to commit to it
+                up front. */}
+            {MOVEMENT_MODES.filter((mode) => mode !== 'Combined').map((mode) => {
               const selected = movementMode === mode;
               return (
                 <button
@@ -1302,6 +1310,27 @@ function ActiveWorkout({
     setAddMode(null);
   }
 
+  const canQuickAddAerobic = workout.movementMode === 'Resistance' || workout.movementMode === 'Combined';
+  // insertAt is the flat planExercises index to splice the new aerobic
+  // entry into — null (or past the end) just appends, so the same
+  // handler covers "before the first exercise", "between two exercises",
+  // and "after the last one".
+  function submitQuickAerobic(name, intensity, minutes, insertAt) {
+    onAddAerobic(name, '', insertAt);
+    onLogSet({
+      exerciseName: name,
+      muscleGroup: 'Cardio',
+      setNumber: 1,
+      movementType: 'aerobic',
+      weight: null,
+      reps: null,
+      durationSeconds: minutes * 60,
+      lightMinutes: intensity === 'Light' ? minutes : null,
+      moderateMinutes: intensity === 'Moderate' ? minutes : null,
+      vigorousMinutes: intensity === 'Vigorous' ? minutes : null,
+    });
+  }
+
   function startRest(groupIndex) {
     setRestStartedAt(Date.now());
     setRestGroupIndex(groupIndex);
@@ -1354,6 +1383,11 @@ function ActiveWorkout({
       </div>
 
       <div className="space-y-3 mb-4">
+        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && (
+          <QuickAerobicButton
+            onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
+          />
+        )}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
           // Keyed by name (already the app's implicit unique identifier for
@@ -1430,59 +1464,47 @@ function ActiveWorkout({
           }
 
           const isDragging = draggingIndex === gi;
+          const nextGroup = groups[gi + 1];
+          const insertAfter = nextGroup ? nextGroup[0].index : exercises.length;
           return (
-            <div
-              key={groupKey}
-              ref={(el) => (groupRefs.current[gi] = el)}
-              style={{
-                opacity: isDragging ? 0.9 : 1,
-                transform: isDragging ? `translateY(${dragOffsetY}px)` : 'none',
-                position: isDragging ? 'relative' : 'static',
-                zIndex: isDragging ? 20 : 'auto',
-                boxShadow: isDragging ? '0 8px 20px rgba(0,0,0,0.25)' : 'none',
-                transition: isDragging ? 'none' : 'transform 0.15s ease',
-              }}
-              className="flex items-stretch gap-1"
-            >
-              <div className="flex-1 min-w-0 space-y-3">
-                {card}
-                {showRest && <RestBanner />}
-              </div>
-              <button
-                onPointerDown={(e) => handleDragStart(e, gi)}
-                onPointerMove={handleDragMove}
-                onPointerUp={handleDragEnd}
-                onPointerCancel={handleDragEnd}
-                style={{ color: TEXT_SOFT, touchAction: 'none' }}
-                className="shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                title="Drag to reorder"
+            <Fragment key={groupKey}>
+              <div
+                ref={(el) => (groupRefs.current[gi] = el)}
+                style={{
+                  opacity: isDragging ? 0.9 : 1,
+                  transform: isDragging ? `translateY(${dragOffsetY}px)` : 'none',
+                  position: isDragging ? 'relative' : 'static',
+                  zIndex: isDragging ? 20 : 'auto',
+                  boxShadow: isDragging ? '0 8px 20px rgba(0,0,0,0.25)' : 'none',
+                  transition: isDragging ? 'none' : 'transform 0.15s ease',
+                }}
+                className="flex items-stretch gap-1"
               >
-                <GripVertical size={16} />
-              </button>
-            </div>
+                <div className="flex-1 min-w-0 space-y-3">
+                  {card}
+                  {showRest && <RestBanner />}
+                </div>
+                <button
+                  onPointerDown={(e) => handleDragStart(e, gi)}
+                  onPointerMove={handleDragMove}
+                  onPointerUp={handleDragEnd}
+                  onPointerCancel={handleDragEnd}
+                  style={{ color: TEXT_SOFT, touchAction: 'none' }}
+                  className="shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                  title="Drag to reorder"
+                >
+                  <GripVertical size={16} />
+                </button>
+              </div>
+              {canQuickAddAerobic && !addMenuOpen && (
+                <QuickAerobicButton
+                  onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
+                />
+              )}
+            </Fragment>
           );
         })}
       </div>
-
-      {(workout.movementMode === 'Resistance' || workout.movementMode === 'Combined') && !addMenuOpen && (
-        <QuickAerobicButton
-          onSubmit={(name, intensity, minutes) => {
-            onAddAerobic(name, '');
-            onLogSet({
-              exerciseName: name,
-              muscleGroup: 'Cardio',
-              setNumber: 1,
-              movementType: 'aerobic',
-              weight: null,
-              reps: null,
-              durationSeconds: minutes * 60,
-              lightMinutes: intensity === 'Light' ? minutes : null,
-              moderateMinutes: intensity === 'Moderate' ? minutes : null,
-              vigorousMinutes: intensity === 'Vigorous' ? minutes : null,
-            });
-          }}
-        />
-      )}
 
       {addMenuOpen ? (
         addMode === null ? (
@@ -1495,9 +1517,14 @@ function ActiveWorkout({
               <button onClick={() => setAddMode('superset')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
                 Superset (two paired exercises)
               </button>
-              <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Aerobic / cardio
-              </button>
+              {/* Add Aerobic Activity above already covers cardio — only
+                  offer this extra path when the workout can't reach that
+                  quick button (Aerobic-only or Flexibility workouts). */}
+              {!canQuickAddAerobic && (
+                <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                  Aerobic / cardio
+                </button>
+              )}
               <button onClick={closeAddForm} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
                 Cancel
               </button>
@@ -1529,7 +1556,7 @@ function ActiveWorkout({
           style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
           className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
         >
-          <Plus size={14} /> Add to Workout
+          <Plus size={14} /> {workout.movementMode === 'Resistance' ? 'Add Resistance Exercise' : 'Add to Workout'}
         </button>
       )}
 
@@ -1575,7 +1602,7 @@ function QuickAerobicButton({ onSubmit }) {
         style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
         className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
       >
-        <Plus size={14} /> Add aerobic activity
+        <Plus size={14} /> Add Aerobic Activity
       </button>
     );
   }
@@ -2106,6 +2133,21 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
   const startX = useRef(0);
   const dragging = useRef(false);
 
+  // A drawer left open while scrolling past it (or after a swipe to a
+  // different tab and back) reads as stuck/broken rather than open on
+  // purpose — same fix as GoalRow's.
+  useEffect(() => {
+    if (!revealed) return;
+    const scroller = document.getElementById('app-scroll');
+    if (!scroller) return;
+    const startTop = scroller.scrollTop;
+    function onScroll() {
+      if (Math.abs(scroller.scrollTop - startTop) > 40) setRevealed(false);
+    }
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [revealed]);
+
   function handleTouchStart(e) {
     startX.current = e.touches[0].clientX;
     dragging.current = true;
@@ -2123,6 +2165,7 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
   return (
     <div
       data-no-swipe
+      style={{ touchAction: 'pan-y' }}
       className="relative rounded-md overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -2232,78 +2275,96 @@ function ExerciseCard({
 // Each superset member owns its own reps/seconds + bodyweight toggle —
 // supersets are rare enough that these stay inline rather than behind
 // a swipe-to-edit panel like the main list gets.
-function SupersetMemberInput(props) {
-  const bodyweightEligible = isBodyweightEligible(props.exercise?.name) && props.bodyweight != null;
+// One member of a superset pair — gets the same swipe-to-edit/delete
+// treatment and collapsed-settings-behind-Edit pattern as a standalone
+// ExerciseCard, so the gesture is consistent everywhere in a workout
+// rather than supersets being the one place with permanent inline
+// toggles and tap-target icon buttons instead.
+function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, nextSetNumber }) {
+  const [showSettings, setShowSettings] = useState(false);
+  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
   const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
   const [byTime, setByTime] = useState(false);
+
   return (
-    <>
-      <div className="flex items-center justify-center gap-3 mb-1.5">
-        <button onClick={() => setByTime((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2">
-          {byTime ? 'switch to reps' : 'switch to seconds'}
-        </button>
-        {bodyweightEligible && (
-          <button onClick={() => setUseBodyweight((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1">
-            <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> BW
-          </button>
+    <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+      <div>
+        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1">{exercise.name}</div>
+        {showSettings && (
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <button
+              onClick={() => setByTime((v) => !v)}
+              style={{ background: INK_3, color: PAPER }}
+              className="text-sm rounded-md px-3 py-1.5"
+            >
+              {byTime ? 'Log by reps' : 'Log by seconds'}
+            </button>
+            {bodyweightEligible && (
+              <button
+                onClick={() => setUseBodyweight((v) => !v)}
+                style={{ background: INK_3, color: PAPER }}
+                className="text-sm rounded-md px-3 py-1.5 flex items-center gap-1"
+              >
+                <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight})
+              </button>
+            )}
+          </div>
         )}
+        {loggedSets.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+            {loggedSets.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onDeleteSet(s.id)}
+                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+                className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+              >
+                {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                <X size={11} />
+              </button>
+            ))}
+          </div>
+        )}
+        <WeightRepsInput
+          exercise={exercise}
+          style={style}
+          bodyweight={bodyweight}
+          last={last}
+          onLog={onLogSet}
+          nextSetNumber={nextSetNumber}
+          byTime={byTime}
+          useBodyweight={useBodyweight}
+        />
       </div>
-      <WeightRepsInput {...props} byTime={byTime} useBodyweight={useBodyweight} />
-    </>
+    </SwipeActions>
   );
 }
 
 function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
-      <div className="flex items-center justify-center gap-1.5 mb-2">
+      <div className="flex items-center justify-center gap-1.5 mb-3">
         {index != null && <span style={{ color: TEXT_SOFT }} className="text-sm font-medium">{index}.</span>}
         <Link2 size={12} color={LIME} />
         <span style={{ color: LIME }} className="text-sm uppercase tracking-wide">Superset</span>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-3">
         {members.map((ex) => {
           const loggedSets = sets.filter((s) => s.exerciseName === ex.name);
           return (
-            <div key={ex.index} style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3 first:border-0 first:pt-0">
-              <div className="flex items-center justify-between mb-1">
-                <div style={{ color: PAPER }} className="text-base font-bold mx-auto">{ex.name}</div>
-                <div className="flex items-center gap-0.5">
-                  <button onClick={() => onOpenSwap(ex.index)} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Swap for another exercise">
-                    <Replace size={14} />
-                  </button>
-                  <button onClick={() => onRemove(ex.index, loggedSets.length > 0)} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
-                Target: {ex.sets} sets × {ex.reps}
-              </div>
-              {loggedSets.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-1.5 mb-2">
-                  {loggedSets.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => onDeleteSet(s.id)}
-                      style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
-                      className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
-                    >
-                      {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
-                      <X size={11} />
-                    </button>
-                  ))}
-                </div>
-              )}
-              <SupersetMemberInput
-                exercise={ex}
-                style={style}
-                bodyweight={bodyweight}
-                last={lastPerformance(ex.name)}
-                onLog={(payload) => onLogSet({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup })}
-                nextSetNumber={loggedSets.length + 1}
-              />
-            </div>
+            <SupersetMember
+              key={ex.index}
+              exercise={ex}
+              style={style}
+              bodyweight={bodyweight}
+              loggedSets={loggedSets}
+              last={lastPerformance(ex.name)}
+              onLogSet={(payload) => onLogSet({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup })}
+              onDeleteSet={onDeleteSet}
+              onOpenSwap={() => onOpenSwap(ex.index)}
+              onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
+              nextSetNumber={loggedSets.length + 1}
+            />
           );
         })}
       </div>
