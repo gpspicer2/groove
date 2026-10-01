@@ -3,6 +3,7 @@ import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVer
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
+import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER } from '../../theme';
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
@@ -1295,6 +1296,8 @@ function ActiveWorkout({
   const [restElapsed, setRestElapsed] = useState(0);
 
   const groups = groupPlan(exercises);
+  // Recomputed fresh every render — see the dupeCount disambiguation below.
+  const groupKeyCounts = new Map();
   const total = Math.round(totalWeightLifted(sets));
 
   useEffect(() => {
@@ -1345,7 +1348,7 @@ function ActiveWorkout({
 
   function handleResistanceLog(payload, groupIndex) {
     onLogSet(payload);
-    startRest(groupIndex);
+    if (getAutoStartRestTimer()) startRest(groupIndex);
   }
 
   const restTarget = STYLE_CONFIG[workout.style]?.restSeconds || 90;
@@ -1396,7 +1399,15 @@ function ActiveWorkout({
           // above is reassigned by groupPlan on every render, so keying on
           // it would remount each card's local state (like the collapsed
           // "Done" toggle) whenever reordering shifted its position.
-          const groupKey = group.length === 2 ? `superset-${group[0].name}-${group[1].name}` : `${group[0].type || 'ex'}-${group[0].name}`;
+          const baseGroupKey = group.length === 2 ? `superset-${group[0].name}-${group[1].name}` : `${group[0].type || 'ex'}-${group[0].name}`;
+          // generateWorkout no longer lets two groups share a name, but a
+          // manually-added exercise still can — two same-key cards used to
+          // make React confuse which DOM node is which, visibly corrupting
+          // both drag-reorder and swipe-to-edit. Disambiguate by how many
+          // times this base key has already shown up earlier in the list.
+          const dupeCount = groupKeyCounts.get(baseGroupKey) || 0;
+          groupKeyCounts.set(baseGroupKey, dupeCount + 1);
+          const groupKey = dupeCount === 0 ? baseGroupKey : `${baseGroupKey}#${dupeCount}`;
           const displayIndex = gi + 1;
           let card;
 

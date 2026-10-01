@@ -91,7 +91,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Leg Curl', sets: 3, reps: '10-15', equipment: 'machine' },
     { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
     { name: 'Nordic Curl (assisted)', sets: 3, reps: '6-10', equipment: 'bodyweight' },
-    { name: 'Good Morning', sets: 3, reps: '10-12', equipment: 'barbell' },
+    { name: 'Seated Hamstring Curl', sets: 3, reps: '10-15', equipment: 'machine' },
   ],
   Glutes: [
     { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'barbell' },
@@ -252,6 +252,28 @@ function isCompound(name) {
 
 const MAX_EXERCISES = 6;
 
+// A leg day with no squat/leg-press variation anywhere in it is missing
+// the single most load-bearing lower-body movement — guaranteed below
+// rather than left to chance shuffling.
+const LEG_GROUPS = ['Legs', 'Quadriceps', 'Glutes'];
+const SQUAT_PATTERN = /Squat|Leg Press/i;
+function ensureSquatVariation(final, muscleGroups, style, location, recentNames) {
+  if (!muscleGroups.some((g) => LEG_GROUPS.includes(g))) return final;
+  if (final.some((ex) => SQUAT_PATTERN.test(ex.name))) return final;
+  const styleConfig = STYLE_CONFIG[style] || {};
+  for (const group of LEG_GROUPS) {
+    if (!muscleGroups.includes(group)) continue;
+    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => SQUAT_PATTERN.test(e.name));
+    if (pool.length === 0) continue;
+    const pick = pool.find((e) => !recentNames.includes(e.name)) || pool[0];
+    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
+    // Bump the lowest-priority pick (the list is already sorted
+    // barbell-compound-first) rather than growing past MAX_EXERCISES.
+    return [...final.slice(0, -1), added];
+  }
+  return final;
+}
+
 // Picks `count` exercises per selected muscle group, preferring ones not
 // in `recentNames` (last workout's picks) so back-to-back sessions don't
 // look identical — falls back to repeats only if a group runs out of
@@ -262,12 +284,20 @@ const MAX_EXERCISES = 6;
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
+  // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
+  // listed under more than one muscle group on purpose, so two different
+  // groups can otherwise both pick the exact same exercise into one
+  // workout — a duplicate name, which breaks name-keyed UI state (the
+  // active/collapsed exercise cards) downstream. Track what's already
+  // picked and skip repeats.
+  const usedNames = new Set();
   for (const group of muscleGroups) {
-    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location);
+    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => !usedNames.has(e.name));
     const fresh = pool.filter((e) => !recentNames.includes(e.name));
     const stale = pool.filter((e) => recentNames.includes(e.name));
     const ordered = [...shuffle(fresh), ...shuffle(stale)];
     for (const ex of ordered.slice(0, perGroup)) {
+      usedNames.add(ex.name);
       picked.push({
         ...ex,
         muscleGroup: group,
@@ -286,7 +316,12 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     .map(({ ex }) => ex);
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
-  return ordered.slice(0, MAX_EXERCISES);
+  const capped = ordered.slice(0, MAX_EXERCISES);
+  const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames);
+  return withSquat
+    .map((ex, i) => ({ ex, i }))
+    .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
+    .map(({ ex }) => ex);
 }
 
 function parseRepRange(repsStr) {

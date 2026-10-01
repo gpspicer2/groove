@@ -10,6 +10,7 @@ import BaselineFlow from './features/baseline/BaselineFlow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
+import { getAutoStartRestTimer, setAutoStartRestTimer } from './restPreference';
 
 export default function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -611,6 +612,7 @@ function BaselineDataSection({ userId }) {
 function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMovements }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [autoStartRest, setAutoStartRest] = useState(getAutoStartRestTimer);
 
   return (
     <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
@@ -641,6 +643,24 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
               );
             })}
           </div>
+
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Rest Timer</div>
+          <button
+            onClick={() => { const next = !autoStartRest; setAutoStartRest(next); setAutoStartRestTimer(next); }}
+            style={{ background: INK_2 }}
+            className="w-full rounded-md px-4 py-2.5 mb-2 flex items-center justify-between text-left"
+          >
+            <span style={{ color: PAPER }} className="text-sm">Auto-start after logging a set</span>
+            <span
+              style={{ background: autoStartRest ? LIME : INK_3 }}
+              className="relative shrink-0 w-10 h-6 rounded-full"
+            >
+              <span
+                style={{ background: PAPER, transform: autoStartRest ? 'translateX(16px)' : 'translateX(2px)' }}
+                className="absolute top-0.5 w-5 h-5 rounded-full transition-transform"
+              />
+            </span>
+          </button>
 
           <DeletedWorkoutsSection userId={userId} />
         </div>
