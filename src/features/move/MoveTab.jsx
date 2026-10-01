@@ -1274,7 +1274,12 @@ function ActiveWorkout({
           let closestIndex = state.fromIndex;
           let closestDist = Infinity;
           groupRefs.current.forEach((el, i) => {
-            if (!el) return;
+            // The dragged row's own rect is still carrying the live
+            // translateY(dragOffsetY) at this instant — it moves in
+            // lockstep with the touch, so it always reads as "closest to
+            // itself" and the drop position never resolves to anywhere
+            // else. Only compare against the OTHER (static) rows.
+            if (!el || i === state.fromIndex) return;
             const rect = el.getBoundingClientRect();
             const mid = rect.top + rect.height / 2;
             const dist = Math.abs(y - mid);
