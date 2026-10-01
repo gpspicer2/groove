@@ -1295,22 +1295,30 @@ function ActiveWorkout({
   // PointerEvents in testing) pointed straight at that gap.
   function handleDragStart(e, gi) {
     const t = e.touches[0];
-    dragStateRef.current = { fromIndex: gi, startY: t.clientY };
+    dragStateRef.current = { fromIndex: gi, startY: t.clientY, touchId: t.identifier };
     setDraggingIndex(gi);
     setDragOffsetY(0);
+  }
+
+  // A second touch landing anywhere on screen (a bracing thumb, a palm
+  // edge) still shows up in e.touches — touches[0] isn't necessarily the
+  // same finger that started the drag, so track it by identifier instead
+  // of position.
+  function findDragTouch(e, state) {
+    return [...e.touches].find((t) => t.identifier === state.touchId) || e.touches[0];
   }
 
   function handleDragMove(e) {
     const state = dragStateRef.current;
     if (!state) return;
-    const t = e.touches[0];
+    const t = findDragTouch(e, state);
     setDragOffsetY(t.clientY - state.startY);
   }
 
   function handleDragEnd(e) {
     const state = dragStateRef.current;
     if (state) {
-      const t = e.changedTouches[0];
+      const t = [...e.changedTouches].find((ct) => ct.identifier === state.touchId) || e.changedTouches[0];
       const y = t.clientY;
       let closestIndex = state.fromIndex;
       let closestDist = Infinity;
