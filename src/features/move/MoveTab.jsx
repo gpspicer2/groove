@@ -1537,12 +1537,27 @@ function ActiveWorkout({
                   {showRest && <RestBanner />}
                 </div>
                 <button
-                  onTouchStart={(e) => handleDragStart(e, gi)}
-                  onTouchMove={handleDragMove}
+                  data-no-swipe
+                  onTouchStart={(e) => { e.preventDefault(); handleDragStart(e, gi); }}
+                  onTouchMove={(e) => { e.preventDefault(); handleDragMove(e); }}
                   onTouchEnd={handleDragEnd}
                   onTouchCancel={handleDragEnd}
-                  style={{ color: TEXT_SOFT, touchAction: 'none' }}
-                  className="shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                  style={{
+                    color: TEXT_SOFT,
+                    touchAction: 'none',
+                    // 24px was under Apple's 44pt minimum tap-target
+                    // guidance — on a real finger that's easy to miss by
+                    // a few pixels, landing the touch on the card next
+                    // to it instead and the drag never starting. Also
+                    // suppress iOS's long-press callout/selection, which
+                    // can hijack a press-and-hold-then-move gesture like
+                    // this one before our own handlers see it.
+                    WebkitTouchCallout: 'none',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  className="shrink-0 w-11 flex items-center justify-center cursor-grab active:cursor-grabbing"
                   title="Drag to reorder"
                 >
                   <GripVertical size={16} />
@@ -1865,9 +1880,9 @@ function AddSupersetForm({ muscleGroups, location, onAdd, onCancel }) {
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-3 text-center">
         Paired exercises, done back-to-back with no rest between them.
       </div>
-      <MovementPicker label="Movement 1" group={groupA} setGroup={setGroupA} name={nameA} setName={setNameA} location={location} />
+      <MovementPicker label="Exercise 1" group={groupA} setGroup={setGroupA} name={nameA} setName={setNameA} location={location} />
       <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3">
-        <MovementPicker label="Movement 2" group={groupB} setGroup={setGroupB} name={nameB} setName={setNameB} location={location} />
+        <MovementPicker label="Exercise 2" group={groupB} setGroup={setGroupB} name={nameB} setName={setNameB} location={location} />
       </div>
       <div className="flex items-center gap-2">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">
