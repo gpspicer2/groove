@@ -1014,6 +1014,28 @@ function StartWorkout({
   const [attemptedStart, setAttemptedStart] = useState(false);
   const showProgramOffer = assignedProgram && selectedLocation && !skipProgram;
 
+  // Each answered question auto-scrolls so its own heading sits at the
+  // top of the screen — the newly-revealed next question lands right
+  // below it, already in view, instead of being left off-screen below
+  // the fold. Scrolling to the question just answered (rather than the
+  // new one) keeps that one visible too, matching "previous question up
+  // top, followed by the next one."
+  const locationHeadingRef = useRef(null);
+  const modeHeadingRef = useRef(null);
+  const activitiesHeadingRef = useRef(null);
+  const flexActivitiesHeadingRef = useRef(null);
+  const groupsHeadingRef = useRef(null);
+  const styleHeadingRef = useRef(null);
+  function scrollHeadingToTop(ref) {
+    requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+  useEffect(() => { if (selectedLocation) scrollHeadingToTop(locationHeadingRef); }, [selectedLocation]);
+  useEffect(() => { if (movementMode) scrollHeadingToTop(modeHeadingRef); }, [movementMode]);
+  useEffect(() => { if (selectedActivities.length > 0) scrollHeadingToTop(activitiesHeadingRef); }, [selectedActivities.length]);
+  useEffect(() => { if (selectedFlexActivities.length > 0) scrollHeadingToTop(flexActivitiesHeadingRef); }, [selectedFlexActivities.length]);
+  useEffect(() => { if (selectedGroups.length > 0) scrollHeadingToTop(groupsHeadingRef); }, [selectedGroups.length]);
+  useEffect(() => { if (selectedStyle) scrollHeadingToTop(styleHeadingRef); }, [selectedStyle]);
+
   const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
   const needsActivities = movementMode === 'Aerobic' || movementMode === 'Combined';
   const needsFlexActivities = movementMode === 'Flexibility';
@@ -1037,7 +1059,7 @@ function StartWorkout({
     <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div className="flex items-center justify-center gap-2 mb-5">
         <button
-          onClick={() => { onSelectDate(todayLocalISO()); setPickingDate(false); }}
+          onClick={() => onSelectDate(todayLocalISO())}
           style={{ background: isToday ? SKY : INK_3, color: isToday ? INK : PAPER_DIM }}
           className="rounded-full px-3.5 py-1.5 text-sm font-medium"
         >
@@ -1066,7 +1088,7 @@ function StartWorkout({
           />
         </div>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+      <div ref={locationHeadingRef} style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
         {isToday ? 'Where are you working out today?' : 'Where did you work out?'}
       </div>
       <div className="space-y-2 mb-5">
@@ -1105,7 +1127,7 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && (
         <>
-          <div style={{ color: modeMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+          <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
@@ -1133,7 +1155,7 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsActivities && (
         <>
-          <div style={{ color: activitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+          <div ref={activitiesHeadingRef} style={{ color: activitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             Select Aerobic Activity{activitiesMissing ? ' — pick at least one to continue' : ''}
           </div>
           <ActivityPicker
@@ -1148,7 +1170,7 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsFlexActivities && (
         <>
-          <div style={{ color: flexActivitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
+          <div ref={flexActivitiesHeadingRef} style={{ color: flexActivitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             Select Flexibility Activity{flexActivitiesMissing ? ' — pick at least one to continue' : ''}
           </div>
           <ActivityPicker
@@ -1164,7 +1186,7 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsGroups && (
         <>
-          <div style={{ color: groupsMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
+          <div ref={groupsHeadingRef} style={{ color: groupsMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
             Select Targeted Muscle Groups{groupsMissing ? ' — pick at least one to continue' : ''}
           </div>
           <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
@@ -1173,7 +1195,7 @@ function StartWorkout({
 
       {selectedLocation && needsStyle && (
         <>
-          <div style={{ color: styleMissing ? BRICK : PAPER_DIM }} className="text-sm text-center mb-2 mt-3">
+          <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER_DIM }} className="text-sm text-center mb-2 mt-3">
             Training goal{styleMissing ? ' — pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
