@@ -1265,25 +1265,31 @@ function ActiveWorkout({
   const [draggingIndex, setDraggingIndex] = useState(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
 
+  // Touch events, not Pointer Events: this app's one other drag-like
+  // gesture (SwipeActions' swipe-to-reveal) uses raw touch events and is
+  // proven reliable on real phones, where Safari's pointer-capture
+  // handling has a history of being flaky — reordering silently doing
+  // nothing on a real device (but working fine via synthetic
+  // PointerEvents in testing) pointed straight at that gap.
   function handleDragStart(e, gi) {
-    e.preventDefault();
-    dragStateRef.current = { fromIndex: gi, startY: e.clientY, pointerId: e.pointerId };
+    const t = e.touches[0];
+    dragStateRef.current = { fromIndex: gi, startY: t.clientY };
     setDraggingIndex(gi);
     setDragOffsetY(0);
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handleDragMove(e) {
     const state = dragStateRef.current;
     if (!state) return;
-    setDragOffsetY(e.clientY - state.startY);
+    const t = e.touches[0];
+    setDragOffsetY(t.clientY - state.startY);
   }
 
   function handleDragEnd(e) {
     const state = dragStateRef.current;
     if (state) {
-      try { e.currentTarget.releasePointerCapture(state.pointerId); } catch { /* already released */ }
-      const y = e.clientY;
+      const t = e.changedTouches[0];
+      const y = t.clientY;
       let closestIndex = state.fromIndex;
       let closestDist = Infinity;
       groupRefs.current.forEach((el, i) => {
@@ -1509,10 +1515,10 @@ function ActiveWorkout({
                   {showRest && <RestBanner />}
                 </div>
                 <button
-                  onPointerDown={(e) => handleDragStart(e, gi)}
-                  onPointerMove={handleDragMove}
-                  onPointerUp={handleDragEnd}
-                  onPointerCancel={handleDragEnd}
+                  onTouchStart={(e) => handleDragStart(e, gi)}
+                  onTouchMove={handleDragMove}
+                  onTouchEnd={handleDragEnd}
+                  onTouchCancel={handleDragEnd}
                   style={{ color: TEXT_SOFT, touchAction: 'none' }}
                   className="shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
                   title="Drag to reorder"
@@ -2215,6 +2221,21 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
     dragging.current = false;
   }
 
+  // A real swipe-then-tap is usually one continuous gesture that ends
+  // with the finger already resting on whichever button it revealed —
+  // but a browser's synthesized "click" fires on whatever element was
+  // under the *touchstart*, not the touchend, so a button that only
+  // existed once the drawer was revealed never gets a click at all. Its
+  // own touchend (which does hit-test at the final, current position)
+  // fires the action directly instead; preventDefault stops the
+  // following synthetic mouse/click events so it doesn't also double-fire.
+  function tapHandlers(action) {
+    return {
+      onClick: action,
+      onTouchEnd: (e) => { e.preventDefault(); e.stopPropagation(); action(); },
+    };
+  }
+
   return (
     <div
       data-no-swipe
@@ -2229,14 +2250,14 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
         style={{ width: 144, transform: `translateX(${revealed ? 0 : 144}px)`, transition: 'transform 0.2s ease' }}
       >
         {onSwap && (
-          <button onClick={() => { onSwap(); setRevealed(false); }} style={{ background: LIME, color: INK }} className="flex-1 flex items-center justify-center">
+          <button {...tapHandlers(() => { onSwap(); setRevealed(false); })} style={{ background: LIME, color: INK }} className="flex-1 flex items-center justify-center">
             <Replace size={16} />
           </button>
         )}
-        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
+        <button {...tapHandlers(() => { onEdit(); setRevealed(false); })} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <SlidersHorizontal size={16} />
         </button>
-        <button onClick={onRemove} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+        <button {...tapHandlers(onRemove)} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
           <Trash2 size={16} />
         </button>
       </div>
