@@ -1237,53 +1237,63 @@ function ActiveWorkout({
   const [draggingIndex, setDraggingIndex] = useState(null);
   const [dragOffsetY, setDragOffsetY] = useState(0);
 
-  // Touch events, not Pointer Events: this app's one other drag-like
-  // gesture (SwipeActions' swipe-to-reveal) uses raw touch events and is
-  // proven reliable on real phones, where Safari's pointer-capture
-  // handling has a history of being flaky — reordering silently doing
-  // nothing on a real device (but working fine via synthetic
-  // PointerEvents in testing) pointed straight at that gap.
+  // React attaches its synthetic touchstart/touchmove listeners as
+  // passive by default, so e.preventDefault() inside an onTouchMove prop
+  // silently does nothing — touch-action:none was carrying the entire
+  // burden of blocking native scroll, with no fallback if the browser's
+  // gesture-arbitration timing didn't cooperate. Registering the
+  // move/end listeners on window directly (passive:false, same pattern
+  // as native drag-and-drop libraries) makes preventDefault actually work
+  // and decouples the gesture from any particular DOM node staying
+  // mounted/unchanged for its whole duration — both plausible sources of
+  // the drag working only "some of the time."
   function handleDragStart(e, gi) {
     const t = e.touches[0];
-    dragStateRef.current = { fromIndex: gi, startY: t.clientY, touchId: t.identifier };
+    const state = { fromIndex: gi, startY: t.clientY, touchId: t.identifier };
+    dragStateRef.current = state;
     setDraggingIndex(gi);
     setDragOffsetY(0);
-  }
 
-  // A second touch landing anywhere on screen (a bracing thumb, a palm
-  // edge) still shows up in e.touches — touches[0] isn't necessarily the
-  // same finger that started the drag, so track it by identifier instead
-  // of position.
-  function findDragTouch(e, state) {
-    return [...e.touches].find((t) => t.identifier === state.touchId) || e.touches[0];
-  }
-
-  function handleDragMove(e) {
-    const state = dragStateRef.current;
-    if (!state) return;
-    const t = findDragTouch(e, state);
-    setDragOffsetY(t.clientY - state.startY);
-  }
-
-  function handleDragEnd(e) {
-    const state = dragStateRef.current;
-    if (state) {
-      const t = [...e.changedTouches].find((ct) => ct.identifier === state.touchId) || e.changedTouches[0];
-      const y = t.clientY;
-      let closestIndex = state.fromIndex;
-      let closestDist = Infinity;
-      groupRefs.current.forEach((el, i) => {
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        const dist = Math.abs(y - mid);
-        if (dist < closestDist) { closestDist = dist; closestIndex = i; }
-      });
-      if (closestIndex !== state.fromIndex) onReorderGroup(state.fromIndex, closestIndex);
+    function findTouch(ev, list) {
+      return [...list].find((x) => x.identifier === state.touchId) || list[0];
     }
-    dragStateRef.current = null;
-    setDraggingIndex(null);
-    setDragOffsetY(0);
+
+    function onMove(ev) {
+      if (dragStateRef.current !== state) return;
+      if (ev.touches.length === 0) return;
+      ev.preventDefault();
+      const touch = findTouch(ev, ev.touches);
+      setDragOffsetY(touch.clientY - state.startY);
+    }
+
+    function onEnd(ev) {
+      if (dragStateRef.current === state) {
+        const touch = ev.changedTouches.length ? findTouch(ev, ev.changedTouches) : null;
+        if (touch) {
+          const y = touch.clientY;
+          let closestIndex = state.fromIndex;
+          let closestDist = Infinity;
+          groupRefs.current.forEach((el, i) => {
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            const dist = Math.abs(y - mid);
+            if (dist < closestDist) { closestDist = dist; closestIndex = i; }
+          });
+          if (closestIndex !== state.fromIndex) onReorderGroup(state.fromIndex, closestIndex);
+        }
+        dragStateRef.current = null;
+        setDraggingIndex(null);
+        setDragOffsetY(0);
+      }
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+    }
+
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd, { passive: false });
+    window.addEventListener('touchcancel', onEnd, { passive: false });
   }
   // Counts UP from the moment a set is logged, rather than down from a
   // fixed target — a stalled count-up stays informative ("it's been a
@@ -1500,10 +1510,7 @@ function ActiveWorkout({
                 </div>
                 <button
                   data-no-swipe
-                  onTouchStart={(e) => { e.preventDefault(); handleDragStart(e, gi); }}
-                  onTouchMove={(e) => { e.preventDefault(); handleDragMove(e); }}
-                  onTouchEnd={handleDragEnd}
-                  onTouchCancel={handleDragEnd}
+                  onTouchStart={(e) => handleDragStart(e, gi)}
                   style={{
                     color: TEXT_SOFT,
                     touchAction: 'none',
