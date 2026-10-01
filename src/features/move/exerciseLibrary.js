@@ -59,26 +59,27 @@ export const FLEXIBILITY_ACTIVITIES = [
 export const EXERCISE_LIBRARY = {
   Chest: [
     { name: 'Barbell Bench Press', sets: 4, reps: '8-10', equipment: 'barbell' },
-    { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', equipment: 'dumbbell' },
-    { name: 'Deficit Push-Ups', sets: 3, reps: '12-15', equipment: 'bodyweight' }, // hands elevated on blocks/plates for extra stretch — big ROM
-    { name: 'Dumbbell Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
     { name: 'Dumbbell Chest Press', sets: 4, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Dumbbell Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
+    { name: 'Deficit Push-Ups', sets: 3, reps: '12-15', equipment: 'bodyweight' }, // hands elevated on blocks/plates for extra stretch — big ROM
     { name: 'Dips', sets: 3, reps: '10-15', equipment: 'bodyweight' },
   ],
   Back: [
     { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
-    { name: 'Barbell Row', sets: 4, reps: '8-10', equipment: 'barbell' },
     { name: 'Lat Pulldown', sets: 3, reps: '10-12', equipment: 'machine' },
+    { name: 'Barbell Row', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Seated Cable Row', sets: 4, reps: '10-12', equipment: 'cable' },
     { name: 'Straight-Arm Pulldown', sets: 3, reps: '12-15', equipment: 'cable' }, // long lat stretch overhead
     { name: 'Dumbbell Pullover', sets: 3, reps: '10-12', equipment: 'dumbbell' },     // big overhead ROM
     { name: 'Single-Arm Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
   ],
   Legs: [
     { name: 'Barbell Back Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Leg Press', sets: 4, reps: '10-15', equipment: 'machine' },
+    { name: 'Walking Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
     { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' }, // deep single-leg stretch
-    { name: 'Walking Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
-    { name: 'Leg Press', sets: 4, reps: '10-15', equipment: 'machine' },
     { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
   ],
   Quadriceps: [
@@ -274,6 +275,33 @@ function ensureSquatVariation(final, muscleGroups, style, location, recentNames)
   return final;
 }
 
+// The exercise each muscle group's session should default to leading
+// with — the single most load-bearing, technically-demanding lift for
+// that group, done first while fresh. Back depends on gender: Pull-Ups
+// are the default, Lat Pulldown the equivalent machine-assisted version.
+const ANCHOR_EXERCISES = {
+  Chest: () => 'Barbell Bench Press',
+  Legs: () => 'Barbell Back Squat',
+  Back: (gender) => (gender === 'Female' ? 'Lat Pulldown' : 'Pull-Ups'),
+};
+
+function ensureAnchors(final, muscleGroups, gender, style, location) {
+  const styleConfig = STYLE_CONFIG[style] || {};
+  let result = final;
+  for (const group of muscleGroups) {
+    const anchorFn = ANCHOR_EXERCISES[group];
+    if (!anchorFn) continue;
+    const anchorName = anchorFn(gender);
+    if (result.some((ex) => ex.name === anchorName)) continue;
+    const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
+    if (!pick) continue; // not available at this location (e.g. no pull-up bar outdoors)
+    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
+    // Bump the lowest-priority pick rather than growing past MAX_EXERCISES.
+    result = [...result.slice(0, -1), added];
+  }
+  return result;
+}
+
 // Picks `count` exercises per selected muscle group, preferring ones not
 // in `recentNames` (last workout's picks) so back-to-back sessions don't
 // look identical — falls back to repeats only if a group runs out of
@@ -281,7 +309,7 @@ function ensureSquatVariation(final, muscleGroups, style, location, recentNames)
 // training style rather than the library's default. The final list is
 // then stably sorted compound-first (see COMPOUND_PATTERN above),
 // preserving the muscle-group order otherwise.
-export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
@@ -306,10 +334,13 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       });
     }
   }
-  // Barbell compounds first (squat/bench/deadlift-type moves — heaviest,
-  // most technical, done while fresh), then other compounds, then
-  // isolation — same stable tie-break as before within each tier.
-  const tier = (ex) => (ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
+  // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks
+  // everything else — that's what "defaults to starting with X" means —
+  // then barbell compounds, then other compounds, then isolation.
+  const anchorNames = new Set(
+    muscleGroups.map((g) => ANCHOR_EXERCISES[g]?.(gender)).filter(Boolean)
+  );
+  const tier = (ex) => (anchorNames.has(ex.name) ? 3 : ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
   const ordered = picked
     .map((ex, i) => ({ ex, i }))
     .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
@@ -318,7 +349,8 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // important lifts (already sorted to the front) and trims the rest.
   const capped = ordered.slice(0, MAX_EXERCISES);
   const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames);
-  return withSquat
+  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location);
+  return withAnchors
     .map((ex, i) => ({ ex, i }))
     .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
     .map(({ ex }) => ex);

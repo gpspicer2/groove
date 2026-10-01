@@ -6,7 +6,6 @@ import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER } from '../../theme';
 import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
-import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 
@@ -255,7 +254,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
 
-  const weekStartDay = profile?.week_start_day || 'sunday';
   const customActivities = profile?.custom_activities || [];
 
   const loadData = useCallback(async () => {
@@ -431,7 +429,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
       const recentNames = lastWorkout
         ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
         : [];
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation)
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, 2, profile?.gender)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
     if (usesFlexibility) {
@@ -744,12 +742,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
         </div>
       )}
 
-      {/* The weekly S-M-T-W tracker is a "planning" glance, not something
-          relevant mid-session — hiding it (and showing the border above
-          instead) while a workout is active makes that state visually
-          distinct at a glance, not just implied by which buttons show. */}
-      {!activeWorkout && <WeeklyTracker completedWorkouts={completedWorkouts} weekStartDay={weekStartDay} />}
-
       {activeWorkout ? (
         <ActiveWorkout
           workout={activeWorkout}
@@ -944,56 +936,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
             })}
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function WeeklyTracker({ completedWorkouts, weekStartDay }) {
-  const now = new Date();
-  const weekStart = startOfWeek(now, weekStartDay);
-  const dayLabels = weekDayLabels(weekStartDay);
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
-
-  const trainedDates = new Set(
-    completedWorkouts.map((w) => new Date(w.startedAt).toDateString())
-  );
-  const trainedThisWeek = days.filter((d) => trainedDates.has(d.toDateString())).length;
-  const goal = 3;
-
-  return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">This week</span>
-        <span style={{ color: trainedThisWeek >= goal ? SKY : TEXT_SOFT, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-          {trainedThisWeek} / {goal}
-        </span>
-      </div>
-      <div className="flex justify-center gap-2">
-        {days.map((d, i) => {
-          const trained = trainedDates.has(d.toDateString());
-          const isToday = d.toDateString() === now.toDateString();
-          return (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <div
-                style={{
-                  background: trained ? SKY : INK_3,
-                  color: trained ? INK : TEXT_SOFT,
-                  outline: isToday ? `1px solid ${SKY}` : 'none',
-                  outlineOffset: 2,
-                }}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-              >
-                {trained ? <Check size={14} /> : dayLabels[i]}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
