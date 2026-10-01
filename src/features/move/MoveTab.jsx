@@ -1237,6 +1237,19 @@ function ActiveWorkout({
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
+  // The "Add Resistance Exercise" button splits in place into "Single
+  // Exercise" / "Superset" instead of navigating to a separate chooser
+  // card — tapping anywhere outside it collapses it back.
+  const [splitAddOpen, setSplitAddOpen] = useState(false);
+  const splitAddRef = useRef(null);
+  useEffect(() => {
+    if (!splitAddOpen) return;
+    function onDocPointerDown(e) {
+      if (splitAddRef.current && !splitAddRef.current.contains(e.target)) setSplitAddOpen(false);
+    }
+    document.addEventListener('pointerdown', onDocPointerDown);
+    return () => document.removeEventListener('pointerdown', onDocPointerDown);
+  }, [splitAddOpen]);
   const [swapIndex, setSwapIndex] = useState(null);
   // The one exercise currently expanded for logging — the rest stay
   // collapsed to a single numbered row. Starts on the first exercise so
@@ -1561,13 +1574,42 @@ function ActiveWorkout({
             onCancel={closeAddForm}
           />
         )
+      ) : canQuickAddAerobic ? (
+        <div ref={splitAddRef} className="flex gap-2 mb-4">
+          {splitAddOpen ? (
+            <>
+              <button
+                onClick={() => { setAddMode('resistance'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+                style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+                className="flex-1 rounded-md py-2.5 text-sm font-medium"
+              >
+                Single Exercise
+              </button>
+              <button
+                onClick={() => { setAddMode('superset'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+                style={{ background: INK_2, color: LIME, borderLeft: `3px solid ${LIME}` }}
+                className="flex-1 rounded-md py-2.5 text-sm font-medium"
+              >
+                Superset
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setSplitAddOpen(true)}
+              style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+              className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+            >
+              <Plus size={14} /> Add Resistance Exercise
+            </button>
+          )}
+        </div>
       ) : (
         <button
           onClick={() => setAddMenuOpen(true)}
           style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
           className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
         >
-          <Plus size={14} /> {workout.movementMode === 'Resistance' ? 'Add Resistance Exercise' : 'Add to Workout'}
+          <Plus size={14} /> Add to Workout
         </button>
       )}
 
