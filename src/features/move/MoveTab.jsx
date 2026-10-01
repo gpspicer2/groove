@@ -1489,6 +1489,9 @@ function ActiveWorkout({
                   onDeleteSet={onDeleteSet}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   hrZones={hrZones}
+                  isActive={activeGroupKey === groupKey}
+                  onActivate={() => setActiveGroupKey(groupKey)}
+                  onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                 />
               );
             } else if (ex.type === 'flexibility') {
@@ -1621,7 +1624,7 @@ function ActiveWorkout({
           />
         ) : (
           <AddAerobicForm
-            onAdd={(name, note) => { onAddAerobic(name, note); closeAddForm(); }}
+            onAdd={(name, note) => { onAddAerobic(name, note); setActiveGroupKey(`aerobic-${name.trim()}`); closeAddForm(); }}
             onCancel={closeAddForm}
           />
         )
@@ -2137,17 +2140,26 @@ function isBodyweightEligible(name) {
 // to-edit settings panel) so those toggles live in one place instead of
 // cluttering every card — callers that don't need that (SupersetCard)
 // just own the same two bits of state locally and pass them through.
-function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight }) {
+function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight, loggedSets }) {
   const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
+  // Reopening the app mid-workout remounts this component, wiping the
+  // weight/reps the user had typed in for the next set — but any set
+  // already logged THIS workout survived (it's persisted), so prefer
+  // continuing from that over falling back to last time's suggestion.
+  const mostRecentLogged = loggedSets && loggedSets.length > 0
+    ? [...loggedSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
+    : null;
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
   // working-set rep range. Weight/reps then carry over set-to-set, so a
   // straight set of identical sets is just repeated taps of "Log set"
   // with no adjustment needed.
-  const startWeight = useBodyweight ? 0 : (suggestion?.weight ?? last?.weight ?? null);
+  const startWeight = useBodyweight
+    ? (mostRecentLogged?.isBodyweight ? Math.max(0, (mostRecentLogged.weight ?? 0) - (bodyweight || 0)) : 0)
+    : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? null);
   const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
-  const [reps, setReps] = useState(8);
-  const [seconds, setSeconds] = useState(30);
+  const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
+  const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? 30);
 
   function handleLog() {
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
@@ -2178,6 +2190,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+            onFocus={(e) => e.target.select()}
             style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
             className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
           />
@@ -2190,6 +2203,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
               inputMode="numeric"
               value={seconds}
               onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
               style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
               className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
             />
@@ -2202,12 +2216,19 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
               inputMode="numeric"
               value={reps}
               onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
               style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
               className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
             />
           </label>
         )}
         <button
+          // Without this, tapping Log while a weight/reps field is still
+          // focused blurs it first — closing the mobile keyboard and
+          // shrinking the viewport right as the tap lands, which reads as
+          // the page itself jumping/scrolling. Blocking the default
+          // mousedown keeps focus (and the keyboard) exactly where it was.
+          onMouseDown={(e) => e.preventDefault()}
           onClick={handleLog}
           style={{ background: SKY, color: INK }}
           className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
@@ -2384,7 +2405,7 @@ function ExerciseCard({
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={last}
           onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? onCollapse : null}
-          byTime={byTime} useBodyweight={useBodyweight}
+          byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
       </div>
     </SwipeActions>
@@ -2453,6 +2474,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
           nextSetNumber={nextSetNumber}
           byTime={byTime}
           useBodyweight={useBodyweight}
+          loggedSets={loggedSets}
         />
       </div>
     </SwipeActions>
@@ -2491,11 +2513,28 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones, isActive, onActivate, onCollapse }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
   const [distance, setDistance] = useState('');
+
+  if (isActive === false) {
+    return (
+      <button
+        onClick={onActivate}
+        style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }}
+        className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+      >
+        <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+        </span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+          {loggedSets.length > 0 ? `${loggedSets.length} logged` : 'tap to log'}
+        </span>
+      </button>
+    );
+  }
 
   function handleLog() {
     const l = parseInt(light, 10) || 0;
@@ -2524,7 +2563,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
+      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={onCollapse} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
       )}
