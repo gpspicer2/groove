@@ -405,6 +405,37 @@ export function suggestNextWeight(exercise, lastSet, style, daysSince = null) {
   return { weight: lastWeight, note: 'In range — repeat this weight for one more clean set' };
 }
 
+// A handful of dynamic (movement-based, not static-hold) drills per
+// muscle group, to raise tissue temperature and rehearse the day's
+// movement patterns before the first working set — not the same as the
+// static FLEXIBILITY_LIBRARY stretches, which are for after/during.
+export const DYNAMIC_WARMUP_LIBRARY = {
+  Chest: ['Arm Circles', 'Band Pull-Aparts', 'Scapular Push-Ups'],
+  Back: ['Band Pull-Aparts', 'Scapular Pulls', 'Cat-Cow'],
+  Shoulders: ['Arm Circles', 'Band Pull-Aparts', 'Shoulder Rolls'],
+  Biceps: ['Arm Circles', 'Band Pull-Aparts'],
+  Triceps: ['Arm Circles', "Downward Dog to Cobra"],
+  Legs: ['Leg Swings', 'Walking Lunges', 'Bodyweight Squats'],
+  Quadriceps: ['Leg Swings', 'Bodyweight Squats', "World's Greatest Stretch"],
+  Hamstrings: ['Leg Swings', "World's Greatest Stretch", 'Walking Lunges'],
+  Glutes: ['Glute Bridges', 'Fire Hydrants', 'Walking Lunges'],
+  Core: ['Cat-Cow', 'Torso Twists', 'Bird Dogs'],
+};
+
+// Picks 2-3 distinct drills covering the targeted muscle groups, in
+// group order, rather than every group's own full set — a leg day
+// doesn't need six different drills, just enough to get moving.
+export function generateDynamicWarmup(muscleGroups) {
+  const drills = [];
+  for (const group of muscleGroups) {
+    for (const name of DYNAMIC_WARMUP_LIBRARY[group] || []) {
+      if (!drills.includes(name)) drills.push(name);
+      if (drills.length >= 3) return drills;
+    }
+  }
+  return drills.slice(0, 3);
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {

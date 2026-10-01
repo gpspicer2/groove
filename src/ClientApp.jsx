@@ -15,6 +15,18 @@ const TABS = ['birdseye', 'move', 'journal', 'learn'];
 const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', learn: 'Learn' };
 const TAB_COLORS = { birdseye: LIME, move: SKY, journal: AMBER, learn: VIOLET };
 
+function RippleText({ text }) {
+  return (
+    <span>
+      {text.split('').map((ch, i) => (
+        <span key={i} className="groove-ripple-letter" style={{ animationDelay: `${i * 0.06}s` }}>
+          {ch}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function ClientApp() {
   const { user, profile, updateProfile } = useAuth();
   const [tab, setTab] = useState('birdseye');
@@ -25,6 +37,7 @@ export default function ClientApp() {
   // flash back on screen for a moment right after finishing it.
   const [tourJustFinished, setTourJustFinished] = useState(false);
   const [openBaselineOnLoad, setOpenBaselineOnLoad] = useState(false);
+  const [moveStatus, setMoveStatus] = useState(null); // { totalWeight } while a Move workout is active, else null
   const scrollRef = useRef(null);
 
   // On some devices the page can land scrolled partway down right after
@@ -78,8 +91,19 @@ export default function ClientApp() {
             );
           })}
         </div>
-        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center">
-          {TAB_LABELS[tab]}
+        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center flex items-center justify-center gap-2">
+          {tab === 'move' && moveStatus ? (
+            <>
+              <RippleText text="Moving" />
+              {moveStatus.totalWeight > 0 && (
+                <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-base font-medium">
+                  · {moveStatus.totalWeight.toLocaleString()} lb
+                </span>
+              )}
+            </>
+          ) : (
+            TAB_LABELS[tab]
+          )}
         </h1>
       </div>
 
@@ -99,7 +123,7 @@ export default function ClientApp() {
               openBaselineOnLoad={openBaselineOnLoad}
               onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
             />,
-            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} />,
+            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} onActiveWorkoutChange={setMoveStatus} />,
             <JournalTab key="journal" />,
             <LearnTab key="learn" />,
           ]}

@@ -4,8 +4,8 @@ import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, suggestNextWeight } from './exerciseLibrary';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
+import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 
@@ -225,7 +225,7 @@ function scrollAppToTop() {
   });
 }
 
-export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
+export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActiveWorkoutChange }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
     profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
@@ -317,6 +317,19 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+
+  // Reports up to ClientApp so the shared header (outside this tab's own
+  // tree) can swap to "Moving" and show a running weight tally while a
+  // workout is in progress here.
+  useEffect(() => {
+    if (!onActiveWorkoutChange) return;
+    if (!activeWorkout) {
+      onActiveWorkoutChange(null);
+      return;
+    }
+    const totalWeight = Math.round(totalWeightLifted(sets.filter((s) => s.workoutId === activeWorkout.id)));
+    onActiveWorkoutChange({ totalWeight });
+  }, [activeWorkout, sets, onActiveWorkoutChange]);
 
   // Keep the active workout's plan mirrored to the database as it's
   // edited (exercises added/removed/reordered, supersets formed) so the
@@ -625,6 +638,13 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
     upgradeToCombinedIfNeeded('aerobic');
   }
 
+  function addWarmup(muscleGroups) {
+    const drills = generateDynamicWarmup(muscleGroups);
+    if (drills.length === 0) return;
+    const newEx = { name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills };
+    setPlanExercises((prev) => (prev.some((e) => e.type === 'warmup') ? prev : [newEx, ...prev]));
+  }
+
   function removeExercise(index, hasLoggedSets) {
     if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
       return;
@@ -758,6 +778,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink }) {
           onAddExercise={addExercise}
           onAddSuperset={addSuperset}
           onAddAerobic={addAerobic}
+          onAddWarmup={() => addWarmup(activeWorkout.muscleGroups)}
           onRemoveExercise={removeExercise}
           onFinish={finishWorkout}
           onDiscard={discardWorkout}
@@ -1205,7 +1226,7 @@ function StartWorkout({
 function ActiveWorkout({
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
-  onAddExercise, onAddSuperset, onAddAerobic, onRemoveExercise, onFinish, onDiscard,
+  onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup, onRemoveExercise, onFinish, onDiscard,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
@@ -1316,7 +1337,10 @@ function ActiveWorkout({
 
   useEffect(() => {
     if (activeGroupKey != null || groups.length === 0) return;
-    const first = groups[0];
+    // A prepended warm-up doesn't use the active/collapsed accordion at
+    // all, so defaulting to it would leave the first real exercise
+    // collapsed with nothing expanded — skip past it.
+    const first = groups.find((g) => g[0].type !== 'warmup') || groups[0];
     const key = first.length === 2 ? `superset-${first[0].name}-${first[1].name}` : `${first[0].type || 'ex'}-${first[0].name}`;
     setActiveGroupKey(key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1400,6 +1424,15 @@ function ActiveWorkout({
       </div>
 
       <div className="space-y-3 mb-4">
+        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !exercises.some((e) => e.type === 'warmup') && (
+          <button
+            onClick={onAddWarmup}
+            style={{ background: INK_2, color: VIOLET, borderLeft: `3px solid ${VIOLET}` }}
+            className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+          >
+            <Plus size={14} /> Add Dynamic Warm-up
+          </button>
+        )}
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
             onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
@@ -1443,7 +1476,15 @@ function ActiveWorkout({
           } else {
             const ex = group[0];
             const loggedSets = sets.filter((s) => s.exerciseName === ex.name);
-            if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
+            if (ex.type === 'warmup') {
+              card = (
+                <WarmupCard
+                  index={displayIndex}
+                  exercise={ex}
+                  onRemove={() => onRemoveExercise(ex.index, false)}
+                />
+              );
+            } else if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
               card = (
                 <AerobicCard
                   index={displayIndex}
@@ -1638,7 +1679,7 @@ function ActiveWorkout({
         <Check size={16} /> Finish Workout
       </button>
 
-      <button onClick={onDiscard} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline text-center">
+      <button onClick={onDiscard} style={{ color: BRICK }} className="w-full text-sm py-2 underline text-center">
         Discard this workout
       </button>
 
@@ -1730,9 +1771,9 @@ function QuickAerobicButton({ onSubmit }) {
       <button
         onClick={() => setOpen(true)}
         style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
-        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+        className="w-full rounded-md py-1.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
       >
-        <Plus size={14} /> Add Aerobic Activity
+        <Plus size={14} /> Add Aerobic
       </button>
     );
   }
@@ -2483,6 +2524,54 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
               onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
               nextSetNumber={loggedSets.length + 1}
             />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Purely informational — a few drills to run through before the first
+// working set, no sets/reps/logging. Just a checklist and a way to
+// dismiss it once it's done (or if it's not wanted).
+function WarmupCard({ index, exercise, onRemove }) {
+  const [checked, setChecked] = useState(() => new Set());
+  function toggle(name) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+  return (
+    <div style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+        </div>
+        <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="space-y-1.5">
+        {exercise.drills.map((name) => {
+          const done = checked.has(name);
+          return (
+            <button
+              key={name}
+              onClick={() => toggle(name)}
+              style={{ background: INK_3, color: done ? TEXT_SOFT : PAPER }}
+              className="w-full rounded-md px-3 py-2 text-sm flex items-center gap-2 text-left"
+            >
+              <span
+                style={{ borderColor: done ? VIOLET : TEXT_SOFT, background: done ? VIOLET : 'transparent' }}
+                className="shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center"
+              >
+                {done && <Check size={10} color={INK} />}
+              </span>
+              <span style={{ textDecoration: done ? 'line-through' : 'none' }}>{name}</span>
+            </button>
           );
         })}
       </div>

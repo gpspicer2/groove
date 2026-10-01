@@ -40,3 +40,16 @@ html, body {
    underneath that unsafe area and become untappable on some phones. */
 .pt-safe { padding-top: max(1.5rem, env(safe-area-inset-top)); }
 .pb-safe { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+
+/* The "Moving" header title, while a Move workout is active: each letter
+   bounces in a staggered wave once per cycle, then holds still for the
+   rest of it — "every once in a while", not a constant distraction. */
+@keyframes groove-letter-ripple {
+  0%, 92%, 100% { transform: translateY(0); }
+  4% { transform: translateY(-6px); }
+  8% { transform: translateY(0); }
+}
+.groove-ripple-letter {
+  display: inline-block;
+  animation: groove-letter-ripple 7s ease-in-out infinite;
+}
