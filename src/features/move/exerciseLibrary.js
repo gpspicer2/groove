@@ -78,7 +78,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' }, // deep single-leg stretch
     { name: 'Walking Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
-    { name: 'Leg Press (deep)', sets: 4, reps: '10-15', equipment: 'machine' },
+    { name: 'Leg Press', sets: 4, reps: '10-15', equipment: 'machine' },
     { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
   ],
   Quadriceps: [

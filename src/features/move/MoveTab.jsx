@@ -188,6 +188,14 @@ function groupPlan(exercises) {
   return groups;
 }
 
+// A group is "aerobic" if it's a single aerobic or flexibility-activity
+// exercise — those already carry their own compact "+" to log another
+// cardio burst right after them, so a standalone insertion row directly
+// touching one is redundant.
+function isAerobicGroup(group) {
+  return group.length === 1 && (group[0].type === 'aerobic' || group[0].type === 'flexibility-activity');
+}
+
 // After a removal, drop any leftover lone supersetId so a former pair
 // doesn't render as an orphaned "superset" of one.
 function cleanupSupersets(exercises) {
@@ -1435,7 +1443,7 @@ function ActiveWorkout({
       </div>
 
       <div className="space-y-3 mb-4">
-        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && (
+        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
             onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
           />
@@ -1492,6 +1500,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  onQuickAdd={canQuickAddAerobic ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
               );
             } else if (ex.type === 'flexibility') {
@@ -1574,7 +1583,7 @@ function ActiveWorkout({
                   <GripVertical size={16} />
                 </button>
               </div>
-              {canQuickAddAerobic && !addMenuOpen && (
+              {canQuickAddAerobic && !addMenuOpen && !isAerobicGroup(group) && !(nextGroup && isAerobicGroup(nextGroup)) && (
                 <QuickAerobicButton
                   onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
                 />
@@ -1696,28 +1705,18 @@ function ActiveWorkout({
 // (jump rope, a quick jog, etc.) without going through Add to Workout's
 // multi-step flow — one small form (activity, intensity, minutes) logs
 // it immediately instead of just adding an exercise card to fill in later.
-function QuickAerobicButton({ onSubmit }) {
-  const [open, setOpen] = useState(false);
+// The actual cardio-burst mini-form, shared by the full-row
+// QuickAerobicButton (used between two non-aerobic exercises) and the
+// compact "+" trigger built into an AerobicCard's own collapsed row
+// (used right next to an aerobic exercise, where a whole separate
+// insertion row would just be redundant real estate).
+function QuickAerobicForm({ onSubmit, onCancel }) {
   const [name, setName] = useState(AEROBIC_ACTIVITIES_QUICK[0]);
   const [intensity, setIntensity] = useState('Moderate');
   const [minutes, setMinutes] = useState(5);
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
-        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
-      >
-        <Plus size={14} /> Add Aerobic Activity
-      </button>
-    );
-  }
-
   function submit() {
     onSubmit(name, intensity, minutes);
-    setOpen(false);
-    setMinutes(5);
   }
 
   return (
@@ -1755,16 +1754,40 @@ function QuickAerobicButton({ onSubmit }) {
             inputMode="numeric"
             value={minutes}
             onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+            onFocus={(e) => e.target.select()}
             style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
             className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
           />
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={() => setOpen(false)} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Cancel</button>
+        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Cancel</button>
         <button onClick={submit} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Log it</button>
       </div>
     </div>
+  );
+}
+
+function QuickAerobicButton({ onSubmit }) {
+  const [open, setOpen] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
+        className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+      >
+        <Plus size={14} /> Add Aerobic Activity
+      </button>
+    );
+  }
+
+  return (
+    <QuickAerobicForm
+      onCancel={() => setOpen(false)}
+      onSubmit={(name, intensity, minutes) => { onSubmit(name, intensity, minutes); setOpen(false); }}
+    />
   );
 }
 
@@ -2513,26 +2536,51 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones, isActive, onActivate, onCollapse }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones, isActive, onActivate, onCollapse, onQuickAdd }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
   const [distance, setDistance] = useState('');
+  // A standalone "+ Add Aerobic Activity" row right next to an aerobic
+  // card is redundant real estate — this card can just offer its own
+  // compact "+" to log another cardio burst right after it.
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   if (isActive === false) {
     return (
-      <button
-        onClick={onActivate}
-        style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }}
-        className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
-      >
-        <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
-        </span>
-        <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-          {loggedSets.length > 0 ? `${loggedSets.length} logged` : 'tap to log'}
-        </span>
-      </button>
+      <>
+        <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
+          <button
+            onClick={onActivate}
+            className="flex-1 min-w-0 px-4 py-3 flex items-center justify-between text-left"
+          >
+            <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+              <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+            </span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+              {loggedSets.length > 0 ? `${loggedSets.length} logged` : 'tap to log'}
+            </span>
+          </button>
+          {onQuickAdd && (
+            <button
+              onClick={() => setShowQuickAdd((v) => !v)}
+              style={{ color: AMBER, borderLeft: `1px dashed ${INK_3}` }}
+              className="shrink-0 w-11 flex items-center justify-center"
+              title="Add another aerobic activity"
+            >
+              <Plus size={16} />
+            </button>
+          )}
+        </div>
+        {showQuickAdd && (
+          <div className="mt-3">
+            <QuickAerobicForm
+              onCancel={() => setShowQuickAdd(false)}
+              onSubmit={(name, intensity, minutes) => { onQuickAdd(name, intensity, minutes); setShowQuickAdd(false); }}
+            />
+          </div>
+        )}
+      </>
     );
   }
 
