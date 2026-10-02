@@ -203,7 +203,16 @@ export default function LearnTab() {
               onMouseUp={cancelLongPress}
               onMouseLeave={cancelLongPress}
               onContextMenu={(e) => e.preventDefault()}
-              style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
+              style={{
+                background: active ? color : INK_2,
+                color: active ? INK : PAPER_DIM,
+                // user-select alone doesn't stop iOS's long-press text
+                // callout/selection bubble — that's what was highlighting
+                // the whole page on a held filter pill.
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                WebkitTapHighlightColor: 'transparent',
+              }}
               className="flex-1 rounded-md px-1 py-2 text-xs font-medium text-center leading-tight select-none"
             >
               {label}

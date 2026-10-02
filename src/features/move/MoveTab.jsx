@@ -1585,10 +1585,6 @@ function ActiveWorkout({
                 }}
                 className="flex items-stretch gap-1"
               >
-                <div className="flex-1 min-w-0 space-y-3">
-                  {card}
-                  {showRest && <RestBanner />}
-                </div>
                 <button
                   data-no-swipe
                   onTouchStart={(e) => handleDragStart(e, gi)}
@@ -1612,8 +1608,12 @@ function ActiveWorkout({
                 >
                   <GripVertical size={16} />
                 </button>
+                <div className="flex-1 min-w-0 space-y-3">
+                  {card}
+                  {showRest && <RestBanner />}
+                </div>
               </div>
-              {canQuickAddAerobic && !addMenuOpen && !isAerobicGroup(group) && !(nextGroup && isAerobicGroup(nextGroup)) && (
+              {canQuickAddAerobic && !addMenuOpen && group[0].type !== 'warmup' && !isAerobicGroup(group) && !(nextGroup && isAerobicGroup(nextGroup)) && (
                 <QuickAerobicButton
                   onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
                 />
@@ -2721,6 +2721,10 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
           if (editingIndex === i) {
             return (
               <div key={i} className="flex items-stretch gap-1">
+                {/* Matches the w-9 drag-handle column every other row has
+                    (now on the left), so the card's overall width/
+                    alignment doesn't visibly shift while renaming. */}
+                <div className="shrink-0 w-9" />
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
                   <input
                     autoFocus
@@ -2730,17 +2734,13 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
                     style={{ background: INK_3, color: PAPER }}
                     className="flex-1 min-w-0 rounded-md px-3 py-2 text-sm outline-none"
                   />
-                  <button onClick={saveEdit} style={{ background: VIOLET, color: INK }} className="shrink-0 rounded-md px-3 py-2 text-sm font-medium">
-                    Save
+                  <button onClick={saveEdit} style={{ background: VIOLET, color: INK }} className="shrink-0 rounded-md p-2" title="Save">
+                    <Check size={16} />
                   </button>
-                  <button onClick={() => setEditingIndex(null)} style={{ color: TEXT_SOFT }} className="shrink-0 text-sm px-1">
-                    Cancel
+                  <button onClick={() => setEditingIndex(null)} style={{ color: TEXT_SOFT }} className="shrink-0 rounded-md p-2" title="Cancel">
+                    <X size={16} />
                   </button>
                 </div>
-                {/* Matches the w-9 drag-handle column every other row has,
-                    so the card's overall width doesn't visibly shift
-                    while a drill is being renamed. */}
-                <div className="shrink-0 w-9" />
               </div>
             );
           }
@@ -2757,6 +2757,22 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
               }}
               className="flex items-stretch gap-1"
             >
+              <button
+                data-no-swipe
+                onTouchStart={(e) => handleDragStart(e, i)}
+                style={{
+                  color: TEXT_SOFT,
+                  touchAction: 'none',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                className="shrink-0 w-9 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                title="Drag to reorder"
+              >
+                <GripVertical size={14} />
+              </button>
               <div className="flex-1 min-w-0">
                 <SwipeActions onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
                   <button
@@ -2774,22 +2790,6 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
                   </button>
                 </SwipeActions>
               </div>
-              <button
-                data-no-swipe
-                onTouchStart={(e) => handleDragStart(e, i)}
-                style={{
-                  color: TEXT_SOFT,
-                  touchAction: 'none',
-                  WebkitTouchCallout: 'none',
-                  WebkitUserSelect: 'none',
-                  userSelect: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                className="shrink-0 w-9 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                title="Drag to reorder"
-              >
-                <GripVertical size={14} />
-              </button>
             </div>
           );
         })}
