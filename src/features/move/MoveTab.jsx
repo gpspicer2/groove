@@ -1459,7 +1459,7 @@ function ActiveWorkout({
         )}
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !exercises.some((e) => e.type === 'warmup') && (
           <button
-            onClick={onAddWarmup}
+            onClick={() => { onAddWarmup(); setActiveGroupKey('warmup-Dynamic Warm-up'); }}
             style={{ background: INK_2, color: VIOLET, borderLeft: `3px solid ${VIOLET}` }}
             className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
           >
@@ -1514,6 +1514,9 @@ function ActiveWorkout({
                   onRenameDrill={onRenameWarmupDrill}
                   onRemoveDrill={onRemoveWarmupDrill}
                   onReorderDrill={onReorderWarmupDrill}
+                  isActive={activeGroupKey === groupKey}
+                  onActivate={() => setActiveGroupKey(groupKey)}
+                  onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                 />
               );
             } else if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
@@ -2591,9 +2594,28 @@ function WarmupInfoModal({ onClose }) {
 // exercise (edit here just means retyping the name) plus the same
 // touch-drag reordering as the main exercise list — its own small-scale
 // copy of that gesture, scoped to this card's drill rows.
-function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill }) {
+function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
   const [checked, setChecked] = useState(() => new Set());
   const [showInfo, setShowInfo] = useState(false);
+
+  if (isActive === false) {
+    const doneCount = exercise.drills.filter((d) => checked.has(d)).length;
+    return (
+      <button
+        onClick={onActivate}
+        style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }}
+        className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+      >
+        <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+        </span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+          {doneCount > 0 ? `${doneCount}/${exercise.drills.length} done` : `${exercise.drills.length} drills`}
+        </span>
+      </button>
+    );
+  }
+
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [addingOther, setAddingOther] = useState(false);
@@ -2678,9 +2700,16 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
             <Info size={14} />
           </button>
         </div>
-        <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          {onCollapse && (
+            <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Collapse">
+              <ChevronUp size={14} />
+            </button>
+          )}
+          <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
       <div className="space-y-1.5">
         {exercise.drills.map((name, i) => {
@@ -2688,20 +2717,27 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
           const isDragging = draggingIndex === i;
           if (editingIndex === i) {
             return (
-              <div key={i} className="flex items-center gap-1.5">
-                <input
-                  autoFocus
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  style={{ background: INK_3, color: PAPER }}
-                  className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
-                />
-                <button onClick={saveEdit} style={{ background: VIOLET, color: INK }} className="rounded-md px-3 py-2 text-sm font-medium">
-                  Save
-                </button>
-                <button onClick={() => setEditingIndex(null)} style={{ color: TEXT_SOFT }} className="text-sm px-2">
-                  Cancel
-                </button>
+              <div key={i} className="flex items-stretch gap-1">
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingIndex(null); }}
+                    style={{ background: INK_3, color: PAPER }}
+                    className="flex-1 min-w-0 rounded-md px-3 py-2 text-sm outline-none"
+                  />
+                  <button onClick={saveEdit} style={{ background: VIOLET, color: INK }} className="shrink-0 rounded-md px-3 py-2 text-sm font-medium">
+                    Save
+                  </button>
+                  <button onClick={() => setEditingIndex(null)} style={{ color: TEXT_SOFT }} className="shrink-0 text-sm px-1">
+                    Cancel
+                  </button>
+                </div>
+                {/* Matches the w-9 drag-handle column every other row has,
+                    so the card's overall width doesn't visibly shift
+                    while a drill is being renamed. */}
+                <div className="shrink-0 w-9" />
               </div>
             );
           }
