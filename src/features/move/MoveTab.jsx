@@ -2597,7 +2597,20 @@ function WarmupInfoModal({ onClose }) {
 function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
   const [checked, setChecked] = useState(() => new Set());
   const [showInfo, setShowInfo] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [addingOther, setAddingOther] = useState(false);
+  const [otherValue, setOtherValue] = useState('');
 
+  const rowRefs = useRef([]);
+  const dragStateRef = useRef(null);
+  const [draggingIndex, setDraggingIndex] = useState(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+
+  // Every hook above must run on every render regardless of isActive —
+  // this early return has to come after all of them (React error #300:
+  // conditionally skipping hook declarations desyncs hook count between
+  // renders and crashes the whole page, not just this card).
   if (isActive === false) {
     const doneCount = exercise.drills.filter((d) => checked.has(d)).length;
     return (
@@ -2615,16 +2628,6 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
       </button>
     );
   }
-
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [editValue, setEditValue] = useState('');
-  const [addingOther, setAddingOther] = useState(false);
-  const [otherValue, setOtherValue] = useState('');
-
-  const rowRefs = useRef([]);
-  const dragStateRef = useRef(null);
-  const [draggingIndex, setDraggingIndex] = useState(null);
-  const [dragOffsetY, setDragOffsetY] = useState(0);
 
   function toggle(name) {
     setChecked((prev) => {
