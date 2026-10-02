@@ -91,20 +91,19 @@ export default function ClientApp() {
             );
           })}
         </div>
-        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 text-center flex items-center justify-center gap-2">
-          {tab === 'move' && moveStatus ? (
-            <>
-              <RippleText text="Moving" />
-              {moveStatus.totalWeight > 0 && (
-                <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-base font-medium">
-                  · {moveStatus.totalWeight.toLocaleString()} lb
-                </span>
-              )}
-            </>
-          ) : (
-            TAB_LABELS[tab]
-          )}
-        </h1>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
+          <div />
+          <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium text-center">
+            {tab === 'move' && moveStatus ? <RippleText text="Moving" /> : TAB_LABELS[tab]}
+          </h1>
+          <div className="justify-self-end">
+            {tab === 'move' && moveStatus && moveStatus.totalWeight > 0 && (
+              <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+                {moveStatus.totalWeight.toLocaleString()} lb
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div ref={scrollRef} id="app-scroll" className="flex-1 min-h-0 overflow-y-auto">

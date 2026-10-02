@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal } from 'lucide-react';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -645,6 +645,32 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     setPlanExercises((prev) => (prev.some((e) => e.type === 'warmup') ? prev : [newEx, ...prev]));
   }
 
+  function updateWarmupDrills(updater) {
+    setPlanExercises((prev) => prev.map((e) => (e.type === 'warmup' ? { ...e, drills: updater(e.drills) } : e)));
+  }
+  function addWarmupDrill(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    updateWarmupDrills((drills) => [...drills, trimmed]);
+  }
+  function renameWarmupDrill(index, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    updateWarmupDrills((drills) => drills.map((d, i) => (i === index ? trimmed : d)));
+  }
+  function removeWarmupDrill(index) {
+    updateWarmupDrills((drills) => drills.filter((_, i) => i !== index));
+  }
+  function reorderWarmupDrill(fromIndex, toIndex) {
+    updateWarmupDrills((drills) => {
+      if (toIndex < 0 || toIndex >= drills.length || fromIndex === toIndex) return drills;
+      const next = [...drills];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
   function removeExercise(index, hasLoggedSets) {
     if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
       return;
@@ -779,6 +805,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
           onAddSuperset={addSuperset}
           onAddAerobic={addAerobic}
           onAddWarmup={() => addWarmup(activeWorkout.muscleGroups)}
+          onAddWarmupDrill={addWarmupDrill}
+          onRenameWarmupDrill={renameWarmupDrill}
+          onRemoveWarmupDrill={removeWarmupDrill}
+          onReorderWarmupDrill={reorderWarmupDrill}
           onRemoveExercise={removeExercise}
           onFinish={finishWorkout}
           onDiscard={discardWorkout}
@@ -1226,7 +1256,9 @@ function StartWorkout({
 function ActiveWorkout({
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
-  onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup, onRemoveExercise, onFinish, onDiscard,
+  onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
+  onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
+  onRemoveExercise, onFinish, onDiscard,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
@@ -1333,7 +1365,6 @@ function ActiveWorkout({
   const groups = groupPlan(exercises);
   // Recomputed fresh every render — see the dupeCount disambiguation below.
   const groupKeyCounts = new Map();
-  const total = Math.round(totalWeightLifted(sets));
 
   useEffect(() => {
     if (activeGroupKey != null || groups.length === 0) return;
@@ -1418,12 +1449,14 @@ function ActiveWorkout({
             {[workout.style, workout.location].filter(Boolean).join(' · ')}
           </div>
         )}
-        {total > 0 && (
-          <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">{total.toLocaleString()} lb lifted so far</div>
-        )}
       </div>
 
       <div className="space-y-3 mb-4">
+        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
+          <QuickAerobicButton
+            onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
+          />
+        )}
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !exercises.some((e) => e.type === 'warmup') && (
           <button
             onClick={onAddWarmup}
@@ -1432,11 +1465,6 @@ function ActiveWorkout({
           >
             <Plus size={14} /> Add Dynamic Warm-up
           </button>
-        )}
-        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
-          <QuickAerobicButton
-            onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
-          />
         )}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
@@ -1482,6 +1510,10 @@ function ActiveWorkout({
                   index={displayIndex}
                   exercise={ex}
                   onRemove={() => onRemoveExercise(ex.index, false)}
+                  onAddDrill={onAddWarmupDrill}
+                  onRenameDrill={onRenameWarmupDrill}
+                  onRemoveDrill={onRemoveWarmupDrill}
+                  onReorderDrill={onReorderWarmupDrill}
                 />
               );
             } else if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
@@ -2534,8 +2566,44 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
 // Purely informational — a few drills to run through before the first
 // working set, no sets/reps/logging. Just a checklist and a way to
 // dismiss it once it's done (or if it's not wanted).
-function WarmupCard({ index, exercise, onRemove }) {
+function WarmupInfoModal({ onClose }) {
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+        <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3">
+            <div style={{ color: VIOLET }} className="text-sm font-medium uppercase tracking-wide">Why warm up?</div>
+            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+              <X size={18} />
+            </button>
+          </div>
+          <div style={{ color: PAPER }} className="text-sm leading-relaxed">
+            There's a physiological rationale for including low-intensity movements that target the muscle groups of your workout. Read more under Learn.
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// Each drill gets the same swipe-to-edit/delete pattern as a regular
+// exercise (edit here just means retyping the name) plus the same
+// touch-drag reordering as the main exercise list — its own small-scale
+// copy of that gesture, scoped to this card's drill rows.
+function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill }) {
   const [checked, setChecked] = useState(() => new Set());
+  const [showInfo, setShowInfo] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [addingOther, setAddingOther] = useState(false);
+  const [otherValue, setOtherValue] = useState('');
+
+  const rowRefs = useRef([]);
+  const dragStateRef = useRef(null);
+  const [draggingIndex, setDraggingIndex] = useState(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+
   function toggle(name) {
     setChecked((prev) => {
       const next = new Set(prev);
@@ -2544,37 +2612,180 @@ function WarmupCard({ index, exercise, onRemove }) {
       return next;
     });
   }
+
+  function startEdit(i) {
+    setEditingIndex(i);
+    setEditValue(exercise.drills[i]);
+  }
+  function saveEdit() {
+    if (editingIndex == null) return;
+    onRenameDrill(editingIndex, editValue);
+    setEditingIndex(null);
+  }
+
+  function handleDragStart(e, i) {
+    const t = e.touches[0];
+    const state = { fromIndex: i, startY: t.clientY, touchId: t.identifier };
+    dragStateRef.current = state;
+    setDraggingIndex(i);
+    setDragOffsetY(0);
+
+    function findTouch(list) {
+      return [...list].find((x) => x.identifier === state.touchId) || list[0];
+    }
+    function onMove(ev) {
+      if (dragStateRef.current !== state) return;
+      if (ev.touches.length === 0) return;
+      ev.preventDefault();
+      const touch = findTouch(ev.touches);
+      setDragOffsetY(touch.clientY - state.startY);
+    }
+    function onEnd(ev) {
+      if (dragStateRef.current === state) {
+        const touch = ev.changedTouches.length ? findTouch(ev.changedTouches) : null;
+        if (touch) {
+          const y = touch.clientY;
+          let closestIndex = state.fromIndex;
+          let closestDist = Infinity;
+          rowRefs.current.forEach((el, idx) => {
+            if (!el || idx === state.fromIndex) return;
+            const rect = el.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            const dist = Math.abs(y - mid);
+            if (dist < closestDist) { closestDist = dist; closestIndex = idx; }
+          });
+          if (closestIndex !== state.fromIndex) onReorderDrill(state.fromIndex, closestIndex);
+        }
+        dragStateRef.current = null;
+        setDraggingIndex(null);
+        setDragOffsetY(0);
+      }
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+    }
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd, { passive: false });
+    window.addEventListener('touchcancel', onEnd, { passive: false });
+  }
+
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3">
       <div className="flex items-center justify-between mb-2">
-        <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+        <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-1.5">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+          <button onClick={() => setShowInfo(true)} style={{ color: VIOLET }} className="p-1 -m-1" title="Why warm up?">
+            <Info size={14} />
+          </button>
         </div>
         <button onClick={onRemove} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
           <Trash2 size={14} />
         </button>
       </div>
       <div className="space-y-1.5">
-        {exercise.drills.map((name) => {
+        {exercise.drills.map((name, i) => {
           const done = checked.has(name);
+          const isDragging = draggingIndex === i;
+          if (editingIndex === i) {
+            return (
+              <div key={i} className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  style={{ background: INK_3, color: PAPER }}
+                  className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+                />
+                <button onClick={saveEdit} style={{ background: VIOLET, color: INK }} className="rounded-md px-3 py-2 text-sm font-medium">
+                  Save
+                </button>
+                <button onClick={() => setEditingIndex(null)} style={{ color: TEXT_SOFT }} className="text-sm px-2">
+                  Cancel
+                </button>
+              </div>
+            );
+          }
           return (
-            <button
-              key={name}
-              onClick={() => toggle(name)}
-              style={{ background: INK_3, color: done ? TEXT_SOFT : PAPER }}
-              className="w-full rounded-md px-3 py-2 text-sm flex items-center gap-2 text-left"
+            <div
+              key={i}
+              ref={(el) => (rowRefs.current[i] = el)}
+              style={{
+                opacity: isDragging ? 0.9 : 1,
+                transform: isDragging ? `translateY(${dragOffsetY}px)` : 'none',
+                position: isDragging ? 'relative' : 'static',
+                zIndex: isDragging ? 20 : 'auto',
+                transition: isDragging ? 'none' : 'transform 0.15s ease',
+              }}
+              className="flex items-stretch gap-1"
             >
-              <span
-                style={{ borderColor: done ? VIOLET : TEXT_SOFT, background: done ? VIOLET : 'transparent' }}
-                className="shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center"
+              <div className="flex-1 min-w-0">
+                <SwipeActions onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
+                  <button
+                    onClick={() => toggle(name)}
+                    style={{ background: INK_3, color: done ? TEXT_SOFT : PAPER }}
+                    className="w-full rounded-md px-3 py-2 text-sm flex items-center gap-2 text-left"
+                  >
+                    <span
+                      style={{ borderColor: done ? VIOLET : TEXT_SOFT, background: done ? VIOLET : 'transparent' }}
+                      className="shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                    >
+                      {done && <Check size={10} color={INK} />}
+                    </span>
+                    <span style={{ textDecoration: done ? 'line-through' : 'none' }}>{name}</span>
+                  </button>
+                </SwipeActions>
+              </div>
+              <button
+                data-no-swipe
+                onTouchStart={(e) => handleDragStart(e, i)}
+                style={{
+                  color: TEXT_SOFT,
+                  touchAction: 'none',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                className="shrink-0 w-9 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                title="Drag to reorder"
               >
-                {done && <Check size={10} color={INK} />}
-              </span>
-              <span style={{ textDecoration: done ? 'line-through' : 'none' }}>{name}</span>
-            </button>
+                <GripVertical size={14} />
+              </button>
+            </div>
           );
         })}
       </div>
+      {addingOther ? (
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <input
+            autoFocus
+            value={otherValue}
+            onChange={(e) => setOtherValue(e.target.value)}
+            placeholder="Movement name"
+            style={{ background: INK_3, color: PAPER }}
+            className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+          />
+          <button
+            onClick={() => { onAddDrill(otherValue); setOtherValue(''); setAddingOther(false); }}
+            style={{ background: VIOLET, color: INK }}
+            className="rounded-md px-3 py-2 text-sm font-medium"
+          >
+            Add
+          </button>
+          <button onClick={() => { setAddingOther(false); setOtherValue(''); }} style={{ color: TEXT_SOFT }} className="text-sm px-2">
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddingOther(true)}
+          style={{ color: VIOLET }}
+          className="w-full text-sm py-2 mt-1 flex items-center justify-center gap-1"
+        >
+          <Plus size={12} /> Other
+        </button>
+      )}
+      {showInfo && <WarmupInfoModal onClose={() => setShowInfo(false)} />}
     </div>
   );
 }

@@ -9,8 +9,29 @@ import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS
 // these is its own little thing" cue, not tied to meaning.
 const TITLE_COLORS = [VIOLET, SKY, LIME, AMBER, MOSS, BRICK];
 
+// Category lives inside the stored title as a "[Tag] " prefix — the
+// articles table has no category column, so this avoids needing a
+// schema migration for what's otherwise a pure display/filter concern.
+// Articles written before categorization carry no prefix and show up
+// regardless of which filter is active.
+const CATEGORY_PREFIX = /^\[(Benefits|Strategy|Adherence)\]\s*/;
+const CATEGORIES = [
+  { key: 'Benefits', label: 'Benefits of Movement', color: MOSS },
+  { key: 'Strategy', label: 'Scientific Strategizing', color: SKY },
+  { key: 'Adherence', label: 'Exercise Adherence', color: AMBER },
+];
+
 function mapArticle(row) {
-  return { id: row.id, title: row.title, summary: row.summary, url: row.url, createdAt: row.created_at, pinned: row.pinned || false };
+  const match = row.title.match(CATEGORY_PREFIX);
+  return {
+    id: row.id,
+    title: match ? row.title.slice(match[0].length) : row.title,
+    category: match ? match[1] : null,
+    summary: row.summary,
+    url: row.url,
+    createdAt: row.created_at,
+    pinned: row.pinned || false,
+  };
 }
 
 // Lightweight markdown for titles — *word* renders italic. Lets a
@@ -51,8 +72,17 @@ export default function LearnTab() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [activeCategories, setActiveCategories] = useState(() => new Set());
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [loadError, setLoadError] = useState('');
+
+  function toggleCategory(key) {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   function toggleExpanded(id) {
     setExpandedIds((prev) => {
@@ -101,6 +131,7 @@ export default function LearnTab() {
   const q = query.trim().toLowerCase();
   const visibleArticles = articles.filter((a) => {
     if (showFavoritesOnly && !favoriteIds.has(a.id)) return false;
+    if (activeCategories.size > 0 && !activeCategories.has(a.category)) return false;
     if (!q) return true;
     return a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q);
   });
@@ -115,31 +146,49 @@ export default function LearnTab() {
         </div>
       )}
 
-      <div data-tour="learn-search" className="relative mb-2">
-        <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search…"
-          style={{ background: INK_2, color: PAPER }}
-          className="w-full rounded-md pl-9 pr-9 py-2.5 text-sm outline-none"
-        />
-        {query && (
-          <button onClick={() => setQuery('')} style={{ color: TEXT_SOFT }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 -m-1.5">
-            <X size={14} />
-          </button>
-        )}
+      <div className="flex items-center gap-2 mb-2">
+        <div data-tour="learn-search" className="relative flex-1">
+          <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search…"
+            style={{ background: INK_2, color: PAPER }}
+            className="w-full rounded-md pl-9 pr-9 py-2.5 text-sm outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} style={{ color: TEXT_SOFT }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 -m-1.5">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setShowFavoritesOnly((v) => !v)}
+          style={{ background: showFavoritesOnly ? VIOLET : INK_2, color: showFavoritesOnly ? INK : PAPER_DIM }}
+          className="shrink-0 rounded-md p-2.5"
+          aria-label={showFavoritesOnly ? 'Showing favorites' : 'Show favorites only'}
+          title={showFavoritesOnly ? 'Showing favorites' : 'Show favorites only'}
+        >
+          <Heart size={16} fill={showFavoritesOnly ? INK : 'none'} />
+        </button>
       </div>
 
-      <button
-        onClick={() => setShowFavoritesOnly((v) => !v)}
-        style={{ background: showFavoritesOnly ? VIOLET : INK_2, color: showFavoritesOnly ? INK : PAPER_DIM }}
-        className="w-full rounded-md py-2 text-sm font-medium mb-4 flex items-center justify-center gap-1.5"
-      >
-        <Heart size={13} fill={showFavoritesOnly ? INK : 'none'} />
-        {showFavoritesOnly ? 'Showing favorites' : 'Show favorites only'}
-      </button>
+      <div className="flex items-center gap-1.5 mb-4">
+        {CATEGORIES.map(({ key, label, color }) => {
+          const active = activeCategories.has(key);
+          return (
+            <button
+              key={key}
+              onClick={() => toggleCategory(key)}
+              style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
+              className="flex-1 rounded-md px-1 py-2 text-xs font-medium text-center leading-tight"
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       <div data-tour="learn-list">
       {visibleArticles.length === 0 ? (
