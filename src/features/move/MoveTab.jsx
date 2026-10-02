@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
@@ -102,49 +103,6 @@ function LabeledMinutesInput({ label, value, onChange }) {
 }
 
 // RPE + talk-test description for each intensity, plus this client's own
-// HR range when we have enough data (resting + max) to compute one —
-// same Karvonen math Birdseye's Science & Strategy card uses, so the
-// numbers always agree with each other.
-const INTENSITY_GUIDE = [
-  { label: 'Light', rpe: '2–3', talk: 'Easy — you could sing.' },
-  { label: 'Moderate', rpe: '4–6', talk: 'You can talk, but not sing.' },
-  { label: 'Vigorous', rpe: '7–8', talk: 'Hard to say more than a few words at a time.' },
-];
-
-function IntensityGuideModal({ onClose, hrZones }) {
-  return (
-    <Portal>
-      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
-        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 style={{ color: PAPER }} className="text-base font-medium">Which intensity was it?</h3>
-            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
-          </div>
-          <div className="space-y-4">
-            {INTENSITY_GUIDE.map((tier) => {
-              const zone = hrZones?.find((z) => z.label === tier.label);
-              return (
-                <div key={tier.label}>
-                  <div style={{ color: SKY }} className="text-sm font-medium mb-0.5">{tier.label}</div>
-                  <div style={{ color: PAPER_DIM }} className="text-sm">{tier.talk}</div>
-                  <div style={{ color: TEXT_SOFT }} className="text-sm">
-                    RPE {tier.rpe}/10{zone ? ` · ${zone.lowBpm}–${zone.highBpm} bpm` : ''}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {!hrZones && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-4 pt-4 border-t border-white/10">
-              Add your resting heart rate in Account to see your own personal bpm ranges here.
-            </div>
-          )}
-        </div>
-      </div>
-    </Portal>
-  );
-}
-
 // The Light/Moderate/Vigorous minute inputs shared by every aerobic
 // logging form, plus a "Not sure?" link into the intensity guide —
 // kept in one place so it's identical everywhere it appears.
@@ -1591,22 +1549,22 @@ function ActiveWorkout({
                   style={{
                     color: TEXT_SOFT,
                     touchAction: 'none',
-                    // 24px was under Apple's 44pt minimum tap-target
-                    // guidance — on a real finger that's easy to miss by
-                    // a few pixels, landing the touch on the card next
-                    // to it instead and the drag never starting. Also
-                    // suppress iOS's long-press callout/selection, which
-                    // can hijack a press-and-hold-then-move gesture like
-                    // this one before our own handlers see it.
+                    // Narrower than Apple's 44pt tap-target guidance by
+                    // request (it was eating real screen width, and kept
+                    // catching an upward-scrolling thumb) — viable now
+                    // that the actual drag-drop bug is fixed; size was
+                    // never really the cause of the old reliability
+                    // issue. Still suppress iOS's long-press
+                    // callout/selection on it either way.
                     WebkitTouchCallout: 'none',
                     WebkitUserSelect: 'none',
                     userSelect: 'none',
                     WebkitTapHighlightColor: 'transparent',
                   }}
-                  className="shrink-0 w-11 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                  className="shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
                   title="Drag to reorder"
                 >
-                  <GripVertical size={16} />
+                  <GripVertical size={14} />
                 </button>
                 <div className="flex-1 min-w-0 space-y-3">
                   {card}
@@ -1617,6 +1575,17 @@ function ActiveWorkout({
                 <QuickAerobicButton
                   onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
                 />
+              )}
+              {group[0].type === 'warmup' && (
+                <div className="relative flex items-stretch gap-2 h-6">
+                  <span
+                    style={{ color: VIOLET, writingMode: 'vertical-rl' }}
+                    className="shrink-0 w-6 flex items-center justify-center text-[10px] font-medium uppercase tracking-widest select-none"
+                  >
+                    Warm-up
+                  </span>
+                  <div className="flex-1 self-center" style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
+                </div>
               )}
             </Fragment>
           );
@@ -2721,10 +2690,10 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
           if (editingIndex === i) {
             return (
               <div key={i} className="flex items-stretch gap-1">
-                {/* Matches the w-9 drag-handle column every other row has
+                {/* Matches the drag-handle column every other row has
                     (now on the left), so the card's overall width/
                     alignment doesn't visibly shift while renaming. */}
-                <div className="shrink-0 w-9" />
+                <div className="shrink-0 w-5" />
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
                   <input
                     autoFocus
@@ -2768,10 +2737,10 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
                   userSelect: 'none',
                   WebkitTapHighlightColor: 'transparent',
                 }}
-                className="shrink-0 w-9 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                className="shrink-0 w-5 flex items-center justify-center cursor-grab active:cursor-grabbing"
                 title="Drag to reorder"
               >
-                <GripVertical size={14} />
+                <GripVertical size={12} />
               </button>
               <div className="flex-1 min-w-0">
                 <SwipeActions onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Search, Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExternalLink, Search, Heart, X, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS, BRICK } from '../../theme';
 import Portal from '../../Portal';
+import IntensityGuideModal from '../../IntensityGuideModal';
 
 // Cycled by list position so each tidbit's title reads as its own color,
 // stable across reloads (not randomized) — purely a visual "each of
@@ -82,6 +83,7 @@ export default function LearnTab() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const [explainCategory, setExplainCategory] = useState(null);
+  const [showMetLibrary, setShowMetLibrary] = useState(false);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [loadError, setLoadError] = useState('');
   const pressTimerRef = useRef(null);
@@ -220,6 +222,20 @@ export default function LearnTab() {
           );
         })}
       </div>
+
+      <button
+        onClick={() => setShowMetLibrary(true)}
+        style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+        className="w-full rounded-md px-4 py-3 mb-4 flex items-center gap-2.5 text-left"
+      >
+        <Activity size={16} className="shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span style={{ color: PAPER }} className="text-sm font-medium block">Movement Library</span>
+          <span style={{ color: TEXT_SOFT }} className="text-sm block">Look up the intensity of any activity — gardening, hiking, housework, sports, and more.</span>
+        </span>
+      </button>
+
+      {showMetLibrary && <IntensityGuideModal onClose={() => setShowMetLibrary(false)} />}
 
       {explainCategory && (
         <Portal>
