@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, Search, Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS, BRICK } from '../../theme';
+import Portal from '../../Portal';
 
 // Cycled by list position so each tidbit's title reads as its own color,
 // stable across reloads (not randomized) — purely a visual "each of
@@ -20,6 +21,13 @@ const CATEGORIES = [
   { key: 'Strategy', label: 'Scientific Strategizing', color: SKY },
   { key: 'Adherence', label: 'Exercise Adherence', color: AMBER },
 ];
+
+// Shown in a brief popup on a long-press of each filter pill.
+const CATEGORY_INFO = {
+  Benefits: 'The physiological and psychological payoffs of regular movement — stronger bones, a sharper brain, better mood, lower disease risk — backed by research, not just conventional wisdom.',
+  Strategy: 'How to actually structure a workout for the best results: what order to do exercises in, how to warm up, when to train. The "how," not the "why."',
+  Adherence: '"Exercise adherence" means sticking with a routine for months and years, not just starting one. It matters because nearly every benefit of exercise depends on consistency — a decent program you actually keep doing beats a perfect one you quit after two weeks. Most people who start exercising stop within months, so what helps it stick is just as important as the exercise itself.',
+};
 
 function mapArticle(row) {
   const match = row.title.match(CATEGORY_PREFIX);
@@ -72,16 +80,24 @@ export default function LearnTab() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [activeCategories, setActiveCategories] = useState(() => new Set());
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [explainCategory, setExplainCategory] = useState(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [loadError, setLoadError] = useState('');
+  const pressTimerRef = useRef(null);
 
-  function toggleCategory(key) {
-    setActiveCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
+  function selectCategory(key) {
+    setActiveCategory((prev) => (prev === key ? null : key));
+  }
+
+  // Long-press (held ~450ms without moving away) opens a brief
+  // explanation of that filter — a plain tap still just selects it.
+  function startLongPress(key) {
+    clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = setTimeout(() => setExplainCategory(key), 450);
+  }
+  function cancelLongPress() {
+    clearTimeout(pressTimerRef.current);
   }
 
   function toggleExpanded(id) {
@@ -131,15 +147,13 @@ export default function LearnTab() {
   const q = query.trim().toLowerCase();
   const visibleArticles = articles.filter((a) => {
     if (showFavoritesOnly && !favoriteIds.has(a.id)) return false;
-    if (activeCategories.size > 0 && !activeCategories.has(a.category)) return false;
+    if (activeCategory && a.category !== activeCategory) return false;
     if (!q) return true;
     return a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q);
   });
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-4 text-center">Reasons to Move</div>
-
       {loadError && (
         <div style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4 text-sm">
           {loadError}
@@ -176,19 +190,52 @@ export default function LearnTab() {
 
       <div className="flex items-center gap-1.5 mb-4">
         {CATEGORIES.map(({ key, label, color }) => {
-          const active = activeCategories.has(key);
+          const active = activeCategory === key;
           return (
             <button
               key={key}
-              onClick={() => toggleCategory(key)}
+              onClick={() => selectCategory(key)}
+              onTouchStart={() => startLongPress(key)}
+              onTouchEnd={cancelLongPress}
+              onTouchMove={cancelLongPress}
+              onTouchCancel={cancelLongPress}
+              onMouseDown={() => startLongPress(key)}
+              onMouseUp={cancelLongPress}
+              onMouseLeave={cancelLongPress}
+              onContextMenu={(e) => e.preventDefault()}
               style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
-              className="flex-1 rounded-md px-1 py-2 text-xs font-medium text-center leading-tight"
+              className="flex-1 rounded-md px-1 py-2 text-xs font-medium text-center leading-tight select-none"
             >
               {label}
             </button>
           );
         })}
       </div>
+
+      {explainCategory && (
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setExplainCategory(null)}>
+            <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+            <div
+              style={{ background: INK_2, borderTop: `2px solid ${CATEGORIES.find((c) => c.key === explainCategory).color}` }}
+              className="relative w-full max-w-sm rounded-xl p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div style={{ color: CATEGORIES.find((c) => c.key === explainCategory).color }} className="text-sm font-medium uppercase tracking-wide">
+                  {CATEGORIES.find((c) => c.key === explainCategory).label}
+                </div>
+                <button onClick={() => setExplainCategory(null)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+                  <X size={18} />
+                </button>
+              </div>
+              <div style={{ color: PAPER }} className="text-sm leading-relaxed">
+                {CATEGORY_INFO[explainCategory]}
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
 
       <div data-tour="learn-list">
       {visibleArticles.length === 0 ? (
