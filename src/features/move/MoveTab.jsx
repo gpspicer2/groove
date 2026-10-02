@@ -1577,14 +1577,14 @@ function ActiveWorkout({
                 />
               )}
               {group[0].type === 'warmup' && (
-                <div className="relative flex items-stretch gap-2 h-6">
+                <div className="flex items-center gap-2 pl-6">
                   <span
-                    style={{ color: VIOLET, writingMode: 'vertical-rl' }}
-                    className="shrink-0 w-6 flex items-center justify-center text-[10px] font-medium uppercase tracking-widest select-none"
+                    style={{ color: VIOLET }}
+                    className="shrink-0 text-[10px] font-medium uppercase tracking-widest select-none"
                   >
                     Warm-up
                   </span>
-                  <div className="flex-1 self-center" style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
+                  <div className="flex-1" style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
                 </div>
               )}
             </Fragment>
