@@ -36,7 +36,7 @@ export default function ClientApp() {
   // round trip can lag a render behind, and without this the tour would
   // flash back on screen for a moment right after finishing it.
   const [tourJustFinished, setTourJustFinished] = useState(false);
-  const [allTabsLit, setAllTabsLit] = useState(false);
+  const [tabHighlight, setTabHighlight] = useState(null); // tour override: 'all' | 'none' | null
   const [openBaselineOnLoad, setOpenBaselineOnLoad] = useState(false);
   const [moveStatus, setMoveStatus] = useState(null); // { totalWeight } while a Move workout is active, else null
   const scrollRef = useRef(null);
@@ -77,7 +77,7 @@ export default function ClientApp() {
         </div>
         <div data-tour="tab-bar" className="flex gap-1.5 pb-4">
           {TABS.map((key) => {
-            const active = tab === key || allTabsLit;
+            const active = tabHighlight === 'all' || (tabHighlight !== 'none' && tab === key);
             const color = TAB_COLORS[key];
             return (
               <button
@@ -133,7 +133,7 @@ export default function ClientApp() {
         <AppTour
           tab={tab}
           onChangeTab={setTab}
-          onAllTabsLit={setAllTabsLit}
+          onTabHighlight={setTabHighlight}
           onComplete={(startBaseline) => {
             setTourJustFinished(true);
             updateProfile({ tour_done: true });

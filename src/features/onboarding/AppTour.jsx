@@ -26,27 +26,20 @@ const STEPS = [
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
     body: "Your weekly overview — progress, calendar, and the science behind your plan.",
   },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Tap a row for a breakdown, or the pencil to adjust it.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', pos: 'bottom', color: LIME, title: 'Calendar', body: 'A dot means a logged workout. Tap any day to view or log one.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Science Supported Strategy', body: "Your plan, built on ACSM exercise guidelines." },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-library"]', pos: 'bottom', color: LIME, title: 'Movement Library', body: "See what counts at each intensity. Gardening included." },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
     body: "Log any kind of workout, today or a past day.",
   },
-  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Groove builds the session. Tap an exercise to log it.' },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
     body: "Your private space to reflect. Only you can read it.",
   },
-  { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided check-in, or your own freeform note.' },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
     body: "Short reads on movement and sticking with it.",
   },
-  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Filter the Reads', body: 'Tap a topic to filter. Hold one to see what it covers.' },
   {
-    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account',
+    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: PLUM, noTabs: true, title: 'Your Account',
     body: "Message me, manage settings, and update your baseline data anytime.",
   },
 ];
@@ -55,7 +48,7 @@ const STEPS = [
 // target's real position until that finishes settling into view.
 const TAB_SETTLE_MS = 320;
 
-export default function AppTour({ tab, onChangeTab, onComplete, onAllTabsLit }) {
+export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState(null);
   const [headerRect, setHeaderRect] = useState(null);
@@ -69,13 +62,13 @@ export default function AppTour({ tab, onChangeTab, onComplete, onAllTabsLit }) 
   const isLast = index === STEPS.length - 1;
 
   // App-wide steps light up every tab in its own color, so the opening
-  // doesn't read as Birdseye's.
-  const allTabsLit = phase === 'steps' && Boolean(step.allTabs);
+  // doesn't read as Birdseye's; the Account step lights none.
+  const tabHighlight = phase !== 'steps' ? null : step.allTabs ? 'all' : step.noTabs ? 'none' : null;
   useEffect(() => {
-    onAllTabsLit?.(allTabsLit);
+    onTabHighlight?.(tabHighlight);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allTabsLit]);
-  useEffect(() => () => onAllTabsLit?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tabHighlight]);
+  useEffect(() => () => onTabHighlight?.(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const header = document.querySelector('[data-tour="app-header"]');
