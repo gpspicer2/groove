@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -25,6 +25,9 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
   const [saved, setSaved] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const scrollRef = useRef(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [step]);
 
   const steps = stepsFor(symptoms);
   const index = steps.indexOf(step);
@@ -86,7 +89,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-8">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-8">
           {step === 'active' && (
             <Question
               title="Have you been active lately?"
