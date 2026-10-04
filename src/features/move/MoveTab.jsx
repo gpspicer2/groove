@@ -1266,7 +1266,7 @@ function StartWorkout({
 
       {showProgramOffer && (
         <div style={{ background: INK_3, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3 mb-5 text-center">
-          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Your coach assigned</div>
+          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Greg assigned</div>
           <div style={{ color: PAPER }} className="text-sm font-medium mb-3">{assignedProgram.name}</div>
           <button
             onClick={() => onStartAssignedProgram(selectedLocation)}

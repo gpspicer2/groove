@@ -342,7 +342,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
           <div style={{ background: INK, border: `1px solid ${PLUM}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: PLUM, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
-              A few questions so I can coach you. About 10 minutes.
+              A few questions so I can mentor you. About 10 minutes.
             </div>
             <button onClick={() => onComplete(true)} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Let's do it now

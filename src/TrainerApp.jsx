@@ -542,7 +542,7 @@ function ProgramBuilder({ clientId, trainerId }) {
   return (
     <div>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-3 text-center">
-        Build the plan this client sees as "Your coach assigned" when they open Move.
+        Build the plan this client sees as "Greg assigned" when they open Move.
       </div>
       <input
         type="text"

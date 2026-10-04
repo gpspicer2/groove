@@ -475,7 +475,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
             <div style={{ background: INK_3, borderTop: `2px solid ${BRICK}` }} className="rounded-md px-4 py-4 mt-4 text-center">
               <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Below ACSM's recommendation</div>
               <p style={{ color: PAPER_DIM }} className="text-sm mb-3">
-                {ACSM_AEROBIC_MINIMUM} min/week is the minimum ACSM recommends for adults. A lower goal isn't advised unless it's clinically warranted — talk to your coach first if that's not the case for you.
+                {ACSM_AEROBIC_MINIMUM} min/week is the minimum ACSM recommends for adults. A lower goal isn't advised unless it's clinically warranted — talk to Greg first if that's not the case for you.
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setConfirmingLow(null)} style={{ color: TEXT_SOFT }} className="flex-1 py-2.5 text-sm">
@@ -801,7 +801,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
             </p>
             {zones ? (
               <>
-                {prescribedZone && <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>}
+                {prescribedZone && <div style={{ color: SKY }} className="text-sm mb-1">Greg recommends: {prescribedZone} zone</div>}
                 <div className="space-y-1">
                   {zones.map((z) => (
                     <div key={z.label} className="flex items-center justify-center gap-2">

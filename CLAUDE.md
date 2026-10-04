@@ -14,6 +14,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 ## Design taste
 - Colors: each tab has its own (Birdseye green `LIME`, Move teal `SKY`, Journal amber `AMBER`, Learn mauve `VIOLET`). App-wide and onboarding screens (sign-in, consent, health check, tour intro/Account/exit cards, Getting to Know You, fitness assessment) use plum `PLUM`, matching the logo's G — never a tab's color.
 - Compact, consistent, clean. No wasted vertical space, no repeated titles.
+- Wording: Greg offers "mentorship", never "coaching"; refer to him as Greg rather than "your coach".
 - No walls of text anywhere. Short explanations only on demand ((i) popups, one-time swipe tips).
 - Merge overlapping content into one place. Favor one-tap shortcuts.
 - No stray symbols in labels. Keep forms tidy and unjumbled.

@@ -557,7 +557,7 @@ function BaselineDataSection({ userId }) {
           <div>
             <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Heart rate</div>
             {prescribedZone && (
-              <div style={{ color: SKY }} className="text-sm mb-2 text-center">Your coach recommends the {prescribedZone} zone</div>
+              <div style={{ color: SKY }} className="text-sm mb-2 text-center">Greg recommends the {prescribedZone} zone</div>
             )}
             <div className="flex items-center justify-center gap-4 mb-2">
               <div>

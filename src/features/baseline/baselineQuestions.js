@@ -48,7 +48,7 @@ export const BASELINE_SECTIONS = [
       { key: 'equipment', label: 'Do you have any equipment available to you? (e.g., gym membership, free weights, yoga mat, etc.)', type: 'textarea' },
       {
         key: 'coaching_style',
-        label: 'Do you have a preferred coaching, leading, or management style?',
+        label: 'Do you have a preferred mentorship, leading, or management style?',
         type: 'radio',
         options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other (e.g., a mix of a couple styles — please explain)'],
       },
