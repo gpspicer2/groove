@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../../Portal';
-import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } from '../../theme';
+import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM } from '../../theme';
 
 // A real guided tour over the live app — dims everything but the thing
 // being explained, rather than standalone illustration slides. Each
@@ -15,7 +15,7 @@ import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } fro
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove",
+    tab: 'birdseye', selector: null, pos: 'center', color: PLUM, title: "Welcome\nIt's Time to Groove",
     body: "Move more, feel better, and stick with it.",
   },
   {
@@ -299,7 +299,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
                 <span key={i} style={{ background: i === index ? step.color : '#3a2c42', width: i === index ? 16 : 5 }} className="h-1.5 rounded-full transition-all" />
               ))}
             </div>
-            <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold mb-2">
+            <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold mb-2 whitespace-pre-line">
               {step.title}
             </div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-4 leading-snug">
