@@ -129,6 +129,12 @@ function IntensityMinutesGroup({ light, setLight, moderate, setModerate, vigorou
 // Groups planExercises into render units: pairs sharing a supersetId
 // become one unit, everything else stands alone. Superset members are
 // always kept adjacent by the functions that build/edit the plan.
+// "bulgarian split squat" -> "Bulgarian Split Squat"; leaves hyphen and
+// paren interiors alone so library-style names stay intact.
+function titleCaseWords(name) {
+  return name.trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 function groupPlan(exercises) {
   const groups = [];
   let i = 0;
@@ -600,7 +606,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     const drills = generateDynamicWarmup(muscleGroups);
     if (drills.length === 0) return;
     const newEx = { name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills };
-    setPlanExercises((prev) => (prev.some((e) => e.type === 'warmup') ? prev : [newEx, ...prev]));
+    // Aerobic work done as part of the warm-up stays above the dynamic
+    // drills — so slot the drills in after any leading aerobic entries.
+    setPlanExercises((prev) => {
+      if (prev.some((e) => e.type === 'warmup')) return prev;
+      let at = 0;
+      while (at < prev.length && (prev[at].type === 'aerobic' || prev[at].type === 'flexibility-activity')) at++;
+      return [...prev.slice(0, at), newEx, ...prev.slice(at)];
+    });
   }
 
   function updateWarmupDrills(updater) {
@@ -1457,6 +1470,9 @@ function ActiveWorkout({
                 onDeleteSet={onDeleteSet}
                 onOpenSwap={setSwapIndex}
                 onRemove={(index, hasLoggedSets) => onRemoveExercise(index, hasLoggedSets)}
+                isActive={activeGroupKey === groupKey}
+                onActivate={() => setActiveGroupKey(groupKey)}
+                onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
               />
             );
           } else {
@@ -1620,14 +1636,27 @@ function ActiveWorkout({
           <AddExerciseForm
             muscleGroups={workout.muscleGroups}
             location={workout.location}
-            onAdd={(name, group) => { onAddExercise(name, group); closeAddForm(); }}
+            onAdd={(name, group) => {
+              const typed = titleCaseWords(name);
+              const lib = (EXERCISE_LIBRARY[group] || []).find((e) => e.name.toLowerCase() === typed.toLowerCase());
+              const finalName = lib?.name || typed;
+              onAddExercise(finalName, group);
+              setActiveGroupKey(`resistance-${finalName}`);
+              closeAddForm();
+            }}
             onCancel={closeAddForm}
           />
         ) : addMode === 'superset' ? (
           <AddSupersetForm
             muscleGroups={workout.muscleGroups}
             location={workout.location}
-            onAdd={(a, b) => { onAddSuperset(a, b); closeAddForm(); }}
+            onAdd={(a, b) => {
+              const A = { ...a, name: titleCaseWords(a.name) };
+              const B = { ...b, name: titleCaseWords(b.name) };
+              onAddSuperset(A, B);
+              setActiveGroupKey(`superset-${A.name.trim()}-${B.name.trim()}`);
+              closeAddForm();
+            }}
             onCancel={closeAddForm}
           />
         ) : (
@@ -2503,13 +2532,35 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   );
 }
 
-function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
+function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive, onActivate, onCollapse }) {
+  if (isActive === false) {
+    const logged = members.reduce((n, ex) => n + sets.filter((s) => s.exerciseName === ex.name).length, 0);
+    return (
+      <button
+        onClick={onActivate}
+        style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }}
+        className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+      >
+        <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2 min-w-0">
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>
+          <Link2 size={12} color={LIME} className="shrink-0" />
+          <span className="truncate">{members.map((m) => m.name).join(' + ')}</span>
+        </span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">{logged > 0 ? `${logged} logged` : 'superset'}</span>
+      </button>
+    );
+  }
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
       <div className="flex items-center justify-center gap-1.5 mb-3">
         {index != null && <span style={{ color: TEXT_SOFT }} className="text-sm font-medium">{index}.</span>}
         <Link2 size={12} color={LIME} />
         <span style={{ color: LIME }} className="text-sm uppercase tracking-wide">Superset</span>
+        {onCollapse && (
+          <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-1 ml-1" title="Collapse">
+            <ChevronUp size={14} />
+          </button>
+        )}
       </div>
       <div className="space-y-3">
         {members.map((ex) => {
