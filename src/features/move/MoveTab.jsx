@@ -1040,6 +1040,7 @@ function StartWorkout({
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
   const [askIntegrated, setAskIntegrated] = useState(false);
+  const [showCombinedInfo, setShowCombinedInfo] = useState(false);
   // Tapping Start while something's missing used to just silently do
   // nothing (the button was disabled, with no explanation) — which read
   // as the app freezing. Now the button always responds: if something's
@@ -1163,8 +1164,8 @@ function StartWorkout({
           <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
             Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
           </div>
-          <div className="space-y-2 mb-5">
-            {MOVEMENT_MODES.map((mode) => {
+          <div className="grid grid-cols-2 grid-rows-2 grid-flow-col gap-2 mb-5">
+            {['Aerobic', 'Flexibility', 'Resistance', 'Combined'].map((mode) => {
               const selected = movementMode === mode;
               return (
                 <button
@@ -1180,7 +1181,10 @@ function StartWorkout({
           </div>
           {movementMode === 'Combined' && (
             <div className="mb-5">
-              <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">How should the aerobic work fit in?</div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2 flex items-center justify-center gap-1.5">
+                How should the aerobic work fit in?
+                <button onClick={() => setShowCombinedInfo(true)} style={{ color: SKY }} className="p-1 -m-1" title="Serial vs. Integrated"><Info size={14} /></button>
+              </div>
               <div className="flex gap-2 mb-1.5">
                 {[
                   { key: 'serial', label: 'Serial' },
@@ -1206,6 +1210,23 @@ function StartWorkout({
                 {!combinedLayout && 'Serial: blocks back to back. Integrated: aerobic mixed into your lifting.'}
               </div>
             </div>
+          )}
+          {showCombinedInfo && (
+            <Portal>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCombinedInfo(false)}>
+                <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+                <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div style={{ color: SKY }} className="text-sm font-medium uppercase tracking-wide">Serial vs. Integrated</div>
+                    <button onClick={() => setShowCombinedInfo(false)} style={{ color: TEXT_SOFT }} className="p-1 -m-1"><X size={18} /></button>
+                  </div>
+                  <div style={{ color: PAPER }} className="text-sm leading-relaxed space-y-3">
+                    <p><strong>Serial</strong> means one type of training at a time, back to back — for example a 20-minute run, then your lifts (or the reverse). Each type gets your full effort. This is how most combined sessions are done.</p>
+                    <p><strong>Integrated</strong> (also called concurrent or circuit-style) mixes the two within the same stretch of time — a quick bike or jump-rope burst between exercises, or even between sets. Your heart rate stays up and the session is shorter, but heavy lifts can feel harder when you're already winded.</p>
+                  </div>
+                </div>
+              </div>
+            </Portal>
           )}
           {askIntegrated && (
             <Portal>

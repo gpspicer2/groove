@@ -77,7 +77,7 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
 
   return (
     <>
-      <div className="flex flex-wrap justify-center gap-2 mb-2">
+      <div className="flex flex-wrap justify-center gap-1.5 mb-2">
         {Object.keys(BODY_REGION_GROUPS).map((region) => {
           const selected = active.has(region);
           return (
@@ -85,15 +85,12 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
               key={region}
               onClick={() => toggleBundle(region, BODY_REGION_GROUPS[region])}
               style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM, borderLeft: `3px solid ${SKY}` }}
-              className="px-3 py-2 rounded-full text-sm font-medium"
+              className="px-2.5 py-1.5 rounded-full text-sm font-medium"
             >
               {region}
             </button>
           );
         })}
-      </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">or pick specific muscle groups</div>
-      <div className="flex flex-wrap justify-center gap-2 mb-2">
         {MUSCLE_GROUPS.map((group) => {
           const selected = BUNDLE_DEFS[group] ? active.has(group) : selectedGroups.includes(group);
           return (
@@ -101,7 +98,7 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
               key={group}
               onClick={() => handleGroupClick(group)}
               style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
-              className="px-3 py-2 rounded-full text-sm font-medium"
+              className="px-2.5 py-1.5 rounded-full text-sm font-medium"
             >
               {group}
             </button>
