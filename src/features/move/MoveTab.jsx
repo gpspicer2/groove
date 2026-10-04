@@ -739,6 +739,38 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     scrollAppToTop();
   }
 
+  // Reopens a finished workout as the live one, so a session that was
+  // ended early (or lost mid-session) picks up exactly where it left off
+  // with the full logging UI, instead of being limited to history editing.
+  async function resumeWorkout(w) {
+    const { data, error } = await supabase
+      .from('workouts')
+      .update({ completed_at: null })
+      .eq('id', w.id)
+      .select()
+      .single();
+    if (error) { setLoadError(error.message); return; }
+    const mapped = mapWorkout(data);
+    let plan = mapped.plan || [];
+    if (plan.length === 0) {
+      const seen = new Set();
+      const wSets = sets.filter((x) => x.workoutId === w.id);
+      wSets.forEach((x) => {
+        if (seen.has(x.exerciseName)) return;
+        seen.add(x.exerciseName);
+        const type = x.movementType === 'aerobic' ? 'aerobic' : x.movementType === 'flexibility' ? 'flexibility' : 'resistance';
+        plan.push(type === 'resistance'
+          ? { name: x.exerciseName, muscleGroup: x.muscleGroup, type, supersetId: null, sets: 3, reps: '8-12' }
+          : { name: x.exerciseName, muscleGroup: x.muscleGroup || 'Cardio', type, supersetId: null, targetNote: '' });
+      });
+    }
+    setWorkouts((prev) => prev.map((x) => (x.id === w.id ? mapped : x)));
+    setEditingHistoryId(null);
+    setPlanExercises(plan);
+    setActiveWorkoutId(w.id);
+    scrollAppToTop();
+  }
+
   async function discardWorkout() {
     if (!window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
@@ -953,6 +985,15 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                         >
                           {editing ? 'Done editing' : 'Edit this workout'}
                         </button>
+                        {!activeWorkout && !editing && (
+                          <button
+                            onClick={() => resumeWorkout(w)}
+                            style={{ color: LIME }}
+                            className="text-sm py-2 text-center underline"
+                          >
+                            Resume workout
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteWorkout(w.id)}
                           style={{ color: BRICK }}
@@ -1227,7 +1268,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
-          🪩 Start Workout{startEmoji}
+          🪩 Log Workout{startEmoji}
         </button>
       )}
     </div>
@@ -1358,6 +1399,18 @@ function ActiveWorkout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups.length]);
 
+  // Newly added exercises scroll to the top of their own card, instead
+  // of leaving the page parked at the bottom where the add form was.
+  const [pendingScrollKey, setPendingScrollKey] = useState(null);
+  useEffect(() => {
+    if (!pendingScrollKey) return;
+    const id = requestAnimationFrame(() => {
+      const el = [...document.querySelectorAll('[data-group-key]')].find((n) => n.dataset.groupKey === pendingScrollKey);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); setPendingScrollKey(null); }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pendingScrollKey, exercises]);
+
   function closeAddForm() {
     setAddMenuOpen(false);
     setAddMode(null);
@@ -1446,6 +1499,11 @@ function ActiveWorkout({
           >
             <Plus size={14} /> Add Dynamic Warm-up
           </button>
+        )}
+        {exercises.some((e) => e.type === 'warmup') && (
+          <div style={{ color: VIOLET }} className="pl-6 text-[10px] font-medium uppercase tracking-widest select-none">
+            Warm-up
+          </div>
         )}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
@@ -1558,6 +1616,7 @@ function ActiveWorkout({
           return (
             <Fragment key={groupKey}>
               <div
+                data-group-key={groupKey}
                 ref={(el) => (groupRefs.current[gi] = el)}
                 style={{
                   opacity: isDragging ? 0.9 : 1,
@@ -1603,14 +1662,8 @@ function ActiveWorkout({
                 />
               )}
               {group[0].type === 'warmup' && (
-                <div className="flex items-center gap-2 pl-6">
-                  <span
-                    style={{ color: VIOLET }}
-                    className="shrink-0 text-[10px] font-medium uppercase tracking-widest select-none"
-                  >
-                    Warm-up
-                  </span>
-                  <div className="flex-1" style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
+                <div className="pl-6 pt-1">
+                  <div style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
                 </div>
               )}
             </Fragment>
@@ -1652,6 +1705,7 @@ function ActiveWorkout({
               const finalName = lib?.name || typed;
               onAddExercise(finalName, group);
               setActiveGroupKey(`resistance-${finalName}`);
+              setPendingScrollKey(`resistance-${finalName}`);
               closeAddForm();
             }}
             onCancel={closeAddForm}
@@ -1665,6 +1719,7 @@ function ActiveWorkout({
               const B = { ...b, name: titleCaseWords(b.name) };
               onAddSuperset(A, B);
               setActiveGroupKey(`superset-${A.name.trim()}-${B.name.trim()}`);
+              setPendingScrollKey(`superset-${A.name.trim()}-${B.name.trim()}`);
               closeAddForm();
             }}
             onCancel={closeAddForm}
