@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { PAPER, PAPER_DIM, TEXT_SOFT, SKY, MOSS, AMBER, BRICK } from './theme';
 import { MET_ACTIVITIES, MET_SOURCE } from './features/move/metLibrary';
 
@@ -20,6 +21,17 @@ const LEVELS = [
     blurb: 'All-out effort you can hold only briefly.' },
 ];
 
+// The compendium's wording is written for researchers ("Bicycling,
+// eccentric only, 200 W", long parenthetical examples) — trim it to
+// something a person would say, and drop lab-protocol-only entries.
+const SKIP = /eccentric|concentric|\bW\b|Taylor|Life-Build|™/i;
+function tidy(name) {
+  let n = name.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+  const parts = n.split(',').map((x) => x.trim()).filter(Boolean);
+  if (n.length > 48 && parts.length > 2) n = parts.slice(0, 2).join(', ');
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+
 // Drag the bar between intensities and see the activities that fall in
 // each band — a lookup for "what counts, and how hard is it?" without
 // needing to know what to search for.
@@ -28,11 +40,21 @@ export default function MetBrowser({ hrZones }) {
   const level = LEVELS[i];
   const zone = hrZones?.find((z) => z.label === level.zone);
 
+  const [openCats, setOpenCats] = useState(() => new Set());
   const groups = {};
-  MET_ACTIVITIES.filter((a) => a.met >= level.lo && a.met < level.hi).forEach((a) => {
-    (groups[a.category] = groups[a.category] || []).push(a);
+  MET_ACTIVITIES.filter((a) => a.met >= level.lo && a.met < level.hi && !SKIP.test(a.name)).forEach((a) => {
+    const n = tidy(a.name);
+    const list = (groups[a.category] = groups[a.category] || []);
+    if (!list.includes(n)) list.push(n);
   });
   const cats = Object.keys(groups).sort();
+  function toggleCat(c) {
+    setOpenCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c); else next.add(c);
+      return next;
+    });
+  }
 
   return (
     <div>
@@ -46,7 +68,7 @@ export default function MetBrowser({ hrZones }) {
         max={LEVELS.length - 1}
         step={1}
         value={i}
-        onChange={(e) => setI(Number(e.target.value))}
+        onChange={(e) => { setI(Number(e.target.value)); setOpenCats(new Set()); }}
         style={{ accentColor: level.color }}
         className="w-full my-2"
         aria-label="Intensity"
@@ -56,17 +78,28 @@ export default function MetBrowser({ hrZones }) {
         <span>Harder</span>
       </div>
       <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-3">{level.blurb}</div>
-      <div className="max-h-72 overflow-y-auto space-y-3 text-left pr-1">
-        {cats.map((cat) => (
-          <div key={cat}>
-            <div style={{ color: level.color }} className="text-xs uppercase tracking-wide font-bold mb-1">{cat}</div>
-            <ul className="space-y-0.5">
-              {groups[cat].map((a, k) => (
-                <li key={k} style={{ color: PAPER }} className="text-sm">{a.name}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className="space-y-1.5 text-left">
+        {cats.map((cat) => {
+          const open = openCats.has(cat);
+          return (
+            <div key={cat} style={{ background: 'rgba(0,0,0,0.03)' }} className="rounded-md px-3 py-2">
+              <button onClick={() => toggleCat(cat)} className="w-full flex items-center justify-between">
+                <span style={{ color: level.color }} className="text-sm font-medium">{cat}</span>
+                <span style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1">
+                  {groups[cat].length}
+                  {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </span>
+              </button>
+              {open && (
+                <ul className="mt-1.5 space-y-1 list-disc pl-5">
+                  {groups[cat].map((n) => (
+                    <li key={n} style={{ color: PAPER }} className="text-sm">{n}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-xs mt-3 text-center">
         METs from the {MET_SOURCE.name} ({MET_SOURCE.authors}, {MET_SOURCE.journal}); values are for adults 19–59.
