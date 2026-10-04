@@ -1,3 +1,4 @@
+import { titleCaseWords } from '../../lib/text';
 import React, { useState, useEffect } from 'react';
 import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, INK } from '../../theme';
 import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES, BODY_REGION_GROUPS, LEGS_BUNDLE, ARMS_BUNDLE } from './exerciseLibrary';
@@ -120,7 +121,7 @@ export function ActivityPicker({ baseActivities = LIFESTYLE_ACTIVITIES, selected
 
   function handleAddCustom() {
     if (!customInput.trim()) return;
-    onAddCustomActivity(customInput);
+    onAddCustomActivity(titleCaseWords(customInput));
     setCustomInput('');
     setAddingCustom(false);
   }

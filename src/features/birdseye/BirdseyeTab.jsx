@@ -834,7 +834,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 function MovementLibrary({ hrZones }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+    <div data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">Movement Library</span>

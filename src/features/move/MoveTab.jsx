@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
@@ -129,12 +130,6 @@ function IntensityMinutesGroup({ light, setLight, moderate, setModerate, vigorou
 // Groups planExercises into render units: pairs sharing a supersetId
 // become one unit, everything else stands alone. Superset members are
 // always kept adjacent by the functions that build/edit the plan.
-// "bulgarian split squat" -> "Bulgarian Split Squat"; leaves hyphen and
-// paren interiors alone so library-style names stay intact.
-function titleCaseWords(name) {
-  return name.trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-}
-
 function groupPlan(exercises) {
   const groups = [];
   let i = 0;
@@ -357,7 +352,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   }
 
   async function addCustomActivity(name) {
-    const trimmed = name.trim();
+    const trimmed = titleCaseWords(name);
     if (!trimmed || customActivities.includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed) || FLEXIBILITY_ACTIVITIES.includes(trimmed)) return;
     await updateProfile({ custom_activities: [...customActivities, trimmed] });
     if (movementMode === 'Flexibility') setSelectedFlexActivities((prev) => [...prev, trimmed]);
@@ -636,12 +631,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     setPlanExercises((prev) => prev.map((e) => (e.type === 'warmup' ? { ...e, drills: updater(e.drills) } : e)));
   }
   function addWarmupDrill(name) {
-    const trimmed = name.trim();
+    const trimmed = titleCaseWords(name);
     if (!trimmed) return;
     updateWarmupDrills((drills) => [...drills, trimmed]);
   }
   function renameWarmupDrill(index, name) {
-    const trimmed = name.trim();
+    const trimmed = titleCaseWords(name);
     if (!trimmed) return;
     updateWarmupDrills((drills) => drills.map((d, i) => (i === index ? trimmed : d)));
   }
@@ -2133,7 +2128,7 @@ function AddExerciseToHistoryForm({ onAdd, onCancel }) {
 
   function handleAdd() {
     onAdd(
-      name.trim(),
+      titleCaseWords(name),
       muscleGroup,
       weight.trim() === '' ? null : parseFloat(weight),
       reps.trim() === '' ? null : parseInt(reps, 10)
@@ -2988,6 +2983,7 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
             autoFocus
             value={otherValue}
             onChange={(e) => setOtherValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { onAddDrill(otherValue); setOtherValue(''); setAddingOther(false); } }}
             placeholder="Movement name"
             style={{ background: INK_3, color: PAPER }}
             className="flex-1 rounded-md px-3 py-2 text-sm outline-none"

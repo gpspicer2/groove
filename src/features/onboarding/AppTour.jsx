@@ -28,12 +28,13 @@ const STEPS = [
   },
   { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Tap a row for a breakdown, or the pencil to adjust it.' },
   { tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', pos: 'bottom', color: LIME, title: 'Calendar', body: 'A dot means a logged workout. Tap any day to view or log one.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Your Science & Strategy', body: "Your plan, from ACSM's exercise guidelines — with your own heart-rate zones once resting HR is set." },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Science Supported Strategy', body: "Tap to open your plan, built on ACSM's exercise guidelines — with your own heart-rate zones once resting HR is set." },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-library"]', pos: 'bottom', color: LIME, title: 'Movement Library', body: "Drag the bar from Light to Near-Maximal to see what counts at each intensity — gardening included." },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Log resistance, aerobic, flexibility, or a mix — now or for a past day.",
+    body: "Log resistance, aerobic, flexibility, or a combination — now or for a past day.",
   },
-  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Start a Workout', body: 'Pick where and what kind, and Move builds the session.' },
+  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Move builds the session. Exercises start collapsed — tap a name to open or close it, swipe it left to swap, edit, or delete, and drag the dots on the left to reorder. Resistance sessions open with a dynamic warm-up.' },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
     body: "A private place to reflect, anytime — after a session or otherwise.",
@@ -41,9 +42,9 @@ const STEPS = [
   { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided check-in, or your own freeform note.' },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
-    body: "Short reads on the science behind why movement works.",
+    body: "Short reads on the science of movement, performance, and sticking with it.",
   },
-  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Reasons to Move', body: 'New ones posted regularly.' },
+  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Filter the Reads', body: 'Choose Benefits of Movement, Scientific Strategizing, or Exercise Adherence — hold a filter for a quick explanation. New reads are posted regularly.' },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account',
     body: "Message me, manage settings, and update your baseline data anytime.",
