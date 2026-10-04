@@ -913,7 +913,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                               <div className="space-y-1.5">
                                 {exSets.map((s) => (
                                   <div key={s.id} className="flex items-center gap-2 justify-center">
-                                    {isAerobic ? (
+                                    {s.movementType === 'aerobic' ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
                                         {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
                                       </span>
@@ -948,11 +948,13 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                               </div>
                             ) : (
                               <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
-                                {isAerobic
-                                  ? exSets.map((s) => `${formatIntensityMinutes(s)}${s.distance ? ` · ${s.distance}` : ''}`).join(', ')
-                                  : isFlexibility
-                                  ? exSets.map((s) => (s.durationSeconds ? `${s.durationSeconds}s` : '—')).join(', ')
-                                  : exSets.map((s) => `${s.weight ?? '—'}×${s.reps ?? '—'}`).join(', ')}
+                                {exSets.map((s) => (
+                                  s.movementType === 'aerobic'
+                                    ? `${formatIntensityMinutes(s)}${s.distance ? ` · ${s.distance}` : ''}`
+                                    : s.movementType === 'flexibility'
+                                    ? (s.durationSeconds ? `${s.durationSeconds}s` : '—')
+                                    : `${s.weight ?? '—'}×${s.reps ?? '—'}`
+                                )).join(', ')}
                               </div>
                             )}
                           </div>
@@ -1669,7 +1671,19 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
-                  onQuickAerobic={betweenSets ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
+                  onQuickAerobic={betweenSets ? (name, intensity, minutes) => onLogSet({
+                    exerciseName: ex.name,
+                    muscleGroup: ex.muscleGroup,
+                    setNumber: loggedSets.length + 1,
+                    movementType: 'aerobic',
+                    weight: null,
+                    reps: null,
+                    durationSeconds: minutes * 60,
+                    distance: name,
+                    lightMinutes: intensity === 'Light' ? minutes : null,
+                    moderateMinutes: intensity === 'Moderate' ? minutes : null,
+                    vigorousMinutes: intensity === 'Vigorous' ? minutes : null,
+                  }) : null}
                 />
               );
             }
@@ -2345,8 +2359,9 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // weight/reps the user had typed in for the next set — but any set
   // already logged THIS workout survived (it's persisted), so prefer
   // continuing from that over falling back to last time's suggestion.
-  const mostRecentLogged = loggedSets && loggedSets.length > 0
-    ? [...loggedSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
+  const liftSets = (loggedSets || []).filter((s) => s.movementType !== 'aerobic');
+  const mostRecentLogged = liftSets.length > 0
+    ? [...liftSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
     : null;
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
@@ -2535,7 +2550,7 @@ function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
   isActive, onActivate, onCollapse, onQuickAerobic,
 }) {
-  const nextSetNumber = loggedSets.length + 1;
+  const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
   const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
   const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
@@ -2594,7 +2609,9 @@ function ExerciseCard({
                 style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
-                {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                {s.movementType === 'aerobic'
+                  ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
+                  : <>{s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
                 <X size={11} />
               </button>
             ))}
@@ -2606,7 +2623,7 @@ function ExerciseCard({
           onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? onCollapse : null}
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
-        {onQuickAerobic && loggedSets.length > 0 && (
+        {onQuickAerobic && nextSetNumber > 1 && (
           <div className="mt-2"><QuickAerobicButton onSubmit={onQuickAerobic} /></div>
         )}
       </div>
