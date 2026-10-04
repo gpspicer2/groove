@@ -9,15 +9,15 @@ import { MET_ACTIVITIES, MET_SOURCE } from './features/move/metLibrary';
 const LEVELS = [
   { label: 'Light', range: 'under 3 METs', lo: 0, hi: 3, zone: 'Light', color: MOSS,
     blurb: 'Easy — you could sing. Gentle movement that barely raises your breathing.' },
-  { label: 'Moderate · lower', range: '3 – 4.4 METs', lo: 3, hi: 4.5, zone: 'Moderate', color: SKY,
+  { label: 'Moderate · Lower', range: '3 – 4.4 METs', lo: 3, hi: 4.5, zone: 'Moderate', color: SKY,
     blurb: 'A noticeable lift in breathing, but conversation is easy.' },
-  { label: 'Moderate · upper', range: '4.5 – 5.9 METs', lo: 4.5, hi: 6, zone: 'Moderate', color: SKY,
+  { label: 'Moderate · Upper', range: '4.5 – 5.9 METs', lo: 4.5, hi: 6, zone: 'Moderate', color: SKY,
     blurb: 'You can talk, but not sing. Steady, purposeful effort.' },
   { label: 'Vigorous', range: '6 – 8.9 METs', lo: 6, hi: 9, zone: 'Vigorous', color: AMBER,
     blurb: 'Hard to say more than a few words at a time.' },
-  { label: 'Very vigorous', range: '9 – 11.9 METs', lo: 9, hi: 12, zone: 'Vigorous', color: BRICK,
+  { label: 'Very Vigorous', range: '9 – 11.9 METs', lo: 9, hi: 12, zone: 'Vigorous', color: BRICK,
     blurb: 'Breathing hard; only short phrases at a time.' },
-  { label: 'Near maximal', range: '12+ METs', lo: 12, hi: 99, zone: 'Vigorous', color: BRICK,
+  { label: 'Near-Maximal', range: '12+ METs', lo: 12, hi: 99, zone: 'Vigorous', color: BRICK,
     blurb: 'All-out effort you can hold only briefly.' },
 ];
 
