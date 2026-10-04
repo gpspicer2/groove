@@ -15,7 +15,7 @@ import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'center', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove",
+    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove",
     body: "Move more, feel better, and stick with it.",
   },
   {
@@ -39,7 +39,7 @@ const STEPS = [
     body: "Short reads on movement and sticking with it.",
   },
   {
-    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: PLUM, noTabs: true, title: 'Your Account',
+    tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'top', color: PLUM, noTabs: true, title: 'Your Account',
     body: "Message me, update your health check, and manage settings.",
   },
 ];
@@ -62,8 +62,8 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
   const isLast = index === STEPS.length - 1;
 
   // App-wide steps light up every tab in its own color, so the opening
-  // doesn't read as Birdseye's; the Account step lights none.
-  const tabHighlight = phase !== 'steps' ? null : step.allTabs ? 'all' : step.noTabs ? 'none' : null;
+  // doesn't read as Birdseye's; the Account step and the plum pop-ups light none.
+  const tabHighlight = phase !== 'steps' || step.noTabs ? 'none' : step.allTabs ? 'all' : null;
   useEffect(() => {
     onTabHighlight?.(tabHighlight);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -324,7 +324,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
         )}
 
         {phase === 'confirmSkipTour' && (
-          <div style={{ background: INK, border: `1px solid ${PLUM}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+          <div style={{ background: INK, border: `1px solid ${PLUM}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No worries — you can look around on your own instead.
@@ -339,7 +339,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
         )}
 
         {phase === 'exitPrompt' && (
-          <div style={{ background: INK, border: `1px solid ${PLUM}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+          <div style={{ background: INK, border: `1px solid ${PLUM}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: PLUM, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               A few questions so I can mentor you. About 10 minutes.
@@ -354,7 +354,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
         )}
 
         {phase === 'confirmSkip' && (
-          <div style={{ background: INK, border: `1px solid ${BRICK}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+          <div style={{ background: INK, border: `1px solid ${BRICK}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: BRICK, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No rush. You can finish it anytime from Account.
