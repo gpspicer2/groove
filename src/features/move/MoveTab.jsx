@@ -2316,7 +2316,7 @@ function formatDaysSince(days) {
 function CardHeader({ title, index, onOpenSwap, onRemove, onDone }) {
   return (
     <div className="flex items-center justify-between mb-1">
-      <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+      <div onClick={onDone} style={{ color: PAPER }} className={`flex-1 min-w-0 text-base font-bold flex items-center gap-2 ${onDone ? 'cursor-pointer' : ''}`}>
         {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>} {title}
       </div>
       <div className="flex items-center gap-0.5">
@@ -2579,7 +2579,7 @@ function ExerciseCard({
     <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+          <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center gap-2">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
           </span>
           <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
@@ -2720,7 +2720,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
   }
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
-      <div className="flex items-center justify-center gap-1.5 mb-3">
+      <div onClick={onCollapse} className={`flex items-center justify-center gap-1.5 mb-3 ${onCollapse ? 'cursor-pointer' : ''}`}>
         {index != null && <span style={{ color: TEXT_SOFT }} className="text-sm font-medium">{index}.</span>}
         <Link2 size={12} color={LIME} />
         <span style={{ color: LIME }} className="text-sm uppercase tracking-wide">Superset</span>
@@ -2885,9 +2885,9 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3">
       <div className="flex items-center justify-between mb-2">
-        <div style={{ color: PAPER }} className="text-base font-bold flex items-center gap-1.5">
+        <div onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center gap-1.5">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
-          <button onClick={() => setShowInfo(true)} style={{ color: VIOLET }} className="p-1 -m-1" title="Why warm up?">
+          <button onClick={(e) => { e.stopPropagation(); setShowInfo(true); }} style={{ color: VIOLET }} className="p-1 -m-1" title="Why warm up?">
             <Info size={14} />
           </button>
         </div>
