@@ -2605,14 +2605,13 @@ function ExerciseCard({
             {loggedSets.map((s) => (
               <button
                 key={s.id}
-                onClick={() => onDeleteSet(s.id)}
+                onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
                 style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
                   : <>{s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
-                <X size={11} />
               </button>
             ))}
           </div>
@@ -2674,12 +2673,11 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
             {loggedSets.map((s) => (
               <button
                 key={s.id}
-                onClick={() => onDeleteSet(s.id)}
+                onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
                 style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
-                <X size={11} />
               </button>
             ))}
           </div>
@@ -3102,12 +3100,11 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
           {loggedSets.map((s) => (
             <button
               key={s.id}
-              onClick={() => onDeleteSet(s.id)}
+              onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
               style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
-              <X size={11} />
             </button>
           ))}
         </div>
@@ -3164,12 +3161,11 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           {loggedSets.map((s) => (
             <button
               key={s.id}
-              onClick={() => onDeleteSet(s.id)}
+              onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
               style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
-              <X size={11} />
             </button>
           ))}
         </div>
