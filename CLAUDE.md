@@ -1,38 +1,58 @@
 # Groove
 
-A movement-coaching web app Greg (gpspicer2) runs for clients — friends and family first. Clients log workouts, track ACSM-based weekly goals, journal, and read short tidbits; Greg's account is the coach ("trainer") view.
+A movement-coaching web app run by Greg (gpspicer2), an exercise-science professional, for his clients — friends and family first. The goal is to make his background and ACSM-based guidance accessible: clients log workouts, track ACSM weekly goals, journal privately, and read short tidbits. Greg's own account is the coach ("trainer") view.
 
 ## Working with Greg
 - Greg isn't a developer. Explain in plain words, one step at a time, no jargon. Say exactly where to tap/click.
+- Give advice and recommendations, not just execution. Apply obvious "intuitive" improvements app-wide; run anything uncertain past him first.
 - Push finished changes straight to `main` (that's what goes live). No PRs unless asked.
 - Commit as `gpspicer2 <gpspicer2@gmail.com>` — Vercel's Hobby plan won't deploy commits by other authors.
-- Keep in-app text short. No long blocks of text anywhere; people don't read them.
-- Verify changes before pushing (`npm run build`; drive the UI when it matters).
+- Verify changes yourself rather than asking him to: `npm run build` before every push (an unescaped apostrophe in a tour string once broke a deploy), and drive the UI when behavior changes.
+- Update the app tour (`src/features/onboarding/AppTour.jsx`) whenever a feature it describes changes.
+
+## Design taste
+- Compact, consistent, clean. No wasted vertical space, no repeated titles.
+- No walls of text anywhere. Short explanations only on demand ((i) popups, one-time swipe tips).
+- Merge overlapping content into one place. Favor one-tap shortcuts.
+- No stray symbols in labels. Keep forms tidy and unjumbled.
+- Logged sets keep a visible, distinct delete control. "Resume workout" stays a link (making it a button is undecided).
 
 ## Stack & deploy
-- React 18 + Vite + Tailwind v4, Supabase (auth, Postgres, storage), hosted on Vercel.
-- Live app: https://groove-rho.vercel.app (Vercel project `groove`, team Spicer_Apps). Long `groove-xxxx-spicer-apps.vercel.app` URLs are private per-build previews.
-- Supabase Auth → URL Configuration: Site URL and Redirect URLs are set to the live app (needed for reset/confirm emails).
-- `schema.sql` is a reference copy of what was run in Supabase's SQL editor — the app doesn't run it. Database changes have to be run by Greg in Supabase.
+- React 18 + Vite + Tailwind v4, Supabase (auth, Postgres, storage), hosted on Vercel; every push to `main` deploys.
+- Live app: https://groove-rho.vercel.app (Vercel team Spicer_Apps, project `groove`). Long `groove-xxxx-spicer-apps.vercel.app` URLs are private per-build previews behind a Vercel login — never give those to clients.
+- Supabase Auth → URL Configuration: Site URL and Redirect URLs point at the live app (needed for reset/confirm emails).
+- `schema.sql` is a reference copy of what was run in Supabase's SQL editor; the app doesn't run it. Schema changes must be run by Greg in the SQL editor — give him the exact SQL and where to paste it.
 - `/api/*` are Vercel serverless functions (account deletion uses the service key).
 
 ## Layout
-- `src/ClientApp.jsx` — client shell: four swipe tabs Birdseye / Move / Journal / Learn, app tour, account menu.
-- `src/TrainerApp.jsx` — Greg's coach view (client list, programs, baseline data).
-- `src/features/birdseye` — weekly goals, calendar, Science Supported Strategy, Movement Library.
-- `src/features/move` — workout builder/logger (`MoveTab.jsx`, large), `exerciseLibrary.js` (exercises, styles, title/plural helpers).
-- `src/features/journal` — guided check-in + freeform entries.
-- `src/features/baseline` — intake form, fitness assessment, VO2max/1RM estimators.
-- `src/features/onboarding/AppTour.jsx` — spotlight tour shown once after signup.
-- `src/MetBrowser.jsx` — Movement Library (Light/Moderate/Vigorous everyday activities).
-- `src/lib/calories.js` — ACSM kcal estimates.
+- `src/ClientApp.jsx` — client shell: four swipe tabs Birdseye / Move / Journal / Learn, tour, account menu. No tab titles under the tabs; during a workout the Move tab reads "Moving" (letter ripple) and a right-aligned "lb lifted · kcal" tally sits under the tabs.
+- `src/TrainerApp.jsx` — Greg's coach view (clients, programs, baseline data).
+- `src/features/birdseye` — weekly goals, calendar, Science Supported Strategy (merged with the ACSM block), Movement Library.
+- `src/features/move/MoveTab.jsx` (~3,200 lines) — most workout logic. `exerciseLibrary.js` — exercises, training styles, `workoutTitle`/`plural` helpers.
+- `src/features/journal`, `src/features/baseline`, `src/features/learn`.
+- `src/MetBrowser.jsx` — Movement Library. `src/lib/calories.js` — kcal estimates.
+- `src/features/message/MessageTab.jsx` — in-app chat, currently unused. "Message Greg" in Account is an `sms:` link to Greg's phone.
 
-## Decisions to keep
-- Journals are author-only. Greg never sees them (no trainer RLS policy, every entry `is_private`). The app tells clients to message Greg if there's something he should know.
-- Weekly goals follow ACSM: aerobic in moderate-equivalent minutes (vigorous counts double), resistance and flexibility in days.
-- Resistance workouts open with an aerobic warm-up and a dynamic warm-up. Combined mode has Serial and Integrated layouts.
+## Decisions and why
+- "Log Workout" (not "Start"): open-ended, covers past sessions too.
+- Resistance workouts open with a Treadmill Walk and a Dynamic Warm-up (both removable). Exercises start collapsed.
+- Combined mode: Serial = blocks back to back; Integrated = aerobic woven between exercises or sets. Between-sets aerobic logs as a set inside the exercise, not its own card.
+- Weekly goals follow ACSM: aerobic in moderate-equivalent minutes (vigorous counts double), resistance/flexibility in days.
+- Calories: ACSM kcal/min = METs × 3.5 × kg ÷ 200. Resistance sets ≈ 2.5 min at 3.5–6.5 METs by lift; aerobic uses per-activity METs scaled by intensity. Estimates only, no load weighting. Shown live, in History, and on Birdseye.
+- Movement Library: three intensity buttons (Light/Moderate/Vigorous), each a short list of everyday activities, plus the client's bpm range when resting HR is set. Simplified from a 6-level slider over the full compendium — Greg found that too long. Activities from the 2024 Adult Compendium of Physical Activities (not Greg's old METs.pdf, which is © Wellsource).
+- Learn categories are a title prefix (`[Benefits]`, `[Strategy]`, `[Adherence]`) rather than a column.
+- Journals are author-only: every entry is private, no trainer RLS policy (SQL already run in Supabase). The Journal tab tells clients Greg never sees it and to message him if there's something he should know.
 - Move history shows 3 workouts, then 5 more per Show More.
-- Baseline intake is optional (prompted, not a gate); the tour is the only first-run step.
+- Baseline intake is optional (prompted from Birdseye, not a gate); it now also asks bodyweight. The tour is the only first-run step and only counts as done after its final "get to know you" prompt.
 
-## Open items
-- "Message Greg" not yet verified with a real second account (`profiles` RLS in `schema.sql` may block clients from finding the trainer).
+## Known problems and ideas
+- Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
+- Learn long-press highlight fix is iOS-specific and unverified outside iOS.
+- Ideas: weight calorie estimates by load/effort; possibly make Resume a button.
+
+## Code gotchas
+- Every React hook must run before any early return (otherwise React error #300).
+- Drag-to-reorder uses raw window touch listeners (`passive: false`); swipe drawers fire buttons on touch end.
+- The same exercise can appear in two muscle groups — card keys carry a `#n` suffix.
+- localStorage keys: `groove:combinedLayout:<id>`, `groove:combinedActivity:<id>`, `groove:liveBackup`, `groove:swipeHint:<id>`, `groove:autoStartRestTimer`.
+- `workouts.plan` is a JSON array, so new entry types need no migration.
