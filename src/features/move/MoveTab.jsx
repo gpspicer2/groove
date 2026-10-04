@@ -1388,16 +1388,9 @@ function ActiveWorkout({
   // Recomputed fresh every render — see the dupeCount disambiguation below.
   const groupKeyCounts = new Map();
 
-  useEffect(() => {
-    if (activeGroupKey != null || groups.length === 0) return;
-    // A prepended warm-up doesn't use the active/collapsed accordion at
-    // all, so defaulting to it would leave the first real exercise
-    // collapsed with nothing expanded — skip past it.
-    const first = groups.find((g) => g[0].type !== 'warmup' && g[0].type !== 'aerobic') || groups[0];
-    const key = first.length === 2 ? `superset-${first[0].name}-${first[1].name}` : `${first[0].type || 'ex'}-${first[0].name}`;
-    setActiveGroupKey(key);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups.length]);
+  // Nothing is expanded by default — a suggested workout starts fully
+  // collapsed, and clients tap in when they're ready to log or edit.
+
 
   // Newly added exercises scroll to the top of their own card, instead
   // of leaving the page parked at the bottom where the add form was.
@@ -1885,6 +1878,7 @@ function QuickAerobicButton({ onSubmit }) {
 }
 
 function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
+  const [custom, setCustom] = useState('');
   const pool = filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location).filter(
     (e) => e.name !== exercise.name && !usedNames.includes(e.name)
   );
@@ -1922,6 +1916,23 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
             ))}
           </div>
         )}
+        <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: `1px dashed ${INK_3}` }}>
+          <input
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            placeholder="Or type your own"
+            style={{ background: INK_3, color: PAPER }}
+            className="flex-1 min-w-0 rounded-md px-3 py-2.5 text-sm outline-none"
+          />
+          <button
+            disabled={!custom.trim()}
+            onClick={() => onPick({ name: titleCaseWords(custom) })}
+            style={{ background: custom.trim() ? SKY : INK_3, color: custom.trim() ? INK : TEXT_SOFT }}
+            className="shrink-0 rounded-md px-4 py-2.5 text-sm font-medium"
+          >
+            Swap
+          </button>
+        </div>
       </div>
     </div>
     </Portal>

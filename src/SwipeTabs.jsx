@@ -146,7 +146,19 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
         {/* align-items defaults to 'stretch' in a row flex container, so
             each page fills the strip's full height with no extra CSS. */}
         {pages.map((page, i) => (
-          <div key={page.key ?? i} style={{ width: `${100 / pages.length}%`, flexShrink: 0 }}>
+          <div
+            key={page.key ?? i}
+            // All pages share one scroll container, so the tallest page
+            // was setting the scroll length for every tab — capping the
+            // inactive ones keeps each tab scrolling only as far as its
+            // own content.
+            style={{
+              width: `${100 / pages.length}%`,
+              flexShrink: 0,
+              maxHeight: i === index ? 'none' : '100svh',
+              overflow: i === index ? 'visible' : 'hidden',
+            }}
+          >
             {page}
           </div>
         ))}
