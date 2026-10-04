@@ -409,6 +409,16 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
       plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, 2, profile?.gender)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
+    if (usesResistance) {
+      // Every resistance session opens with an easy aerobic piece and a
+      // dynamic warm-up (clean slate included) — both removable.
+      const warmupDrills = generateDynamicWarmup(selectedGroups);
+      plan = [
+        { name: 'Treadmill Walk', muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' },
+        ...(warmupDrills.length ? [{ name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills: warmupDrills }] : []),
+        ...plan,
+      ];
+    }
     if (usesFlexibility) {
       plan = generateFlexibilityPlan(selectedGroups);
       const flexActivityEntries = selectedFlexActivities.map((name) => ({
@@ -1342,7 +1352,7 @@ function ActiveWorkout({
     // A prepended warm-up doesn't use the active/collapsed accordion at
     // all, so defaulting to it would leave the first real exercise
     // collapsed with nothing expanded — skip past it.
-    const first = groups.find((g) => g[0].type !== 'warmup') || groups[0];
+    const first = groups.find((g) => g[0].type !== 'warmup' && g[0].type !== 'aerobic') || groups[0];
     const key = first.length === 2 ? `superset-${first[0].name}-${first[1].name}` : `${first[0].type || 'ex'}-${first[0].name}`;
     setActiveGroupKey(key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
