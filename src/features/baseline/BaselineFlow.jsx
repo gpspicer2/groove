@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 import { BASELINE_SECTIONS, estimateSecondsRemaining } from './baselineQuestions';
 
 const PAGES = BASELINE_SECTIONS.map((s) => ({ type: 'section', section: s }));
@@ -92,7 +92,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />
-          <div style={{ color: LIME, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
+          <div style={{ color: PLUM, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
             <em>GROOVE</em>
           </div>
           {onClose ? (
@@ -112,7 +112,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
           <p style={{ color: TEXT_SOFT }} className="text-sm mb-2">{page.section.subtitle}</p>
         )}
         <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden mt-3 relative">
-          <div style={{ width: `${pct}%`, background: LIME }} className="h-full rounded-full transition-all" />
+          <div style={{ width: `${pct}%`, background: PLUM }} className="h-full rounded-full transition-all" />
         </div>
         <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">
           Page {pageIndex + 1} of {PAGES.length} · ~{minutesLeft} min left
@@ -135,7 +135,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
             <button onClick={() => setConfirmingIncomplete(false)} style={{ color: TEXT_SOFT }} className="flex-1 text-sm py-3">
               Keep answering
             </button>
-            <button onClick={handleFinish} disabled={saving} style={{ background: LIME, color: INK }} className="flex-1 rounded-md py-3 text-sm font-medium">
+            <button onClick={handleFinish} disabled={saving} style={{ background: PLUM, color: INK }} className="flex-1 rounded-md py-3 text-sm font-medium">
               {saving ? 'Saving…' : 'Finish anyway'}
             </button>
           </div>
@@ -156,7 +156,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
         <button
           onClick={handleNext}
           disabled={(!isLast && !canAdvance()) || saving}
-          style={{ background: (isLast || canAdvance()) ? LIME : INK_3, color: (isLast || canAdvance()) ? INK : TEXT_SOFT }}
+          style={{ background: (isLast || canAdvance()) ? PLUM : INK_3, color: (isLast || canAdvance()) ? INK : TEXT_SOFT }}
           className="flex-1 rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
         >
           {saving ? 'Saving…' : isLast ? 'Finish' : 'Next'}
@@ -177,7 +177,7 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
     <div>
       <label style={{ color: PAPER }} className="text-sm block mb-2 text-center">
         {question.label}
-        {question.required && <span style={{ color: SKY }}> *</span>}
+        {question.required && <span style={{ color: PLUM }}> *</span>}
       </label>
 
       {question.type === 'textarea' && (
@@ -239,7 +239,7 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
                   key={opt}
                   type="button"
                   onClick={() => onChange(opt)}
-                  style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
+                  style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER_DIM }}
                   className="w-full text-center rounded-md px-3 py-2.5 text-sm"
                 >
                   {opt}

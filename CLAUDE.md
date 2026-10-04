@@ -4,6 +4,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 ## Working with Greg
 - Greg isn't a developer. Explain in plain words, one step at a time, no jargon. Say exactly where to tap/click.
+- Take initiative on small, obvious consistency fixes without asking (Greg doesn't want back-and-forth over them). When changing one screen, sweep for the same issue elsewhere.
 - Give advice and recommendations, not just execution. Apply obvious "intuitive" improvements app-wide; run anything uncertain past him first.
 - Push finished changes straight to `main` (that's what goes live). No PRs unless asked.
 - Commit as `gpspicer2 <gpspicer2@gmail.com>` — Vercel's Hobby plan won't deploy commits by other authors.
@@ -11,6 +12,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Update the app tour (`src/features/onboarding/AppTour.jsx`) whenever a feature it describes changes.
 
 ## Design taste
+- Colors: each tab has its own (Birdseye green `LIME`, Move teal `SKY`, Journal amber `AMBER`, Learn mauve `VIOLET`). App-wide and onboarding screens (sign-in, consent, health check, tour intro/Account/exit cards, Getting to Know You, fitness assessment) use plum `PLUM`, matching the logo's G — never a tab's color.
 - Compact, consistent, clean. No wasted vertical space, no repeated titles.
 - No walls of text anywhere. Short explanations only on demand ((i) popups, one-time swipe tips).
 - Merge overlapping content into one place. Favor one-tap shortcuts.

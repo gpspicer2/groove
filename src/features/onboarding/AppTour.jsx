@@ -324,12 +324,12 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
         )}
 
         {phase === 'confirmSkipTour' && (
-          <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+          <div style={{ background: INK, border: `1px solid ${PLUM}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No worries — you can look around on your own instead.
             </div>
-            <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
+            <button onClick={() => setPhase('exitPrompt')} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Yes, skip it
             </button>
             <button onClick={() => setPhase('steps')} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
@@ -339,12 +339,12 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
         )}
 
         {phase === 'exitPrompt' && (
-          <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
+          <div style={{ background: INK, border: `1px solid ${PLUM}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
+            <div style={{ color: PLUM, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               A few questions so I can coach you. About 10 minutes.
             </div>
-            <button onClick={() => onComplete(true)} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
+            <button onClick={() => onComplete(true)} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Let's do it now
             </button>
             <button onClick={() => setPhase('confirmSkip')} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
@@ -359,7 +359,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No rush. You can finish it anytime from Account.
             </div>
-            <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
+            <button onClick={() => setPhase('exitPrompt')} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Actually, let's do it now
             </button>
             <button onClick={() => onComplete(false)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">

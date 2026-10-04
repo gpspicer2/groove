@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, 
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER } from '../../theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER, PLUM } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import BaselineFlow from '../baseline/BaselineFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
@@ -14,6 +14,7 @@ import MovementTypePicker from '../move/MovementTypePicker';
 import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
+import { needsClearance } from '../screening/screening';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -252,7 +253,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   }
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
-  const insight = buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
+  // No "head over to Move" nudges while a doctor's okay is still recommended.
+  const insight = needsClearance(profile?.screening) ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
 
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, field: 'aerobic_goal' },
@@ -272,10 +274,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         {!intakeDone && (
           <button
             onClick={() => setShowBaseline(true)}
-            style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
+            style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }}
             className="w-full rounded-lg px-5 py-4 text-center"
           >
-            <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Let's get to know you</div>
+            <div style={{ color: PLUM }} className="text-sm uppercase tracking-wide mb-1">Let's get to know you</div>
             <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account →</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">About 10 minutes, whenever you're ready.</div>
           </button>

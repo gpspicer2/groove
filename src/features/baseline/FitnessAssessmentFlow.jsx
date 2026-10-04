@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Square, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 import { RATING_SCALE, AEROBIC_ACTIVITIES, ONE_RM_LIFTS } from './fitnessAssessment';
 
 // A short, coached, step-by-step flow — one question/action per screen,
@@ -79,7 +79,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
     <Portal>
     <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
       <div className="max-w-md mx-auto w-full px-4 pt-safe flex items-center justify-between">
-        <div style={{ color: LIME, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
+        <div style={{ color: PLUM, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
           <em>GROOVE</em>
         </div>
         <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
@@ -217,7 +217,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
         <button
           onClick={handleNext}
           disabled={!canAdvance() || saving}
-          style={{ background: canAdvance() ? LIME : INK_3, color: canAdvance() ? INK : TEXT_SOFT }}
+          style={{ background: canAdvance() ? PLUM : INK_3, color: canAdvance() ? INK : TEXT_SOFT }}
           className="flex-1 rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
         >
           {saving ? 'Saving…' : isLast ? 'Finish' : 'Next'}
@@ -246,7 +246,7 @@ function ModeButton({ label, selected, onClick }) {
   return (
     <button
       onClick={onClick}
-      style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
+      style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER_DIM }}
       className="w-full rounded-md px-4 py-3 text-sm text-center"
     >
       {label}
@@ -314,7 +314,7 @@ function TimedAerobicStep({ activity, onSelectActivity, onSeconds, result, onRes
       {!finished ? (
         <button
           onClick={running ? handleStop : handleStart}
-          style={{ background: running ? BRICK : LIME, color: INK }}
+          style={{ background: running ? BRICK : PLUM, color: INK }}
           className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5 mb-3"
         >
           {running ? <Square size={14} /> : <Play size={14} />} {running ? 'Stop' : 'Start'}
@@ -332,7 +332,7 @@ function TimedAerobicStep({ activity, onSelectActivity, onSeconds, result, onRes
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-2.5 mt-1 text-sm outline-none"
           />
-          <button onClick={handleStart} style={{ color: SKY }} className="text-sm mt-2">
+          <button onClick={handleStart} style={{ color: PLUM }} className="text-sm mt-2">
             Redo timer
           </button>
         </div>

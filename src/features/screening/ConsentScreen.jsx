@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import Wordmark from '../../Wordmark';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 
 // Bump the version whenever the wording changes, so the date and text each
 // person agreed to stay traceable.
@@ -33,19 +33,19 @@ export default function ConsentScreen() {
 
   return (
     <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
-      <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="w-full max-w-sm rounded-lg px-6 py-7">
+      <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm rounded-lg px-6 py-7">
         <Wordmark height={40} className="mb-4 mx-auto block" />
-        <h1 style={{ color: LIME }} className="text-xl font-medium text-center mb-4">Before you start</h1>
+        <h1 style={{ color: PLUM }} className="text-xl font-medium text-center mb-4">Before you start</h1>
         <ul className="space-y-2.5 mb-5">
           {CONSENT_POINTS.map((p) => (
             <li key={p} style={{ color: PAPER_DIM }} className="text-sm flex gap-2">
-              <span style={{ color: LIME }}>•</span><span>{p}</span>
+              <span style={{ color: PLUM }}>•</span><span>{p}</span>
             </li>
           ))}
         </ul>
         <button onClick={() => setAgreed((v) => !v)} className="flex items-center gap-2.5 mb-4 text-left">
           <span
-            style={{ background: agreed ? LIME : INK_3, borderColor: agreed ? LIME : TEXT_SOFT }}
+            style={{ background: agreed ? PLUM : INK_3, borderColor: agreed ? PLUM : TEXT_SOFT }}
             className="w-5 h-5 rounded border flex items-center justify-center shrink-0"
           >
             {agreed && <Check size={14} color={INK} strokeWidth={3} />}
@@ -56,7 +56,7 @@ export default function ConsentScreen() {
         <button
           onClick={handleAgree}
           disabled={!agreed || saving}
-          style={{ background: agreed ? LIME : INK_3, color: agreed ? INK : TEXT_SOFT }}
+          style={{ background: agreed ? PLUM : INK_3, color: agreed ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mb-3"
         >
           {saving ? 'Saving…' : 'Continue'}

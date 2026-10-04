@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, AMBER, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, AMBER, BRICK } from '../../theme';
 import { SCREENING_VERSION, SYMPTOMS, DISEASES, OTHER_CONDITIONS, screeningResult, RESULT_COPY, labelsFor } from './screening';
 
-export const TONE_COLOR = { good: LIME, caution: AMBER, stop: BRICK };
+export const TONE_COLOR = { good: PLUM, caution: AMBER, stop: BRICK };
 
 // Steps branch: anyone reporting symptoms skips the known-disease question,
 // since it can't change their result.
@@ -162,7 +162,7 @@ function Choice({ selected, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER }}
+      style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER }}
       className="w-full rounded-md px-4 py-3 text-sm text-center"
     >
       {children}
@@ -184,7 +184,7 @@ function MultiQuestion({ title, hint, options, selected, onChange, onNext, savin
       <button
         onClick={onNext}
         disabled={saving}
-        style={{ background: selected.length ? LIME : INK_2, color: selected.length ? INK : PAPER, border: selected.length ? 'none' : `1px solid ${INK_3}` }}
+        style={{ background: selected.length ? PLUM : INK_2, color: selected.length ? INK : PAPER, border: selected.length ? 'none' : `1px solid ${INK_3}` }}
         className="w-full rounded-md py-3 text-sm font-medium"
       >
         {saving ? 'Saving…' : selected.length ? 'Next' : 'None of these'}
@@ -211,7 +211,7 @@ export function ScreeningResult({ screening, onContinue, onCleared }) {
       <p style={{ color: TEXT_SOFT }} className="text-xs mb-4">
         Based on the American College of Sports Medicine's screening guidelines.
       </p>
-      <button onClick={onContinue} style={{ background: LIME, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mb-3">
+      <button onClick={onContinue} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mb-3">
         Continue
       </button>
       {screening.result !== 'clear' && onCleared && (
