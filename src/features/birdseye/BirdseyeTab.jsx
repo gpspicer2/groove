@@ -10,6 +10,7 @@ import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
+import MetBrowser from '../../MetBrowser';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -329,7 +330,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
       </div>
 
       <div className="mt-4">
-        <AcsmGuidelines />
+        <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
 
       {showAssessment && (
@@ -735,120 +736,94 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
   );
 }
 
-// The permanent, personalized companion to the ACSM reference below: your
-// own individualized exercise prescription, not just an abstract standard.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
-  const zones = computeHrZones(restingHrNum, maxHrNum);
-
-  return (
-    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-5 text-center">
-      <div style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold mb-3">
-        My Science-Supported Strategy
-      </div>
-
-      <div className="space-y-4">
-        <p style={{ color: TEXT_SOFT }} className="text-sm">
-          My individualized exercise prescription, based on my goals (see ACSM guidelines description below):
-        </p>
-
-        <div>
-          <div style={{ color: MOSS }} className="text-sm font-medium mb-1">Aerobic</div>
-          <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-            Aim for {aerobicGoalMinutes} min/week (moderate-equivalent — vigorous minutes count double), spread across 3+ days.
-          </p>
-          {zones ? (
-            <>
-              {prescribedZone && (
-                <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>
-              )}
-              <div className="space-y-1">
-                {zones.map((z) => (
-                  <div key={z.label} className="flex items-center justify-center gap-2">
-                    <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
-                    <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
-                  </div>
-                ))}
-              </div>
-              <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
-                Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
-              </p>
-            </>
-          ) : (
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Add your resting heart rate in Account → Baseline Data to see your personal target ranges.
-            </p>
-          )}
-        </div>
-
-        <div>
-          <div style={{ color: SKY }} className="text-sm font-medium mb-1">Resistance</div>
-          <p style={{ color: TEXT_SOFT }} className="text-sm">
-            Train each major muscle group across {resistanceGoal} session{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
-          </p>
-        </div>
-
-        <div>
-          <div style={{ color: BRICK }} className="text-sm font-medium mb-1">Flexibility</div>
-          <p style={{ color: TEXT_SOFT }} className="text-sm">
-            Stretch major muscle-tendon groups 2–3 days/week, holding each stretch 10–30 sec for 2–4 reps.
-          </p>
-        </div>
-
-        {!assessmentDone && (
-          <button
-            onClick={onStartAssessment}
-            style={{ color: MOSS }}
-            className="text-sm underline"
-          >
-            Complete your fitness baseline for a fuller picture →
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 const MOVEMENT_INFO = {
   Aerobic: "Aerobic activity doesn't have to mean the treadmill. Anything that elicits your target heart-rate response counts — brisk walking, cycling, swimming, dancing, hiking, even a vigorous afternoon of yard work. What matters is the response your body has, not the setting it happens in.",
   Resistance: 'Resistance training is most convenient in a gym with barbells and machines, but that\'s not the only way to meet this recommendation. Bodyweight circuits, resistance bands, carrying or loading heavy objects (yard work, groceries, moving furniture), rock climbing, and heavy manual labor can all count toward this guideline.',
   Flexibility: 'Static stretching, yoga, and dynamic mobility work targeting the major muscle-tendon groups all count — the goal is regularly moving your joints through their full range of motion.',
 };
 
-function AcsmGuidelines() {
+// Your individualized exercise prescription and the ACSM guidelines it's
+// built on, as one dropdown — they said nearly the same thing twice.
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
+  const zones = computeHrZones(restingHrNum, maxHrNum);
   const [open, setOpen] = useState(false);
   const [openInfo, setOpenInfo] = useState(null);
+  const infoBtn = (label) => (
+    <button onClick={() => setOpenInfo((v) => (v === label ? null : label))} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+      <Info size={13} />
+    </button>
+  );
+  const infoBox = (label) => openInfo === label && (
+    <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-2">{MOVEMENT_INFO[label]}</div>
+  );
 
   return (
-    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
-        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold leading-snug">
-          ACSM's Recommendations for<br />Physical Activity
-        </span>
+        <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">Science Supported Strategy</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
+
       {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4 text-center">
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
           <p style={{ color: TEXT_SOFT }} className="text-sm italic">
-            The American College of Sports Medicine (ACSM) is the leading professional organization for exercise science, publishing the evidence-based, science-backed recommendations behind the guidelines below.
+            Your individualized prescription, built on the evidence-based guidelines of the American College of Sports Medicine (ACSM).
           </p>
 
-          <GuidelineBlock
-            label="Aerobic" color={MOSS}
-            text="150+ min/week moderate, or 75+ min/week vigorous (or a combination), spread across 3+ days — no more than 2 consecutive days without activity."
-            open={openInfo === 'Aerobic'} onToggle={() => setOpenInfo((v) => (v === 'Aerobic' ? null : 'Aerobic'))}
-          />
-          <GuidelineBlock
-            label="Resistance" color={SKY}
-            text="2–3 non-consecutive days/week, training all major muscle groups — 2–4 sets of 8–12 reps at moderate-to-vigorous intensity."
-            open={openInfo === 'Resistance'} onToggle={() => setOpenInfo((v) => (v === 'Resistance' ? null : 'Resistance'))}
-          />
-          <GuidelineBlock
-            label="Flexibility" color={BRICK}
-            text="2–3 days/week, stretching major muscle-tendon groups — hold static stretches 10–30 sec, 2–4 reps each."
-            open={openInfo === 'Flexibility'} onToggle={() => setOpenInfo((v) => (v === 'Flexibility' ? null : 'Flexibility'))}
-          />
+          <div>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <span style={{ color: MOSS }} className="text-sm font-medium">Aerobic</span>{infoBtn('Aerobic')}
+            </div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
+              Aim for {aerobicGoalMinutes} min/week (moderate-equivalent — vigorous minutes count double), spread across 3+ days with no more than 2 days off in a row. ACSM's baseline: 150+ min moderate or 75+ min vigorous.
+            </p>
+            {zones ? (
+              <>
+                {prescribedZone && <div style={{ color: SKY }} className="text-sm mb-1">Coach-recommended: {prescribedZone} zone</div>}
+                <div className="space-y-1">
+                  {zones.map((z) => (
+                    <div key={z.label} className="flex items-center justify-center gap-2">
+                      <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
+                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
+                  Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
+                </p>
+              </>
+            ) : (
+              <p style={{ color: TEXT_SOFT }} className="text-sm">Add your resting heart rate in Account → Baseline Data to see your personal target ranges.</p>
+            )}
+            {infoBox('Aerobic')}
+          </div>
 
+          <div>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <span style={{ color: SKY }} className="text-sm font-medium">Resistance</span>{infoBtn('Resistance')}
+            </div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Train all major muscle groups on {resistanceGoal} non-consecutive day{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
+            </p>
+            {infoBox('Resistance')}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <span style={{ color: BRICK }} className="text-sm font-medium">Flexibility</span>{infoBtn('Flexibility')}
+            </div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm">
+              Stretch major muscle-tendon groups 2–3 days/week, holding each static stretch 10–30 sec for 2–4 reps.
+            </p>
+            {infoBox('Flexibility')}
+          </div>
+
+          {!assessmentDone && (
+            <button onClick={onStartAssessment} style={{ color: MOSS }} className="text-sm underline">
+              Complete your fitness baseline for a fuller picture →
+            </button>
+          )}
           <div style={{ color: TEXT_SOFT }} className="text-sm">— American College of Sports Medicine</div>
         </div>
       )}
@@ -856,19 +831,21 @@ function AcsmGuidelines() {
   );
 }
 
-function GuidelineBlock({ label, color, text, open, onToggle }) {
+function MovementLibrary({ hrZones }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div>
-      <div className="flex items-center justify-center gap-1.5 mb-1">
-        <span style={{ color }} className="text-sm font-medium">{label}</span>
-        <button onClick={onToggle} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-          <Info size={13} />
-        </button>
-      </div>
-      <div style={{ color: PAPER_DIM }} className="text-sm">{text}</div>
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">Movement Library</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+      </button>
       {open && (
-        <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-2">
-          {MOVEMENT_INFO[label]}
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
+          <p style={{ color: TEXT_SOFT }} className="text-sm italic text-center mb-3">
+            Gardening counts. So does dancing. Drag the bar to see what movement looks like at each intensity.
+          </p>
+          <MetBrowser hrZones={hrZones} />
         </div>
       )}
     </div>
