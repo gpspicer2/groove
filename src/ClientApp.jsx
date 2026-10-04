@@ -91,10 +91,13 @@ export default function ClientApp() {
             );
           })}
         </div>
-        {moveStatus && moveStatus.totalWeight > 0 && (
-          <div className="flex justify-end mb-3 -mt-1">
+        {moveStatus && (moveStatus.totalWeight > 0 || moveStatus.kcal > 0) && (
+          <div className="flex justify-end gap-3 mb-3 -mt-1">
             <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-              {moveStatus.totalWeight.toLocaleString()} lb lifted
+              {[
+                moveStatus.totalWeight > 0 && `${moveStatus.totalWeight.toLocaleString()} lb lifted`,
+                moveStatus.kcal > 0 && `~${moveStatus.kcal} kcal`,
+              ].filter(Boolean).join(' · ')}
             </span>
           </div>
         )}

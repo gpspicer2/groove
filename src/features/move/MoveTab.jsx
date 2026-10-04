@@ -1,3 +1,4 @@
+import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -342,8 +343,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
       return;
     }
     const totalWeight = Math.round(totalWeightLifted(sets.filter((s) => s.workoutId === activeWorkout.id)));
-    onActiveWorkoutChange({ totalWeight });
-  }, [activeWorkout, sets, onActiveWorkoutChange]);
+    const kcal = estimateKcal(sets.filter((s) => s.workoutId === activeWorkout.id), bodyweight);
+    onActiveWorkoutChange({ totalWeight, kcal });
+  }, [activeWorkout, sets, onActiveWorkoutChange, bodyweight]);
 
   // Keep the active workout's plan mirrored to the database as it's
   // edited (exercises added/removed/reordered, supersets formed) so the
@@ -956,6 +958,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
               const editing = editingHistoryId === w.id;
               const date = new Date(w.startedAt);
               const total = totalWeightLifted(workoutSets);
+              const kcal = estimateKcal(workoutSets, bodyweight);
               return (
                 <div id={`history-${w.id}`} key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
                   <button
@@ -969,6 +972,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
                         {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {exerciseNames.length} exercises · {workoutSets.length} sets
                         {total > 0 && ` · ${Math.round(total).toLocaleString()} lb lifted`}
+                        {kcal > 0 && ` · ~${kcal} kcal`}
                       </div>
                     </div>
                     {expanded ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
@@ -1119,6 +1123,10 @@ function StartWorkout({
   const [skipProgram, setSkipProgram] = useState(false);
   const [askIntegrated, setAskIntegrated] = useState(false);
   const [pendingLayout, setPendingLayout] = useState(null);
+  const [pendingActivity, setPendingActivity] = useState(null);
+  const [pendingIntensity, setPendingIntensity] = useState('Moderate');
+  const [pendingMinutes, setPendingMinutes] = useState(5);
+  const closeIntegrated = () => { setAskIntegrated(false); setPendingLayout(null); setPendingActivity(null); };
   const [showCombinedInfo, setShowCombinedInfo] = useState(false);
   // Tapping Start while something's missing used to just silently do
   // nothing (the button was disabled, with no explanation) — which read
@@ -1284,8 +1292,8 @@ function StartWorkout({
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
                 {combinedLayout === 'serial' && 'Resistance and aerobic blocks, one after the other.'}
-                {combinedLayout === 'integrated-exercises' && `${combinedActivity || 'Aerobic'} bursts woven in between exercises.`}
-                {combinedLayout === 'integrated-sets' && `${combinedActivity || 'Aerobic'} bursts woven in between sets.`}
+                {combinedLayout === 'integrated-exercises' && `${combinedActivity ? combinedActivity.split('|')[0] : 'Aerobic'} bursts woven in between exercises.`}
+                {combinedLayout === 'integrated-sets' && `${combinedActivity ? combinedActivity.split('|')[0] : 'Aerobic'} bursts woven in between sets.`}
                 {!combinedLayout && 'Serial: blocks back to back. Integrated: aerobic mixed into your lifting.'}
               </div>
             </div>
@@ -1309,7 +1317,7 @@ function StartWorkout({
           )}
           {askIntegrated && (
             <Portal>
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => { setAskIntegrated(false); setPendingLayout(null); }}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeIntegrated}>
                 <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
                 <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
                   {!pendingLayout ? (
@@ -1332,6 +1340,48 @@ function StartWorkout({
                         ))}
                       </div>
                     </>
+                  ) : pendingActivity ? (
+                    <>
+                      <div style={{ color: PAPER }} className="text-base font-medium mb-1">{pendingActivity}: how hard, how long?</div>
+                      <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">Your usual burst — you'll log it with one tap.</div>
+                      <div className="flex items-center gap-1.5 mb-3">
+                        {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+                          <button
+                            key={lvl}
+                            onClick={() => setPendingIntensity(lvl)}
+                            style={{ background: pendingIntensity === lvl ? AMBER : INK_3, color: pendingIntensity === lvl ? INK : PAPER_DIM }}
+                            className="flex-1 py-2 rounded-md text-sm"
+                          >
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="flex items-center justify-center gap-2 mb-4">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          value={pendingMinutes}
+                          onChange={(e) => setPendingMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+                          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                          className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+                        />
+                        <span style={{ color: TEXT_SOFT }} className="text-sm">minutes</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setPendingActivity(null)} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Back</button>
+                        <button
+                          onClick={() => {
+                            onSelectCombinedLayout(pendingLayout);
+                            onSelectCombinedActivity(`${pendingActivity}|${pendingIntensity}|${Number(pendingMinutes) > 0 ? Number(pendingMinutes) : 5}`);
+                            closeIntegrated();
+                          }}
+                          style={{ background: AMBER, color: INK }}
+                          className="flex-1 rounded-md py-2.5 text-sm font-medium"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div style={{ color: PAPER }} className="text-base font-medium mb-1">What will you do {pendingLayout === 'integrated-sets' ? 'between sets' : 'between exercises'}?</div>
@@ -1340,7 +1390,7 @@ function StartWorkout({
                         {AEROBIC_ACTIVITIES_QUICK.slice(0, 6).map((a) => (
                           <button
                             key={a}
-                            onClick={() => { onSelectCombinedLayout(pendingLayout); onSelectCombinedActivity(a); setAskIntegrated(false); setPendingLayout(null); }}
+                            onClick={() => setPendingActivity(a)}
                             style={{ background: INK_3, color: PAPER }}
                             className="px-3 py-2 rounded-full text-sm"
                           >
@@ -1349,7 +1399,7 @@ function StartWorkout({
                         ))}
                       </div>
                       <button
-                        onClick={() => { onSelectCombinedLayout(pendingLayout); onSelectCombinedActivity(''); setAskIntegrated(false); setPendingLayout(null); }}
+                        onClick={() => { onSelectCombinedLayout(pendingLayout); onSelectCombinedActivity(''); closeIntegrated(); }}
                         style={{ background: INK_3, color: AMBER }}
                         className="w-full rounded-md py-3 text-sm font-medium"
                       >
@@ -1465,7 +1515,7 @@ function StartWorkout({
 
 function ActiveWorkout({
   combinedLayout,
-  combinedActivity,
+  combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
@@ -1603,6 +1653,9 @@ function ActiveWorkout({
   // plain Resistance stays resistance-only (apart from the opening
   // warm-up block). Integrated-between-sets moves the quick-add into
   // each exercise card instead of the gaps.
+  const [presetName, presetIntensity, presetMinutes] = (combinedActivityRaw || '').split('|');
+  const combinedActivity = presetName || '';
+  const preset = presetName && presetMinutes ? { intensity: presetIntensity, minutes: Number(presetMinutes) } : null;
   const isCombined = workout.movementMode === 'Combined';
   const lifts = workout.movementMode === 'Resistance' || isCombined;
   const betweenSets = isCombined && combinedLayout === 'integrated-sets';
@@ -1679,7 +1732,7 @@ function ActiveWorkout({
       <div className="space-y-3 mb-4">
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
-            fixedName={combinedActivity}
+            fixedName={combinedActivity} preset={preset}
             onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
           />
         )}
@@ -1797,6 +1850,8 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  combinedActivity={combinedActivityRaw}
+                  preset={preset}
                   onQuickAerobic={betweenSets ? (name, intensity, minutes) => onLogSet({
                     exerciseName: ex.name,
                     muscleGroup: ex.muscleGroup,
@@ -1863,7 +1918,7 @@ function ActiveWorkout({
               </div>
               {canQuickAddAerobic && !addMenuOpen && group[0].type !== 'warmup' && !isAerobicGroup(group) && !(nextGroup && isAerobicGroup(nextGroup)) && (
                 <QuickAerobicButton
-                  fixedName={combinedActivity}
+                  fixedName={combinedActivity} preset={preset}
                   onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
                 />
               )}
@@ -2067,17 +2122,24 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
   );
 }
 
-function QuickAerobicButton({ onSubmit, fixedName }) {
+function QuickAerobicButton({ onSubmit, fixedName, preset }) {
   const [open, setOpen] = useState(false);
+  const [justLogged, setJustLogged] = useState(false);
 
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (fixedName && preset) {
+            onSubmit(fixedName, preset.intensity, preset.minutes);
+            setJustLogged(true);
+            setTimeout(() => setJustLogged(false), 1200);
+          } else setOpen(true);
+        }}
         style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
         className="w-full rounded-md py-1.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
       >
-        <Plus size={14} /> {fixedName || 'Add Aerobic'}
+        {justLogged ? <Check size={14} /> : <Plus size={14} />} {justLogged ? 'Logged' : fixedName ? `${fixedName}${preset ? ` · ${preset.minutes} min` : ''}` : 'Add Aerobic'}
       </button>
     );
   }
@@ -2676,7 +2738,7 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic,
+  isActive, onActivate, onCollapse, onQuickAerobic, combinedActivity, preset,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -2752,7 +2814,7 @@ function ExerciseCard({
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
         {onQuickAerobic && nextSetNumber > 1 && (
-          <div className="mt-2"><QuickAerobicButton fixedName={combinedActivity} onSubmit={onQuickAerobic} /></div>
+          <div className="mt-2"><QuickAerobicButton fixedName={combinedActivity} preset={preset} onSubmit={onQuickAerobic} /></div>
         )}
       </div>
     </SwipeActions>

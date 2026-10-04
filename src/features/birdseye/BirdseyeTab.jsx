@@ -1,3 +1,4 @@
+import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -67,12 +68,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [trackResistanceGoal, setTrackResistanceGoal] = useState(true);
   const [editingGoals, setEditingGoals] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [kcalByWorkout, setKcalByWorkout] = useState({});
 
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers, submitted_at').eq('user_id', userId).maybeSingle(),
-      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal, bodyweight_lb').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
@@ -119,6 +121,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         aerobicMinutes[s.workout_id] = bucket;
       }
     });
+    const bw = profileRow?.bodyweight_lb != null ? Number(profileRow.bodyweight_lb) : null;
+    const byWorkout = {};
+    (setRows || []).forEach((r) => { (byWorkout[r.workout_id] ||= []).push(r); });
+    const kcalMap = {};
+    Object.keys(byWorkout).forEach((id) => { kcalMap[id] = estimateKcal(byWorkout[id], bw); });
+    setKcalByWorkout(kcalMap);
     setWorkoutTypes(types);
     setAerobicMinutesByWorkout(aerobicMinutes);
   }
@@ -218,6 +226,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     moderateMinutesThisWeek += b.moderate;
     vigorousMinutesThisWeek += b.vigorous;
   });
+  const kcalThisWeek = workoutsThisWeek.reduce((sum, w) => sum + (kcalByWorkout[w.id] || 0), 0);
   const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
 
   // Streak: consecutive weeks (including this one) hitting BOTH goals.
@@ -301,6 +310,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
               } : null}
             />
           ))}
+
+          {kcalThisWeek > 0 && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-3">
+              ~{kcalThisWeek.toLocaleString()} kcal burned this week <span style={{ opacity: 0.7 }}>(ACSM estimate)</span>
+            </div>
+          )}
 
           {streak > 0 && (
             <div style={{ color: LIME }} className="text-sm mt-3">
