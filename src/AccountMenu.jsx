@@ -1,4 +1,5 @@
 import { workoutTitle } from './features/move/exerciseLibrary';
+import ScreeningStatus from './features/screening/ScreeningStatus';
 import React, { useState, useEffect, useRef } from 'react';
 import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
@@ -94,6 +95,8 @@ function AccountModal({ onClose }) {
             <MessageCircle size={16} /> Message Greg
           </a>
         )}
+
+        {!isTrainer && <ScreeningStatus alwaysShow inset />}
 
         {!isTrainer && <BaselineDataSection userId={user.id} />}
 

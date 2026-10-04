@@ -13,6 +13,7 @@ import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
 import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
+import ScreeningStatus from '../screening/ScreeningStatus';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -267,6 +268,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
         </div>
       )}
       <div className="flex flex-col gap-4">
+        <ScreeningStatus />
         {!intakeDone && (
           <button
             onClick={() => setShowBaseline(true)}

@@ -7,6 +7,8 @@ import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
 import { MUSCLE_GROUPS, workoutTitle, plural } from './features/move/exerciseLibrary';
 import { computeHrZones } from './lib/heartRate';
 import AccountMenu from './AccountMenu';
+import { RESULT_COPY, SYMPTOMS, DISEASES, OTHER_CONDITIONS, needsClearance, labelsFor } from './features/screening/screening';
+import { TONE_COLOR } from './features/screening/ScreeningFlow';
 import Wordmark from './Wordmark';
 
 function daysBetween(a, b) {
@@ -99,6 +101,13 @@ export default function TrainerApp() {
                   >
                     <div style={{ color: PAPER }} className="text-sm font-medium">{c.full_name || c.email}</div>
                     <div style={{ color: TEXT_SOFT }} className="text-sm">{c.email}</div>
+                    {!c.screening ? (
+                      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Health check not done yet</div>
+                    ) : needsClearance(c.screening) && (
+                      <div style={{ color: TONE_COLOR[RESULT_COPY[c.screening.result].tone] }} className="text-sm mt-1">
+                        🩺 {RESULT_COPY[c.screening.result].banner}
+                      </div>
+                    )}
                     {inactive && (
                       <div style={{ color: BRICK }} className="text-sm mt-1">
                         ⚠️ {daysSince == null ? 'No workouts logged yet' : `${daysSince} days since last workout`}
@@ -260,12 +269,51 @@ function ClientDetail({ client, trainerId, onBack }) {
       </div>
       {tab === 'baseline' && (
         <div className="space-y-4">
+          <ClientScreening client={client} />
           <ClientHeartRate clientId={client.id} />
           <ClientBaseline clientId={client.id} />
         </div>
       )}
       {tab === 'program' && <ProgramBuilder clientId={client.id} trainerId={trainerId} />}
       {tab === 'workouts' && <ClientWorkouts clientId={client.id} />}
+    </div>
+  );
+}
+
+function ClientScreening({ client }) {
+  const s = client.screening;
+  const fmt = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!s) {
+    return (
+      <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 text-sm text-center">
+        <span style={{ color: TEXT_SOFT }}>Health check not done yet.</span>
+      </div>
+    );
+  }
+  const copy = RESULT_COPY[s.result];
+  const color = s.cleared_at ? LIME : TONE_COLOR[copy.tone];
+  const rows = [
+    ['Active (3+ days/wk, 3 months)', s.active ? 'Yes' : 'No'],
+    ['Symptoms', labelsFor(SYMPTOMS, s.symptoms).join('; ') || 'None'],
+    ['Known disease', s.symptoms?.length ? 'Not asked (symptoms reported)' : labelsFor(DISEASES, s.diseases).join('; ') || 'None'],
+    ['Other conditions', labelsFor(OTHER_CONDITIONS, s.other).join('; ') || 'None'],
+    ['Checked', fmt(s.completed_at)],
+    s.cleared_at && ['Doctor clearance (self-reported)', fmt(s.cleared_at)],
+    client.consented_at && ['Consent signed', fmt(client.consented_at)],
+  ].filter(Boolean);
+  return (
+    <div style={{ background: INK_2, borderTop: `2px solid ${color}` }} className="rounded-md px-4 py-3">
+      <div style={{ color }} className="text-sm font-medium text-center mb-2">
+        {s.cleared_at ? 'Cleared by doctor' : copy.title}
+      </div>
+      <div className="space-y-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="text-sm">
+            <span style={{ color: TEXT_SOFT }}>{label}: </span>
+            <span style={{ color: PAPER }}>{value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

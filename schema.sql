@@ -56,6 +56,12 @@ create table profiles (
   vo2max_estimate numeric,
   vo2max_method text,
   vo2max_tested_at timestamptz,
+  -- informed consent: when it was accepted and which wording version
+  consented_at timestamptz,
+  consent_version text,
+  -- ACSM preparticipation health screening answers + result (see
+  -- src/features/screening/screening.js); null until completed
+  screening jsonb,
   created_at timestamptz not null default now()
 );
 alter table profiles enable row level security;
@@ -81,6 +87,11 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+-- Run once on an existing database to add consent + health screening:
+--   alter table profiles add column if not exists consented_at timestamptz;
+--   alter table profiles add column if not exists consent_version text;
+--   alter table profiles add column if not exists screening jsonb;
 
 create trigger on_auth_user_created
   after insert on auth.users

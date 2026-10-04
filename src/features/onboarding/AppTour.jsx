@@ -40,7 +40,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: PLUM, noTabs: true, title: 'Your Account',
-    body: "Message me, manage settings, and update your baseline data anytime.",
+    body: "Message me, update your health check, and manage settings.",
   },
 ];
 
