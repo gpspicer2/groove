@@ -15,11 +15,11 @@ import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'center', color: PLUM, title: "Welcome\nIt's Time to Groove",
+    tab: 'birdseye', selector: null, pos: 'center', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove",
     body: "Move more, feel better, and stick with it.",
   },
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Four Tabs, Swipe or Tap',
+    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: 'Four Tabs, Swipe or Tap',
     body: "Birdseye, Move, Journal, Learn — swipe left or right anywhere, or tap a name.",
   },
   {
@@ -55,7 +55,7 @@ const STEPS = [
 // target's real position until that finishes settling into view.
 const TAB_SETTLE_MS = 320;
 
-export default function AppTour({ tab, onChangeTab, onComplete }) {
+export default function AppTour({ tab, onChangeTab, onComplete, onAllTabsLit }) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState(null);
   const [headerRect, setHeaderRect] = useState(null);
@@ -67,6 +67,15 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
   const step = STEPS[index];
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
+
+  // App-wide steps light up every tab in its own color, so the opening
+  // doesn't read as Birdseye's.
+  const allTabsLit = phase === 'steps' && Boolean(step.allTabs);
+  useEffect(() => {
+    onAllTabsLit?.(allTabsLit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTabsLit]);
+  useEffect(() => () => onAllTabsLit?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const header = document.querySelector('[data-tour="app-header"]');
