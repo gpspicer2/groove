@@ -188,6 +188,10 @@ function scrollAppToTop() {
   });
 }
 
+// History starts short and reveals a few more workouts per "Show More".
+const HISTORY_FIRST_PAGE = 3;
+const HISTORY_PAGE = 5;
+
 export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActiveWorkoutChange }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
@@ -214,6 +218,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const [historyShown, setHistoryShown] = useState(HISTORY_FIRST_PAGE);
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
@@ -363,13 +368,17 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
 
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;
-    if (!completedWorkouts.some((w) => w.id === deepLinkWorkoutId)) return;
+    const idx = completedWorkouts.findIndex((w) => w.id === deepLinkWorkoutId);
+    if (idx === -1) return;
+    // The linked workout may sit past the "Show More" cutoff; reveal up
+    // to it, then scroll once it has rendered.
+    if (idx >= historyShown) { setHistoryShown(idx + 1); return; }
     setExpandedHistoryId(deepLinkWorkoutId);
     const el = document.getElementById(`history-${deepLinkWorkoutId}`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     onConsumeDeepLink && onConsumeDeepLink();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkWorkoutId, loading]);
+  }, [deepLinkWorkoutId, loading, historyShown]);
 
   // Most recent logged set for each exercise, across any past workout —
   // shown as "last time" so you can judge whether to push weight up.
@@ -951,7 +960,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
           </div>
         ) : (
           <div className="space-y-2">
-            {completedWorkouts.map((w) => {
+            {completedWorkouts.slice(0, historyShown).map((w) => {
               const workoutSets = sets.filter((s) => s.workoutId === w.id);
               const exerciseNames = [...new Set(workoutSets.map((s) => s.exerciseName))];
               const expanded = expandedHistoryId === w.id;
@@ -1098,6 +1107,15 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                 </div>
               );
             })}
+            {completedWorkouts.length > historyShown && (
+              <button
+                onClick={() => setHistoryShown((n) => n + HISTORY_PAGE)}
+                style={{ color: SKY }}
+                className="w-full text-sm py-2 text-center underline"
+              >
+                Show More
+              </button>
+            )}
           </div>
         )}
       </div>
