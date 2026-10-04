@@ -24,7 +24,7 @@ const LEVELS = [
 // The compendium's wording is written for researchers ("Bicycling,
 // eccentric only, 200 W", long parenthetical examples) — trim it to
 // something a person would say, and drop lab-protocol-only entries.
-const SKIP = /eccentric|concentric|\bW\b|Taylor|Life-Build|™/i;
+const SKIP = /eccentric|concentric|\bW\b|Taylor|Life-Build|™|pole dancing/i;
 function tidy(name) {
   let n = name.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
   const parts = n.split(',').map((x) => x.trim()).filter(Boolean);
