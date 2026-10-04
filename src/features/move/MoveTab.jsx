@@ -1850,7 +1850,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
-                  combinedActivity={combinedActivityRaw}
+                  combinedActivity={combinedActivity}
                   preset={preset}
                   onQuickAerobic={betweenSets ? (name, intensity, minutes) => onLogSet({
                     exerciseName: ex.name,
