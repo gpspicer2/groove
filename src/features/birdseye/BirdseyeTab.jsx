@@ -75,7 +75,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers, submitted_at').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal, bodyweight_lb').eq('id', userId).maybeSingle(),
-      supabase.from('workout_sets').select('workout_id, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
+      supabase.from('workout_sets').select('workout_id, exercise_name, muscle_group, distance, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
     setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
