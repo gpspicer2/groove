@@ -18,6 +18,9 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
   const [confirmingIncomplete, setConfirmingIncomplete] = useState(false);
 
   const page = PAGES[pageIndex];
+  // Each new page starts at its first question, not wherever the last one was scrolled.
+  const scrollRef = useRef(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [pageIndex]);
   const isLast = pageIndex === PAGES.length - 1;
   const pct = Math.round((pageIndex / PAGES.length) * 100);
   const secondsLeft = estimateSecondsRemaining(PAGES, pageIndex);
@@ -116,7 +119,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-4 space-y-5">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-4 space-y-5">
         {page.section.questions.map((q) => (
           <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} allAnswers={answers} setAnswer={setAnswer} />
         ))}
