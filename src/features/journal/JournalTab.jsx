@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
@@ -119,6 +120,7 @@ export default function JournalTab() {
           </div>
         ) : (
           <div className="space-y-2">
+            <SwipeHint id="journal">Tip: swipe an entry left to edit or delete it.</SwipeHint>
             {entries.map((e) => (
               <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
             ))}

@@ -11,6 +11,7 @@ import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
 import MovementTypePicker from '../move/MovementTypePicker';
 import MetBrowser from '../../MetBrowser';
+import SwipeHint from '../../SwipeHint';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -284,12 +285,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
             </button>
           </div>
 
+          <SwipeHint id="goals">Tip: swipe a goal left to edit or stop tracking it.</SwipeHint>
           {trackedGoals.map((g) => (
             <GoalRow
               key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
               active={active}
               onEdit={() => setEditingGoals(true)}
-              onDelete={() => setGoalTracked(g.mode, false)}
+              onDelete={() => { if (window.confirm('Stop tracking this goal?')) setGoalTracked(g.mode, false); }}
               aerobic={g.mode === 'Aerobic' ? {
                 goalMinutes: aerobicGoalMinutes,
                 moderateEquivMinutes: moderateEquivMinutesThisWeek,

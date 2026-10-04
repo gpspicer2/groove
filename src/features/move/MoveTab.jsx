@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import SwipeHint from '../../SwipeHint';
 import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
@@ -35,6 +36,8 @@ function mapWorkout(row) {
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 }
+
+const LIVE_BACKUP_KEY = 'groove:liveBackup';
 
 function mapSet(row) {
   return {
@@ -277,6 +280,56 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+
+  // Safety net against a lost live workout: keep a local copy of the plan
+  // while one is active. If the workout later vanishes from the database
+  // (and wasn't finished or discarded on purpose), offer to restore it.
+  const [lostBackup, setLostBackup] = useState(null);
+  useEffect(() => {
+    if (!activeWorkout) return;
+    try {
+      localStorage.setItem(LIVE_BACKUP_KEY, JSON.stringify({
+        id: activeWorkout.id,
+        savedAt: Date.now(),
+        meta: {
+          muscle_groups: activeWorkout.muscleGroups,
+          activities: activeWorkout.activities,
+          movement_mode: activeWorkout.movementMode,
+          style: activeWorkout.style,
+          location: activeWorkout.location,
+          started_at: activeWorkout.startedAt,
+        },
+        plan: planExercises,
+      }));
+    } catch { /* storage blocked */ }
+  }, [activeWorkout, planExercises]);
+  useEffect(() => {
+    if (loading || activeWorkoutId) { setLostBackup(null); return; }
+    try {
+      const raw = localStorage.getItem(LIVE_BACKUP_KEY);
+      if (!raw) { setLostBackup(null); return; }
+      const b = JSON.parse(raw);
+      const tooOld = Date.now() - b.savedAt > 48 * 3600 * 1000;
+      const stillThere = workouts.some((w) => w.id === b.id);
+      setLostBackup(!tooOld && !stillThere && b.plan?.length ? b : null);
+    } catch { setLostBackup(null); }
+  }, [loading, workouts, activeWorkoutId]);
+
+  async function restoreLostWorkout() {
+    const b = lostBackup;
+    if (!b) return;
+    const { data, error } = await supabase.from('workouts').insert({ ...b.meta, plan: b.plan }).select().single();
+    if (error) { setLoadError(error.message); return; }
+    try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
+    setLostBackup(null);
+    setWorkouts((prev) => [mapWorkout(data), ...prev]);
+    setPlanExercises(b.plan);
+    setActiveWorkoutId(data.id);
+  }
+  function dismissLostWorkout() {
+    try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
+    setLostBackup(null);
+  }
 
   // Reports up to ClientApp so the shared header (outside this tab's own
   // tree) can swap to "Moving" and show a running weight tally while a
@@ -735,6 +788,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
       .single();
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
+    try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
     setActiveWorkoutId(null);
     setPlanExercises([]);
     scrollAppToTop();
@@ -778,6 +832,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
     setSets((prev) => prev.filter((s) => s.workoutId !== activeWorkoutId));
+    try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
     setActiveWorkoutId(null);
     setPlanExercises([]);
     scrollAppToTop();
@@ -799,6 +854,19 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
       {loadError && (
         <div style={{ background: INK_2, color: BRICK }} className="rounded-md px-4 py-3 mb-4 text-sm text-center">
           {loadError}
+        </div>
+      )}
+
+      {!activeWorkout && lostBackup && (
+        <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4 text-center">
+          <div style={{ color: PAPER }} className="text-sm font-medium mb-1">Looks like a workout was lost</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
+            We kept a copy of your last session's exercises ({new Date(lostBackup.savedAt).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}). Restore it to keep going — logged sets may need re-entering.
+          </div>
+          <div className="flex gap-2">
+            <button onClick={restoreLostWorkout} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2 text-sm font-medium">Restore workout</button>
+            <button onClick={dismissLostWorkout} style={{ color: TEXT_SOFT }} className="px-3 text-sm">Dismiss</button>
+          </div>
         </div>
       )}
 
@@ -935,7 +1003,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                                         />
                                       </>
                                     )}
-                                    <button onClick={() => deleteSet(s.id)} style={{ color: TEXT_SOFT }} className="p-2 -m-1">
+                                    <button onClick={() => { if (window.confirm('Delete this set?')) deleteSet(s.id); }} style={{ color: BRICK }} className="p-2 -m-1">
                                       <X size={14} />
                                     </button>
                                   </div>
@@ -1567,6 +1635,7 @@ function ActiveWorkout({
         )}
       </div>
 
+      <SwipeHint id="exercises">Tip: swipe an exercise left to swap, edit, or delete it — and drag the dots to reorder.</SwipeHint>
       <div className="space-y-3 mb-4">
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
