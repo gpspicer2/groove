@@ -86,24 +86,18 @@ export default function ClientApp() {
                 style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
                 className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors"
               >
-                {TAB_LABELS[key]}
+                {key === 'move' && moveStatus ? <RippleText text="Moving" /> : TAB_LABELS[key]}
               </button>
             );
           })}
         </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
-          <div />
-          <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium text-center">
-            {tab === 'move' && moveStatus ? <RippleText text="Moving" /> : TAB_LABELS[tab]}
-          </h1>
-          <div className="justify-self-end">
-            {tab === 'move' && moveStatus && moveStatus.totalWeight > 0 && (
-              <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-                {moveStatus.totalWeight.toLocaleString()} lb
-              </span>
-            )}
+        {moveStatus && moveStatus.totalWeight > 0 && (
+          <div className="flex justify-end mb-3 -mt-1">
+            <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+              {moveStatus.totalWeight.toLocaleString()} lb lifted
+            </span>
           </div>
-        </div>
+        )}
       </div>
 
       <div ref={scrollRef} id="app-scroll" className="flex-1 min-h-0 overflow-y-auto">
