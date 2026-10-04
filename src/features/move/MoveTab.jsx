@@ -2612,6 +2612,7 @@ function ExerciseCard({
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
                   : <>{s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
+              <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
           </div>
@@ -2678,6 +2679,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+              <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
           </div>
@@ -3105,7 +3107,8 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
-            </button>
+            <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
+              </button>
           ))}
         </div>
       )}
@@ -3166,7 +3169,8 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
-            </button>
+            <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
+              </button>
           ))}
         </div>
       )}
