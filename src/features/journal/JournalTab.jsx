@@ -19,17 +19,7 @@ const PROMPTS = [
 const MOOD_LABELS = ['Rough', 'Low', 'Meh', 'OK', 'Good', 'Great', 'Excellent'];
 
 function mapEntry(row) {
-  return { id: row.id, prompt: row.prompt, response: row.response, structured: row.structured || null, isPrivate: Boolean(row.is_private), createdAt: row.created_at };
-}
-
-function PrivacyToggle({ isPrivate, onToggle }) {
-  return (
-    <button onClick={onToggle} style={{ color: isPrivate ? LIME : TEXT_SOFT }} className="flex items-center justify-center gap-1.5 text-sm mx-auto mb-3">
-      <Check size={12} style={{ opacity: isPrivate ? 1 : 0.25 }} />
-      <Lock size={12} />
-      Keep this entry private (just for you)
-    </button>
-  );
+  return { id: row.id, prompt: row.prompt, response: row.response, structured: row.structured || null, createdAt: row.created_at };
 }
 
 export default function JournalTab() {
@@ -44,12 +34,16 @@ export default function JournalTab() {
       const [{ data: journalData }, { data: recentWorkout }] = await Promise.all([
         supabase.from('journal_entries').select('*').order('created_at', { ascending: false }),
         user
-          ? supabase.from('workouts').select('id').eq('user_id', user.id).not('completed_at', 'is', null).order('started_at', { ascending: false }).limit(1).maybeSingle()
+          ? supabase.from('workouts').select('id, started_at').eq('user_id', user.id).not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }).limit(10)
           : Promise.resolve({ data: null }),
       ]);
       setEntries((journalData || []).map(mapEntry));
-      if (recentWorkout) {
-        const { data: recentSets } = await supabase.from('workout_sets').select('exercise_name').eq('workout_id', recentWorkout.id);
+      // Every workout from the most recent workout day, not just the last
+      // one — two sessions in a day should both be choices.
+      const latestDay = recentWorkout?.[0] && new Date(recentWorkout[0].started_at).toDateString();
+      const dayIds = (recentWorkout || []).filter((w) => new Date(w.started_at).toDateString() === latestDay).map((w) => w.id);
+      if (dayIds.length) {
+        const { data: recentSets } = await supabase.from('workout_sets').select('exercise_name').in('workout_id', dayIds);
         setRecentExerciseNames([...new Set((recentSets || []).map((s) => s.exercise_name))]);
       }
       setLoading(false);
@@ -85,7 +79,10 @@ export default function JournalTab() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">A space just for you to put your thoughts.</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">
+        <div><Lock size={12} className="inline -mt-0.5 mr-1" />Only you can read your journal.</div>
+        <div>Greg never sees it. Something he should know? Message him.</div>
+      </div>
 
       {mode === 'checkin' ? (
         <CheckinFlow recentExerciseNames={recentExerciseNames} onSaved={addEntry} onCancel={() => setMode(null)} />
@@ -99,7 +96,7 @@ export default function JournalTab() {
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Post-Movement Reflection</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Right after training — mood, favorite movement, and more.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">A quick check-in after training.</div>
           </button>
           <button
             onClick={() => setMode('freeform')}
@@ -107,7 +104,7 @@ export default function JournalTab() {
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Just Journal</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Anytime, on your own time — pick a prompt and write freely.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Pick a prompt and write freely.</div>
           </button>
         </div>
       )}
@@ -184,7 +181,6 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
       >
         <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">
           {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
-          {entry.isPrivate && <Lock size={11} color={TEXT_SOFT} />}
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0" style={{ color: TEXT_SOFT }}>
           <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
@@ -232,12 +228,11 @@ function EditEntryModal({ entry, onClose, onSaved }) {
   const [leastFavoriteMovement, setLeastFavoriteMovement] = useState(entry.structured?.leastFavoriteMovement || '');
   const [smile, setSmile] = useState(entry.structured?.smile || '');
   const [extra, setExtra] = useState(entry.structured?.extra || '');
-  const [isPrivate, setIsPrivate] = useState(entry.isPrivate);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
     setSaving(true);
-    const updates = { is_private: isPrivate };
+    const updates = { is_private: true };
     if (isStructured) {
       updates.structured = { mood, favoriteMovement, leastFavoriteMovement, smile, extra };
       updates.response = `Mood ${mood}/7`;
@@ -287,7 +282,6 @@ function EditEntryModal({ entry, onClose, onSaved }) {
           )}
 
           <div className="mt-4">
-            <PrivacyToggle isPrivate={isPrivate} onToggle={() => setIsPrivate((v) => !v)} />
           </div>
 
           <button
@@ -337,7 +331,6 @@ function LabeledTextarea({ label, value, onChange }) {
 function FreeformEntry({ onSaved, onCancel }) {
   const [prompt, setPrompt] = useState(null);
   const [response, setResponse] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -345,7 +338,7 @@ function FreeformEntry({ onSaved, onCancel }) {
     setSaving(true);
     const { data, error } = await supabase
       .from('journal_entries')
-      .insert({ prompt, response: response.trim(), is_private: isPrivate })
+      .insert({ prompt, response: response.trim(), is_private: true })
       .select()
       .single();
     setSaving(false);
@@ -386,7 +379,6 @@ function FreeformEntry({ onSaved, onCancel }) {
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none mb-3"
           />
-          <PrivacyToggle isPrivate={isPrivate} onToggle={() => setIsPrivate((v) => !v)} />
           <div className="flex items-center gap-2">
             <button onClick={() => setPrompt(null)} style={{ color: TEXT_SOFT }} className="text-sm py-3 px-2">
               Back
@@ -415,7 +407,6 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
   const [leastFavoriteMovement, setLeastFavoriteMovement] = useState('');
   const [smile, setSmile] = useState('');
   const [extra, setExtra] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
@@ -427,7 +418,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
     const structured = { mood, favoriteMovement: favoriteMovement.trim(), leastFavoriteMovement: leastFavoriteMovement.trim(), smile: smile.trim(), extra: extra.trim() };
     const { data, error } = await supabase
       .from('journal_entries')
-      .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: isPrivate })
+      .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: true })
       .select()
       .single();
     setSaving(false);
@@ -593,7 +584,6 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
             className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center"
           />
           <div className="mt-3">
-            <PrivacyToggle isPrivate={isPrivate} onToggle={() => setIsPrivate((v) => !v)} />
           </div>
         </div>
       )}

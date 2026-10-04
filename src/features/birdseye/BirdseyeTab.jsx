@@ -275,7 +275,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           >
             <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Let's get to know you</div>
             <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account →</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">A few questions so I can actually coach you — takes about 10 minutes, whenever you're ready.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">About 10 minutes, whenever you're ready.</div>
           </button>
         )}
 
@@ -754,9 +754,9 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 }
 
 const MOVEMENT_INFO = {
-  Aerobic: "Aerobic activity doesn't have to mean the treadmill. Anything that elicits your target heart-rate response counts — brisk walking, cycling, swimming, dancing, hiking, even a vigorous afternoon of yard work. What matters is the response your body has, not the setting it happens in.",
-  Resistance: 'Resistance training is most convenient in a gym with barbells and machines, but that\'s not the only way to meet this recommendation. Bodyweight circuits, resistance bands, carrying or loading heavy objects (yard work, groceries, moving furniture), rock climbing, and heavy manual labor can all count toward this guideline.',
-  Flexibility: 'Static stretching, yoga, and dynamic mobility work targeting the major muscle-tendon groups all count — the goal is regularly moving your joints through their full range of motion.',
+  Aerobic: 'Anything that gets your heart rate up counts: walking, cycling, dancing, even yard work.',
+  Resistance: 'No gym needed. Bodyweight moves, bands, carrying groceries, and yard work all count.',
+  Flexibility: 'Stretching, yoga, and mobility work all count.',
 };
 
 // Your individualized exercise prescription and the ACSM guidelines it's
@@ -785,7 +785,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
           <p style={{ color: TEXT_SOFT }} className="text-sm italic">
-            Your individualized prescription, built on the evidence-based guidelines of the American College of Sports Medicine (ACSM).
+            Your plan, built on ACSM guidelines.
           </p>
 
           <div>
@@ -793,7 +793,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               <span style={{ color: MOSS }} className="text-sm font-medium">Aerobic</span>{infoBtn('Aerobic')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              Aim for {aerobicGoalMinutes} min/week (moderate-equivalent — vigorous minutes count double), spread across 3+ days with no more than 2 days off in a row. ACSM's baseline: 150+ min moderate or 75+ min vigorous.
+              {aerobicGoalMinutes} min/week over 3+ days. Vigorous minutes count double.
             </p>
             {zones ? (
               <>
@@ -807,11 +807,11 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
                   ))}
                 </div>
                 <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">
-                  Keep your heart rate in these ranges during aerobic work{maxHrIsPredicted ? ' (max is an age-based estimate)' : ''}.
+                  Your heart-rate ranges{maxHrIsPredicted ? ' (age-based estimate)' : ''}.
                 </p>
               </>
             ) : (
-              <p style={{ color: TEXT_SOFT }} className="text-sm">Add your resting heart rate in Account → Baseline Data to see your personal target ranges.</p>
+              <p style={{ color: TEXT_SOFT }} className="text-sm">Add your resting heart rate in Account to see your ranges.</p>
             )}
             {infoBox('Aerobic')}
           </div>
@@ -821,7 +821,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               <span style={{ color: SKY }} className="text-sm font-medium">Resistance</span>{infoBtn('Resistance')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Train all major muscle groups on {resistanceGoal} non-consecutive day{resistanceGoal === 1 ? '' : 's'}/week, 2–4 sets of 8–12 reps at moderate-to-vigorous intensity.
+              {resistanceGoal} day{resistanceGoal === 1 ? '' : 's'}/week, all major muscles, 2–4 sets of 8–12 reps.
             </p>
             {infoBox('Resistance')}
           </div>
@@ -831,7 +831,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               <span style={{ color: BRICK }} className="text-sm font-medium">Flexibility</span>{infoBtn('Flexibility')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm">
-              Stretch major muscle-tendon groups 2–3 days/week, holding each static stretch 10–30 sec for 2–4 reps.
+              2–3 days/week. Hold each stretch 10–30 sec.
             </p>
             {infoBox('Flexibility')}
           </div>
@@ -860,7 +860,7 @@ function MovementLibrary({ hrZones }) {
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
           <p style={{ color: TEXT_SOFT }} className="text-sm italic text-center mb-3">
-            Gardening counts. So does dancing. Drag the bar to see what movement looks like at each intensity.
+            Gardening counts. So does dancing.
           </p>
           <MetBrowser hrZones={hrZones} />
         </div>

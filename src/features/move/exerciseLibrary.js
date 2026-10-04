@@ -444,3 +444,23 @@ function shuffle(arr) {
   }
   return a;
 }
+
+// Short, readable session title: collapses a full region or bundle back
+// into its name, so "Whole Body" doesn't read as eleven muscle groups.
+export function workoutTitle(muscleGroups = [], activities = []) {
+  let rest = [...muscleGroups];
+  const names = [];
+  const take = (name, group) => {
+    if (group.every((g) => rest.includes(g))) { names.push(name); rest = rest.filter((g) => !group.includes(g)); }
+  };
+  take('Whole Body', BODY_REGION_GROUPS['Whole Body']);
+  take('Upper Body', BODY_REGION_GROUPS['Upper Body']);
+  take('Lower Body', BODY_REGION_GROUPS['Lower Body']);
+  take('Legs', LEGS_BUNDLE);
+  take('Arms', ARMS_BUNDLE);
+  return [...names, ...rest, ...activities].join(' + ') || 'Workout';
+}
+
+export function plural(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}

@@ -276,7 +276,7 @@ export function OneRMEstimator({ userId }) {
   return (
     <FeatureCard color={SKY} icon={Dumbbell} title="Strength — Estimated 1RM">
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">
-        Know a recent rep max? Enter it below — a 1RM needs no math, anything more (say a solid 5RM or 8RM) gets converted to an estimated 1RM. Not a real max-effort attempt: stop short of failure, warm up first.
+        Enter a recent weight and reps. We'll estimate your 1-rep max.
       </div>
       {!loading && estimates.length > 0 && (
         <div className="space-y-1.5 mb-3">

@@ -219,15 +219,19 @@ create table journal_entries (
   -- movement, etc.) so they can render as structured fields instead of a
   -- single response string; null for freeform single-prompt entries
   structured jsonb,
-  -- client-controlled: when true, hidden from the trainer's view entirely
-  is_private boolean not null default false,
+  -- every entry is private; kept for older rows only
+  is_private boolean not null default true,
   created_at timestamptz not null default now()
 );
 alter table journal_entries enable row level security;
+-- Only the author can ever read their journal — no trainer policy.
 create policy "journal_client_all" on journal_entries for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "journal_trainer_select" on journal_entries for select
-  using (is_private = false and exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'trainer'));
+
+-- Run once on an existing database to make journals author-only:
+--   drop policy if exists "journal_trainer_select" on journal_entries;
+--   alter table journal_entries alter column is_private set default true;
+--   update journal_entries set is_private = true;
 
 -- Messages: real-time chat between a client and Greg. Since there's only
 -- one trainer for now, each row is just sender -> recipient.

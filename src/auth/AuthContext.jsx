@@ -7,6 +7,8 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Set when someone arrives from a "reset your password" email link.
+  const [recovering, setRecovering] = useState(false);
 
   async function loadProfile(userId) {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -20,7 +22,8 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(newSession);
       if (newSession) await loadProfile(newSession.user.id);
       else setProfile(null);
@@ -46,6 +49,8 @@ export function AuthProvider({ children }) {
     // invite-code system, since there's only ever one coach for now.
     isTrainer: profile?.role === 'trainer',
     loading,
+    recovering,
+    finishRecovery: () => setRecovering(false),
     signOut: () => supabase.auth.signOut(),
   };
 

@@ -1,3 +1,4 @@
+import { workoutTitle } from './features/move/exerciseLibrary';
 import React, { useState, useEffect, useRef } from 'react';
 import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from 'lucide-react';
 import { useAuth } from './auth/AuthContext';
@@ -124,7 +125,7 @@ function AccountModal({ onClose }) {
         ) : (
           <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-4 mt-2">
             <p style={{ color: BRICK }} className="text-sm text-center mb-3">
-              This permanently deletes your account and everything in it — baseline, workouts, journal, messages. This can't be undone.
+              This permanently deletes your account and all your data. It can't be undone.
             </p>
             <p style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Type DELETE to confirm</p>
             <input
@@ -590,7 +591,7 @@ function BaselineDataSection({ userId }) {
             </div>
             {showPeakInfo && (
               <div style={{ background: INK_2, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm text-left mb-2">
-                HRmax is the theoretical highest heart rate your body can reach. HRpeak is the highest you've actually measured — say, during a hard effort or a real test. HRpeak is usually the more accurate number to train off of. We default to an age-predicted estimate unless you enter your own.
+                The highest heart rate you've seen during a hard effort. We estimate it from your age unless you enter your own.
               </div>
             )}
           </div>
@@ -710,7 +711,7 @@ function DeletedWorkoutsSection({ userId }) {
             workouts.map((w) => (
               <div key={w.id} className="flex flex-col items-center gap-1">
                 <div style={{ color: PAPER_DIM }} className="text-sm">
-                  {[...(w.muscle_groups || []), ...(w.activities || [])].join(' + ') || 'Workout'}
+                  {workoutTitle(w.muscle_groups || [], w.activities || [])}
                 </div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm">
                   {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

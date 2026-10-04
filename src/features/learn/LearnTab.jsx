@@ -24,9 +24,9 @@ const CATEGORIES = [
 
 // Shown in a brief popup on a long-press of each filter pill.
 const CATEGORY_INFO = {
-  Benefits: 'The physiological and psychological payoffs of regular movement — stronger bones, a sharper brain, better mood, lower disease risk — backed by research, not just conventional wisdom.',
-  Strategy: 'How to actually structure a workout for the best results: what order to do exercises in, how to warm up, when to train. The "how," not the "why."',
-  Adherence: '"Exercise adherence" means sticking with a routine for months and years, not just starting one. It matters because nearly every benefit of exercise depends on consistency — a decent program you actually keep doing beats a perfect one you quit after two weeks. Most people who start exercising stop within months, so what helps it stick is just as important as the exercise itself.',
+  Benefits: 'What regular movement does for your body and mind.',
+  Strategy: 'How to structure a workout for the best results.',
+  Adherence: 'How to stick with it for the long haul.',
 };
 
 function mapArticle(row) {

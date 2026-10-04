@@ -16,7 +16,7 @@ import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK } fro
 const STEPS = [
   {
     tab: 'birdseye', selector: null, pos: 'center', color: LIME, title: "Welcome, It's Time to Groove",
-    body: "Your space to move more, feel better, and actually stick with it. Tap the G in the corner anytime for what \"Groove\" means to us.",
+    body: "Move more, feel better, and stick with it.",
   },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: LIME, title: 'Four Tabs, Swipe or Tap',
@@ -28,23 +28,23 @@ const STEPS = [
   },
   { tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', pos: 'bottom', color: LIME, title: 'Weekly Goals', body: 'Tap a row for a breakdown, or the pencil to adjust it.' },
   { tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', pos: 'bottom', color: LIME, title: 'Calendar', body: 'A dot means a logged workout. Tap any day to view or log one.' },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Science Supported Strategy', body: "Tap to open your plan, built on ACSM's exercise guidelines — with your own heart-rate zones once resting HR is set." },
-  { tab: 'birdseye', selector: '[data-tour="birdseye-library"]', pos: 'bottom', color: LIME, title: 'Movement Library', body: "Drag the bar from Light to Near-Maximal to see what counts at each intensity — gardening included." },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-science"]', pos: 'bottom', color: LIME, title: 'Science Supported Strategy', body: "Your plan, built on ACSM exercise guidelines." },
+  { tab: 'birdseye', selector: '[data-tour="birdseye-library"]', pos: 'bottom', color: LIME, title: 'Movement Library', body: "See what counts at each intensity. Gardening included." },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Log resistance, aerobic, flexibility, or a combination — now or for a past day.",
+    body: "Log any kind of workout, today or a past day.",
   },
-  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Move builds the session. Exercises start collapsed — tap a name to open or close it, swipe it left to swap, edit, or delete, and drag the dots on the left to reorder. Resistance sessions open with a dynamic warm-up, and Combined lets you mix in aerobic work — Serial (back to back) or Integrated (woven in — name your between-sets activity, intensity and minutes and it becomes a one-tap button). Calorie estimates (ACSM) show while you move, in History, and in Birdseye. Finished one by mistake? Resume it from History.' },
+  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Groove builds the session. Tap an exercise to log it.' },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
-    body: "A private place to reflect, anytime — after a session or otherwise.",
+    body: "Your private space to reflect. Only you can read it.",
   },
   { tab: 'journal', selector: '[data-tour="journal-prompts"]', pos: 'bottom', color: AMBER, title: 'Reflect', body: 'A guided check-in, or your own freeform note.' },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
-    body: "Short reads on the science of movement, performance, and sticking with it.",
+    body: "Short reads on movement and sticking with it.",
   },
-  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Filter the Reads', body: 'Choose Benefits of Movement, Scientific Strategizing, or Exercise Adherence — hold a filter for a quick explanation. New reads are posted regularly.' },
+  { tab: 'learn', selector: '[data-tour="learn-list"]', pos: 'bottom', color: VIOLET, title: 'Filter the Reads', body: 'Tap a topic to filter. Hold one to see what it covers.' },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'bottom', color: LIME, title: 'Your Account',
     body: "Message me, manage settings, and update your baseline data anytime.",
@@ -340,7 +340,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
           <div style={{ background: INK, border: `1px solid ${LIME}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: LIME, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
-              A few quick questions so I can actually coach you, not just hand you a generic plan. Takes about 10 minutes.
+              A few questions so I can coach you. About 10 minutes.
             </div>
             <button onClick={() => onComplete(true)} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Let's do it now
@@ -355,7 +355,7 @@ export default function AppTour({ tab, onChangeTab, onComplete }) {
           <div style={{ background: INK, border: `1px solid ${BRICK}` }} className="absolute left-4 right-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
             <div style={{ color: BRICK, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
-              Without that info I'm really just guessing at how to help you. It only takes about 10 minutes, and you can pick it up anytime from Account → Baseline Data — no rush.
+              No rush. You can finish it anytime from Account.
             </div>
             <button onClick={() => setPhase('exitPrompt')} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
               Actually, let's do it now

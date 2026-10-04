@@ -19,7 +19,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
 
   const page = PAGES[pageIndex];
   const isLast = pageIndex === PAGES.length - 1;
-  const pct = Math.round(((pageIndex + 1) / PAGES.length) * 100);
+  const pct = Math.round((pageIndex / PAGES.length) * 100);
   const secondsLeft = estimateSecondsRemaining(PAGES, pageIndex);
   const minutesLeft = Math.max(1, Math.round(secondsLeft / 60));
 
@@ -60,8 +60,11 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       // Account's own age field (and anything reading profile.age instead
       // of falling back to the baseline blob) would otherwise show blank
       // even though the client already answered this.
-      answers.age
-        ? supabase.from('profiles').update({ age: parseInt(answers.age, 10) }).eq('id', userId).then((r) => r.error)
+      (answers.age || parseFloat(answers.bodyweight) > 0)
+        ? supabase.from('profiles').update({
+            ...(answers.age ? { age: parseInt(answers.age, 10) } : {}),
+            ...(parseFloat(answers.bodyweight) > 0 ? { bodyweight_lb: parseFloat(answers.bodyweight) } : {}),
+          }).eq('id', userId).then((r) => r.error)
         : Promise.resolve(null),
     ]);
     setSaving(false);
@@ -91,7 +94,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
           </div>
           {onClose ? (
             <button
-              onClick={() => { if (window.confirm("Close for now? What you've entered on this form hasn't been saved yet, so you'll start over from the beginning next time you open it.")) onClose(); }}
+              onClick={() => { if (window.confirm("Close for now? Your answers won't be saved.")) onClose(); }}
               style={{ color: TEXT_SOFT }}
               className="flex items-center gap-1 text-sm p-2 -m-2 justify-self-end"
             >
@@ -109,7 +112,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
           <div style={{ width: `${pct}%`, background: LIME }} className="h-full rounded-full transition-all" />
         </div>
         <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">
-          {pct}% · Page {pageIndex + 1}/{PAGES.length} · ~{minutesLeft} min left
+          Page {pageIndex + 1} of {PAGES.length} · ~{minutesLeft} min left
         </div>
       </div>
 
@@ -123,7 +126,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       {confirmingIncomplete && (
         <div className="max-w-md mx-auto w-full px-4 pb-3">
           <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-3 text-sm text-center mb-2">
-            A few questions are still blank — that's okay, but the more I know, the better I can coach you. Finish anyway?
+            A few questions are blank. Finish anyway?
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => setConfirmingIncomplete(false)} style={{ color: TEXT_SOFT }} className="flex-1 text-sm py-3">
@@ -193,6 +196,19 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
           className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
         />
       )}
+
+      {question.type === 'number' && (
+        <input
+          type="number"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. 160"
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+        />
+      )}
+      {question.hint && <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-1">{question.hint}</div>}
 
       {question.type === 'tel' && (
         <input

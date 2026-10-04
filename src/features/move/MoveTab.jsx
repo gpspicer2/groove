@@ -9,7 +9,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
-import { MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
+import { workoutTitle, plural, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 
@@ -57,6 +57,23 @@ function mapSet(row) {
     moderateMinutes: row.moderate_minutes != null ? Number(row.moderate_minutes) : null,
     vigorousMinutes: row.vigorous_minutes != null ? Number(row.vigorous_minutes) : null,
   };
+}
+
+function isSameDay(iso) {
+  return !iso || new Date(iso).toDateString() === new Date().toDateString();
+}
+
+// "3 exercises · 5 sets" for lifting; "30 min · 3 mi" for cardio-only
+// sessions, where "1 set" means nothing to anyone.
+function workoutSummary(workoutSets, exerciseCount) {
+  const nonAerobic = workoutSets.filter((s) => s.movementType !== 'aerobic');
+  if (workoutSets.length > 0 && nonAerobic.length === 0) {
+    const minutes = workoutSets.reduce((m, s) => m + (s.lightMinutes || 0) + (s.moderateMinutes || 0) + (s.vigorousMinutes || 0), 0)
+      || Math.round(workoutSets.reduce((m, s) => m + (s.durationSeconds || 0), 0) / 60);
+    const distances = workoutSets.map((s) => s.distance).filter(Boolean);
+    return [minutes > 0 && `${minutes} min`, ...distances].filter(Boolean).join(' · ') || (exerciseCount === 1 ? '1 activity' : `${exerciseCount} activities`);
+  }
+  return `${plural(exerciseCount, 'exercise')} · ${plural(workoutSets.length, 'set')}`;
 }
 
 function totalWeightLifted(workoutSets) {
@@ -723,7 +740,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   }
 
   function removeExercise(index, hasLoggedSets) {
-    if (hasLoggedSets && !window.confirm('Remove this exercise? The sets already logged for it will stay in your history, but it will drop off this workout.')) {
+    if (hasLoggedSets && !window.confirm('Remove this exercise? Logged sets stay in your history.')) {
       return;
     }
     setPlanExercises((prev) => cleanupSupersets(prev.filter((_, i) => i !== index)));
@@ -976,10 +993,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
                   >
                     <div className="text-left">
                       <div style={{ color: PAPER }} className="text-sm font-medium">
-                        {[...w.muscleGroups, ...w.activities].join(' + ')}{w.location && ` · ${w.location}`}
+                        {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
-                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {exerciseNames.length} exercises · {workoutSets.length} sets
+                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {workoutSummary(workoutSets, exerciseNames.length)}
                         {total > 0 && ` · ${Math.round(total).toLocaleString()} lb lifted`}
                         {kcal > 0 && ` · ~${kcal} kcal`}
                       </div>
@@ -1326,8 +1343,8 @@ function StartWorkout({
                     <button onClick={() => setShowCombinedInfo(false)} style={{ color: TEXT_SOFT }} className="p-1 -m-1"><X size={18} /></button>
                   </div>
                   <div style={{ color: PAPER }} className="text-sm leading-relaxed space-y-3">
-                    <p><strong>Serial</strong> means one type of training at a time, back to back — for example a 20-minute run, then your lifts (or the reverse). Each type gets your full effort. This is how most combined sessions are done.</p>
-                    <p><strong>Integrated</strong> (also called concurrent or circuit-style) mixes the two within the same stretch of time — a quick bike or jump-rope burst between exercises, or even between sets. Your heart rate stays up and the session is shorter, but heavy lifts can feel harder when you're already winded.</p>
+                    <p><strong>Serial:</strong> one type at a time, like a run and then your lifts.</p>
+                    <p><strong>Integrated:</strong> cardio bursts mixed in between exercises or sets.</p>
                   </div>
                 </div>
               </div>
@@ -1737,11 +1754,15 @@ function ActiveWorkout({
     <div className="mb-8">
       <div className="mb-3 text-center">
         <div style={{ color: PAPER }} className="text-sm font-medium">
-          {[...workout.muscleGroups, ...workout.activities].join(' + ')}
+          {workoutTitle(workout.muscleGroups, workout.activities)}
         </div>
-        {(workout.style || workout.location) && (
+        {(workout.style || workout.location || !isSameDay(workout.startedAt)) && (
           <div style={{ color: SKY }} className="text-sm">
-            {[workout.style, workout.location].filter(Boolean).join(' · ')}
+            {[
+              !isSameDay(workout.startedAt) && new Date(workout.startedAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              workout.style,
+              workout.location,
+            ].filter(Boolean).join(' · ')}
           </div>
         )}
       </div>
@@ -2979,7 +3000,7 @@ function WarmupInfoModal({ onClose }) {
             </button>
           </div>
           <div style={{ color: PAPER }} className="text-sm leading-relaxed">
-            There's a physiological rationale for including low-intensity movements that target the muscle groups of your workout. Read more under Learn.
+            Easy moves that prep the muscles you're about to train.
           </div>
         </div>
       </div>
@@ -3275,6 +3296,8 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
     );
   }
 
+  const canLog = (parseInt(light, 10) || 0) + (parseInt(moderate, 10) || 0) + (parseInt(vigorous, 10) || 0) > 0 || distance.trim() !== '';
+
   function handleLog() {
     const l = parseInt(light, 10) || 0;
     const m = parseInt(moderate, 10) || 0;
@@ -3334,10 +3357,11 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
       />
       <button
         onClick={handleLog}
-        style={{ background: SKY, color: INK }}
+        disabled={!canLog}
+        style={{ background: canLog ? SKY : INK_3, color: canLog ? INK : TEXT_SOFT }}
         className="w-full rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
       >
-        <Plus size={14} /> Log activity
+        <Plus size={14} /> {canLog ? 'Log activity' : 'Enter minutes to log'}
       </button>
     </div>
   );

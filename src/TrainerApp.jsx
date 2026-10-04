@@ -4,7 +4,7 @@ import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from './theme';
 import { BASELINE_SECTIONS } from './features/baseline/baselineQuestions';
-import { MUSCLE_GROUPS } from './features/move/exerciseLibrary';
+import { MUSCLE_GROUPS, workoutTitle, plural } from './features/move/exerciseLibrary';
 import { computeHrZones } from './lib/heartRate';
 import AccountMenu from './AccountMenu';
 import Wordmark from './Wordmark';
@@ -610,9 +610,9 @@ function ClientWorkouts({ clientId }) {
           <div key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
             <button onClick={() => setExpandedId(expanded ? null : w.id)} className="w-full flex items-center justify-between">
               <div className="text-left">
-                <div style={{ color: PAPER }} className="text-sm font-medium">{(w.muscle_groups || []).join(' + ')}</div>
+                <div style={{ color: PAPER }} className="text-sm font-medium">{workoutTitle(w.muscle_groups || [], w.activities || [])}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm">
-                  {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {workoutSets.length} sets
+                  {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {plural(workoutSets.length, 'set')}
                   {w.program_id ? ' · Followed assigned program' : ' · Self-directed'}
                 </div>
               </div>

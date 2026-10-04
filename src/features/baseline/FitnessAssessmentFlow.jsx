@@ -94,7 +94,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
               Where are you starting from?
             </h1>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-2">
-              This helps me build a program that actually fits you. Totally optional — but the more I know, the better I can help.
+              Optional, but it helps me build a plan that fits you.
             </p>
             <p style={{ color: TEXT_SOFT }} className="text-sm">
               We'll cover aerobic fitness first, then strength. Takes about 2 minutes.
@@ -108,7 +108,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
               What's your resting heart rate?
             </h2>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-4">
-              Check first thing in the morning, or right now if you've been sitting still for a few minutes. This is what powers your personal heart-rate zones.
+              Best measured in the morning, or after sitting still for a few minutes.
             </p>
             <input
               type="number"
