@@ -3,11 +3,11 @@
 // Aerobic bursts use the midpoint MET of each ACSM intensity band
 // (light < 3, moderate 3-5.9, vigorous 6+). Resistance sets have no
 // speed/grade to plug into ACSM's walking/running equations, so they use
-// the Compendium's general resistance-training MET over ~2 min per set
+// the Compendium's vigorous resistance-training MET (6.0) over ~2.5 min per set
 // (the set plus its rest). These are estimates, not measurements.
 export const DEFAULT_BODYWEIGHT_LB = 170;
-const MET = { light: 2.5, moderate: 4.5, vigorous: 7.0, resistance: 3.5 };
-const MIN_PER_RESISTANCE_SET = 2;
+const MET = { light: 2.5, moderate: 4.5, vigorous: 7.0, resistance: 6.0 };
+const MIN_PER_RESISTANCE_SET = 2.5;
 
 export function kcalPerMinute(met, lb) {
   const kg = (lb || DEFAULT_BODYWEIGHT_LB) / 2.2046;
