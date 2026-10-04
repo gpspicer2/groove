@@ -34,7 +34,7 @@ const STEPS = [
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
     body: "Log resistance, aerobic, flexibility, or a combination — now or for a past day.",
   },
-  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Move builds the session. Exercises start collapsed — tap a name to open or close it, swipe it left to swap, edit, or delete, and drag the dots on the left to reorder. Resistance sessions open with a dynamic warm-up, and Combined lets you mix in aerobic work — Serial (back to back) or Integrated (woven in — pick what you'll do between sets and it becomes a one-tap + button). Finished one by mistake? Resume it from History.' },
+  { tab: 'move', selector: '[data-tour="move-start"]', pos: 'bottom', color: SKY, title: 'Log a Workout', body: 'Pick where and what kind, and Move builds the session. Exercises start collapsed — tap a name to open or close it, swipe it left to swap, edit, or delete, and drag the dots on the left to reorder. Resistance sessions open with a dynamic warm-up, and Combined lets you mix in aerobic work — Serial (back to back) or Integrated (woven in — name your between-sets activity and it becomes a one-tap + button). Finished one by mistake? Resume it from History.' },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
     body: "A private place to reflect, anytime — after a session or otherwise.",
