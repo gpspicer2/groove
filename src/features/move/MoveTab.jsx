@@ -2074,21 +2074,26 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4">
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Quick-log {fixedName ? `${fixedName}` : 'a cardio burst'}</div>
-      {!fixedName && <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-        {[...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].slice(0, 8).map((a) => (
-          <button
-            key={a}
-            onClick={() => setName(a)}
-            style={{ background: name === a ? AMBER : INK_3, color: name === a ? INK : PAPER_DIM }}
-            className="px-2.5 py-1 rounded-full text-sm"
-          >
-            {a}
-          </button>
-        ))}
-      </div>}
-      <div className="flex items-center justify-center gap-1.5 mb-3">
+    <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-3 py-3 mb-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span style={{ color: PAPER }} className="text-sm font-medium">{fixedName || 'Cardio burst'}</span>
+        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Cancel"><X size={16} /></button>
+      </div>
+      {!fixedName && (
+        <div className="flex flex-wrap gap-1.5">
+          {[...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].slice(0, 8).map((a) => (
+            <button
+              key={a}
+              onClick={() => setName(a)}
+              style={{ background: name === a ? AMBER : INK_3, color: name === a ? INK : PAPER_DIM }}
+              className="px-2.5 py-1 rounded-full text-sm"
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5">
         {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
           <button
             key={lvl}
@@ -2100,23 +2105,19 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
           </button>
         ))}
       </div>
-      <div className="flex items-center justify-center gap-2 mb-3">
-        <label className="flex flex-col items-center gap-0.5">
-          <span style={{ color: TEXT_SOFT }} className="text-sm">minutes</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
-            onFocus={(e) => e.target.select()}
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
-            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-          />
-        </label>
-      </div>
       <div className="flex items-center gap-2">
-        <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Cancel</button>
-        <button onClick={submit} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Log it</button>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={minutes}
+          onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+          onFocus={(e) => e.target.select()}
+          aria-label="Minutes"
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
+        <button onClick={submit} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2 text-sm font-medium">Log it</button>
       </div>
     </div>
   );
