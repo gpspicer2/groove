@@ -200,6 +200,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [movementMode, setMovementMode] = useState('');
+  const [combinedActivity, setCombinedActivity] = useState(''); // '' = choose each time
   const [combinedLayout, setCombinedLayout] = useState(''); // 'serial' | 'integrated-exercises' | 'integrated-sets'
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
@@ -505,7 +506,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     if (movementMode === 'Combined' && combinedLayout) {
       try { localStorage.setItem(`groove:combinedLayout:${data.id}`, combinedLayout); } catch { /* storage blocked */ }
     }
+    if (movementMode === 'Combined' && combinedActivity) {
+      try { localStorage.setItem(`groove:combinedActivity:${data.id}`, combinedActivity); } catch { /* storage blocked */ }
+    }
     setCombinedLayout('');
+    setCombinedActivity('');
     setWorkouts((prev) => [mapWorkout(data), ...prev]);
     setActiveWorkoutId(data.id);
     setPlanExercises(plan);
@@ -872,6 +877,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
 
       {activeWorkout ? (
         <ActiveWorkout
+          combinedActivity={(() => {
+            try { return localStorage.getItem(`groove:combinedActivity:${activeWorkout.id}`) || ''; } catch { return ''; }
+          })()}
           combinedLayout={(() => {
             if (activeWorkout.movementMode !== 'Combined') return null;
             try { return localStorage.getItem(`groove:combinedLayout:${activeWorkout.id}`) || 'serial'; } catch { return 'serial'; }
@@ -911,6 +919,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
           onSelectMode={selectMode}
           combinedLayout={combinedLayout}
           onSelectCombinedLayout={setCombinedLayout}
+          combinedActivity={combinedActivity}
+          onSelectCombinedActivity={setCombinedActivity}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
           selectedActivities={selectedActivities}
@@ -1095,7 +1105,7 @@ function StartWorkout({
   gender,
   selectedDate, onSelectDate,
   selectedLocation, onSelectLocation,
-  movementMode, onSelectMode, combinedLayout, onSelectCombinedLayout,
+  movementMode, onSelectMode, combinedLayout, onSelectCombinedLayout, combinedActivity, onSelectCombinedActivity,
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity,
   selectedFlexActivities, onToggleFlexActivity,
@@ -1108,6 +1118,7 @@ function StartWorkout({
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
   const [askIntegrated, setAskIntegrated] = useState(false);
+  const [pendingLayout, setPendingLayout] = useState(null);
   const [showCombinedInfo, setShowCombinedInfo] = useState(false);
   // Tapping Start while something's missing used to just silently do
   // nothing (the button was disabled, with no explanation) — which read
@@ -1273,8 +1284,8 @@ function StartWorkout({
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
                 {combinedLayout === 'serial' && 'Resistance and aerobic blocks, one after the other.'}
-                {combinedLayout === 'integrated-exercises' && 'Aerobic bursts woven in between exercises.'}
-                {combinedLayout === 'integrated-sets' && 'Aerobic bursts woven in between sets.'}
+                {combinedLayout === 'integrated-exercises' && `${combinedActivity || 'Aerobic'} bursts woven in between exercises.`}
+                {combinedLayout === 'integrated-sets' && `${combinedActivity || 'Aerobic'} bursts woven in between sets.`}
                 {!combinedLayout && 'Serial: blocks back to back. Integrated: aerobic mixed into your lifting.'}
               </div>
             </div>
@@ -1298,26 +1309,54 @@ function StartWorkout({
           )}
           {askIntegrated && (
             <Portal>
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAskIntegrated(false)}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => { setAskIntegrated(false); setPendingLayout(null); }}>
                 <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
                 <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
-                  <div style={{ color: PAPER }} className="text-base font-medium mb-1">Where should the aerobic work go?</div>
-                  <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">You can always add or remove it as you go.</div>
-                  <div className="space-y-2">
-                    {[
-                      { key: 'integrated-exercises', label: 'Between exercises' },
-                      { key: 'integrated-sets', label: 'Between sets' },
-                    ].map(({ key, label }) => (
+                  {!pendingLayout ? (
+                    <>
+                      <div style={{ color: PAPER }} className="text-base font-medium mb-1">Where should the aerobic work go?</div>
+                      <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">You can always add or remove it as you go.</div>
+                      <div className="space-y-2">
+                        {[
+                          { key: 'integrated-exercises', label: 'Between exercises' },
+                          { key: 'integrated-sets', label: 'Between sets' },
+                        ].map(({ key, label }) => (
+                          <button
+                            key={key}
+                            onClick={() => setPendingLayout(key)}
+                            style={{ background: INK_3, color: PAPER }}
+                            className="w-full rounded-md py-3 text-sm font-medium"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ color: PAPER }} className="text-base font-medium mb-1">What will you do {pendingLayout === 'integrated-sets' ? 'between sets' : 'between exercises'}?</div>
+                      <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">Same thing every time? Pick it for a one-tap button.</div>
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {AEROBIC_ACTIVITIES_QUICK.slice(0, 6).map((a) => (
+                          <button
+                            key={a}
+                            onClick={() => { onSelectCombinedLayout(pendingLayout); onSelectCombinedActivity(a); setAskIntegrated(false); setPendingLayout(null); }}
+                            style={{ background: INK_3, color: PAPER }}
+                            className="px-3 py-2 rounded-full text-sm"
+                          >
+                            {a}
+                          </button>
+                        ))}
+                      </div>
                       <button
-                        key={key}
-                        onClick={() => { onSelectCombinedLayout(key); setAskIntegrated(false); }}
-                        style={{ background: INK_3, color: PAPER }}
+                        onClick={() => { onSelectCombinedLayout(pendingLayout); onSelectCombinedActivity(''); setAskIntegrated(false); setPendingLayout(null); }}
+                        style={{ background: INK_3, color: AMBER }}
                         className="w-full rounded-md py-3 text-sm font-medium"
                       >
-                        {label}
+                        I'll choose each time
                       </button>
-                    ))}
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             </Portal>
@@ -1426,6 +1465,7 @@ function StartWorkout({
 
 function ActiveWorkout({
   combinedLayout,
+  combinedActivity,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
@@ -1639,6 +1679,7 @@ function ActiveWorkout({
       <div className="space-y-3 mb-4">
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
+            fixedName={combinedActivity}
             onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
           />
         )}
@@ -1822,6 +1863,7 @@ function ActiveWorkout({
               </div>
               {canQuickAddAerobic && !addMenuOpen && group[0].type !== 'warmup' && !isAerobicGroup(group) && !(nextGroup && isAerobicGroup(nextGroup)) && (
                 <QuickAerobicButton
+                  fixedName={combinedActivity}
                   onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, insertAfter)}
                 />
               )}
@@ -1967,8 +2009,8 @@ function ActiveWorkout({
 // compact "+" trigger built into an AerobicCard's own collapsed row
 // (used right next to an aerobic exercise, where a whole separate
 // insertion row would just be redundant real estate).
-function QuickAerobicForm({ onSubmit, onCancel }) {
-  const [name, setName] = useState(AEROBIC_ACTIVITIES_QUICK[0]);
+function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
+  const [name, setName] = useState(fixedName || AEROBIC_ACTIVITIES_QUICK[0]);
   const [intensity, setIntensity] = useState('Moderate');
   const [minutes, setMinutes] = useState(5);
 
@@ -1978,8 +2020,8 @@ function QuickAerobicForm({ onSubmit, onCancel }) {
 
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4">
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Quick-log a cardio burst</div>
-      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Quick-log {fixedName ? `${fixedName}` : 'a cardio burst'}</div>
+      {!fixedName && <div className="flex flex-wrap justify-center gap-1.5 mb-3">
         {[...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].slice(0, 8).map((a) => (
           <button
             key={a}
@@ -1990,7 +2032,7 @@ function QuickAerobicForm({ onSubmit, onCancel }) {
             {a}
           </button>
         ))}
-      </div>
+      </div>}
       <div className="flex items-center justify-center gap-1.5 mb-3">
         {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
           <button
@@ -2025,7 +2067,7 @@ function QuickAerobicForm({ onSubmit, onCancel }) {
   );
 }
 
-function QuickAerobicButton({ onSubmit }) {
+function QuickAerobicButton({ onSubmit, fixedName }) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -2035,13 +2077,14 @@ function QuickAerobicButton({ onSubmit }) {
         style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
         className="w-full rounded-md py-1.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
       >
-        <Plus size={14} /> Add Aerobic
+        <Plus size={14} /> {fixedName || 'Add Aerobic'}
       </button>
     );
   }
 
   return (
     <QuickAerobicForm
+      fixedName={fixedName}
       onCancel={() => setOpen(false)}
       onSubmit={(name, intensity, minutes) => { onSubmit(name, intensity, minutes); setOpen(false); }}
     />
@@ -2709,7 +2752,7 @@ function ExerciseCard({
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
         {onQuickAerobic && nextSetNumber > 1 && (
-          <div className="mt-2"><QuickAerobicButton onSubmit={onQuickAerobic} /></div>
+          <div className="mt-2"><QuickAerobicButton fixedName={combinedActivity} onSubmit={onQuickAerobic} /></div>
         )}
       </div>
     </SwipeActions>
