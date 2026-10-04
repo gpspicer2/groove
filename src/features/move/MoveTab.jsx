@@ -202,6 +202,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [movementMode, setMovementMode] = useState('');
+  const [combinedLayout, setCombinedLayout] = useState(''); // 'serial' | 'integrated-exercises' | 'integrated-sets'
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [selectedFlexActivities, setSelectedFlexActivities] = useState([]);
@@ -370,6 +371,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
   }
 
   function selectMode(mode) {
+    setCombinedLayout('');
     if (movementMode === mode) {
       setMovementMode('');
       setSelectedGroups([]);
@@ -389,7 +391,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     if (!movementMode || !selectedLocation) return false;
     if (movementMode === 'Aerobic') return selectedActivities.length > 0;
     if (movementMode === 'Resistance') return selectedGroups.length > 0 && Boolean(selectedStyle);
-    if (movementMode === 'Combined') return selectedGroups.length > 0 && selectedActivities.length > 0 && Boolean(selectedStyle);
+    if (movementMode === 'Combined') return selectedGroups.length > 0 && Boolean(selectedStyle) && Boolean(combinedLayout);
     if (movementMode === 'Flexibility') return selectedGroups.length > 0 && selectedFlexActivities.length > 0;
     return false;
   }
@@ -452,6 +454,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
+    if (movementMode === 'Combined' && combinedLayout) {
+      try { localStorage.setItem(`groove:combinedLayout:${data.id}`, combinedLayout); } catch { /* storage blocked */ }
+    }
+    setCombinedLayout('');
     setWorkouts((prev) => [mapWorkout(data), ...prev]);
     setActiveWorkoutId(data.id);
     setPlanExercises(plan);
@@ -803,6 +809,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
 
       {activeWorkout ? (
         <ActiveWorkout
+          combinedLayout={(() => {
+            if (activeWorkout.movementMode !== 'Combined') return null;
+            try { return localStorage.getItem(`groove:combinedLayout:${activeWorkout.id}`) || 'serial'; } catch { return 'serial'; }
+          })()}
           workout={activeWorkout}
           exercises={planExercises}
           sets={sets.filter((s) => s.workoutId === activeWorkout.id)}
@@ -836,6 +846,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
           onSelectLocation={setSelectedLocation}
           movementMode={movementMode}
           onSelectMode={selectMode}
+          combinedLayout={combinedLayout}
+          onSelectCombinedLayout={setCombinedLayout}
           selectedGroups={selectedGroups}
           onToggleGroup={toggleGroup}
           selectedActivities={selectedActivities}
@@ -1018,7 +1030,7 @@ function StartWorkout({
   gender,
   selectedDate, onSelectDate,
   selectedLocation, onSelectLocation,
-  movementMode, onSelectMode,
+  movementMode, onSelectMode, combinedLayout, onSelectCombinedLayout,
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity,
   selectedFlexActivities, onToggleFlexActivity,
@@ -1030,6 +1042,7 @@ function StartWorkout({
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
+  const [askIntegrated, setAskIntegrated] = useState(false);
   // Tapping Start while something's missing used to just silently do
   // nothing (the button was disabled, with no explanation) — which read
   // as the app freezing. Now the button always responds: if something's
@@ -1060,7 +1073,7 @@ function StartWorkout({
   useEffect(() => { if (selectedStyle) scrollHeadingToTop(styleHeadingRef); }, [selectedStyle]);
 
   const needsGroups = movementMode === 'Resistance' || movementMode === 'Combined' || movementMode === 'Flexibility';
-  const needsActivities = movementMode === 'Aerobic' || movementMode === 'Combined';
+  const needsActivities = movementMode === 'Aerobic';
   const needsFlexActivities = movementMode === 'Flexibility';
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
 
@@ -1154,12 +1167,7 @@ function StartWorkout({
             Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
-            {/* Combined isn't a pickable starting mode — it's what a
-                Resistance (or Aerobic) workout becomes automatically once
-                you add the other type mid-session (see
-                upgradeToCombinedIfNeeded), so nobody has to commit to it
-                up front. */}
-            {MOVEMENT_MODES.filter((mode) => mode !== 'Combined').map((mode) => {
+            {MOVEMENT_MODES.map((mode) => {
               const selected = movementMode === mode;
               return (
                 <button
@@ -1173,6 +1181,61 @@ function StartWorkout({
               );
             })}
           </div>
+          {movementMode === 'Combined' && (
+            <div className="mb-5">
+              <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">How should the aerobic work fit in?</div>
+              <div className="flex gap-2 mb-1.5">
+                {[
+                  { key: 'serial', label: 'Serial' },
+                  { key: 'integrated', label: 'Integrated' },
+                ].map(({ key, label }) => {
+                  const selected = key === 'serial' ? combinedLayout === 'serial' : combinedLayout.startsWith('integrated');
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => (key === 'serial' ? onSelectCombinedLayout('serial') : setAskIntegrated(true))}
+                      style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
+                      className="flex-1 rounded-md py-2.5 text-sm font-medium"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
+                {combinedLayout === 'serial' && 'Resistance and aerobic blocks, one after the other.'}
+                {combinedLayout === 'integrated-exercises' && 'Aerobic bursts woven in between exercises.'}
+                {combinedLayout === 'integrated-sets' && 'Aerobic bursts woven in between sets.'}
+                {!combinedLayout && 'Serial: blocks back to back. Integrated: aerobic mixed into your lifting.'}
+              </div>
+            </div>
+          )}
+          {askIntegrated && (
+            <Portal>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAskIntegrated(false)}>
+                <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+                <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
+                  <div style={{ color: PAPER }} className="text-base font-medium mb-1">Where should the aerobic work go?</div>
+                  <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">You can always add or remove it as you go.</div>
+                  <div className="space-y-2">
+                    {[
+                      { key: 'integrated-exercises', label: 'Between exercises' },
+                      { key: 'integrated-sets', label: 'Between sets' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => { onSelectCombinedLayout(key); setAskIntegrated(false); }}
+                        style={{ background: INK_3, color: PAPER }}
+                        className="w-full rounded-md py-3 text-sm font-medium"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Portal>
+          )}
         </>
       )}
 
@@ -1276,6 +1339,7 @@ function StartWorkout({
 }
 
 function ActiveWorkout({
+  combinedLayout,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
@@ -1409,7 +1473,14 @@ function ActiveWorkout({
     setAddMode(null);
   }
 
-  const canQuickAddAerobic = workout.movementMode === 'Resistance' || workout.movementMode === 'Combined';
+  // Aerobic bursts between exercises exist only for Combined workouts;
+  // plain Resistance stays resistance-only (apart from the opening
+  // warm-up block). Integrated-between-sets moves the quick-add into
+  // each exercise card instead of the gaps.
+  const isCombined = workout.movementMode === 'Combined';
+  const lifts = workout.movementMode === 'Resistance' || isCombined;
+  const betweenSets = isCombined && combinedLayout === 'integrated-sets';
+  const canQuickAddAerobic = isCombined && !betweenSets;
   // insertAt is the flat planExercises index to splice the new aerobic
   // entry into — null (or past the end) just appends, so the same
   // handler covers "before the first exercise", "between two exercises",
@@ -1484,7 +1555,7 @@ function ActiveWorkout({
             onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, groups[0][0].index)}
           />
         )}
-        {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !exercises.some((e) => e.type === 'warmup') && (
+        {lifts && !addMenuOpen && groups.length > 0 && !exercises.some((e) => e.type === 'warmup') && (
           <button
             onClick={() => { onAddWarmup(); setActiveGroupKey('warmup-Dynamic Warm-up'); }}
             style={{ background: INK_2, color: VIOLET, borderLeft: `3px solid ${VIOLET}` }}
@@ -1598,6 +1669,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  onQuickAerobic={betweenSets ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
               );
             }
@@ -1678,7 +1750,7 @@ function ActiveWorkout({
               {/* Add Aerobic Activity above already covers cardio — only
                   offer this extra path when the workout can't reach that
                   quick button (Aerobic-only or Flexibility workouts). */}
-              {!canQuickAddAerobic && (
+              {!lifts && (
                 <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
                   Aerobic / cardio
                 </button>
@@ -1723,7 +1795,7 @@ function ActiveWorkout({
             onCancel={closeAddForm}
           />
         )
-      ) : canQuickAddAerobic ? (
+      ) : lifts ? (
         <div ref={splitAddRef} className="flex gap-2 mb-4">
           {splitAddOpen ? (
             <>
@@ -2461,7 +2533,7 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse,
+  isActive, onActivate, onCollapse, onQuickAerobic,
 }) {
   const nextSetNumber = loggedSets.length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -2534,6 +2606,9 @@ function ExerciseCard({
           onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? onCollapse : null}
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
+        {onQuickAerobic && loggedSets.length > 0 && (
+          <div className="mt-2"><QuickAerobicButton onSubmit={onQuickAerobic} /></div>
+        )}
       </div>
     </SwipeActions>
   );
