@@ -11,6 +11,7 @@ import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
 import { workoutTitle, plural, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
+import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 
 function formatMoneyLikeWeight(w) {
@@ -240,6 +241,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   // a plan instead of starting. startingPlan is a plan being carried out today.
   const [planning, setPlanning] = useState(null); // { id|null, date }
   const [startingPlan, setStartingPlan] = useState(null); // { id, title }
+  const [planMinutes, setPlanMinutes] = useState(DEFAULT_PLAN_MINUTES); // planned aerobic minutes
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
@@ -409,6 +411,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     setSelectedStyle(d?.style || '');
     setCombinedLayout(d?.combinedLayout || '');
     setCombinedActivity(d?.combinedActivity || '');
+    setPlanMinutes(Number(d?.minutes) || DEFAULT_PLAN_MINUTES);
     setCleanSlate(false);
     if (mode === 'plan') {
       setStartingPlan(null);
@@ -538,6 +541,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     setCombinedLayout('');
     setCombinedActivity('');
     setCleanSlate(false);
+    setPlanMinutes(DEFAULT_PLAN_MINUTES);
     setSelectedDate(todayLocalISO());
   }
 
@@ -552,6 +556,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       style: movementMode === 'Resistance' || movementMode === 'Combined' ? selectedStyle : '',
       combinedLayout,
       combinedActivity,
+      // Aerobic minutes (assumed moderate) count tentatively toward the weekly goal.
+      ...(movementMode === 'Aerobic' || movementMode === 'Combined' ? { minutes: planMinutes } : {}),
     };
     const title = workoutTitle(details.groups, movementMode === 'Aerobic' || movementMode === 'Combined' ? selectedActivities : movementMode === 'Flexibility' ? selectedFlexActivities : []);
     // Editing keeps whatever title/notes were written; a new plan gets an auto title.
@@ -1079,6 +1085,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onRemoveCustomActivity={removeCustomActivity}
           selectedStyle={selectedStyle}
           onSelectStyle={setSelectedStyle}
+          planMinutes={planMinutes}
+          onPlanMinutes={setPlanMinutes}
           onStart={planning ? savePlan : startWorkout}
           canStart={canStartMode()}
           assignedProgram={planning ? null : assignedProgram}
@@ -1273,7 +1281,7 @@ function StartWorkout({
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
   cleanSlate, onToggleCleanSlate,
-  planning,
+  planning, planMinutes, onPlanMinutes,
   dataTour,
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
@@ -1656,6 +1664,27 @@ function StartWorkout({
           >
             Clean slate
           </button>
+        </div>
+      )}
+
+      {planning && (movementMode === 'Aerobic' || movementMode === 'Combined') && (
+        <div className="mb-4">
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">
+            How long{movementMode === 'Combined' ? ' is the aerobic part' : ''}?
+          </div>
+          <div className="flex justify-center gap-1.5">
+            {PLAN_MINUTE_OPTIONS.map((m) => (
+              <button
+                key={m}
+                onClick={() => onPlanMinutes(m)}
+                style={{ background: planMinutes === m ? SKY : INK_3, color: planMinutes === m ? INK : PAPER_DIM }}
+                className="flex-1 rounded-full py-2 text-sm font-medium"
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-1">minutes</div>
         </div>
       )}
 

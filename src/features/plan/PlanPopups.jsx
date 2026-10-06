@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Timer } from 'lucide-react';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
-import { PLAN_SUGGESTIONS, planSummary, friendlyPlanDate } from './plan';
+import { PLAN_SUGGESTIONS, PLAN_MINUTE_OPTIONS, DEFAULT_PLAN_MINUTES, hasDetails, planKinds, planSummary, friendlyPlanDate } from './plan';
 
 function Sheet({ onClose, children }) {
   return (
@@ -32,13 +32,21 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
   const [showNotes, setShowNotes] = useState(Boolean(plan?.notes));
   const [notes, setNotes] = useState(plan?.notes || '');
   const [saving, setSaving] = useState(false);
+  // What kind of movement a quick plan is (drives its icon and which weekly
+  // goal it counts toward); a plan with full details keeps its own.
+  const [kind, setKind] = useState(plan && !hasDetails(plan) ? (plan.details?.kind || 'aerobic') : 'aerobic');
+  const [minutes, setMinutes] = useState(Number(plan?.details?.minutes) || DEFAULT_PLAN_MINUTES);
   const canSave = title.trim().length > 0 && !saving;
   const isTile = PLAN_SUGGESTIONS.some((s) => s.label === title);
+  const aerobic = editing && hasDetails(plan) ? planKinds(plan).has('aerobic') : kind === 'aerobic';
 
   async function save() {
     if (!canSave) return;
     setSaving(true);
-    await onSave({ title: title.trim(), notes: notes.trim() });
+    let details;
+    if (editing && hasDetails(plan)) details = aerobic ? { ...plan.details, minutes } : plan.details;
+    else details = aerobic ? { kind, minutes } : { kind };
+    await onSave({ title: title.trim(), notes: notes.trim(), details });
     setSaving(false);
   }
 
@@ -74,7 +82,7 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
           return (
             <button
               key={t.label}
-              onClick={() => { setTitle(t.label); setTyping(false); }}
+              onClick={() => { setTitle(t.label); setKind(t.kind); setTyping(false); }}
               style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
               className="rounded-xl py-2.5 flex flex-col items-center gap-0.5"
             >
@@ -95,9 +103,28 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
           className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-center mb-2"
         />
       ) : (
-        <button onClick={() => { setTyping(true); setTitle(isTile ? '' : title); }} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5 mb-1">
+        <button onClick={() => { setTyping(true); setKind('aerobic'); setTitle(isTile ? '' : title); }} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5 mb-1">
           Something else…
         </button>
+      )}
+
+      {aerobic && (
+        <div className="mb-2">
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-1.5">How long?</div>
+          <div className="flex justify-center gap-1.5">
+            {PLAN_MINUTE_OPTIONS.map((m) => (
+              <button
+                key={m}
+                onClick={() => setMinutes(m)}
+                style={{ background: minutes === m ? LIME : INK_3, color: minutes === m ? INK : PAPER_DIM }}
+                className="flex-1 rounded-full py-1.5 text-sm font-medium"
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-1">minutes</div>
+        </div>
       )}
 
       {showNotes ? (
@@ -124,7 +151,7 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
         {saving ? 'Saving…' : canSave ? 'Save Plan' : 'Pick something to plan'}
       </button>
       <button onClick={onDetails} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline">
-        {!editing ? 'Plan the details instead' : plan?.details ? 'Edit workout details' : 'Add workout details'}
+        {!editing ? 'Plan the details instead' : hasDetails(plan) ? 'Edit workout details' : 'Add workout details'}
       </button>
     </Sheet>
   );
@@ -158,7 +185,7 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDetails
               )}
               <div className="flex items-center justify-center gap-4 mt-2">
                 <button onClick={() => onEdit(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">Edit</button>
-                <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{p.details ? 'Edit details' : 'Add details'}</button>
+                <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{hasDetails(p) ? 'Edit details' : 'Add details'}</button>
                 <button onClick={() => onDelete(p)} style={{ color: BRICK }} className="text-sm underline">Delete</button>
               </div>
             </div>

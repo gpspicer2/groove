@@ -63,3 +63,13 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .groove-plan-blink { animation: none; }
 }
+
+/* Tentative progress from planned workouts on the weekly goal bars. */
+@keyframes groove-plan-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.groove-plan-pulse { animation: groove-plan-pulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .groove-plan-pulse { animation: none; }
+}

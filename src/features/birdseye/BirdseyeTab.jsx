@@ -13,6 +13,7 @@ import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
 import { PlanFormPopup, PlannedWorkoutPopup } from '../plan/PlanPopups';
+import { planKinds, planMinutes } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
 
 function daysBetween(a, b) {
@@ -187,8 +188,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     await supabase.from('profiles').update({ [field]: next }).eq('id', userId);
   }
 
-  async function savePlan({ id, date, title, notes }) {
-    const fields = { title, notes: notes || null };
+  async function savePlan({ id, date, title, notes, details }) {
+    const fields = { title, notes: notes || null, details: details || null };
     const { error } = id
       ? await supabase.from('planned_workouts').update(fields).eq('id', id)
       : await supabase.from('planned_workouts').insert({ planned_for: date, ...fields });
@@ -231,6 +232,22 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     moderateMinutesThisWeek += b.moderate;
     vigorousMinutesThisWeek += b.vigorous;
   });
+  // Planned workouts later this week count tentatively toward the goals
+  // (planned aerobic is assumed to be moderate intensity).
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  let plannedAerobicMinutes = 0;
+  let plannedAerobicSessions = 0;
+  let plannedResistance = 0;
+  let plannedFlexibility = 0;
+  plans.forEach((p) => {
+    const day = new Date(`${p.planned_for}T12:00:00`);
+    if (day >= weekEnd) return;
+    const kinds = planKinds(p);
+    if (kinds.has('aerobic')) { plannedAerobicMinutes += planMinutes(p); plannedAerobicSessions += 1; }
+    if (kinds.has('resistance')) plannedResistance += 1;
+    if (kinds.has('flexibility')) plannedFlexibility += 1;
+  });
   const kcalThisWeek = workoutsThisWeek.reduce((sum, w) => sum + (kcalByWorkout[w.id] || 0), 0);
   const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
 
@@ -260,9 +277,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const insight = needsClearance(profile?.screening) ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
 
   const trackedGoals = [
-    trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, field: 'aerobic_goal' },
-    trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, field: 'resistance_goal' },
-    trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: StretchHorizontal, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, field: 'flexibility_goal' },
+    trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
+    trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
+    trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: StretchHorizontal, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
   ].filter(Boolean);
 
   return (
@@ -304,7 +321,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           <SwipeHint id="goals">Tip: swipe a goal left to edit or stop tracking it.</SwipeHint>
           {trackedGoals.map((g) => (
             <GoalRow
-              key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal}
+              key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} planned={g.planned}
               active={active}
               onEdit={() => setEditingGoals(true)}
               onDelete={() => { if (window.confirm('Stop tracking this goal?')) setGoalTracked(g.mode, false); }}
@@ -314,6 +331,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
                 lightMinutes: lightMinutesThisWeek,
                 moderateMinutes: moderateMinutesThisWeek,
                 vigorousMinutes: vigorousMinutesThisWeek,
+                plannedMinutes: plannedAerobicMinutes,
               } : null}
             />
           ))}
@@ -493,7 +511,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aerobic, active }) {
+function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, active }) {
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
@@ -523,6 +541,9 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aero
   const displayCount = showingMinutes ? aerobic.moderateEquivMinutes : count;
   const displayGoal = showingMinutes ? aerobic.goalMinutes : goal;
   const pct = Math.min(100, (displayCount / displayGoal) * 100);
+  // What this week's planned workouts would add, shown dashed and pulsing.
+  const displayPlanned = showingMinutes ? aerobic.plannedMinutes : planned;
+  const plannedPct = Math.max(0, Math.min(100 - pct, (displayPlanned / displayGoal) * 100));
 
   function handleTouchStart(e) {
     startX.current = e.touches[0].clientX;
@@ -574,7 +595,11 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aero
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
-            {displayCount} / {displayGoal}{showingMinutes ? ' min' : ''}
+            {displayCount}
+            {displayPlanned > 0 && (
+              <span className="groove-plan-pulse" style={{ color, borderBottom: `1.5px dashed ${color}` }}> +{displayPlanned}</span>
+            )}
+            {' '}/ {displayGoal}{showingMinutes ? ' min' : ''}
           </span>
           <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
             <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
@@ -582,8 +607,19 @@ function GoalRow({ label, icon: Icon, color, count, goal, onEdit, onDelete, aero
           </span>
         </span>
       </button>
-      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden">
+      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden relative">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+        {plannedPct > 0 && (
+          <div
+            className="groove-plan-pulse absolute top-0 bottom-0 rounded-full"
+            style={{
+              left: `${pct}%`,
+              width: `${plannedPct}%`,
+              border: `1.5px dashed ${color}`,
+              background: `repeating-linear-gradient(135deg, ${color}55 0 4px, transparent 4px 8px)`,
+            }}
+          />
+        )}
       </div>
 
       {/* Logging everything as "light" is a common first mistake (light
@@ -784,8 +820,8 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           dateStr={planForm.dateStr}
           plan={planForm.plan}
           onClose={() => setPlanForm(null)}
-          onSave={async ({ title, notes }) => {
-            await onSavePlan({ id: planForm.plan?.id, date: planForm.dateStr, title, notes });
+          onSave={async ({ title, notes, details }) => {
+            await onSavePlan({ id: planForm.plan?.id, date: planForm.dateStr, title, notes, details });
             setPlanForm(null);
           }}
           onDetails={() => { const f = planForm; setPlanForm(null); onPlanDetails && onPlanDetails(f.dateStr, f.plan); }}
@@ -811,13 +847,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 // on it, pulsing gently.
 function PlannedMark({ plans }) {
   const kinds = new Set();
-  plans.forEach((p) => {
-    const mode = p.details?.mode;
-    if (mode === 'Resistance') kinds.add('resistance');
-    else if (mode === 'Flexibility') kinds.add('flexibility');
-    else if (mode === 'Combined') { kinds.add('aerobic'); kinds.add('resistance'); }
-    else kinds.add('aerobic');
-  });
+  plans.forEach((p) => planKinds(p).forEach((k) => kinds.add(k)));
   const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [StretchHorizontal, BRICK] };
   return (
     <>
