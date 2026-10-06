@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, CalendarClock } from 'lucide-react';
+import { X, Timer } from 'lucide-react';
 import Portal from '../../Portal';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK, PLUM } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
 import { PLAN_SUGGESTIONS, planSummary, friendlyPlanDate } from './plan';
 
 function Sheet({ onClose, children }) {
@@ -123,23 +123,21 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
       >
         {saving ? 'Saving…' : canSave ? 'Save Plan' : 'Pick something to plan'}
       </button>
-      {(!editing || plan?.details) && (
-        <button onClick={onDetails} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline">
-          {editing ? 'Edit workout details' : 'Plan the details instead'}
-        </button>
-      )}
+      <button onClick={onDetails} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline">
+        {!editing ? 'Plan the details instead' : plan?.details ? 'Edit workout details' : 'Add workout details'}
+      </button>
     </Sheet>
   );
 }
 
 // What's planned for a day, with edit/delete — and Start when it's today.
-export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDelete, onStart, onPlanAnother, onClose }) {
+export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDetails, onDelete, onStart, onPlanAnother, onClose }) {
   return (
     <Sheet onClose={onClose}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <div style={{ color: PAPER }} className="text-base font-medium flex items-center gap-1.5">
-            <CalendarClock size={16} color={PLUM} /> {plans.length > 1 ? 'Planned Workouts' : 'Planned Workout'}
+            <Timer size={16} color={LIME} /> {plans.length > 1 ? 'Planned Workouts' : 'Planned Workout'}
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">{friendlyPlanDate(dateStr)}</div>
         </div>
@@ -158,8 +156,9 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDelete,
                   Start Workout
                 </button>
               )}
-              <div className="flex items-center justify-center gap-5 mt-2">
+              <div className="flex items-center justify-center gap-4 mt-2">
                 <button onClick={() => onEdit(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">Edit</button>
+                <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{p.details ? 'Edit details' : 'Add details'}</button>
                 <button onClick={() => onDelete(p)} style={{ color: BRICK }} className="text-sm underline">Delete</button>
               </div>
             </div>

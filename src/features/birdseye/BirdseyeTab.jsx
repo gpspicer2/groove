@@ -1,6 +1,6 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, CalendarClock, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Timer, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -753,7 +753,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
                   {a && <Activity size={10} color={MOSS} />}
                   {r && <Dumbbell size={10} color={SKY} />}
                   {f && <StretchHorizontal size={10} color={BRICK} />}
-                  {dayPlans.length > 0 && <CalendarClock size={10} color={PLUM} className="groove-plan-blink" />}
+                  {dayPlans.length > 0 && <PlannedMark plans={dayPlans} />}
                 </span>
               ) : (
                 <Plus size={9} color={INK_3} />
@@ -769,6 +769,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           isToday={sameDay(plannedDay, now)}
           onClose={() => setPlannedDay(null)}
           onEdit={(plan) => { setPlannedDay(null); setPlanForm({ dateStr: plan.planned_for, plan }); }}
+          onDetails={(plan) => { setPlannedDay(null); onPlanDetails && onPlanDetails(plan.planned_for, plan); }}
           onDelete={async (plan) => {
             const deleted = await onDeletePlan(plan);
             // Close once the last plan for this day is gone.
@@ -802,6 +803,34 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
         />
       )}
     </div>
+  );
+}
+
+// A planned workout on the calendar: the same icon a logged one of that
+// type gets (aerobic unless the plan says otherwise), with a little timer
+// on it, pulsing gently.
+function PlannedMark({ plans }) {
+  const kinds = new Set();
+  plans.forEach((p) => {
+    const mode = p.details?.mode;
+    if (mode === 'Resistance') kinds.add('resistance');
+    else if (mode === 'Flexibility') kinds.add('flexibility');
+    else if (mode === 'Combined') { kinds.add('aerobic'); kinds.add('resistance'); }
+    else kinds.add('aerobic');
+  });
+  const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [StretchHorizontal, BRICK] };
+  return (
+    <>
+      {[...kinds].map((k) => {
+        const [Icon, color] = icon[k];
+        return (
+          <span key={k} className="groove-plan-blink relative inline-flex">
+            <Icon size={11} color={color} />
+            <Timer size={7} color={color} strokeWidth={3} className="absolute -right-1 -bottom-0.5 rounded-full" style={{ background: INK_2 }} />
+          </span>
+        );
+      })}
+    </>
   );
 }
 
