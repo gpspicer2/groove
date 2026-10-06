@@ -214,7 +214,7 @@ function scrollAppToTop() {
 const HISTORY_FIRST_PAGE = 3;
 const HISTORY_PAGE = 5;
 
-export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActiveWorkoutChange }) {
+export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, onActiveWorkoutChange }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
     profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
@@ -387,6 +387,16 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkoutId, planExercises]);
+
+  // A day picked on Birdseye's calendar: land on Move's first question
+  // with that date already chosen, ready to walk through logging.
+  useEffect(() => {
+    if (!logDate) return;
+    setSelectedDate(logDate);
+    scrollAppToTop();
+    onConsumeLogDate && onConsumeLogDate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logDate]);
 
   useEffect(() => {
     if (!deepLinkWorkoutId || loading) return;

@@ -48,6 +48,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Journals are author-only: every entry is private, no trainer RLS policy (SQL already run in Supabase). The Journal tab tells clients Greg never sees it and to message him if there's something he should know.
 - First run for clients: consent screen → ACSM health screening → tour (gated in `src/App.jsx`). Consent wording lives in `src/features/screening/ConsentScreen.jsx`; bump `CONSENT_VERSION` when it changes. Not yet reviewed by a lawyer.
 - Health screening follows the ACSM preparticipation algorithm (Riebe et al., 2015): activity status, symptoms, known CV/metabolic/renal disease; symptom-positive people skip the disease question. Logic and wording in `src/features/screening/screening.js`. Results are stored in `profiles.screening` (jsonb); "doctor cleared me" is self-reported. It informs (banner on Birdseye, Account, coach view) but doesn't block logging. An "other conditions" step (hypertension, obesity, etc.) is recorded for future condition-specific guidance.
+- Birdseye calendar: tapping an empty past day (or today) goes straight to Move with that date chosen; tapping a day that has workouts asks "View workout" or "Log another workout". (The old separate quick-log form was removed.)
 - Move history shows 3 workouts, then 5 more per Show More.
 - Baseline intake is optional (prompted from Birdseye, not a gate); it now also asks bodyweight. The tour is the only first-run step and only counts as done after its final "get to know you" prompt.
 

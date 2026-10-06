@@ -31,6 +31,7 @@ export default function ClientApp() {
   const { user, profile, updateProfile } = useAuth();
   const [tab, setTab] = useState('birdseye');
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
+  const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
   const [showGroove, setShowGroove] = useState(false);
   // A local override alongside profile.tour_done: updateProfile()'s
   // round trip can lag a render behind, and without this the tour would
@@ -51,6 +52,10 @@ export default function ClientApp() {
 
   function openWorkout(workoutId) {
     setDeepLinkWorkoutId(workoutId);
+    setTab('move');
+  }
+  function logWorkoutOn(dateStr) {
+    setLogDate(dateStr);
     setTab('move');
   }
 
@@ -115,12 +120,13 @@ export default function ClientApp() {
               key="birdseye"
               userId={user.id}
               onOpenWorkout={openWorkout}
+              onLogWorkout={logWorkoutOn}
               onOpenGroove={() => setShowGroove(true)}
               active={tab === 'birdseye'}
               openBaselineOnLoad={openBaselineOnLoad}
               onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
             />,
-            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} onActiveWorkoutChange={setMoveStatus} />,
+            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} onActiveWorkoutChange={setMoveStatus} />,
             <JournalTab key="journal" />,
             <LearnTab key="learn" />,
           ]}

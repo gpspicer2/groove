@@ -9,8 +9,6 @@ import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import BaselineFlow from '../baseline/BaselineFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
-import { WORKOUT_LOCATIONS, locationEmojis } from '../move/exerciseLibrary';
-import MovementTypePicker from '../move/MovementTypePicker';
 import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
@@ -24,19 +22,13 @@ function sameDay(a, b) {
   return a.toDateString() === b.toDateString();
 }
 
-function todayInputValue() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
-  const customActivities = profile?.custom_activities || [];
   const [workouts, setWorkouts] = useState([]);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [assessmentDone, setAssessmentDone] = useState(true);
@@ -55,7 +47,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
   const [age, setAge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAssessment, setShowAssessment] = useState(false);
-  const [quickLogDate, setQuickLogDate] = useState(null);
   const [prescribedZone, setPrescribedZone] = useState(null);
   const [restingHrNum, setRestingHrNum] = useState(null);
   const [maxHrNum, setMaxHrNum] = useState(null);
@@ -189,15 +180,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
     else if (mode === 'Resistance') setTrackResistanceGoal(next);
     else setTrackFlexibilityGoal(next);
     await supabase.from('profiles').update({ [field]: next }).eq('id', userId);
-  }
-
-  async function addCustomActivity(name) {
-    const trimmed = name.trim();
-    if (!trimmed || customActivities.includes(trimmed)) return;
-    await updateProfile({ custom_activities: [...customActivities, trimmed] });
-  }
-  async function removeCustomActivity(name) {
-    await updateProfile({ custom_activities: customActivities.filter((a) => a !== name) });
   }
 
   if (loading) {
@@ -335,7 +317,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           hasAerobic={hasAerobic}
           hasFlexibility={hasFlexibility}
           onOpenWorkout={onOpenWorkout}
-          onAddWorkout={(day) => setQuickLogDate(dateInputValue(day))}
+          onLogOnDate={(day) => onLogWorkout && onLogWorkout(dateInputValue(day))}
           weekStartDay={weekStartDay}
         />
 
@@ -367,18 +349,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onOpenGroove, activ
           userId={userId}
           onClose={() => setShowBaseline(false)}
           onComplete={async () => { setShowBaseline(false); setIntakeDone(true); await loadAll(); }}
-        />
-      )}
-
-      {quickLogDate && (
-        <QuickLogModal
-          gender={profile?.gender}
-          initialDate={quickLogDate}
-          customActivities={customActivities}
-          onAddCustomActivity={addCustomActivity}
-          onRemoveCustomActivity={removeCustomActivity}
-          onClose={() => setQuickLogDate(null)}
-          onSaved={async () => { setQuickLogDate(null); await loadAll(); }}
         />
       )}
 
@@ -672,8 +642,9 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onAddWorkout, weekStartDay, dataTour }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
+  const [choiceDay, setChoiceDay] = useState(null); // a day that already has workouts
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
   const year = viewDate.getFullYear();
@@ -732,8 +703,10 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
             <button
               key={i}
               onClick={() => {
-                if (hasAny) { onOpenWorkout && onOpenWorkout(dayWorkouts[0].id); }
-                else if (!isFuture) { onAddWorkout && onAddWorkout(day); }
+                // A day with workouts asks what you want; an empty day goes
+                // straight to Move to log one for that date.
+                if (hasAny) setChoiceDay(day);
+                else if (!isFuture) onLogOnDate && onLogOnDate(day);
               }}
               disabled={!hasAny && isFuture}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
@@ -753,7 +726,46 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           );
         })}
       </div>
+      {choiceDay && (
+        <DayChoicePopup
+          day={choiceDay}
+          count={workoutsForDay(choiceDay).length}
+          onClose={() => setChoiceDay(null)}
+          onView={() => { const w = workoutsForDay(choiceDay)[0]; setChoiceDay(null); onOpenWorkout && onOpenWorkout(w.id); }}
+          onLog={() => { const d = choiceDay; setChoiceDay(null); onLogOnDate && onLogOnDate(d); }}
+        />
+      )}
     </div>
+  );
+}
+
+// Shown when a calendar day already has workouts: look back at them, or
+// add another for that date.
+function DayChoicePopup({ day, count, onView, onLog, onClose }) {
+  const isFuture = day > new Date() && !sameDay(day, new Date());
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" onClick={onClose}>
+        <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+        <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="relative w-full max-w-xs rounded-xl px-5 py-5 text-center" onClick={(e) => e.stopPropagation()}>
+          <div style={{ color: PAPER }} className="text-base font-medium">
+            {day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">
+            {count === 1 ? '1 workout logged' : `${count} workouts logged`}
+          </div>
+          <button onClick={onView} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">
+            {count === 1 ? 'View workout' : 'View workouts'}
+          </button>
+          {!isFuture && (
+            <button onClick={onLog} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mb-1">
+              Log another workout
+            </button>
+          )}
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
+        </div>
+      </div>
+    </Portal>
   );
 }
 
@@ -797,7 +809,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               <span style={{ color: MOSS }} className="text-sm font-medium">Aerobic</span>{infoBtn('Aerobic')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              {aerobicGoalMinutes} min/week over 3+ days. Vigorous minutes count double.
+              {aerobicGoalMinutes} min/week of moderate-intensity activity, over 3+ days. Vigorous minutes count double.
             </p>
             {zones ? (
               <>
@@ -870,177 +882,5 @@ function MovementLibrary({ hrZones }) {
         </div>
       )}
     </div>
-  );
-}
-
-function QuickLogModal({ gender, initialDate, customActivities, onAddCustomActivity, onRemoveCustomActivity, onClose, onSaved }) {
-  const [date, setDate] = useState(initialDate || todayInputValue());
-  const [location, setLocation] = useState('');
-  const [selectedGroups, setSelectedGroups] = useState([]);
-  const [selectedActivities, setSelectedActivities] = useState([]);
-  const [details, setDetails] = useState({}); // activity -> {minutes, seconds, distance}
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  function toggleGroup(g) {
-    setSelectedGroups((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
-  }
-  function toggleActivity(a) {
-    setSelectedActivities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
-  }
-  function updateDetail(activity, field, value) {
-    setDetails((prev) => ({ ...prev, [activity]: { ...prev[activity], [field]: value } }));
-  }
-
-  const canSave = Boolean(date) && Boolean(location) && (selectedGroups.length > 0 || selectedActivities.length > 0);
-
-  async function handleSave() {
-    if (!canSave) return;
-    setSaving(true);
-    setError('');
-    const iso = new Date(`${date}T12:00:00`).toISOString();
-    const { data: workout, error: workoutErr } = await supabase
-      .from('workouts')
-      .insert({
-        muscle_groups: selectedGroups,
-        activities: selectedActivities,
-        location,
-        started_at: iso,
-        completed_at: iso,
-      })
-      .select()
-      .single();
-    if (workoutErr) { setSaving(false); setError(workoutErr.message); return; }
-
-    const setRows = selectedActivities
-      .map((activity) => {
-        const d = details[activity] || {};
-        const light = parseInt(d.light, 10) || 0;
-        const moderate = parseInt(d.moderate, 10) || 0;
-        const vigorous = parseInt(d.vigorous, 10) || 0;
-        const durationSeconds = (light + moderate + vigorous) * 60;
-        const distance = (d.distance || '').trim();
-        if (!durationSeconds && !distance) return null;
-        return {
-          workout_id: workout.id,
-          exercise_name: activity,
-          muscle_group: 'Cardio',
-          set_number: 1,
-          movement_type: 'aerobic',
-          duration_seconds: durationSeconds || null,
-          distance: distance || null,
-          light_minutes: light || null,
-          moderate_minutes: moderate || null,
-          vigorous_minutes: vigorous || null,
-        };
-      })
-      .filter(Boolean);
-    if (setRows.length > 0) await supabase.from('workout_sets').insert(setRows);
-
-    setSaving(false);
-    onSaved();
-  }
-
-  return (
-    <Portal>
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
-      <div
-        style={{ background: INK_2 }}
-        className="relative w-full max-w-md rounded-t-xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div style={{ color: PAPER }} className="text-sm font-medium">Log movement</div>
-          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Date</div>
-        <input
-          type="date"
-          value={date}
-          max={todayInputValue()}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ background: INK_3, color: PAPER }}
-          className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-4"
-        />
-
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Where</div>
-        <div className="flex flex-wrap justify-center gap-2 mb-4">
-          {WORKOUT_LOCATIONS.map((loc) => {
-            const [left, right] = locationEmojis(loc, gender);
-            return (
-              <button
-                key={loc}
-                onClick={() => setLocation(loc)}
-                style={{ background: location === loc ? SKY : INK_3, color: location === loc ? INK : PAPER_DIM }}
-                className="px-3 py-2 rounded-full text-sm font-medium"
-              >
-                {left} {loc} {right}
-              </button>
-            );
-          })}
-        </div>
-
-        <MovementTypePicker
-          selectedGroups={selectedGroups}
-          onToggleGroup={toggleGroup}
-          selectedActivities={selectedActivities}
-          onToggleActivity={toggleActivity}
-          customActivities={customActivities}
-          onAddCustomActivity={onAddCustomActivity}
-          onRemoveCustomActivity={onRemoveCustomActivity}
-        />
-
-        {selectedActivities.length > 0 && (
-          <div className="space-y-3 mt-2 mb-2">
-            {selectedActivities.map((activity) => (
-              <div key={activity} style={{ background: INK_3 }} className="rounded-md px-3 py-3">
-                <div style={{ color: PAPER }} className="text-sm mb-2 text-center">{activity}</div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Minutes spent at each intensity</div>
-                <div className="flex items-center justify-center gap-2 flex-wrap mb-2">
-                  {[['light', 'Light'], ['moderate', 'Moderate'], ['vigorous', 'Vigorous']].map(([field, label]) => (
-                    <div key={field} className="flex flex-col items-center gap-1">
-                      <span style={{ color: TEXT_SOFT }} className="text-sm">{label}</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        value={details[activity]?.[field] || ''}
-                        onChange={(e) => updateDetail(activity, field, e.target.value)}
-                        placeholder="0"
-                        style={{ background: INK_2, color: PAPER }}
-                        className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={details[activity]?.distance || ''}
-                  onChange={(e) => updateDetail(activity, 'distance', e.target.value)}
-                  placeholder="distance (optional)"
-                  style={{ background: INK_2, color: PAPER }}
-                  className="w-full rounded-md px-2 py-2 text-sm outline-none text-center"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {error && <div style={{ color: BRICK }} className="text-sm text-center mb-2">{error}</div>}
-
-        <button
-          onClick={handleSave}
-          disabled={!canSave || saving}
-          style={{ background: canSave ? LIME : INK_3, color: canSave ? INK : TEXT_SOFT }}
-          className="w-full rounded-md py-3 text-sm font-medium mt-3"
-        >
-          {saving ? 'Saving…' : 'Save movement'}
-        </button>
-      </div>
-    </div>
-    </Portal>
   );
 }
