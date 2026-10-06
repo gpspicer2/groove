@@ -239,6 +239,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  // Extra space under History while a workout opened from the calendar is
+  // expanded, so the page can scroll far enough to put it at the very top.
+  const [scrollPad, setScrollPad] = useState(false);
+  useEffect(() => { if (expandedHistoryId == null) setScrollPad(false); }, [expandedHistoryId]);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [historyShown, setHistoryShown] = useState(HISTORY_FIRST_PAGE);
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
@@ -406,8 +410,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     // to it, then scroll once it has rendered.
     if (idx >= historyShown) { setHistoryShown(idx + 1); return; }
     setExpandedHistoryId(deepLinkWorkoutId);
-    const el = document.getElementById(`history-${deepLinkWorkoutId}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setScrollPad(true);
+    // Wait a beat for the padding and the expanded card to render (and
+    // the tab slide to settle) before scrolling it to the top.
+    setTimeout(() => {
+      document.getElementById(`history-${deepLinkWorkoutId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
     onConsumeDeepLink && onConsumeDeepLink();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkWorkoutId, loading, historyShown]);
@@ -1152,6 +1160,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
             )}
           </div>
         )}
+        <div aria-hidden style={{ height: scrollPad ? '75vh' : 0 }} />
       </div>
     </div>
   );
