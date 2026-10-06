@@ -310,6 +310,24 @@ alter table estimated_1rms enable row level security;
 create policy "estimated_1rms_own" on estimated_1rms for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Planned workouts: a workout scheduled for a future day. A plan is either
+-- a short title ("Outdoor walk") or carries details (location, type,
+-- muscle groups, style, activities) collected by Move's start flow.
+create table planned_workouts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) default auth.uid(),
+  planned_for date not null,
+  title text not null,
+  notes text,
+  details jsonb,
+  created_at timestamptz not null default now()
+);
+alter table planned_workouts enable row level security;
+create policy "planned_workouts_own" on planned_workouts for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "planned_workouts_trainer_select" on planned_workouts for select
+  using (public.is_trainer());
+
 -- Account photos: one public bucket, each user can only write inside
 -- their own folder (avatars/<user id>/...). Public read since these are
 -- just profile pictures shown in the header, nothing sensitive.

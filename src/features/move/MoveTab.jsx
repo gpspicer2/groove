@@ -214,7 +214,7 @@ function scrollAppToTop() {
 const HISTORY_FIRST_PAGE = 3;
 const HISTORY_PAGE = 5;
 
-export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, onActiveWorkoutChange }) {
+export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, planRequest, onConsumePlanRequest, onPlanSaved, onActiveWorkoutChange }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
     profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
@@ -236,6 +236,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   // Skips generateWorkout()'s suggested exercise picks in favor of an
   // empty plan the client builds themselves via "Add to Workout".
   const [cleanSlate, setCleanSlate] = useState(false);
+  // Planning a future workout reuses this same start flow; the button saves
+  // a plan instead of starting. startingPlan is a plan being carried out today.
+  const [planning, setPlanning] = useState(null); // { id|null, date }
+  const [startingPlan, setStartingPlan] = useState(null); // { id, title }
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
@@ -392,6 +396,34 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkoutId, planExercises]);
 
+  // Planning (or starting) a planned workout from Birdseye's calendar.
+  useEffect(() => {
+    if (!planRequest) return;
+    const { mode, plan, date } = planRequest;
+    const d = plan?.details;
+    setSelectedLocation(d?.location || '');
+    setMovementMode(d?.mode || '');
+    setSelectedGroups(d?.groups || []);
+    setSelectedActivities(d?.activities || []);
+    setSelectedFlexActivities(d?.flexActivities || []);
+    setSelectedStyle(d?.style || '');
+    setCombinedLayout(d?.combinedLayout || '');
+    setCombinedActivity(d?.combinedActivity || '');
+    setCleanSlate(false);
+    if (mode === 'plan') {
+      setStartingPlan(null);
+      setPlanning({ id: plan?.id || null, date });
+      setSelectedDate(date);
+    } else {
+      setPlanning(null);
+      setStartingPlan({ id: plan.id, title: plan.title });
+      setSelectedDate(todayLocalISO());
+    }
+    scrollAppToTop();
+    onConsumePlanRequest && onConsumePlanRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planRequest]);
+
   // A day picked on Birdseye's calendar: land on Move's first question
   // with that date already chosen, ready to walk through logging.
   useEffect(() => {
@@ -496,6 +528,48 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     return false;
   }
 
+  function resetStartChoices() {
+    setSelectedGroups([]);
+    setSelectedActivities([]);
+    setSelectedFlexActivities([]);
+    setSelectedStyle('');
+    setSelectedLocation('');
+    setMovementMode('');
+    setCombinedLayout('');
+    setCombinedActivity('');
+    setCleanSlate(false);
+    setSelectedDate(todayLocalISO());
+  }
+
+  async function savePlan() {
+    if (!canStartMode() || !planning) return;
+    const details = {
+      location: selectedLocation,
+      mode: movementMode,
+      groups: movementMode === 'Aerobic' ? [] : selectedGroups,
+      activities: selectedActivities,
+      flexActivities: selectedFlexActivities,
+      style: movementMode === 'Resistance' || movementMode === 'Combined' ? selectedStyle : '',
+      combinedLayout,
+      combinedActivity,
+    };
+    const title = workoutTitle(details.groups, movementMode === 'Aerobic' || movementMode === 'Combined' ? selectedActivities : movementMode === 'Flexibility' ? selectedFlexActivities : []);
+    // Editing keeps whatever title/notes were written; a new plan gets an auto title.
+    const { error } = planning.id
+      ? await supabase.from('planned_workouts').update({ planned_for: planning.date, details }).eq('id', planning.id)
+      : await supabase.from('planned_workouts').insert({ planned_for: planning.date, title, details });
+    if (error) { setLoadError(`Couldn't save your plan: ${error.message}`); return; }
+    setPlanning(null);
+    resetStartChoices();
+    scrollAppToTop();
+    onPlanSaved && onPlanSaved();
+  }
+
+  function cancelPlanning() {
+    setPlanning(null);
+    resetStartChoices();
+  }
+
   async function startWorkout() {
     if (!canStartMode()) return;
     const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
@@ -555,6 +629,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
+    // Carrying out a planned workout uses it up.
+    if (startingPlan) {
+      await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
+      setStartingPlan(null);
+    }
     if (movementMode === 'Combined' && combinedLayout) {
       try { localStorage.setItem(`groove:combinedLayout:${data.id}`, combinedLayout); } catch { /* storage blocked */ }
     }
@@ -961,7 +1040,22 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onDiscard={discardWorkout}
         />
       ) : (
+        <>
+        {planning && (
+          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
+            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Planning a workout</div>
+            <button onClick={cancelPlanning} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Cancel</button>
+          </div>
+        )}
+        {startingPlan && !planning && (
+          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
+            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Today's plan</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">{startingPlan.title}</div>
+            <button onClick={() => { setStartingPlan(null); resetStartChoices(); }} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Dismiss</button>
+          </div>
+        )}
         <StartWorkout
+          planning={planning}
           dataTour="move-start"
           gender={profile?.gender}
           selectedDate={selectedDate}
@@ -985,13 +1079,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onRemoveCustomActivity={removeCustomActivity}
           selectedStyle={selectedStyle}
           onSelectStyle={setSelectedStyle}
-          onStart={startWorkout}
+          onStart={planning ? savePlan : startWorkout}
           canStart={canStartMode()}
-          assignedProgram={assignedProgram}
+          assignedProgram={planning ? null : assignedProgram}
           onStartAssignedProgram={startAssignedProgram}
           cleanSlate={cleanSlate}
           onToggleCleanSlate={setCleanSlate}
         />
+        </>
       )}
 
       <div data-tour="move-history" className="mt-8">
@@ -1178,6 +1273,7 @@ function StartWorkout({
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
   cleanSlate, onToggleCleanSlate,
+  planning,
   dataTour,
 }) {
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
@@ -1240,21 +1336,23 @@ function StartWorkout({
   return (
     <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
       <div className="flex items-center justify-center gap-2 mb-5">
-        <button
-          onClick={() => onSelectDate(todayLocalISO())}
-          style={{ background: isToday ? SKY : INK_3, color: isToday ? INK : PAPER_DIM }}
-          className="rounded-full px-3.5 py-1.5 text-sm font-medium"
-        >
-          Today
-        </button>
+        {!planning && (
+          <button
+            onClick={() => onSelectDate(todayLocalISO())}
+            style={{ background: isToday ? SKY : INK_3, color: isToday ? INK : PAPER_DIM }}
+            className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+          >
+            Today
+          </button>
+        )}
         <div className="relative">
           <button
             type="button"
             tabIndex={-1}
-            style={{ background: !isToday ? SKY : INK_3, color: !isToday ? INK : PAPER_DIM }}
+            style={{ background: !isToday || planning ? SKY : INK_3, color: !isToday || planning ? INK : PAPER_DIM }}
             className="rounded-full px-3.5 py-1.5 text-sm font-medium"
           >
-            {isToday ? 'Past Date' : friendlyDate}
+            {planning ? friendlyDate : isToday ? 'Past Date' : friendlyDate}
           </button>
           {/* An invisible native date input sits directly on top of the
               button so tapping it opens the OS calendar picker in one
@@ -1263,7 +1361,7 @@ function StartWorkout({
           <input
             type="date"
             value={selectedDate}
-            max={todayLocalISO()}
+            {...(planning ? { min: todayLocalISO() } : { max: todayLocalISO() })}
             onChange={(e) => { if (e.target.value) onSelectDate(e.target.value); }}
             style={{ colorScheme: 'dark' }}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -1271,7 +1369,7 @@ function StartWorkout({
         </div>
       </div>
       <div ref={locationHeadingRef} style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        {isToday ? 'Where are you working out today?' : 'Where did you work out?'}
+        {planning ? 'Where will you work out?' : isToday ? 'Where are you working out today?' : 'Where did you work out?'}
       </div>
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
@@ -1567,7 +1665,7 @@ function StartWorkout({
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
           className="w-full rounded-md py-3 text-sm font-medium mt-2"
         >
-          🪩 Log Workout{startEmoji}
+          {planning ? '📅 Save Plan' : <>🪩 Log Workout{startEmoji}</>}
         </button>
       )}
     </div>

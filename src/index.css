@@ -53,3 +53,13 @@ html, body {
   display: inline-block;
   animation: groove-letter-ripple 7s ease-in-out infinite;
 }
+
+/* A planned workout on the calendar: a gentle pulse, noticeable but not loud. */
+@keyframes groove-plan-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+.groove-plan-blink { animation: groove-plan-blink 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .groove-plan-blink { animation: none; }
+}

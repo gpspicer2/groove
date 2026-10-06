@@ -1,6 +1,6 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, CalendarClock, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -12,6 +12,7 @@ import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
+import { PlanFormPopup, PlannedWorkoutPopup } from '../plan/PlanPopups';
 import { needsClearance } from '../screening/screening';
 
 function daysBetween(a, b) {
@@ -26,7 +27,7 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPlanWorkout, onStartPlan, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
   const [workouts, setWorkouts] = useState([]);
@@ -62,6 +63,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpe
   const [editingGoals, setEditingGoals] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
+  const [plans, setPlans] = useState([]); // planned workouts from today on
 
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
@@ -70,6 +72,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpe
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal, bodyweight_lb').eq('id', userId).maybeSingle(),
       supabase.from('workout_sets').select('workout_id, exercise_name, muscle_group, distance, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
+    // Plans load on their own so a hiccup there never blocks the rest of Birdseye.
+    const planRes = await supabase.from('planned_workouts').select('*').eq('user_id', userId).gte('planned_for', dateInputValue(new Date())).order('planned_for', { ascending: true });
+    setPlans(planRes.error ? [] : (planRes.data || []));
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
     setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
     const w = workoutsRes.data;
@@ -180,6 +185,22 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpe
     else if (mode === 'Resistance') setTrackResistanceGoal(next);
     else setTrackFlexibilityGoal(next);
     await supabase.from('profiles').update({ [field]: next }).eq('id', userId);
+  }
+
+  async function savePlan({ id, date, title, notes }) {
+    const fields = { title, notes: notes || null };
+    const { error } = id
+      ? await supabase.from('planned_workouts').update(fields).eq('id', id)
+      : await supabase.from('planned_workouts').insert({ planned_for: date, ...fields });
+    if (error) { setLoadError(`Couldn't save your plan: ${error.message}`); return; }
+    await loadAll();
+  }
+  async function deletePlan(plan) {
+    if (!window.confirm('Delete this planned workout?')) return false;
+    const { error } = await supabase.from('planned_workouts').delete().eq('id', plan.id);
+    if (error) { setLoadError(`Couldn't delete your plan: ${error.message}`); return false; }
+    await loadAll();
+    return true;
   }
 
   if (loading) {
@@ -318,6 +339,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onOpe
           hasFlexibility={hasFlexibility}
           onOpenWorkout={onOpenWorkout}
           onLogOnDate={(day) => onLogWorkout && onLogWorkout(dateInputValue(day))}
+          plans={plans}
+          onSavePlan={savePlan}
+          onDeletePlan={deletePlan}
+          onPlanDetails={(dateStr, plan) => onPlanWorkout && onPlanWorkout({ date: dateStr, plan: plan || null })}
+          onStartPlan={(plan) => onStartPlan && onStartPlan(plan)}
           weekStartDay={weekStartDay}
         />
 
@@ -642,9 +668,11 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, weekStartDay, dataTour }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [choiceDay, setChoiceDay] = useState(null); // a day that already has workouts
+  const [plannedDay, setPlannedDay] = useState(null); // a day with planned workouts
+  const [planForm, setPlanForm] = useState(null); // { dateStr, plan|null } create/edit
   const now = new Date();
   const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
   const year = viewDate.getFullYear();
@@ -664,6 +692,10 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
   // gets shadowed by whichever one happens to render first.
   function workoutsForDay(day) {
     return workouts.filter((w) => sameDay(new Date(w.started_at), day));
+  }
+  function plansForDay(day) {
+    const key = dateInputValue(day);
+    return plans.filter((p) => p.planned_for === key);
   }
 
   return (
@@ -694,6 +726,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           if (!day) return <div key={i} />;
           const dayWorkouts = workoutsForDay(day);
           const hasAny = dayWorkouts.length > 0;
+          const dayPlans = plansForDay(day);
           const isToday = sameDay(day, now);
           const isFuture = day > now && !isToday;
           const r = dayWorkouts.some(hasResistance);
@@ -703,33 +736,66 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
             <button
               key={i}
               onClick={() => {
-                // A day with workouts asks what you want; an empty day goes
-                // straight to Move to log one for that date.
+                // A day with workouts asks what you want; a planned day shows
+                // its plan; an empty future day offers to plan one; an empty
+                // past day goes straight to Move to log one for that date.
                 if (hasAny) setChoiceDay(day);
-                else if (!isFuture) onLogOnDate && onLogOnDate(day);
+                else if (dayPlans.length > 0) setPlannedDay(day);
+                else if (isFuture) setPlanForm({ dateStr: dateInputValue(day), plan: null });
+                else onLogOnDate && onLogOnDate(day);
               }}
-              disabled={!hasAny && isFuture}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
               className="aspect-[5/4] rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
-              <span style={{ color: hasAny ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
-              {hasAny ? (
+              <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
+              {hasAny || dayPlans.length > 0 ? (
                 <span className="flex items-center gap-0.5">
                   {a && <Activity size={10} color={MOSS} />}
                   {r && <Dumbbell size={10} color={SKY} />}
                   {f && <StretchHorizontal size={10} color={BRICK} />}
+                  {dayPlans.length > 0 && <CalendarClock size={10} color={PLUM} className="groove-plan-blink" />}
                 </span>
-              ) : !isFuture ? (
+              ) : (
                 <Plus size={9} color={INK_3} />
-              ) : null}
+              )}
             </button>
           );
         })}
       </div>
+      {plannedDay && (
+        <PlannedWorkoutPopup
+          dateStr={dateInputValue(plannedDay)}
+          plans={plansForDay(plannedDay)}
+          isToday={sameDay(plannedDay, now)}
+          onClose={() => setPlannedDay(null)}
+          onEdit={(plan) => { setPlannedDay(null); setPlanForm({ dateStr: plan.planned_for, plan }); }}
+          onDelete={async (plan) => {
+            const deleted = await onDeletePlan(plan);
+            // Close once the last plan for this day is gone.
+            if (deleted && plansForDay(plannedDay).length <= 1) setPlannedDay(null);
+          }}
+          onStart={(plan) => { setPlannedDay(null); onStartPlan && onStartPlan(plan); }}
+          onPlanAnother={() => { const d = plannedDay; setPlannedDay(null); setPlanForm({ dateStr: dateInputValue(d), plan: null }); }}
+        />
+      )}
+      {planForm && (
+        <PlanFormPopup
+          dateStr={planForm.dateStr}
+          plan={planForm.plan}
+          onClose={() => setPlanForm(null)}
+          onSave={async ({ title, notes }) => {
+            await onSavePlan({ id: planForm.plan?.id, date: planForm.dateStr, title, notes });
+            setPlanForm(null);
+          }}
+          onDetails={() => { const f = planForm; setPlanForm(null); onPlanDetails && onPlanDetails(f.dateStr, f.plan); }}
+        />
+      )}
       {choiceDay && (
         <DayChoicePopup
           day={choiceDay}
           count={workoutsForDay(choiceDay).length}
+          plannedCount={plansForDay(choiceDay).length}
+          onPlanned={() => { const d = choiceDay; setChoiceDay(null); setPlannedDay(d); }}
           onClose={() => setChoiceDay(null)}
           onView={() => { const w = workoutsForDay(choiceDay)[0]; setChoiceDay(null); onOpenWorkout && onOpenWorkout(w.id); }}
           onLog={() => { const d = choiceDay; setChoiceDay(null); onLogOnDate && onLogOnDate(d); }}
@@ -741,7 +807,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 
 // Shown when a calendar day already has workouts: look back at them, or
 // add another for that date.
-function DayChoicePopup({ day, count, onView, onLog, onClose }) {
+function DayChoicePopup({ day, count, plannedCount = 0, onPlanned, onView, onLog, onClose }) {
   const isFuture = day > new Date() && !sameDay(day, new Date());
   return (
     <Portal>
@@ -760,6 +826,11 @@ function DayChoicePopup({ day, count, onView, onLog, onClose }) {
           {!isFuture && (
             <button onClick={onLog} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mb-1">
               Log another workout
+            </button>
+          )}
+          {plannedCount > 0 && (
+            <button onClick={onPlanned} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mb-1">
+              Planned workout{plannedCount > 1 ? 's' : ''}
             </button>
           )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>

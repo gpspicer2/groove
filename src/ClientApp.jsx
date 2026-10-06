@@ -32,6 +32,7 @@ export default function ClientApp() {
   const [tab, setTab] = useState('birdseye');
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
+  const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
   const [showGroove, setShowGroove] = useState(false);
   // A local override alongside profile.tour_done: updateProfile()'s
   // round trip can lag a render behind, and without this the tour would
@@ -52,6 +53,14 @@ export default function ClientApp() {
 
   function openWorkout(workoutId) {
     setDeepLinkWorkoutId(workoutId);
+    setTab('move');
+  }
+  function planWorkout({ date, plan }) {
+    setPlanRequest({ mode: 'plan', date, plan });
+    setTab('move');
+  }
+  function startPlan(plan) {
+    setPlanRequest({ mode: 'start', plan });
     setTab('move');
   }
   function logWorkoutOn(dateStr) {
@@ -121,12 +130,14 @@ export default function ClientApp() {
               userId={user.id}
               onOpenWorkout={openWorkout}
               onLogWorkout={logWorkoutOn}
+              onPlanWorkout={planWorkout}
+              onStartPlan={startPlan}
               onOpenGroove={() => setShowGroove(true)}
               active={tab === 'birdseye'}
               openBaselineOnLoad={openBaselineOnLoad}
               onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
             />,
-            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} onActiveWorkoutChange={setMoveStatus} />,
+            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />,
             <JournalTab key="journal" />,
             <LearnTab key="learn" />,
           ]}
