@@ -86,7 +86,7 @@ export default function ClientApp() {
               <span style={{ background: PAPER_DIM }} className="block w-5 h-0.5 rounded-full" />
             </button>
           ) : <div />}
-          <Wordmark height={30} className="justify-self-center" />
+          <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
           <AccountMenu />
         </div>
         <div data-tour="tab-bar" className="flex gap-1.5 pb-4">

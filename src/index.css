@@ -73,3 +73,26 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .groove-plan-pulse { animation: none; }
 }
+
+/* The logo's runner jogs while a workout is in progress: the body bounces
+   and the legs swing from the hip. Two copies of the same image, clipped
+   at the waist with a small overlap so the seam never shows. */
+.groove-run-body { animation: groove-run-bounce 0.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.groove-run-upper, .groove-run-legs { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.groove-run-upper { clip-path: inset(0 0 40% 0); transform-origin: 50% 60%; animation: groove-run-lean 1.2s ease-in-out infinite; }
+.groove-run-legs { clip-path: inset(54% 0 0 0); transform-origin: 50% 58%; animation: groove-run-stride 1.2s ease-in-out infinite; }
+@keyframes groove-run-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7%); }
+}
+@keyframes groove-run-lean {
+  0%, 100% { transform: rotate(2deg); }
+  50% { transform: rotate(-2deg); }
+}
+@keyframes groove-run-stride {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .groove-run-body, .groove-run-upper, .groove-run-legs { animation: none; }
+}
