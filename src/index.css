@@ -74,25 +74,42 @@ html, body {
   .groove-plan-pulse { animation: none; }
 }
 
-/* The logo's runner jogs while a workout is in progress: the body bounces
-   and the legs swing from the hip. Two copies of the same image, clipped
-   at the waist with a small overlap so the seam never shows. */
-.groove-run-body { animation: groove-run-bounce 0.6s ease-in-out infinite; transform-origin: 50% 100%; }
-.groove-run-upper, .groove-run-legs { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.groove-run-upper { clip-path: inset(0 0 40% 0); transform-origin: 50% 60%; animation: groove-run-lean 1.2s ease-in-out infinite; }
-.groove-run-legs { clip-path: inset(54% 0 0 0); transform-origin: 50% 58%; animation: groove-run-stride 1.2s ease-in-out infinite; }
-@keyframes groove-run-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7%); }
+
+/* The logo's runner, while a workout is in progress: every 8 seconds he
+   takes a few quick strides (about a second), then stands still. Arms and
+   legs swing from their own joints; the body bobs and leans into it. */
+.groove-run-body, .groove-run-lean { position: absolute; inset: 0; display: block; }
+.groove-run-body { animation: groove-run-bob 8s ease-in-out infinite; }
+.groove-run-lean { transform-origin: 47% 58%; animation: groove-run-lean 8s ease-in-out infinite; }
+.groove-run-part { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.groove-run-p-back-leg { animation: groove-run-back-leg 8s ease-in-out infinite; }
+.groove-run-p-front-leg { animation: groove-run-front-leg 8s ease-in-out infinite; }
+.groove-run-p-back-arm { animation: groove-run-back-arm 8s ease-in-out infinite; }
+.groove-run-p-front-arm { animation: groove-run-front-arm 8s ease-in-out infinite; }
+@keyframes groove-run-bob {
+  0%, 3.44%, 6.88%, 10.31%, 13.75%, 100% { transform: translateY(0); }
+  1.72%, 5.16%, 8.59%, 12.03% { transform: translateY(-9%); }
 }
 @keyframes groove-run-lean {
-  0%, 100% { transform: rotate(2deg); }
-  50% { transform: rotate(-2deg); }
+  0%, 100% { transform: rotate(0deg); }
+  1.5%, 12.5% { transform: rotate(5deg); }
 }
-@keyframes groove-run-stride {
-  0%, 100% { transform: rotate(-7deg); }
-  50% { transform: rotate(8deg); }
+@keyframes groove-run-back-leg {
+  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
+  3.44%, 10.31% { transform: rotate(-75deg); }
+}
+@keyframes groove-run-front-leg {
+  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
+  3.44%, 10.31% { transform: rotate(75deg); }
+}
+@keyframes groove-run-back-arm {
+  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
+  3.44%, 10.31% { transform: rotate(-50deg); }
+}
+@keyframes groove-run-front-arm {
+  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
+  3.44%, 10.31% { transform: rotate(45deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .groove-run-body, .groove-run-upper, .groove-run-legs { animation: none; }
+  .groove-run-body, .groove-run-lean, .groove-run-part { animation: none; }
 }
