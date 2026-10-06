@@ -38,8 +38,9 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 ## Decisions and why
 - "Log Workout" (not "Start"): open-ended, covers past sessions too.
-- Resistance workouts open with a Treadmill Walk and a Dynamic Warm-up (both removable). Exercises start collapsed.
-- Combined mode: Serial = blocks back to back; Integrated = aerobic woven between exercises or sets. Between-sets aerobic logs as a set inside the exercise, not its own card.
+- Resistance workouts open with an "Aerobic Warm-up" card (the client picks the activity; never assume a treadmill) and a Dynamic Warm-up, both removable. Exercises start collapsed.
+- Combined mode: Serial = blocks back to back (a single "Add Aerobic" at the end, no cardio buttons between exercises); Integrated = aerobic woven between exercises or sets. Between-sets aerobic logs as a set inside the exercise, not its own card; tap a logged burst to edit or remove it, and "Other" logs something different from the one-tap preset.
+- "Use bodyweight" is available on every resistance exercise (default on only for pull-ups, dips, chin-ups).
 - Weekly goals follow ACSM: aerobic in moderate-equivalent minutes (vigorous counts double), resistance/flexibility in days.
 - Calories: ACSM kcal/min = METs × 3.5 × kg ÷ 200. Resistance sets ≈ 2.5 min at 3.5–6.5 METs by lift; aerobic uses per-activity METs scaled by intensity. Estimates only, no load weighting. Shown live, in History, and on Birdseye.
 - Movement Library: three intensity buttons (Light/Moderate/Vigorous), each a short list of everyday activities, plus the client's bpm range when resting HR is set. Simplified from a 6-level slider over the full compendium — Greg found that too long. Activities from the 2024 Adult Compendium of Physical Activities (not Greg's old METs.pdf, which is © Wellsource).

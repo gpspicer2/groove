@@ -40,6 +40,11 @@ function daysBetween(a, b) {
 
 const LIVE_BACKUP_KEY = 'groove:liveBackup';
 
+// The aerobic piece that opens a resistance session starts unnamed so the
+// client picks their own activity (treadmill, bike, jump rope...) instead
+// of every workout assuming a treadmill.
+const WARMUP_AEROBIC_PLACEHOLDER = 'Aerobic Warm-up';
+
 function mapSet(row) {
   return {
     id: row.id,
@@ -489,11 +494,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
     if (usesResistance) {
-      // Every resistance session opens with an easy aerobic piece and a
-      // dynamic warm-up (clean slate included) — both removable.
+      // Every resistance session opens with an easy aerobic piece (the
+      // client chooses the activity) and a dynamic warm-up (clean slate
+      // included) — both removable.
       const warmupDrills = generateDynamicWarmup(selectedGroups);
       plan = [
-        { name: 'Treadmill Walk', muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' },
+        { name: WARMUP_AEROBIC_PLACEHOLDER, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' },
         ...(warmupDrills.length ? [{ name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills: warmupDrills }] : []),
         ...plan,
       ];
@@ -920,6 +926,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, onActive
           hrZones={hrZones}
           onLogSet={logSet}
           onDeleteSet={deleteSet}
+          onUpdateSet={updateSet}
           onReplace={replaceExercise}
           onMoveGroup={moveGroup}
           onReorderGroup={reorderGroup}
@@ -1552,7 +1559,7 @@ function ActiveWorkout({
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
-  onLogSet, onDeleteSet, onReplace, onMoveGroup, onReorderGroup,
+  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard,
@@ -1694,7 +1701,10 @@ function ActiveWorkout({
   const isCombined = workout.movementMode === 'Combined';
   const lifts = workout.movementMode === 'Resistance' || isCombined;
   const betweenSets = isCombined && combinedLayout === 'integrated-sets';
-  const canQuickAddAerobic = isCombined && !betweenSets;
+  // Cardio buttons between exercises belong to the Integrated layout.
+  // Serial keeps blocks back to back: one "Add Aerobic" at the end instead.
+  const canQuickAddAerobic = isCombined && combinedLayout === 'integrated-exercises';
+  const serialBlock = isCombined && combinedLayout === 'serial';
   // insertAt is the flat planExercises index to splice the new aerobic
   // entry into — null (or past the end) just appends, so the same
   // handler covers "before the first exercise", "between two exercises",
@@ -1855,6 +1865,8 @@ function ActiveWorkout({
                   onLogSet={onLogSet}
                   onDeleteSet={onDeleteSet}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
+                  onOpenSwap={ex.type === 'aerobic' ? () => setSwapIndex(ex.index) : undefined}
+                  onChooseActivity={ex.type === 'aerobic' && ex.name === WARMUP_AEROBIC_PLACEHOLDER ? (name) => { onReplace(ex.index, { name }); setActiveGroupKey(`aerobic-${name}`); } : undefined}
                   hrZones={hrZones}
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
@@ -1884,6 +1896,7 @@ function ActiveWorkout({
                   last={lastPerformance(ex.name)}
                   onLogSet={(payload) => handleResistanceLog({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup }, gi)}
                   onDeleteSet={onDeleteSet}
+                  onUpdateSet={onUpdateSet}
                   onOpenSwap={() => setSwapIndex(ex.index)}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   isActive={activeGroupKey === groupKey}
@@ -1970,6 +1983,12 @@ function ActiveWorkout({
           );
         })}
       </div>
+
+      {serialBlock && !addMenuOpen && (
+        <QuickAerobicButton
+          onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, exercises.length)}
+        />
+      )}
 
       {addMenuOpen ? (
         addMode === null ? (
@@ -2086,7 +2105,14 @@ function ActiveWorkout({
           exercise={exercises[swapIndex]}
           usedNames={exercises.map((e) => e.name)}
           location={workout.location}
-          onPick={(next) => { onReplace(swapIndex, next); setSwapIndex(null); }}
+          onPick={(next) => {
+            const wasOpenAerobic = exercises[swapIndex]?.type === 'aerobic';
+            onReplace(swapIndex, next);
+            // Renaming changes the card's key; keep an aerobic card open
+            // so the client can log right after choosing their activity.
+            if (wasOpenAerobic) setActiveGroupKey(`aerobic-${next.name}`);
+            setSwapIndex(null);
+          }}
           onClose={() => setSwapIndex(null)}
         />
       )}
@@ -2164,40 +2190,125 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
 
 function QuickAerobicButton({ onSubmit, fixedName, preset }) {
   const [open, setOpen] = useState(false);
+  const [other, setOther] = useState(false); // log something different from the one-tap preset
   const [justLogged, setJustLogged] = useState(false);
+  const hasPreset = Boolean(fixedName && preset);
 
   if (!open) {
     return (
-      <button
-        onClick={() => {
-          if (fixedName && preset) {
-            onSubmit(fixedName, preset.intensity, preset.minutes);
-            setJustLogged(true);
-            setTimeout(() => setJustLogged(false), 1200);
-          } else setOpen(true);
-        }}
-        style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
-        className="w-full rounded-md py-1.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
-      >
-        {justLogged ? <Check size={14} /> : <Plus size={14} />} {justLogged ? 'Logged' : fixedName ? `${fixedName}${preset ? ` · ${preset.minutes} min` : ''}` : 'Add Aerobic'}
-      </button>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => {
+            if (hasPreset) {
+              onSubmit(fixedName, preset.intensity, preset.minutes);
+              setJustLogged(true);
+              setTimeout(() => setJustLogged(false), 1200);
+            } else setOpen(true);
+          }}
+          style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
+          className="flex-1 min-w-0 rounded-md py-1.5 text-sm font-medium flex items-center justify-center gap-1.5"
+        >
+          {justLogged ? <Check size={14} /> : <Plus size={14} />} {justLogged ? 'Logged' : fixedName ? `${fixedName}${preset ? ` · ${preset.minutes} min` : ''}` : 'Add Aerobic'}
+        </button>
+        {hasPreset && (
+          <button
+            onClick={() => { setOther(true); setOpen(true); }}
+            style={{ background: INK_2, color: TEXT_SOFT }}
+            className="shrink-0 rounded-md px-3 py-1.5 text-sm"
+          >
+            Other
+          </button>
+        )}
+      </div>
     );
   }
 
   return (
     <QuickAerobicForm
-      fixedName={fixedName}
-      onCancel={() => setOpen(false)}
-      onSubmit={(name, intensity, minutes) => { onSubmit(name, intensity, minutes); setOpen(false); }}
+      fixedName={other ? undefined : fixedName}
+      onCancel={() => { setOpen(false); setOther(false); }}
+      onSubmit={(name, intensity, minutes) => { onSubmit(name, intensity, minutes); setOpen(false); setOther(false); }}
     />
+  );
+}
+
+// Tap a logged between-sets cardio burst to change its activity,
+// intensity, or minutes — or remove it.
+function EditBurstModal({ set, onSave, onRemove, onClose }) {
+  const startIntensity = set.vigorousMinutes ? 'Vigorous' : set.lightMinutes ? 'Light' : 'Moderate';
+  const [name, setName] = useState(set.distance || '');
+  const [intensity, setIntensity] = useState(startIntensity);
+  const [minutes, setMinutes] = useState((set.lightMinutes || 0) + (set.moderateMinutes || 0) + (set.vigorousMinutes || 0) || Math.round((set.durationSeconds || 0) / 60) || 5);
+
+  function save() {
+    const m = Number(minutes) > 0 ? Number(minutes) : 1;
+    onSave({
+      distance: name.trim() || null,
+      duration_seconds: m * 60,
+      light_minutes: intensity === 'Light' ? m : null,
+      moderate_minutes: intensity === 'Moderate' ? m : null,
+      vigorous_minutes: intensity === 'Vigorous' ? m : null,
+    });
+  }
+
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+        <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+        <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between">
+            <div style={{ color: PAPER }} className="text-sm font-medium">Edit cardio burst</div>
+            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2" aria-label="Close"><X size={18} /></button>
+          </div>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Activity"
+            style={{ background: INK_3, color: PAPER }}
+            className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+          />
+          <div className="flex gap-1.5">
+            {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+              <button
+                key={lvl}
+                onClick={() => setIntensity(lvl)}
+                style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? INK : PAPER_DIM }}
+                className="flex-1 py-1.5 rounded-md text-sm"
+              >
+                {lvl}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center justify-center gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+            />
+            <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
+          </label>
+          <div className="flex gap-2">
+            <button onClick={onRemove} style={{ background: INK_3, color: BRICK }} className="rounded-md px-4 py-2.5 text-sm font-medium">Remove</button>
+            <button onClick={save} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Save</button>
+          </div>
+        </div>
+      </div>
+    </Portal>
   );
 }
 
 function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   const [custom, setCustom] = useState('');
-  const pool = filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location).filter(
-    (e) => e.name !== exercise.name && !usedNames.includes(e.name)
-  );
+  const isAerobic = exercise.type === 'aerobic';
+  const choosing = isAerobic && exercise.name === WARMUP_AEROBIC_PLACEHOLDER;
+  const pool = (isAerobic
+    ? [...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].map((name) => ({ name }))
+    : filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location)
+  ).filter((e) => e.name !== exercise.name && !usedNames.includes(e.name));
 
   return (
     <Portal>
@@ -2209,14 +2320,14 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <div style={{ color: PAPER }} className="text-sm font-medium">Swap "{exercise.name}" for…</div>
+          <div style={{ color: PAPER }} className="text-sm font-medium">{choosing ? 'Choose your activity' : `Swap "${exercise.name}" for…`}</div>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
             <X size={18} />
           </button>
         </div>
         {pool.length === 0 ? (
           <div style={{ color: TEXT_SOFT }} className="text-sm py-4 text-center">
-            No other {exercise.muscleGroup.toLowerCase()} exercises left in the library.
+            No other {exercise.muscleGroup.toLowerCase()} {isAerobic ? 'activities' : 'exercises'} left to pick from.
           </div>
         ) : (
           <div className="space-y-1">
@@ -2246,7 +2357,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
             style={{ background: custom.trim() ? SKY : INK_3, color: custom.trim() ? INK : TEXT_SOFT }}
             className="shrink-0 rounded-md px-4 py-2.5 text-sm font-medium"
           >
-            Swap
+            {choosing ? 'Use' : 'Swap'}
           </button>
         </div>
       </div>
@@ -2572,9 +2683,9 @@ function roundToFive(n) {
   return Math.round(n / 5) * 5;
 }
 
-// "Use bodyweight" only makes sense for movements where the lifter's own
-// weight is the load — pull-ups, dips, chin-ups — not presses/push-ups
-// where adding bodyweight to the logged number would be meaningless.
+// Pull-ups, dips and chin-ups default to "use bodyweight" because the
+// lifter's own weight is the load. Any other exercise (walking lunges,
+// push-ups...) can still be switched to bodyweight from its edit panel.
 function isBodyweightEligible(name) {
   return /pull-up|dip|chin-up/i.test(name || '');
 }
@@ -2602,6 +2713,14 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     ? (mostRecentLogged?.isBodyweight ? Math.max(0, (mostRecentLogged.weight ?? 0) - (bodyweight || 0)) : 0)
     : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? null);
   const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
+  // Switching to/from bodyweight changes what the number means (added
+  // load vs. total), so start the field over instead of carrying it across.
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    setWeight(useBodyweight ? 0 : roundToFive(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useBodyweight]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
   const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? 30);
 
@@ -2778,12 +2897,12 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, combinedActivity, preset,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
-  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
-  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
+  const [editingBurst, setEditingBurst] = useState(null);
+  const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
   if (!isActive) {
@@ -2822,11 +2941,9 @@ function ExerciseCard({
             <button onClick={() => setByTime((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
               <Check size={12} style={{ opacity: byTime ? 1 : 0.25 }} /> Log by seconds
             </button>
-            {bodyweightEligible && (
-              <button onClick={() => setUseBodyweight((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
-                <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight})
-              </button>
-            )}
+            <button onClick={() => setUseBodyweight((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
+              <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight{bodyweight != null ? ` (${bodyweight})` : ''}
+            </button>
           </div>
         )}
 
@@ -2835,7 +2952,10 @@ function ExerciseCard({
             {loggedSets.map((s) => (
               <button
                 key={s.id}
-                onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
+                onClick={() => {
+                  if (s.movementType === 'aerobic' && onUpdateSet) setEditingBurst(s);
+                  else if (window.confirm('Delete this set?')) onDeleteSet(s.id);
+                }}
                 style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
@@ -2856,6 +2976,14 @@ function ExerciseCard({
         {onQuickAerobic && nextSetNumber > 1 && (
           <div className="mt-2"><QuickAerobicButton fixedName={combinedActivity} preset={preset} onSubmit={onQuickAerobic} /></div>
         )}
+        {editingBurst && (
+          <EditBurstModal
+            set={editingBurst}
+            onClose={() => setEditingBurst(null)}
+            onSave={(fields) => { onUpdateSet(editingBurst.id, fields); setEditingBurst(null); }}
+            onRemove={() => { onDeleteSet(editingBurst.id); setEditingBurst(null); }}
+          />
+        )}
       </div>
     </SwipeActions>
   );
@@ -2871,8 +2999,7 @@ function ExerciseCard({
 // toggles and tap-target icon buttons instead.
 function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, nextSetNumber }) {
   const [showSettings, setShowSettings] = useState(false);
-  const bodyweightEligible = isBodyweightEligible(exercise?.name) && bodyweight != null;
-  const [useBodyweight, setUseBodyweight] = useState(bodyweightEligible);
+  const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
   return (
@@ -2888,15 +3015,13 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
             >
               {byTime ? 'Log by reps' : 'Log by seconds'}
             </button>
-            {bodyweightEligible && (
-              <button
-                onClick={() => setUseBodyweight((v) => !v)}
-                style={{ background: INK_3, color: PAPER }}
-                className="text-sm rounded-md px-3 py-1.5 flex items-center gap-1"
-              >
-                <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight ({bodyweight})
-              </button>
-            )}
+            <button
+              onClick={() => setUseBodyweight((v) => !v)}
+              style={{ background: INK_3, color: PAPER }}
+              className="text-sm rounded-md px-3 py-1.5 flex items-center gap-1"
+            >
+              <Check size={12} style={{ opacity: useBodyweight ? 1 : 0.25 }} /> Use bodyweight{bodyweight != null ? ` (${bodyweight})` : ''}
+            </button>
           </div>
         )}
         {loggedSets.length > 0 && (
@@ -3248,7 +3373,7 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, hrZones, isActive, onActivate, onCollapse, onQuickAdd }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -3328,6 +3453,29 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
       <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={onCollapse} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
+      )}
+
+      {onChooseActivity && loggedSets.length === 0 && (
+        <div className="mb-3">
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">What are you doing?</div>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {AEROBIC_ACTIVITIES_QUICK.slice(0, 6).map((a) => (
+              <button
+                key={a}
+                onClick={() => onChooseActivity(a)}
+                style={{ background: INK_3, color: PAPER }}
+                className="px-3 py-1.5 rounded-full text-sm"
+              >
+                {a}
+              </button>
+            ))}
+            {onOpenSwap && (
+              <button onClick={onOpenSwap} style={{ background: INK_3, color: AMBER }} className="px-3 py-1.5 rounded-full text-sm">
+                More…
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {loggedSets.length > 0 && (
