@@ -1,3 +1,5 @@
+import { modeLabel } from '../move/exerciseLibrary';
+
 // Planned workouts: a workout scheduled for a future day. Either vague
 // ("Outdoor walk") or detailed, carrying the same choices Move's start
 // flow collects (location, type, muscle groups, style, activities).
@@ -44,7 +46,7 @@ export function planMinutes(plan) {
 export function planSummary(plan) {
   const d = plan?.details;
   if (!d) return '';
-  const parts = hasDetails(plan) ? [d.mode, d.style, d.location] : [];
+  const parts = hasDetails(plan) ? [modeLabel(d.mode), d.style, d.location] : [];
   const minutes = planMinutes(plan);
   if (minutes) parts.push(`${minutes} min`);
   return parts.filter(Boolean).join(' · ');

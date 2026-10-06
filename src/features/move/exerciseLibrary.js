@@ -31,6 +31,18 @@ export const ARMS_BUNDLE = ['Biceps', 'Triceps', 'Shoulders'];
 // pulls from FLEXIBILITY_LIBRARY and logs as its own movement type.
 export const MOVEMENT_MODES = ['Aerobic', 'Resistance', 'Combined', 'Flexibility'];
 
+// What clients see. The stored value stays 'Combined' (it's in saved
+// workouts and plans); only the label changed, to something friendlier.
+export const MODE_LABELS = { Combined: 'Mixed' };
+export function modeLabel(mode) {
+  return MODE_LABELS[mode] || mode;
+}
+
+// One emoji per choice on the big once-per-workout questions — kept to
+// type and training goal so the flow stays playful, not noisy.
+export const MODE_EMOJI = { Aerobic: '🏃', Resistance: '🏋️', Flexibility: '🧘', Combined: '🔀' };
+export const STYLE_EMOJI = { Strength: '💥', Hypertrophy: '📈', Endurance: '🔋' };
+
 // Quick-pick suggestions for aerobic/cardio movements — these aren't part
 // of the resistance library (no sets/reps/weight progression) so they
 // live separately.

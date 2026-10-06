@@ -57,7 +57,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
 - Ideas: weight calorie estimates by load/effort; possibly make Resume a button.
-- Next up (Greg asked for it): give Move's workout start flow the same playful style as the plan popup — one friendly question at a time ("Where are we moving today?"), big emoji tiles for type (🏃 Aerobic, 🏋️ Resistance, 🧘 Flexibility, 🔀 Combined) and training goal (💥 Strength, 📈 Hypertrophy, 🔋 Endurance), a big "Let's go" button. Open question for Greg: emoji tiles for muscle groups, or simple chips? Keep the plain list for adding one exercise mid-workout.
+- Move's start flow is playful but restrained: sentence-case questions ("Where are we moving today?", "What kind of workout?", "Which muscles?", "What's the goal?"), one emoji per tile on workout type and training goal only, plain chips for muscle groups. "Combined" is shown as "Mixed" (`modeLabel` in exerciseLibrary; the stored value stays 'Combined'). Keep emoji sparing.
 
 ## Code gotchas
 - Every React hook must run before any early return (otherwise React error #300).

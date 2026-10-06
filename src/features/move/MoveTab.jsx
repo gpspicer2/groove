@@ -9,7 +9,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
-import { workoutTitle, plural, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
+import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
@@ -1376,8 +1376,8 @@ function StartWorkout({
           />
         </div>
       </div>
-      <div ref={locationHeadingRef} style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-        {planning ? 'Where will you work out?' : isToday ? 'Where are you working out today?' : 'Where did you work out?'}
+      <div ref={locationHeadingRef} style={{ color: PAPER }} className="text-base font-medium mb-3 text-center">
+        {planning ? 'Where will you move?' : isToday ? 'Where are we moving today?' : 'Where did you move?'}
       </div>
       <div className="space-y-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
@@ -1387,8 +1387,8 @@ function StartWorkout({
             <button
               key={loc}
               onClick={() => onSelectLocation(selected ? '' : loc)}
-              style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
-              className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
+              style={{ background: selected ? SKY : INK_3 }}
+              className="w-full text-center rounded-xl px-4 py-3 text-sm font-medium"
             >
               <span style={{ color: selected ? INK : PAPER }}>{left} {loc} {right}</span>
             </button>
@@ -1415,20 +1415,21 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && (
         <>
-          <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Workout Type{modeMissing ? ' — pick one to continue' : ''}
+          <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center">
+            What kind of workout?{modeMissing ? ' Pick one to continue' : ''}
           </div>
-          <div className="grid grid-cols-2 grid-rows-2 grid-flow-col gap-2 mb-5">
-            {['Aerobic', 'Flexibility', 'Resistance', 'Combined'].map((mode) => {
+          <div className="grid grid-cols-2 gap-2 mb-5">
+            {['Aerobic', 'Resistance', 'Flexibility', 'Combined'].map((mode) => {
               const selected = movementMode === mode;
               return (
                 <button
                   key={mode}
                   onClick={() => onSelectMode(mode)}
-                  style={{ background: selected ? SKY : INK_3, borderLeft: `3px solid ${selected ? SKY : 'transparent'}` }}
-                  className="w-full text-center rounded-md px-4 py-2.5 text-sm font-medium"
+                  style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
+                  className="rounded-xl py-3 flex flex-col items-center gap-0.5"
                 >
-                  <span style={{ color: selected ? INK : PAPER }}>{mode}</span>
+                  <span className="text-2xl leading-none">{MODE_EMOJI[mode]}</span>
+                  <span className="text-sm font-medium">{modeLabel(mode)}</span>
                 </button>
               );
             })}
@@ -1583,8 +1584,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsActivities && (
         <>
-          <div ref={activitiesHeadingRef} style={{ color: activitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Aerobic Activity{activitiesMissing ? ' — pick at least one to continue' : ''}
+          <div ref={activitiesHeadingRef} style={{ color: activitiesMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center">
+            What are you doing?{activitiesMissing ? ' Pick at least one' : ''}
           </div>
           <ActivityPicker
             selectedActivities={selectedActivities}
@@ -1598,8 +1599,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsFlexActivities && (
         <>
-          <div ref={flexActivitiesHeadingRef} style={{ color: flexActivitiesMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">
-            Select Flexibility Activity{flexActivitiesMissing ? ' — pick at least one to continue' : ''}
+          <div ref={flexActivitiesHeadingRef} style={{ color: flexActivitiesMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center">
+            What kind of flexibility work?{flexActivitiesMissing ? ' Pick at least one' : ''}
           </div>
           <ActivityPicker
             baseActivities={FLEXIBILITY_ACTIVITIES}
@@ -1614,8 +1615,8 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsGroups && (
         <>
-          <div ref={groupsHeadingRef} style={{ color: groupsMissing ? BRICK : TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center mt-2">
-            Select Targeted Muscle Groups{groupsMissing ? ' — pick at least one to continue' : ''}
+          <div ref={groupsHeadingRef} style={{ color: groupsMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center mt-2">
+            Which muscles?{groupsMissing ? ' Pick at least one' : ''}
           </div>
           <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
         </>
@@ -1623,8 +1624,8 @@ function StartWorkout({
 
       {selectedLocation && needsStyle && (
         <>
-          <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER_DIM }} className="text-sm text-center mb-2 mt-3">
-            Training goal{styleMissing ? ' — pick one to continue' : ''}
+          <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER }} className="text-base font-medium text-center mb-3 mt-3">
+            What's the goal?{styleMissing ? ' Pick one to continue' : ''}
           </div>
           <div className="space-y-2 mb-5">
             {TRAINING_STYLES.map((style) => {
@@ -1635,11 +1636,11 @@ function StartWorkout({
                   onClick={() => onSelectStyle(style)}
                   style={{
                     background: selected ? SKY : INK_3,
-                    borderLeft: `3px solid ${selected ? SKY : styleMissing ? BRICK : 'transparent'}`,
+                    outline: styleMissing ? `1.5px solid ${BRICK}` : 'none',
                   }}
-                  className="w-full text-center rounded-md px-4 py-2.5"
+                  className="w-full text-center rounded-xl px-4 py-3"
                 >
-                  <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{style}</div>
+                  <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{STYLE_EMOJI[style]} {style}</div>
                   <div style={{ color: selected ? INK : TEXT_SOFT }} className="text-sm">{STYLE_CONFIG[style].blurb}</div>
                 </button>
               );
@@ -1669,7 +1670,7 @@ function StartWorkout({
 
       {planning && (movementMode === 'Aerobic' || movementMode === 'Combined') && (
         <div className="mb-4">
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">
+          <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">
             How long{movementMode === 'Combined' ? ' is the aerobic part' : ''}?
           </div>
           <div className="flex justify-center gap-1.5">
@@ -1692,7 +1693,7 @@ function StartWorkout({
         <button
           onClick={handleStartClick}
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
-          className="w-full rounded-md py-3 text-sm font-medium mt-2"
+          className="w-full rounded-xl py-3.5 text-base font-medium mt-2"
         >
           {planning ? '📅 Save Plan' : <>🪩 Log Workout{startEmoji}</>}
         </button>
