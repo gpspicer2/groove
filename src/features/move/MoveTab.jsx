@@ -71,7 +71,11 @@ function isSameDay(iso) {
 
 // "3 exercises · 5 sets" for lifting; "30 min · 3 mi" for cardio-only
 // sessions, where "1 set" means nothing to anyone.
-function workoutSummary(workoutSets, exerciseCount) {
+function workoutSummary(allSets, allExerciseCount) {
+  // The dynamic warm-up counts toward flexibility but isn't a lift or a set.
+  const workoutSets = allSets.filter((s) => s.muscleGroup !== 'Warm-up');
+  const exerciseCount = allSets.length === workoutSets.length ? allExerciseCount : new Set(workoutSets.map((s) => s.exerciseName)).size;
+  if (workoutSets.length === 0 && allSets.length > 0) return 'Dynamic warm-up';
   const nonAerobic = workoutSets.filter((s) => s.movementType !== 'aerobic');
   if (workoutSets.length > 0 && nonAerobic.length === 0) {
     const minutes = workoutSets.reduce((m, s) => m + (s.lightMinutes || 0) + (s.moderateMinutes || 0) + (s.vigorousMinutes || 0), 0)
@@ -1150,7 +1154,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                                       </span>
                                     ) : isFlexibility ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
-                                        {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
+                                        {s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} drills` : '—'}
                                       </span>
                                     ) : (
                                       <>
@@ -1183,7 +1187,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                                   s.movementType === 'aerobic'
                                     ? `${formatIntensityMinutes(s)}${s.distance ? ` · ${s.distance}` : ''}`
                                     : s.movementType === 'flexibility'
-                                    ? (s.durationSeconds ? `${s.durationSeconds}s` : '—')
+                                    ? (s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} drills` : '—')
                                     : `${s.weight ?? '—'}×${s.reps ?? '—'}`
                                 )).join(', ')}
                               </div>
@@ -1992,7 +1996,10 @@ function ActiveWorkout({
                 <WarmupCard
                   index={displayIndex}
                   exercise={ex}
-                  onRemove={() => onRemoveExercise(ex.index, false)}
+                  loggedSets={loggedSets}
+                  onLogSet={(payload) => onLogSet(payload)}
+                  onDeleteSet={onDeleteSet}
+                  onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   onAddDrill={onAddWarmupDrill}
                   onRenameDrill={onRenameWarmupDrill}
                   onRemoveDrill={onRemoveWarmupDrill}
@@ -3284,8 +3291,11 @@ function WarmupInfoModal({ onClose }) {
 // exercise (edit here just means retyping the name) plus the same
 // touch-drag reordering as the main exercise list — its own small-scale
 // copy of that gesture, scoped to this card's drill rows.
-function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
-  const [checked, setChecked] = useState(() => new Set());
+function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
+  // Finishing every drill logs the warm-up as a flexibility set, so it
+  // counts toward the weekly flexibility goal; unchecking one takes it back.
+  const completedSet = loggedSets.find((s) => s.movementType === 'flexibility');
+  const [checked, setChecked] = useState(() => new Set(completedSet ? exercise.drills : []));
   const [showInfo, setShowInfo] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
@@ -3320,12 +3330,24 @@ function WarmupCard({ index, exercise, onRemove, onAddDrill, onRenameDrill, onRe
   }
 
   function toggle(name) {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+    const next = new Set(checked);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setChecked(next);
+    const allDone = exercise.drills.length > 0 && exercise.drills.every((d) => next.has(d));
+    if (allDone && !completedSet && onLogSet) {
+      onLogSet({
+        exerciseName: exercise.name,
+        muscleGroup: 'Warm-up',
+        setNumber: 1,
+        movementType: 'flexibility',
+        weight: null,
+        reps: exercise.drills.length,
+        durationSeconds: null,
+      });
+    } else if (!allDone && completedSet && onDeleteSet) {
+      onDeleteSet(completedSet.id);
+    }
   }
 
   function startEdit(i) {
