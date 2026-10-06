@@ -2,7 +2,14 @@
 // ("Outdoor walk") or detailed, carrying the same choices Move's start
 // flow collects (location, type, muscle groups, style, activities).
 
-export const PLAN_SUGGESTIONS = ['Outdoor walk', 'Gym session', 'Yoga', 'Bike ride', 'Run', 'Stretching'];
+export const PLAN_SUGGESTIONS = [
+  { label: 'Outdoor walk', emoji: '🚶' },
+  { label: 'Gym session', emoji: '🏋️' },
+  { label: 'Yoga', emoji: '🧘' },
+  { label: 'Bike ride', emoji: '🚴' },
+  { label: 'Run', emoji: '🏃' },
+  { label: 'Stretching', emoji: '🤸' },
+];
 
 // One short line describing a detailed plan, e.g. "Resistance · Hypertrophy · At the Gym".
 export function planSummary(plan) {

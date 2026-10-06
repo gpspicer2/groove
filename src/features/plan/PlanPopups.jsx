@@ -11,7 +11,7 @@ function Sheet({ onClose, children }) {
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
         <div
           style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
-          className="relative w-full max-w-xs rounded-xl px-5 py-5 max-h-[85vh] overflow-y-auto"
+          className="relative w-full max-w-xs rounded-2xl px-5 py-5 max-h-[85vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -21,14 +21,19 @@ function Sheet({ onClose, children }) {
   );
 }
 
-// Create or edit a plan: a short title is all that's required; "add
-// details" hands off to Move's full workout flow for that date.
+// Planning starts with a friendly yes/no, then big emoji tiles — most plans
+// are one tap, so the keyboard only appears if someone wants something
+// else (or a note). "Add workout details" hands off to Move's full flow.
 export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
+  const editing = Boolean(plan);
+  const [step, setStep] = useState(editing ? 'form' : 'ask'); // 'ask' | 'form'
   const [title, setTitle] = useState(plan?.title || '');
+  const [typing, setTyping] = useState(editing); // the free-text title field is showing
+  const [showNotes, setShowNotes] = useState(Boolean(plan?.notes));
   const [notes, setNotes] = useState(plan?.notes || '');
   const [saving, setSaving] = useState(false);
-  const editing = Boolean(plan);
   const canSave = title.trim().length > 0 && !saving;
+  const isTile = PLAN_SUGGESTIONS.some((s) => s.label === title);
 
   async function save() {
     if (!canSave) return;
@@ -37,56 +42,90 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
     setSaving(false);
   }
 
+  if (step === 'ask') {
+    return (
+      <Sheet onClose={onClose}>
+        <div className="text-center">
+          <div className="text-4xl mb-2">📅</div>
+          <div style={{ color: PAPER }} className="text-lg font-medium">Plan a workout?</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-5">{friendlyPlanDate(dateStr)}</div>
+          <button onClick={() => setStep('form')} style={{ background: LIME, color: INK }} className="w-full rounded-xl py-3 text-sm font-medium mb-1.5">
+            Yes, let's plan it
+          </button>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Not now</button>
+        </div>
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet onClose={onClose}>
       <div className="flex items-start justify-between mb-3">
         <div>
-          <div style={{ color: PAPER }} className="text-base font-medium">{editing ? 'Edit Plan' : 'Plan a Workout'}</div>
+          <div style={{ color: PAPER }} className="text-lg font-medium">{editing ? 'Edit Plan' : "What's the plan?"}</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">{friendlyPlanDate(dateStr)}</div>
         </div>
         <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
       </div>
-      <input
-        autoFocus={!editing}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="What are you planning?"
-        style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
-      />
-      {!editing && (
-        <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-          {PLAN_SUGGESTIONS.map((s) => (
+
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        {PLAN_SUGGESTIONS.map((t) => {
+          const selected = title === t.label;
+          return (
             <button
-              key={s}
-              onClick={() => setTitle(s)}
-              style={{ background: title === s ? LIME : INK_3, color: title === s ? INK : PAPER_DIM }}
-              className="px-2.5 py-1 rounded-full text-sm"
+              key={t.label}
+              onClick={() => { setTitle(t.label); setTyping(false); }}
+              style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }}
+              className="rounded-xl py-2.5 flex flex-col items-center gap-0.5"
             >
-              {s}
+              <span className="text-2xl leading-none">{t.emoji}</span>
+              <span className="text-xs font-medium">{t.label}</span>
             </button>
-          ))}
-        </div>
+          );
+        })}
+      </div>
+
+      {typing || (editing && !isTile) ? (
+        <input
+          autoFocus={!editing}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="What are you planning?"
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-center mb-2"
+        />
+      ) : (
+        <button onClick={() => { setTyping(true); setTitle(isTile ? '' : title); }} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5 mb-1">
+          Something else…
+        </button>
       )}
-      <textarea
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        rows={2}
-        placeholder="Notes (optional)"
-        style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-3 py-2 text-sm outline-none resize-none mb-3 text-center"
-      />
+
+      {showNotes ? (
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder="Add a note"
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none mb-2 text-center"
+        />
+      ) : (
+        <button onClick={() => setShowNotes(true)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5 mb-1">
+          + Add a note
+        </button>
+      )}
+
       <button
         onClick={save}
         disabled={!canSave}
         style={{ background: canSave ? LIME : INK_3, color: canSave ? INK : TEXT_SOFT }}
-        className="w-full rounded-md py-2.5 text-sm font-medium mb-1"
+        className="w-full rounded-xl py-3 text-sm font-medium mt-1 mb-1"
       >
-        {saving ? 'Saving…' : 'Save Plan'}
+        {saving ? 'Saving…' : canSave ? 'Save Plan' : 'Pick something to plan'}
       </button>
       {(!editing || plan?.details) && (
         <button onClick={onDetails} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 underline">
-          {editing ? 'Edit workout details' : 'Add workout details'}
+          {editing ? 'Edit workout details' : 'Plan the details instead'}
         </button>
       )}
     </Sheet>
