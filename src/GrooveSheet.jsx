@@ -88,7 +88,7 @@ export default function GrooveSheet({ onClose }) {
   return (
     <Portal>
       <div
-        style={{ background: 'rgba(0,0,0,0.6)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.28s ease', willChange: 'opacity' }}
+        style={{ background: 'rgba(60, 45, 30, 0.14)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.28s ease', willChange: 'opacity' }}
         className="fixed inset-0 z-50 flex"
         onClick={handleBackdropClick}
         onTouchStart={handleTouchStart}
@@ -100,6 +100,7 @@ export default function GrooveSheet({ onClose }) {
           ref={panelRef}
           style={{
             background: INK_2,
+            boxShadow: '6px 0 24px rgba(60, 45, 30, 0.18)',
             touchAction: 'pan-y',
             transform: `translate3d(${translate}px, 0, 0)`,
             willChange: 'transform',
