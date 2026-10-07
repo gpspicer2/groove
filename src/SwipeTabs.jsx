@@ -82,9 +82,11 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
 
     // Rubber-band past the first/last page instead of dragging freely.
     let next = dx;
-    if ((index === 0 && dx > 0) || (index === pages.length - 1 && dx < 0)) {
-      next = dx / 3;
-    }
+    // At the first page a right swipe doesn't wobble the page at all: it
+    // opens the Groove definitions drawer on release, and the page moving
+    // while the drawer slides in made both look shaky.
+    if (index === 0 && dx > 0) next = 0;
+    else if (index === pages.length - 1 && dx < 0) next = dx / 3;
     setDragX(next);
   }
 

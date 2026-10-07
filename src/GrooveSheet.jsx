@@ -19,11 +19,11 @@ const CLOSE_MS = 280;
 export default function GrooveSheet({ onClose }) {
   const panelRef = useRef(null);
   const [open, setOpen] = useState(false); // resting state: fully in vs fully out
-  const [dragX, setDragX] = useState(0); // live offset while a finger is down, 0 or negative
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef(0);
   const [width, setWidth] = useState(0);
   const trackingRef = useRef(false);
+  const dragXRef = useRef(0);
 
   // Measured before the browser paints (unlike a plain effect, which
   // runs after) — otherwise the panel's first frame renders its closed
@@ -33,14 +33,18 @@ export default function GrooveSheet({ onClose }) {
     if (panelRef.current) setWidth(panelRef.current.offsetWidth);
   }, []);
 
+  // Two frames, so the closed position is actually painted before the
+  // slide-in starts (one frame can skip straight to open with no animation).
   useEffect(() => {
-    const id = requestAnimationFrame(() => setOpen(true));
-    return () => cancelAnimationFrame(id);
+    let id2;
+    const id1 = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setOpen(true)); });
+    return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2); };
   }, []);
 
   function handleTouchStart(e) {
     trackingRef.current = true;
     startXRef.current = e.touches[0].clientX;
+    dragXRef.current = 0;
     setDragging(true);
   }
   function handleTouchMove(e) {
@@ -48,14 +52,20 @@ export default function GrooveSheet({ onClose }) {
     const dx = e.touches[0].clientX - startXRef.current;
     // Only ever pulls left (closing) — dragging right past fully-open
     // just does nothing, no rubber-band needed since it's already home.
-    setDragX(Math.min(0, dx));
+    // Moved straight on the element (no React re-render per touch event)
+    // so the drag follows the finger smoothly.
+    const x = Math.min(0, dx);
+    dragXRef.current = x;
+    if (panelRef.current) panelRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
   }
   function finishGesture() {
     if (!trackingRef.current) return;
     trackingRef.current = false;
+    const closedEnough = -dragXRef.current > width * 0.3;
+    dragXRef.current = 0;
+    // Hand the transform back to React (and its transition) from where the finger left it.
+    if (panelRef.current) panelRef.current.style.transform = '';
     setDragging(false);
-    const closedEnough = -dragX > width * 0.3;
-    setDragX(0);
     if (closedEnough) {
       setOpen(false);
       setTimeout(onClose, CLOSE_MS);
@@ -68,7 +78,7 @@ export default function GrooveSheet({ onClose }) {
   // (-100%) as a resting position, live-adjusted by finger movement
   // while a touch is active — same feel as SwipeTabs' own drag.
   const baseX = open ? 0 : -width;
-  const translate = baseX + dragX;
+  const translate = baseX;
 
   function handleBackdropClick() {
     setOpen(false);
@@ -78,7 +88,7 @@ export default function GrooveSheet({ onClose }) {
   return (
     <Portal>
       <div
-        style={{ background: 'rgba(0,0,0,0.6)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.28s ease' }}
+        style={{ background: 'rgba(0,0,0,0.6)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.28s ease', willChange: 'opacity' }}
         className="fixed inset-0 z-50 flex"
         onClick={handleBackdropClick}
         onTouchStart={handleTouchStart}
@@ -91,7 +101,8 @@ export default function GrooveSheet({ onClose }) {
           style={{
             background: INK_2,
             touchAction: 'pan-y',
-            transform: `translateX(${translate}px)`,
+            transform: `translate3d(${translate}px, 0, 0)`,
+            willChange: 'transform',
             transition: dragging ? 'none' : SNAP_TRANSITION,
           }}
           className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
