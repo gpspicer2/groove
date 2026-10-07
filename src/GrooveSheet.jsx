@@ -24,7 +24,6 @@ export default function GrooveSheet({ onClose }) {
   const [width, setWidth] = useState(0);
   const trackingRef = useRef(false);
   const dragXRef = useRef(0);
-  const scrimRef = useRef(null);
 
   // Measured before the browser paints (unlike a plain effect, which
   // runs after) — otherwise the panel's first frame renders its closed
@@ -58,8 +57,6 @@ export default function GrooveSheet({ onClose }) {
     const x = Math.min(0, dx);
     dragXRef.current = x;
     if (panelRef.current) panelRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
-    // The tint fades in step with the drawer instead of on its own clock.
-    if (scrimRef.current && width) scrimRef.current.style.opacity = String(Math.max(0, 1 + x / width));
   }
   function finishGesture() {
     if (!trackingRef.current) return;
@@ -68,7 +65,6 @@ export default function GrooveSheet({ onClose }) {
     dragXRef.current = 0;
     // Hand the transform back to React (and its transition) from where the finger left it.
     if (panelRef.current) panelRef.current.style.transform = '';
-    if (scrimRef.current) scrimRef.current.style.opacity = '';
     setDragging(false);
     if (closedEnough) {
       setOpen(false);
@@ -91,9 +87,10 @@ export default function GrooveSheet({ onClose }) {
 
   return (
     <Portal>
+      {/* No dimming layer: a full-screen tint left a visible block in the
+          status-bar area while it faded on iPhones. The drawer's own shadow
+          separates it from the page instead. */}
       <div
-        ref={scrimRef}
-        style={{ background: 'rgba(60, 45, 30, 0.14)', opacity: open || dragging ? 1 : 0, transition: dragging ? 'none' : 'opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1)', willChange: 'opacity' }}
         className="fixed inset-0 z-50 flex"
         onClick={handleBackdropClick}
         onTouchStart={handleTouchStart}
@@ -105,7 +102,7 @@ export default function GrooveSheet({ onClose }) {
           ref={panelRef}
           style={{
             background: INK_2,
-            boxShadow: '6px 0 24px rgba(60, 45, 30, 0.18)',
+            boxShadow: '8px 0 28px rgba(60, 45, 30, 0.22)',
             touchAction: 'pan-y',
             transform: `translate3d(${translate}px, 0, 0)`,
             willChange: 'transform',
