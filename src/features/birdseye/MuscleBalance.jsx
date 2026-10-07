@@ -1,5 +1,6 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Info, X } from 'lucide-react';
+import Portal from '../../Portal';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 import { BALANCE_BUCKETS, BALANCE_TARGET_DAYS, balanceBucket } from '../move/muscles';
 
@@ -9,6 +10,7 @@ const PULL = ['Back', 'Biceps'];
 // This week's strength work by muscle group (NSCA: each major group 2-3
 // days a week) and a push/pull check. Hidden until a lift is logged.
 export default function MuscleBalance({ sets, bare = false }) {
+  const [showInfo, setShowInfo] = useState(false);
   // sets: [{ workout_id, muscle_group }] for resistance sets this week
   if (sets.length === 0) return null;
   const days = {};
@@ -28,7 +30,10 @@ export default function MuscleBalance({ sets, bare = false }) {
 
   return (
     <div style={bare ? undefined : { background: INK_2, borderTop: `2px solid ${SKY}` }} className={bare ? '' : 'rounded-lg px-5 py-4'}>
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Muscles This Week</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 flex items-center justify-center gap-1.5">
+        Muscles This Week
+        <button onClick={() => setShowInfo(true)} aria-label="About muscle goals" style={{ color: TEXT_SOFT }} className="p-1 -m-1"><Info size={14} /></button>
+      </div>
       <div className="flex flex-wrap justify-center gap-2">
         {BALANCE_BUCKETS.map((b) => {
           const n = days[b]?.size || 0;
@@ -41,6 +46,29 @@ export default function MuscleBalance({ sets, bare = false }) {
         })}
       </div>
       {note && <div style={{ color: PAPER_DIM }} className="text-sm mt-2">{note}</div>}
+      {showInfo && (
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-end justify-center">
+            <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={() => setShowInfo(false)} />
+            <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-5 pt-4 pb-6 space-y-3 text-center">
+              <div className="flex items-center justify-between">
+                <div style={{ color: PAPER }} className="text-sm font-medium">Muscle goals</div>
+                <button onClick={() => setShowInfo(false)} aria-label="Close" style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>
+              </div>
+              {[
+                ['What it is', 'How many days this week you trained each major muscle group. The goal is 2 days for each.'],
+                ['Where it comes from', 'The ACSM and NSCA both recommend working each major muscle group 2 to 3 days a week, with about 48 hours of rest between sessions for the same muscles.'],
+                ['Why it matters', 'Hitting every group builds strength evenly and protects your joints. Balancing pushing and pulling helps your posture and shoulders.'],
+              ].map(([h, t]) => (
+                <div key={h}>
+                  <div style={{ color: SKY }} className="text-sm font-medium">{h}</div>
+                  <p style={{ color: PAPER_DIM }} className="text-sm">{t}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }
