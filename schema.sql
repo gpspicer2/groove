@@ -367,3 +367,7 @@ create policy "fitness_measurements_own" on fitness_measurements for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "fitness_measurements_trainer_read" on fitness_measurements for select
   using (public.is_trainer());
+
+-- Optional Balance (neuromotor) weekly goal
+alter table public.profiles add column if not exists balance_goal smallint;
+alter table public.profiles add column if not exists track_balance_goal boolean default false;

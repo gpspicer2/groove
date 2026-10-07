@@ -1,10 +1,10 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Timer, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER, PLUM } from '../../theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, INK, AMBER, PLUM, VIOLET } from '../../theme';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import BaselineFlow from '../baseline/BaselineFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
@@ -18,6 +18,7 @@ import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
+import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -68,6 +69,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
   const [plans, setPlans] = useState([]); // planned workouts from today on
+  const [trackBalanceGoal, setTrackBalanceGoal] = useState(false);
+  const [balanceGoal, setBalanceGoal] = useState(2);
+  const [balanceWorkoutIds, setBalanceWorkoutIds] = useState(new Set());
 
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
@@ -79,6 +83,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     // Plans load on their own so a hiccup there never blocks the rest of Birdseye.
     const planRes = await supabase.from('planned_workouts').select('*').eq('user_id', userId).gte('planned_for', dateInputValue(new Date())).order('planned_for', { ascending: true });
     setPlans(planRes.error ? [] : (planRes.data || []));
+    // Balance goal columns load separately so Birdseye still works before they exist.
+    const balRes = await supabase.from('profiles').select('balance_goal, track_balance_goal').eq('id', userId).maybeSingle();
+    if (!balRes.error && balRes.data) {
+      setTrackBalanceGoal(balRes.data.track_balance_goal === true);
+      setBalanceGoal(balRes.data.balance_goal || 2);
+    }
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
     setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
     const w = workoutsRes.data;
@@ -131,6 +141,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     setKcalByWorkout(kcalMap);
     setWorkoutTypes(types);
     setAerobicMinutesByWorkout(aerobicMinutes);
+    setBalanceWorkoutIds(new Set((setRows || []).filter((s) => BALANCE_ACTIVITIES.includes(s.exercise_name)).map((s) => s.workout_id)));
   }
 
   useEffect(() => {
@@ -162,7 +173,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   }
   function hasAerobic(w) {
     const byMode = w.movement_mode === 'Aerobic' || w.movement_mode === 'Combined';
-    return byMode || (w.activities || []).length > 0 || workoutTypes[w.id]?.has('aerobic');
+    // Flexibility workouts keep their stretch/yoga names in `activities` too, so those don't imply aerobic.
+    return byMode || (w.movement_mode !== 'Flexibility' && (w.activities || []).length > 0) || workoutTypes[w.id]?.has('aerobic');
+  }
+  function hasBalance(w) {
+    return balanceWorkoutIds.has(w.id) || (w.activities || []).some((a) => BALANCE_ACTIVITIES.includes(a));
   }
   function hasFlexibility(w) {
     const byMode = w.movement_mode === 'Flexibility';
@@ -171,7 +186,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
   async function saveGoal(field, value) {
     const clamped = Math.min(14, Math.max(1, value));
-    if (field === 'resistance_goal') setResistanceGoal(clamped);
+    if (field === 'balance_goal') setBalanceGoal(clamped);
+    else if (field === 'resistance_goal') setResistanceGoal(clamped);
     else if (field === 'aerobic_goal') setAerobicGoal(clamped);
     else setFlexibilityGoal(clamped);
     await supabase.from('profiles').update({ [field]: clamped }).eq('id', userId);
@@ -184,8 +200,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   }
 
   async function setGoalTracked(mode, next) {
-    const field = mode === 'Aerobic' ? 'track_aerobic_goal' : mode === 'Resistance' ? 'track_resistance_goal' : 'track_flexibility_goal';
-    if (mode === 'Aerobic') setTrackAerobicGoal(next);
+    const field = mode === 'Aerobic' ? 'track_aerobic_goal' : mode === 'Resistance' ? 'track_resistance_goal' : mode === 'Balance' ? 'track_balance_goal' : 'track_flexibility_goal';
+    if (mode === 'Balance') setTrackBalanceGoal(next);
+    else if (mode === 'Aerobic') setTrackAerobicGoal(next);
     else if (mode === 'Resistance') setTrackResistanceGoal(next);
     else setTrackFlexibilityGoal(next);
     await supabase.from('profiles').update({ [field]: next }).eq('id', userId);
@@ -221,6 +238,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
   const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
+  const balanceThisWeek = workoutsThisWeek.filter(hasBalance).length;
 
   // ACSM phrases the aerobic guideline in moderate-equivalent minutes —
   // vigorous minutes count double — not a session count, so that's the
@@ -291,6 +309,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
     trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
     trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: StretchHorizontal, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
+    trackBalanceGoal && { mode: 'Balance', label: 'Balance', icon: Footprints, color: VIOLET, count: balanceThisWeek, goal: balanceGoal, planned: 0, field: 'balance_goal' },
   ].filter(Boolean);
 
   return (
@@ -423,10 +442,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
       {editingGoals && (
         <EditGoalsModal
-          tracked={{ Aerobic: trackAerobicGoal, Resistance: trackResistanceGoal, Flexibility: trackFlexibilityGoal }}
-          goals={{ Aerobic: aerobicGoal, Resistance: resistanceGoal, Flexibility: flexibilityGoal }}
+          tracked={{ Aerobic: trackAerobicGoal, Resistance: trackResistanceGoal, Flexibility: trackFlexibilityGoal, Balance: trackBalanceGoal }}
+          goals={{ Aerobic: aerobicGoal, Resistance: resistanceGoal, Flexibility: flexibilityGoal, Balance: balanceGoal }}
           onToggle={setGoalTracked}
-          onChangeGoal={(mode, v) => saveGoal(mode === 'Aerobic' ? 'aerobic_goal' : mode === 'Resistance' ? 'resistance_goal' : 'flexibility_goal', v)}
+          onChangeGoal={(mode, v) => saveGoal(mode === 'Aerobic' ? 'aerobic_goal' : mode === 'Resistance' ? 'resistance_goal' : mode === 'Balance' ? 'balance_goal' : 'flexibility_goal', v)}
           aerobicGoalMinutes={aerobicGoalMinutes}
           onChangeAerobicMinutes={saveAerobicGoalMinutes}
           onClose={() => setEditingGoals(false)}
@@ -444,6 +463,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
     { mode: 'Aerobic', icon: Activity, color: MOSS },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
     { mode: 'Flexibility', icon: StretchHorizontal, color: BRICK },
+    { mode: 'Balance', icon: Footprints, color: VIOLET },
   ];
   const [confirmingLow, setConfirmingLow] = useState(null); // the value they tried to set below the ACSM floor
 
@@ -500,6 +520,11 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
                       </span>
                     )}
                   </div>
+                  {mode === 'Balance' && (
+                    <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
+                      Tai Chi and balance work. ACSM suggests 2+ days a week for adults 65+.
+                    </div>
+                  )}
                   {isAerobic && active && (
                     <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
                       ACSM recommends at least {ACSM_AEROBIC_MINIMUM} min/week (moderate-equivalent)

@@ -63,7 +63,12 @@ export const LIFESTYLE_ACTIVITIES = [
 // in addition to the muscle-group-driven stretch plan.
 export const FLEXIBILITY_ACTIVITIES = [
   'Static Stretching', 'Dynamic Stretching', 'Yoga', 'Pilates', 'Mobility Work', 'Foam Rolling',
+  'Tai Chi', 'Balance Training',
 ];
+
+// ACSM's neuromotor (balance) work. Sessions with these count toward the
+// optional Balance goal on Birdseye.
+export const BALANCE_ACTIVITIES = ['Tai Chi', 'Balance Training'];
 
 // Each exercise is tagged with the equipment it needs, so the plan can be
 // narrowed down based on where the session happens (see LOCATION_EQUIPMENT
