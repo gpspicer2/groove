@@ -11,6 +11,8 @@ import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
+import { setOneRms, oneRmFor, targetLoad } from './oneRm';
+import { recentlyTrained } from './muscles';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
@@ -278,6 +280,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     setWorkouts(workoutRes.data.map(mapWorkout));
     setSets(setRes.data.map(mapSet));
     setBodyweight(profileRes.data?.bodyweight_lb != null ? Number(profileRes.data.bodyweight_lb) : null);
+    if (user) {
+      const rmRes = await supabase.from('estimated_1rms').select('exercise_name, estimated_1rm_lb').eq('user_id', user.id).order('created_at', { ascending: false });
+      if (!rmRes.error) setOneRms(rmRes.data);
+    }
 
     if (programRes.data) {
       const { data: exerciseRows } = await supabase
@@ -1003,6 +1009,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     );
   }
 
+  // Muscle groups worked recently, for the 48-hour recovery note on the start screen.
+  const workoutStart = new Map(workouts.map((w) => [w.id, w.startedAt]));
+  const recentTrained = sets
+    .filter((s) => s.movementType !== 'aerobic' && s.movementType !== 'flexibility' && s.muscleGroup && s.muscleGroup !== 'Warm-up' && workoutStart.has(s.workoutId))
+    .map((s) => ({ group: s.muscleGroup, at: workoutStart.get(s.workoutId) }));
+
   return (
     <div
       style={activeWorkout ? { border: `2px solid ${SKY}`, borderRadius: 16 } : undefined}
@@ -1078,6 +1090,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           </div>
         )}
         <StartWorkout
+          recentTrained={recentTrained}
           planning={planning}
           dataTour="move-start"
           gender={profile?.gender}
@@ -1299,8 +1312,10 @@ function StartWorkout({
   assignedProgram, onStartAssignedProgram,
   cleanSlate, onToggleCleanSlate,
   planning, planMinutes, onPlanMinutes,
+  recentTrained = [],
   dataTour,
 }) {
+  const recoveryHits = recentlyTrained(selectedGroups, recentTrained);
   const startEmoji = gender === 'Female' ? ' 💃🏻' : gender === 'Male' ? ' 🕺' : '';
   const [skipProgram, setSkipProgram] = useState(false);
   const [askIntegrated, setAskIntegrated] = useState(false);
@@ -1636,6 +1651,11 @@ function StartWorkout({
             Which muscles?{groupsMissing ? ' Pick at least one' : ''}
           </div>
           <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
+          {recoveryHits.size > 0 && (
+            <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-2.5 mt-3 text-sm text-center">
+              {[...recoveryHits.entries()].slice(0, 3).map(([g, h]) => `${g} ${h < 24 ? 'today' : 'yesterday'}`).join(', ')}. Muscles recover best with about 48 hours between sessions. Your call!
+            </div>
+          )}
         </>
       )}
 
@@ -1659,6 +1679,7 @@ function StartWorkout({
                 >
                   <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{STYLE_EMOJI[style]} {style}</div>
                   <div style={{ color: selected ? INK : TEXT_SOFT }} className="text-sm">{STYLE_CONFIG[style].blurb}</div>
+                  <div style={{ color: selected ? INK : TEXT_SOFT, opacity: 0.85 }} className="text-sm">{STYLE_CONFIG[style].nsca}</div>
                 </button>
               );
             })}
@@ -2901,8 +2922,10 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   }
 
   // One compact line instead of three stacked ones for target/last/suggested.
+  const rmTarget = targetLoad(style, oneRmFor(exercise.name));
   const contextBits = [
     `Target ${exercise.sets}×${exercise.reps}`,
+    rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
     last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
     suggestion && `Suggested ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);

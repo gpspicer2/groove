@@ -18,6 +18,7 @@ import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
+import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
 
@@ -70,6 +71,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
   const [plans, setPlans] = useState([]); // planned workouts from today on
+  const [liftSetRows, setLiftSetRows] = useState([]);
   const [trackBalanceGoal, setTrackBalanceGoal] = useState(false);
   const [balanceGoal, setBalanceGoal] = useState(2);
   const [balanceWorkoutIds, setBalanceWorkoutIds] = useState(new Set());
@@ -142,6 +144,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     setKcalByWorkout(kcalMap);
     setWorkoutTypes(types);
     setAerobicMinutesByWorkout(aerobicMinutes);
+    setLiftSetRows((setRows || []).filter((s) => (s.movement_type || 'resistance') === 'resistance' && s.muscle_group && s.muscle_group !== 'Warm-up'));
     setBalanceWorkoutIds(new Set((setRows || []).filter((s) => BALANCE_ACTIVITIES.includes(s.exercise_name)).map((s) => s.workout_id)));
   }
 
@@ -236,6 +239,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const now = new Date();
   const weekStart = startOfWeek(now, weekStartDay);
   const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart);
+  const thisWeekIds = new Set(workoutsThisWeek.map((w) => w.id));
   const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
   const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
@@ -304,7 +308,15 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
   // No "head over to Move" nudges while a doctor's okay is still recommended.
-  const insight = (needsClearance(profile?.screening) || todayPlan) ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
+  // Consecutive training days ending today or yesterday; 6+ earns a rest-day nudge.
+  const trainedDays = new Set(workouts.map((w) => dayKey(new Date(w.started_at))));
+  let runDays = 0;
+  for (let i = trainedDays.has(dayKey(now)) ? 0 : 1; i < 30; i++) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    if (trainedDays.has(dayKey(d))) runDays++; else break;
+  }
+  const restNudge = runDays >= 6 ? `${runDays} days in a row. A rest day helps your body recover and adapt.` : null;
+  const insight = needsClearance(profile?.screening) ? null : restNudge || (todayPlan ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast }));
 
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
@@ -426,7 +438,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-4">
+        <MuscleBalance sets={liftSetRows.filter((s) => thisWeekIds.has(s.workout_id))} />
         <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
 
