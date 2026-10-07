@@ -8,7 +8,7 @@ const PULL = ['Back', 'Biceps'];
 
 // This week's strength work by muscle group (NSCA: each major group 2-3
 // days a week) and a push/pull check. Hidden until a lift is logged.
-export default function MuscleBalance({ sets }) {
+export default function MuscleBalance({ sets, bare = false }) {
   // sets: [{ workout_id, muscle_group }] for resistance sets this week
   if (sets.length === 0) return null;
   const days = {};
@@ -27,7 +27,7 @@ export default function MuscleBalance({ sets }) {
   else if (missing.length > 0 && missing.length < BALANCE_BUCKETS.length) note = `Still to go: ${missing.join(', ')}.`;
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-4">
+    <div style={bare ? undefined : { background: INK_2, borderTop: `2px solid ${SKY}` }} className={bare ? '' : 'rounded-lg px-5 py-4'}>
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Muscles This Week</div>
       <div className="flex flex-wrap justify-center gap-2">
         {BALANCE_BUCKETS.map((b) => {

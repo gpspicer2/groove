@@ -68,7 +68,32 @@ export const FLEXIBILITY_ACTIVITIES = [
 
 // ACSM's neuromotor (balance) work. Sessions with these count toward the
 // optional Balance goal on Birdseye.
-export const BALANCE_ACTIVITIES = ['Tai Chi', 'Balance Training'];
+export const BALANCE_ACTIVITIES = ['Tai Chi', 'Balance Training', 'Single-Leg Stand', 'Tandem Stand', 'Heel-to-Toe Walk'];
+
+const BALANCE_LIBRARY = [
+  { name: 'Single-Leg Stand', sets: 2, reps: '20-30s per side' },
+  { name: 'Tandem Stand', sets: 2, reps: '20-30s per side' },
+  { name: 'Heel-to-Toe Walk', sets: 2, reps: '10 steps' },
+];
+
+// One stretch from the groups just trained and/or one balance drill,
+// added to the end of a suggested workout so it counts toward the weekly
+// Flexibility and Balance goals. Balance entries are flagged `balance`.
+export function generateCooldown(muscleGroups, { flexibility = true, balance = false } = {}) {
+  const out = [];
+  if (flexibility) {
+    const groups = muscleGroups.flatMap((g) => (FLEXIBILITY_LIBRARY[g] ? [g] : []));
+    const pool = groups.length ? groups : Object.keys(FLEXIBILITY_LIBRARY);
+    const group = pool[Math.floor(Math.random() * pool.length)];
+    const ex = FLEXIBILITY_LIBRARY[group][Math.floor(Math.random() * FLEXIBILITY_LIBRARY[group].length)];
+    out.push({ ...ex, muscleGroup: group, type: 'flexibility', supersetId: null });
+  }
+  if (balance) {
+    const ex = BALANCE_LIBRARY[Math.floor(Math.random() * BALANCE_LIBRARY.length)];
+    out.push({ ...ex, muscleGroup: 'Balance', type: 'flexibility', balance: true, supersetId: null });
+  }
+  return out;
+}
 
 // Each exercise is tagged with the equipment it needs, so the plan can be
 // narrowed down based on where the session happens (see LOCATION_EQUIPMENT

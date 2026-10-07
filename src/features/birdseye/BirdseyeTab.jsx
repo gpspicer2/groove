@@ -240,6 +240,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const weekStart = startOfWeek(now, weekStartDay);
   const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart);
   const thisWeekIds = new Set(workoutsThisWeek.map((w) => w.id));
+  const liftsThisWeek = liftSetRows.filter((s) => thisWeekIds.has(s.workout_id));
   const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
   const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
@@ -380,6 +381,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             <GoalRow
               key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} planned={g.planned}
               active={active}
+              extra={g.mode === 'Resistance' && liftsThisWeek.length > 0 ? <MuscleBalance bare sets={liftsThisWeek} /> : null}
               onEdit={() => setEditingGoals(true)}
               onDelete={() => { if (window.confirm('Stop tracking this goal?')) setGoalTracked(g.mode, false); }}
               aerobic={g.mode === 'Aerobic' ? {
@@ -439,7 +441,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       </div>
 
       <div className="mt-4 flex flex-col gap-4">
-        <MuscleBalance sets={liftSetRows.filter((s) => thisWeekIds.has(s.workout_id))} />
         <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
 
@@ -580,7 +581,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, active }) {
+function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, extra, active }) {
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
@@ -654,13 +655,13 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
         </button>
       </div>
       <button
-        onClick={() => aerobic && setExpanded((v) => !v)}
+        onClick={() => (aerobic || extra) && setExpanded((v) => !v)}
         className="w-full flex items-center justify-between mb-1 py-0.5"
       >
         <span className="flex items-center gap-1.5">
           <Icon size={14} color={color} />
           <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
-          {aerobic && (expanded ? <ChevronUp size={13} color={TEXT_SOFT} /> : <ChevronDown size={13} color={TEXT_SOFT} />)}
+          {(aerobic || extra) && (expanded ? <ChevronUp size={13} color={TEXT_SOFT} /> : <ChevronDown size={13} color={TEXT_SOFT} />)}
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
@@ -699,6 +700,10 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
         <button onClick={() => setExpanded(true)} style={{ color: TEXT_SOFT }} className="text-sm mt-1 underline underline-offset-2">
           {Math.round(aerobic.lightMinutes)} min logged as light — doesn't count toward this goal, tap for details
         </button>
+      )}
+
+      {extra && expanded && (
+        <div className="mt-3 pt-3" style={{ borderTop: `1px dashed ${INK_3}` }}>{extra}</div>
       )}
 
       {aerobic && expanded && (

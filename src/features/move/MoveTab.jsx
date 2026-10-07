@@ -9,7 +9,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
-import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
+import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
 import { recentlyTrained } from './muscles';
@@ -612,6 +612,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
         { name: WARMUP_AEROBIC_PLACEHOLDER, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' },
         ...(warmupDrills.length ? [{ name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills: warmupDrills }] : []),
         ...plan,
+        // 1-2 stretch/balance drills at the end, color-coded to their goals.
+        ...(cleanSlate ? [] : generateCooldown(selectedGroups, {
+          flexibility: profile?.track_flexibility_goal !== false,
+          balance: profile?.track_balance_goal === true || Number(profile?.age) >= 65,
+        })),
       ];
     }
     if (usesFlexibility) {
@@ -3723,6 +3728,8 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
   const [seconds, setSeconds] = useState('');
   const nextSetNumber = loggedSets.length + 1;
+  const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
+  const accent = isBalance ? VIOLET : BRICK;
 
   function handleLog() {
     const durationSeconds = seconds === '' ? null : parseInt(seconds, 10);
@@ -3740,10 +3747,11 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3">
+    <div style={{ background: INK_2, borderLeft: `3px solid ${accent}` }} className="rounded-md px-4 py-3">
       <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
         Target: {exercise.sets} holds, {exercise.reps}
+        <div style={{ color: accent }} className="font-medium">Counts toward your {isBalance ? 'Balance' : 'Flexibility'} goal</div>
       </div>
 
       {loggedSets.length > 0 && (
@@ -3775,7 +3783,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         <button
           onClick={handleLog}
           disabled={seconds === ''}
-          style={{ background: seconds === '' ? INK_3 : BRICK, color: seconds === '' ? TEXT_SOFT : PAPER }}
+          style={{ background: seconds === '' ? INK_3 : accent, color: seconds === '' ? TEXT_SOFT : PAPER }}
           className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
           <Plus size={14} /> Log hold {nextSetNumber}
