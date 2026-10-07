@@ -18,6 +18,7 @@ import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
+import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
 
 function daysBetween(a, b) {
@@ -321,6 +322,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       )}
       <div className="flex flex-col gap-4">
         <ScreeningStatus />
+        <TailoredTips />
         {!intakeDone && (
           <button
             onClick={() => setShowBaseline(true)}
