@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, Play, Calendar } from 'lucide-react';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, MOSS, AMBER } from '../../theme';
 import { planSummary } from '../plan/plan';
@@ -7,10 +7,31 @@ function storageGet(k) { try { return localStorage.getItem(k); } catch { return 
 function storageSet(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } }
 
 // A short look back at last week. Dismissible; returns next week.
-export function RecapCard({ userId, recap, goals, onRaiseGoal }) {
+export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
   const storageKey = `groove:recap:${userId}:${recap.key}`;
   const [hidden, setHidden] = useState(() => storageGet(storageKey) === '1');
   const [raised, setRaised] = useState(false);
+
+  // Closes itself after the client has left Birdseye 3 times, whether by
+  // swiping to another tab or leaving the app.
+  const leavesKey = `${storageKey}:leaves`;
+  const wasActive = useRef(active);
+  function countLeave() {
+    const n = (parseInt(storageGet(leavesKey), 10) || 0) + 1;
+    storageSet(leavesKey, String(n));
+    if (n >= 3) { storageSet(storageKey, '1'); setHidden(true); }
+  }
+  useEffect(() => {
+    if (wasActive.current && !active) countLeave();
+    wasActive.current = active;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+  useEffect(() => {
+    function onVis() { if (document.visibilityState === 'hidden' && wasActive.current) countLeave(); }
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   if (hidden) return null;
   const { last, rows, milestones, suggestion } = recap;
   const bits = [

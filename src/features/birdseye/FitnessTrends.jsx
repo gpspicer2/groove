@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { INK_2, PAPER, PAPER_DIM, TEXT_SOFT, MOSS, SKY, AMBER, BRICK } from '../../theme';
+import Portal from '../../Portal';
+import { useAuth } from '../../auth/AuthContext';
+import { VO2maxEstimator } from '../baseline/FitnessEstimates';
+import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, MOSS, SKY, AMBER, BRICK } from '../../theme';
 
 const RETEST_DAYS = 56; // ~8 weeks
 
@@ -29,7 +33,7 @@ function Sparkline({ points, color }) {
   );
 }
 
-function Row({ label, latest, unit, points, color, delta, deltaGood, due }) {
+function Row({ label, latest, unit, points, color, delta, deltaGood, due, action, onAction }) {
   return (
     <div className="flex items-center gap-3 py-1.5">
       <div className="flex-1 text-left min-w-0">
@@ -38,7 +42,10 @@ function Row({ label, latest, unit, points, color, delta, deltaGood, due }) {
       </div>
       <Sparkline points={points} color={color} />
       <div className="text-right" style={{ minWidth: 76 }}>
-        <div style={{ color: PAPER }} className="text-sm font-medium">{latest}{unit}</div>
+        {action && (
+          <button onClick={onAction} style={{ background: color, color: INK }} className="rounded-md px-3 py-1.5 text-sm font-medium">{action}</button>
+        )}
+        {latest != null && <div style={{ color: PAPER }} className="text-sm font-medium">{latest}{unit}</div>}
         {delta != null && delta !== 0 && (
           <div style={{ color: deltaGood == null ? TEXT_SOFT : deltaGood ? MOSS : TEXT_SOFT }} className="text-sm">
             {delta > 0 ? '+' : ''}{Math.round(delta * 10) / 10}
@@ -54,6 +61,8 @@ function Row({ label, latest, unit, points, color, delta, deltaGood, due }) {
 export default function FitnessTrends({ userId, profile, active }) {
   const [measurements, setMeasurements] = useState([]);
   const [oneRms, setOneRms] = useState([]);
+  const [estimating, setEstimating] = useState(false);
+  const { updateProfile } = useAuth();
 
   useEffect(() => {
     if (!active) return;
@@ -81,8 +90,13 @@ export default function FitnessTrends({ userId, profile, active }) {
       key: k.kind, label: k.label, unit: k.unit, color: k.color, points: pts, latest: Math.round(last.value * 10) / 10,
       delta, deltaGood: delta == null || k.upIsGood == null ? null : (k.upIsGood ? delta > 0 : delta < 0),
       due: k.retest && last.at && daysAgo(last.at) >= RETEST_DAYS,
+      ...(k.kind === 'vo2max' ? { action: 'Retest', onAction: () => setEstimating(true) } : {}),
     });
   });
+  // VO2max always has a spot; with no estimate yet it offers a guided test.
+  if (!rows.some((r) => r.key === 'vo2max')) {
+    rows.unshift({ key: 'vo2max', label: 'VO2max', unit: '', color: MOSS, points: [], latest: null, delta: null, deltaGood: null, due: false, action: 'Estimate', onAction: () => setEstimating(true) });
+  }
 
   const byLift = {};
   oneRms.forEach((r) => { (byLift[r.exercise_name] ||= []).push({ value: Number(r.estimated_1rm_lb), at: r.created_at }); });
@@ -95,13 +109,22 @@ export default function FitnessTrends({ userId, profile, active }) {
     });
   });
 
-  if (rows.length === 0) return null;
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4">
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Your Fitness</div>
       {rows.map(({ key, ...r }) => <Row key={key} {...r} />)}
       {rows.some((r) => r.due) && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Baseline Data.</div>
+      )}
+      {estimating && (
+        <Portal>
+          <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[55] flex items-center justify-center px-4" onClick={() => setEstimating(false)}>
+            <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setEstimating(false)} aria-label="Close" style={{ color: TEXT_SOFT }} className="absolute top-3 right-3 p-2 z-10"><X size={18} /></button>
+              <VO2maxEstimator userId={userId} profile={profile} updateProfile={updateProfile} />
+            </div>
+          </div>
+        </Portal>
       )}
     </div>
   );

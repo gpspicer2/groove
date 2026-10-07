@@ -341,6 +341,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           <RecapCard
             key={recap.key}
             userId={userId}
+            active={active}
             recap={recap}
             goals={{ aerobicMinutes: aerobicGoalMinutes }}
             onRaiseGoal={saveAerobicGoalMinutes}
@@ -419,11 +420,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           prescribedZone={prescribedZone}
         />
 
-        <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
 
       <div className="mt-4">
         <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
+      </div>
+
+      <div className="mt-4">
+        <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
 
       {showAssessment && (
