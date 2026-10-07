@@ -1,3 +1,4 @@
+import { logMeasurement } from '../../lib/measurements';
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -71,6 +72,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
         : Promise.resolve(null),
     ]);
     setSaving(false);
+    if (parseFloat(answers.bodyweight) > 0) logMeasurement(userId, 'bodyweight', parseFloat(answers.bodyweight));
     if (error) { setError(error.message); return; }
     if (ageError) { setError(ageError.message); return; }
     onComplete();

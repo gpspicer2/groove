@@ -9,6 +9,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from
 import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
 import BaselineFlow from './features/baseline/BaselineFlow';
+import { logMeasurement } from './lib/measurements';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -477,10 +478,12 @@ function BaselineDataSection({ userId }) {
     // otherwise the cached profile (which VO2maxEstimator's prefill
     // nudge reads) never learns about the change until a full reload.
     await updateProfile({ bodyweight_lb: numeric });
+    if (numeric != null && numeric !== Number(profile?.bodyweight_lb)) logMeasurement(userId, 'bodyweight', numeric);
   }
   async function saveHr(field, value) {
     const numeric = value.trim() === '' ? null : parseFloat(value);
     await updateProfile({ [field]: numeric, ...(field === 'max_hr_bpm' ? { max_hr_measured: numeric != null } : {}) });
+    if (field === 'resting_hr_bpm' && numeric != null && numeric !== Number(profile?.resting_hr_bpm)) logMeasurement(userId, 'resting_hr', numeric);
   }
 
   const restingHrNum = restingHr.trim() === '' ? null : parseFloat(restingHr);

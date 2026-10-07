@@ -353,3 +353,17 @@ create policy "avatars_owner_delete" on storage.objects for delete
 alter table public.workouts add column if not exists rpe smallint;
 alter table public.workouts add column if not exists felt_off boolean;
 alter table public.workouts add column if not exists felt_off_note text;
+
+-- History of resting HR, bodyweight, VO2max for the "Your Fitness" trends card
+create table fitness_measurements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) default auth.uid(),
+  kind text not null, -- 'resting_hr' | 'bodyweight' | 'vo2max'
+  value numeric not null,
+  measured_at timestamptz not null default now()
+);
+alter table fitness_measurements enable row level security;
+create policy "fitness_measurements_own" on fitness_measurements for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "fitness_measurements_trainer_read" on fitness_measurements for select
+  using (public.is_trainer());

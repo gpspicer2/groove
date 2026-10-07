@@ -1,3 +1,4 @@
+import { logMeasurement } from '../../lib/measurements';
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, Wind, Dumbbell } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -156,6 +157,7 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
     setSaving(true);
     const rounded = Math.round(result * 10) / 10;
     const isNewBest = !profile?.vo2max_estimate || rounded > Number(profile.vo2max_estimate);
+    logMeasurement(userId, 'vo2max', rounded);
     if (isNewBest) {
       await updateProfile({ vo2max_estimate: rounded, vo2max_method: activeTest.name, vo2max_tested_at: new Date().toISOString() });
     }

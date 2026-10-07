@@ -1,3 +1,4 @@
+import { logMeasurement } from '../../lib/measurements';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Square, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -65,6 +66,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
       supabase.from('baseline_responses').upsert({ user_id: userId, fitness_assessment }, { onConflict: 'user_id' }),
       supabase.from('profiles').update({ resting_hr_bpm: Number(restingHr) }).eq('id', userId),
     ]);
+    logMeasurement(userId, 'resting_hr', restingHr);
     setSaving(false);
     onComplete();
   }

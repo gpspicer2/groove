@@ -17,6 +17,7 @@ import { planKinds, planMinutes } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
+import FitnessTrends from './FitnessTrends';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -396,6 +397,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
           prescribedZone={prescribedZone}
         />
+
+        <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
 
       <div className="mt-4">
