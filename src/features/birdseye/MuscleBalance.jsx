@@ -57,8 +57,8 @@ export default function MuscleBalance({ sets, bare = false }) {
               </div>
               {[
                 ['What it is', 'How many days this week you trained each major muscle group. The goal is 2 days for each.'],
-                ['Where it comes from', 'The ACSM and NSCA both recommend working each major muscle group 2 to 3 days a week, with about 48 hours of rest between sessions for the same muscles.'],
-                ['Why it matters', 'Hitting every group builds strength evenly and protects your joints. Balancing pushing and pulling helps your posture and shoulders.'],
+                ['Where it comes from', 'The ACSM and NSCA recommend training each major muscle group 2 to 3 days a week, with about 48 hours between sessions for the same muscles. That gives muscle time to repair and adapt.'],
+                ['Why it matters', 'Muscle mass and strength are strong predictors of how long and how well you live. They are linked to lower risk of falls, injury, and chronic disease, and better metabolic health. Covering every group, and balancing pushing with pulling, keeps joints stable and loaded evenly.'],
               ].map(([h, t]) => (
                 <div key={h}>
                   <div style={{ color: SKY }} className="text-sm font-medium">{h}</div>
