@@ -348,3 +348,8 @@ create policy "avatars_owner_delete" on storage.objects for delete
 -- ── one):                                                             ──
 --
 -- update profiles set role = 'trainer' where email = 'gpspicer2@gmail.com';
+
+-- Post-workout check-in (effort 1-10, anything hurt/off)
+alter table public.workouts add column if not exists rpe smallint;
+alter table public.workouts add column if not exists felt_off boolean;
+alter table public.workouts add column if not exists felt_off_note text;

@@ -20,6 +20,7 @@ export default function TrainerApp() {
   const [view, setView] = useState('clients'); // 'clients' | 'learn'
   const [clients, setClients] = useState([]);
   const [lastWorkoutByClient, setLastWorkoutByClient] = useState({});
+  const [feltOffByClient, setFeltOffByClient] = useState({});
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +39,20 @@ export default function TrainerApp() {
         const last = {};
         (workoutRows || []).forEach((w) => { if (!last[w.user_id]) last[w.user_id] = w.started_at; });
         setLastWorkoutByClient(last);
+        // Separate query: errors quietly if the check-in columns aren't in Supabase yet.
+        const since = new Date(Date.now() - 14 * 864e5).toISOString();
+        const { data: offRows, error: offError } = await supabase
+          .from('workouts')
+          .select('user_id, started_at, felt_off_note')
+          .in('user_id', ids)
+          .eq('felt_off', true)
+          .gte('started_at', since)
+          .order('started_at', { ascending: false });
+        if (!offError) {
+          const off = {};
+          (offRows || []).forEach((w) => { if (!off[w.user_id]) off[w.user_id] = w; });
+          setFeltOffByClient(off);
+        }
       }
       setLoading(false);
     })();
@@ -106,6 +121,11 @@ export default function TrainerApp() {
                     ) : needsClearance(c.screening) && (
                       <div style={{ color: TONE_COLOR[RESULT_COPY[c.screening.result].tone] }} className="text-sm mt-1">
                         🩺 {RESULT_COPY[c.screening.result].banner}
+                      </div>
+                    )}
+                    {feltOffByClient[c.id] && (
+                      <div style={{ color: BRICK }} className="text-sm mt-1">
+                        ⚠️ Felt off after a workout{feltOffByClient[c.id].felt_off_note ? `: ${feltOffByClient[c.id].felt_off_note}` : ''}
                       </div>
                     )}
                     {inactive && (
@@ -662,7 +682,13 @@ function ClientWorkouts({ clientId }) {
                 <div style={{ color: TEXT_SOFT }} className="text-sm">
                   {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {plural(workoutSets.length, 'set')}
                   {w.program_id ? ' · Followed assigned program' : ' · Self-directed'}
+                  {w.rpe ? ` · Effort ${w.rpe}/10` : ''}
                 </div>
+                {w.felt_off && (
+                  <div style={{ color: BRICK }} className="text-sm">
+                    ⚠️ Felt off{w.felt_off_note ? `: ${w.felt_off_note}` : ''}
+                  </div>
+                )}
               </div>
               {expanded ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
             </button>

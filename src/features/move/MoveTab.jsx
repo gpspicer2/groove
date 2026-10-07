@@ -10,6 +10,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
+import CheckInSheet from './CheckInSheet';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
@@ -257,6 +258,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [historyShown, setHistoryShown] = useState(HISTORY_FIRST_PAGE);
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
+  const [checkInWorkoutId, setCheckInWorkoutId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
 
@@ -935,9 +937,18 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
     try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
+    setCheckInWorkoutId(activeWorkoutId);
     setActiveWorkoutId(null);
     setPlanExercises([]);
     scrollAppToTop();
+  }
+
+  // Effort + "anything hurt?" after a workout. If those columns haven't been
+  // added in Supabase yet the save quietly does nothing.
+  async function saveCheckIn(fields) {
+    const id = checkInWorkoutId;
+    setCheckInWorkoutId(null);
+    await supabase.from('workouts').update(fields).eq('id', id);
   }
 
   // Reopens a finished workout as the live one, so a session that was
@@ -1002,6 +1013,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           {loadError}
         </div>
       )}
+
+      {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => setCheckInWorkoutId(null)} />}
 
       {!activeWorkout && lostBackup && (
         <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4 text-center">
