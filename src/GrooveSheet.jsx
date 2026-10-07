@@ -15,12 +15,13 @@ const SNAP_TRANSITION = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
 const CLOSE_MS = 280;
 
 // Opening the drawer from anywhere in the app: fires an event so only this
-// small host re-renders, not the whole app (re-rendering every tab while the
-// drawer started sliding in was what made the opening choppy).
+// small host re-renders, not the whole app.
 export function openGrooveDrawer() {
   window.dispatchEvent(new Event('groove:open-drawer'));
 }
 
+// The drawer stays mounted (just hidden) so opening it is only a slide:
+// no new elements to build and no image to decode at the moment of the swipe.
 export function GrooveDrawerHost() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -28,27 +29,31 @@ export function GrooveDrawerHost() {
     window.addEventListener('groove:open-drawer', show);
     return () => window.removeEventListener('groove:open-drawer', show);
   }, []);
-  return open ? <GrooveSheet onClose={() => setOpen(false)} /> : null;
+  return <GrooveSheet open={open} onClose={() => setOpen(false)} />;
 }
 
-// The slide-in is a plain CSS animation (see index.css), so it starts on the
-// first frame and runs on the graphics chip without waiting on React.
-export default function GrooveSheet({ onClose }) {
+const OPEN_FRAMES = [{ transform: 'translate3d(-100%, 0, 0)' }, { transform: 'translate3d(0, 0, 0)' }];
+
+export default function GrooveSheet({ open, onClose }) {
   const panelRef = useRef(null);
   const startXRef = useRef(0);
   const dragXRef = useRef(0);
   const trackingRef = useRef(false);
   const closingRef = useRef(false);
 
+  // Slide in on the graphics chip as soon as it's opened.
   useEffect(() => {
-    document.documentElement.classList.add('groove-drawer-open');
-    return () => document.documentElement.classList.remove('groove-drawer-open');
-  }, []);
+    const el = panelRef.current;
+    if (!open || !el) return;
+    closingRef.current = false;
+    el.style.transition = 'none';
+    el.style.transform = '';
+    el.animate(OPEN_FRAMES, { duration: 300, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+  }, [open]);
 
   function slideTo(x, then) {
     const el = panelRef.current;
     if (!el) return;
-    el.style.animation = 'none';
     el.style.transition = SNAP_TRANSITION;
     el.style.transform = `translate3d(${x}px, 0, 0)`;
     if (then) setTimeout(then, CLOSE_MS);
@@ -64,8 +69,7 @@ export default function GrooveSheet({ onClose }) {
     trackingRef.current = true;
     startXRef.current = e.touches[0].clientX;
     dragXRef.current = 0;
-    const el = panelRef.current;
-    if (el) { el.style.animation = 'none'; el.style.transition = 'none'; }
+    if (panelRef.current) panelRef.current.style.transition = 'none';
   }
   function handleTouchMove(e) {
     if (!trackingRef.current) return;
@@ -89,6 +93,7 @@ export default function GrooveSheet({ onClose }) {
           status-bar area on iPhones. The drawer's shadow separates it instead. */}
       <div
         className="fixed inset-0 z-50 flex"
+        style={{ visibility: open ? 'visible' : 'hidden', pointerEvents: open ? 'auto' : 'none' }}
         onClick={close}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -97,8 +102,8 @@ export default function GrooveSheet({ onClose }) {
       >
         <div
           ref={panelRef}
-          style={{ background: INK_2, boxShadow: '8px 0 28px rgba(60, 45, 30, 0.22)', touchAction: 'pan-y', willChange: 'transform' }}
-          className="groove-drawer-in relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
+          style={{ background: INK_2, boxShadow: '8px 0 28px rgba(60, 45, 30, 0.22)', touchAction: 'pan-y', willChange: 'transform', transform: 'translate3d(-100%, 0, 0)' }}
+          className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <button onClick={close} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
