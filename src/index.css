@@ -117,6 +117,12 @@ html, body {
   .groove-run-body, .groove-run-lean, .groove-run-part { animation: none; }
 }
 
+/* While the Groove drawer is open (and sliding in), freeze the app's looping
+   animations (pulsing plans, ripple, runner) so the page behind isn't
+   repainting every frame and the slide stays smooth. */
+html.groove-drawer-open #root * { animation-play-state: paused !important; }
+.groove-plan-blink, .groove-plan-pulse { will-change: opacity; }
+
 /* The Groove definitions drawer slides in from the left. */
 @keyframes groove-drawer-in {
   from { transform: translate3d(-100%, 0, 0); }

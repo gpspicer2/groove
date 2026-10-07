@@ -40,6 +40,11 @@ export default function GrooveSheet({ onClose }) {
   const trackingRef = useRef(false);
   const closingRef = useRef(false);
 
+  useEffect(() => {
+    document.documentElement.classList.add('groove-drawer-open');
+    return () => document.documentElement.classList.remove('groove-drawer-open');
+  }, []);
+
   function slideTo(x, then) {
     const el = panelRef.current;
     if (!el) return;
