@@ -15,6 +15,8 @@ import ScreeningStatus from '../screening/ScreeningStatus';
 import { PlanFormPopup, PlannedWorkoutPopup } from '../plan/PlanPopups';
 import { planKinds, planMinutes } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
+import { buildRecap, dayKey } from './weekly';
+import { RecapCard, TodayPlanCard } from './WeekCards';
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -248,6 +250,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     if (kinds.has('resistance')) plannedResistance += 1;
     if (kinds.has('flexibility')) plannedFlexibility += 1;
   });
+  const recap = buildRecap({
+    workouts, weekStart, aerobicMinutesByWorkout, kcalByWorkout, hasResistance, hasFlexibility,
+    goals: {
+      trackAerobic: trackAerobicGoal, trackResistance: trackResistanceGoal, trackFlexibility: trackFlexibilityGoal,
+      aerobicMinutes: aerobicGoalMinutes, resistance: resistanceGoal, flexibility: flexibilityGoal,
+    },
+  });
+  const todayPlan = plans.find((p) => p.planned_for === dayKey(now));
   const kcalThisWeek = workoutsThisWeek.reduce((sum, w) => sum + (kcalByWorkout[w.id] || 0), 0);
   const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
 
@@ -274,7 +284,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
   const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
   // No "head over to Move" nudges while a doctor's okay is still recommended.
-  const insight = needsClearance(profile?.screening) ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
+  const insight = (needsClearance(profile?.screening) || todayPlan) ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast });
 
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
@@ -301,6 +311,18 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account →</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">About 10 minutes, whenever you're ready.</div>
           </button>
+        )}
+
+        {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => onStartPlan && onStartPlan(p)} />}
+
+        {recap && (
+          <RecapCard
+            key={recap.key}
+            userId={userId}
+            recap={recap}
+            goals={{ aerobicMinutes: aerobicGoalMinutes }}
+            onRaiseGoal={saveAerobicGoalMinutes}
+          />
         )}
 
         {insight && (

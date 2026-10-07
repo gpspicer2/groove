@@ -55,6 +55,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Move history shows 3 workouts, then 5 more per Show More.
 - Baseline intake is optional (prompted from Birdseye, not a gate); it now also asks bodyweight. The tour is the only first-run step and only counts as done after its final "get to know you" prompt.
 
+- Birdseye top cards: "Planned for today" (one-tap Start Workout; replaces the generic nudge), and a dismissible "Last week" recap (`weekly.js`, `WeekCards.jsx`): workouts, aerobic minutes, kcal, goal chips, milestones (first 150-min week, every 4-week streak, 10/25/50/100/200 workouts). After two straight weeks meeting the aerobic goal it offers a one-tap ~10% raise (capped at ACSM's 300 min). Load progression already lives in `suggestNextWeight`. Real push reminders still need setup (service worker, VAPID keys, scheduled job).
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
