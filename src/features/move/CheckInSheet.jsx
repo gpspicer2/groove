@@ -24,19 +24,21 @@ export default function CheckInSheet({ onSave, onSkip }) {
 
           <div>
             <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How hard did that feel?</div>
-            <div className="grid grid-cols-5 gap-1.5">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setRpe(n)}
-                  style={{ background: rpe === n ? SKY : INK_3, color: rpe === n ? INK : PAPER }}
-                  className="py-2 rounded-md text-sm font-medium"
-                >
-                  {n}
-                </button>
-              ))}
+            <input
+              type="range" min="1" max="10" step="1"
+              value={rpe ?? 5}
+              onChange={(e) => setRpe(Number(e.target.value))}
+              onPointerDown={() => rpe == null && setRpe(5)}
+              aria-label="Effort from 1 to 10"
+              style={{ accentColor: SKY, opacity: rpe == null ? 0.5 : 1 }}
+              className="w-full h-8"
+            />
+            <div className="flex justify-between text-sm" style={{ color: TEXT_SOFT }}>
+              <span>1</span><span>10</span>
             </div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5 h-5">{rpe ? RPE_LABELS[rpe] : '1 = very easy, 10 = all out'}</div>
+            <div style={{ color: rpe ? PAPER : TEXT_SOFT }} className="text-sm mt-0.5 h-5">
+              {rpe ? `${rpe} · ${RPE_LABELS[rpe]}` : 'Slide to rate. 1 = very easy, 10 = all out'}
+            </div>
           </div>
 
           <div>
