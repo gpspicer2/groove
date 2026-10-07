@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Portal from './Portal';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
@@ -11,88 +11,80 @@ export const GROOVE_DEFINITIONS = [
   { term: 'A worn-in path', color: MOSS, text: 'A groove is literally a track worn by repetition — the more you move, the more natural the path becomes.' },
 ];
 
-// Same easing/duration as SwipeTabs' own page transitions, so this feels
-// like the same gesture system rather than a bolted-on modal.
 const SNAP_TRANSITION = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
 const CLOSE_MS = 280;
 
+// Opening the drawer from anywhere in the app: fires an event so only this
+// small host re-renders, not the whole app (re-rendering every tab while the
+// drawer started sliding in was what made the opening choppy).
+export function openGrooveDrawer() {
+  window.dispatchEvent(new Event('groove:open-drawer'));
+}
+
+export function GrooveDrawerHost() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener('groove:open-drawer', show);
+    return () => window.removeEventListener('groove:open-drawer', show);
+  }, []);
+  return open ? <GrooveSheet onClose={() => setOpen(false)} /> : null;
+}
+
+// The slide-in is a plain CSS animation (see index.css), so it starts on the
+// first frame and runs on the graphics chip without waiting on React.
 export default function GrooveSheet({ onClose }) {
   const panelRef = useRef(null);
-  const [open, setOpen] = useState(false); // resting state: fully in vs fully out
-  const [dragging, setDragging] = useState(false);
   const startXRef = useRef(0);
-  const [width, setWidth] = useState(0);
-  const trackingRef = useRef(false);
   const dragXRef = useRef(0);
+  const trackingRef = useRef(false);
+  const closingRef = useRef(false);
 
-  // Measured before the browser paints (unlike a plain effect, which
-  // runs after) — otherwise the panel's first frame renders its closed
-  // resting position using a guessed width, and visibly snaps once the
-  // real width is known a moment later.
-  useLayoutEffect(() => {
-    if (panelRef.current) setWidth(panelRef.current.offsetWidth);
-  }, []);
-
-  // Two frames, so the closed position is actually painted before the
-  // slide-in starts (one frame can skip straight to open with no animation).
-  useEffect(() => {
-    let id2;
-    const id1 = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setOpen(true)); });
-    return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2); };
-  }, []);
+  function slideTo(x, then) {
+    const el = panelRef.current;
+    if (!el) return;
+    el.style.animation = 'none';
+    el.style.transition = SNAP_TRANSITION;
+    el.style.transform = `translate3d(${x}px, 0, 0)`;
+    if (then) setTimeout(then, CLOSE_MS);
+  }
+  function close() {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    slideTo(-(panelRef.current?.offsetWidth || 400), onClose);
+  }
 
   function handleTouchStart(e) {
+    if (closingRef.current) return;
     trackingRef.current = true;
     startXRef.current = e.touches[0].clientX;
     dragXRef.current = 0;
-    setDragging(true);
+    const el = panelRef.current;
+    if (el) { el.style.animation = 'none'; el.style.transition = 'none'; }
   }
   function handleTouchMove(e) {
     if (!trackingRef.current) return;
-    const dx = e.touches[0].clientX - startXRef.current;
-    // Only ever pulls left (closing) — dragging right past fully-open
-    // just does nothing, no rubber-band needed since it's already home.
-    // Moved straight on the element (no React re-render per touch event)
-    // so the drag follows the finger smoothly.
-    const x = Math.min(0, dx);
+    // Only pulls left (closing). Moved straight on the element, no React
+    // re-render per touch event, so it follows the finger.
+    const x = Math.min(0, e.touches[0].clientX - startXRef.current);
     dragXRef.current = x;
     if (panelRef.current) panelRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
   }
   function finishGesture() {
     if (!trackingRef.current) return;
     trackingRef.current = false;
-    const closedEnough = -dragXRef.current > width * 0.3;
-    dragXRef.current = 0;
-    // Hand the transform back to React (and its transition) from where the finger left it.
-    if (panelRef.current) panelRef.current.style.transform = '';
-    setDragging(false);
-    if (closedEnough) {
-      setOpen(false);
-      setTimeout(onClose, CLOSE_MS);
-    } else {
-      setOpen(true);
-    }
-  }
-
-  // The offset actually applied: fully open (0) or fully closed
-  // (-100%) as a resting position, live-adjusted by finger movement
-  // while a touch is active — same feel as SwipeTabs' own drag.
-  const baseX = open ? 0 : -width;
-  const translate = baseX;
-
-  function handleBackdropClick() {
-    setOpen(false);
-    setTimeout(onClose, CLOSE_MS);
+    const width = panelRef.current?.offsetWidth || 400;
+    if (-dragXRef.current > width * 0.3) close();
+    else slideTo(0);
   }
 
   return (
     <Portal>
       {/* No dimming layer: a full-screen tint left a visible block in the
-          status-bar area while it faded on iPhones. The drawer's own shadow
-          separates it from the page instead. */}
+          status-bar area on iPhones. The drawer's shadow separates it instead. */}
       <div
         className="fixed inset-0 z-50 flex"
-        onClick={handleBackdropClick}
+        onClick={close}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={finishGesture}
@@ -100,22 +92,11 @@ export default function GrooveSheet({ onClose }) {
       >
         <div
           ref={panelRef}
-          style={{
-            background: INK_2,
-            boxShadow: '8px 0 28px rgba(60, 45, 30, 0.22)',
-            touchAction: 'pan-y',
-            transform: `translate3d(${translate}px, 0, 0)`,
-            willChange: 'transform',
-            transition: dragging ? 'none' : SNAP_TRANSITION,
-          }}
-          className="relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
+          style={{ background: INK_2, boxShadow: '8px 0 28px rgba(60, 45, 30, 0.22)', touchAction: 'pan-y', willChange: 'transform' }}
+          className="groove-drawer-in relative w-[85vw] max-w-sm h-full px-6 py-10 overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={handleBackdropClick}
-            style={{ color: TEXT_SOFT }}
-            className="absolute top-4 right-4 p-2 -m-2"
-          >
+          <button onClick={close} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
             <X size={20} />
           </button>
           <Wordmark height={45} className="mb-8 mt-4 mx-auto block" />

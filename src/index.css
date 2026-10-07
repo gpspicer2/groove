@@ -116,3 +116,10 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .groove-run-body, .groove-run-lean, .groove-run-part { animation: none; }
 }
+
+/* The Groove definitions drawer slides in from the left. */
+@keyframes groove-drawer-in {
+  from { transform: translate3d(-100%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+.groove-drawer-in { animation: groove-drawer-in 0.3s cubic-bezier(0.22, 1, 0.36, 1); }

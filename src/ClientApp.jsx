@@ -8,7 +8,7 @@ import BirdseyeTab from './features/birdseye/BirdseyeTab';
 import MoveTab from './features/move/MoveTab';
 import JournalTab from './features/journal/JournalTab';
 import LearnTab from './features/learn/LearnTab';
-import GrooveSheet from './GrooveSheet';
+import { GrooveDrawerHost, openGrooveDrawer } from './GrooveSheet';
 import AppTour from './features/onboarding/AppTour';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
@@ -33,7 +33,6 @@ export default function ClientApp() {
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
   const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
-  const [showGroove, setShowGroove] = useState(false);
   // A local override alongside profile.tour_done: updateProfile()'s
   // round trip can lag a render behind, and without this the tour would
   // flash back on screen for a moment right after finishing it.
@@ -78,7 +77,7 @@ export default function ClientApp() {
           {tab === 'birdseye' ? (
             <button
               data-tour="groove-button"
-              onClick={() => setShowGroove(true)}
+              onClick={openGrooveDrawer}
               className="justify-self-start w-8 h-8 flex flex-col items-center justify-center gap-1.5 -ml-1"
               aria-label="What's a Groove?"
             >
@@ -122,7 +121,7 @@ export default function ClientApp() {
         <SwipeTabs
           index={activeIndex}
           onChangeIndex={(i) => setTab(TABS[i])}
-          onEdgeSwipeRight={tab === 'birdseye' ? () => setShowGroove(true) : null}
+          onEdgeSwipeRight={tab === 'birdseye' ? openGrooveDrawer : null}
           scrollContainerRef={scrollRef}
           pages={[
             <BirdseyeTab
@@ -132,7 +131,7 @@ export default function ClientApp() {
               onLogWorkout={logWorkoutOn}
               onPlanWorkout={planWorkout}
               onStartPlan={startPlan}
-              onOpenGroove={() => setShowGroove(true)}
+              onOpenGroove={openGrooveDrawer}
               active={tab === 'birdseye'}
               openBaselineOnLoad={openBaselineOnLoad}
               onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
@@ -144,7 +143,7 @@ export default function ClientApp() {
         />
       </div>
 
-      {showGroove && <GrooveSheet onClose={() => setShowGroove(false)} />}
+      <GrooveDrawerHost />
 
       {showTour && (
         <AppTour
