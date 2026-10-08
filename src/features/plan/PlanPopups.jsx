@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Timer } from '../../lib/icons';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
-import { PLAN_SUGGESTIONS, PLAN_MINUTE_OPTIONS, DEFAULT_PLAN_MINUTES, hasDetails, planKinds, planSummary, friendlyPlanDate } from './plan';
+import { PLAN_SUGGESTIONS, PLAN_MINUTE_OPTIONS, DEFAULT_PLAN_MINUTES, hasDetails, planKinds, planMinutes, planSummary, friendlyPlanDate } from './plan';
 
 function Sheet({ onClose, children }) {
   return (
@@ -193,6 +193,46 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, o
         })}
       </div>
       <button onClick={onPlanAnother} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5">+ Plan another</button>
+    </Sheet>
+  );
+}
+
+// "Log It" on a simple plan (no details): the plan already says what it was,
+// so this only asks for the pieces it can't know, then logs the workout.
+export function QuickLogSheet({ plan, saving, onConfirm, onClose }) {
+  const aerobic = planKinds(plan).has('aerobic');
+  const [minutes, setMinutes] = useState(planMinutes(plan) || DEFAULT_PLAN_MINUTES);
+  const [intensity, setIntensity] = useState('Moderate');
+  return (
+    <Sheet onClose={onClose}>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div style={{ color: PAPER }} className="text-base font-medium">{plan.title}</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm">{friendlyPlanDate(plan.planned_for)}</div>
+        </div>
+        <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
+      </div>
+      {aerobic ? (
+        <>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">How long did you go?</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
+            {[...new Set([...PLAN_MINUTE_OPTIONS, minutes])].sort((a, b) => a - b).map((m) => (
+              <button key={m} onClick={() => setMinutes(m)} style={{ background: minutes === m ? LIME : INK_3, color: minutes === m ? INK : PAPER }} className="rounded-full px-3.5 py-1.5 text-sm">{m} min</button>
+            ))}
+          </div>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">How hard did it feel?</div>
+          <div className="flex gap-2 mb-4">
+            {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+              <button key={lvl} onClick={() => setIntensity(lvl)} style={{ background: intensity === lvl ? LIME : INK_3, color: intensity === lvl ? INK : PAPER }} className="flex-1 rounded-md py-2 text-sm">{lvl}</button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-4">Mark this one as done?</div>
+      )}
+      <button onClick={() => onConfirm({ minutes, intensity })} disabled={saving} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+        {saving ? 'Saving…' : 'Log It'}
+      </button>
     </Sheet>
   );
 }

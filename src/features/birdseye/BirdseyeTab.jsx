@@ -12,8 +12,8 @@ import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
-import { PlanFormPopup, PlannedWorkoutPopup } from '../plan/PlanPopups';
-import { planKinds, planMinutes } from '../plan/plan';
+import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanPopups';
+import { planKinds, planMinutes, hasDetails } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
@@ -71,6 +71,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
   const [plans, setPlans] = useState([]); // planned workouts from the last 14 days on
+  const [quickLogPlan, setQuickLogPlan] = useState(null);
+  const [quickLogSaving, setQuickLogSaving] = useState(false);
   const [liftSetRows, setLiftSetRows] = useState([]);
   const [trackBalanceGoal, setTrackBalanceGoal] = useState(false);
   const [balanceGoal, setBalanceGoal] = useState(2);
@@ -220,6 +222,38 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     if (error) { setLoadError(`Couldn't save your plan: ${error.message}`); return; }
     await loadAll();
   }
+  // A missed plan with no details is logged right here (the plan already says
+  // what it was); a detailed one goes to Move to fill in the specifics.
+  function handleStartPlan(plan, date) {
+    const missed = date && date < dayKey(new Date());
+    if (missed && !hasDetails(plan)) setQuickLogPlan(plan);
+    else if (onStartPlan) onStartPlan(plan, date);
+  }
+  async function logPlanNow(plan, { minutes, intensity }) {
+    setQuickLogSaving(true);
+    const kinds = planKinds(plan);
+    const mode = kinds.has('resistance') ? 'Resistance' : kinds.has('flexibility') ? 'Flexibility' : 'Aerobic';
+    const when = new Date(`${plan.planned_for}T12:00:00`).toISOString();
+    const { data: workout, error } = await supabase.from('workouts').insert({
+      muscle_groups: [], activities: mode === 'Resistance' ? [] : [plan.title], movement_mode: mode,
+      started_at: when, completed_at: when, plan: [],
+    }).select().single();
+    if (error) { setLoadError(`Couldn't log it: ${error.message}`); setQuickLogSaving(false); return; }
+    if (mode === 'Aerobic') {
+      const { error: setError } = await supabase.from('workout_sets').insert({
+        workout_id: workout.id, exercise_name: plan.title, muscle_group: 'Cardio', set_number: 1, movement_type: 'aerobic',
+        duration_seconds: minutes * 60,
+        light_minutes: intensity === 'Light' ? minutes : null,
+        moderate_minutes: intensity === 'Moderate' ? minutes : null,
+        vigorous_minutes: intensity === 'Vigorous' ? minutes : null,
+      });
+      if (setError) setLoadError(`Logged, but couldn't save the minutes: ${setError.message}`);
+    }
+    await supabase.from('planned_workouts').delete().eq('id', plan.id);
+    setQuickLogSaving(false);
+    setQuickLogPlan(null);
+    await loadAll();
+  }
   async function deletePlan(plan) {
     if (!window.confirm('Delete this planned workout?')) return false;
     const { error } = await supabase.from('planned_workouts').delete().eq('id', plan.id);
@@ -353,7 +387,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         )}
 
         {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => onStartPlan && onStartPlan(p)} />}
-        {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for yesterday" action="Log It" onStart={(p) => onStartPlan && onStartPlan(p, p.planned_for)} />}
+        {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for yesterday" action="Log It" onStart={(p) => handleStartPlan(p, p.planned_for)} />}
 
         {recap && (
           <RecapCard
@@ -425,7 +459,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           onSavePlan={savePlan}
           onDeletePlan={deletePlan}
           onPlanDetails={(dateStr, plan) => onPlanWorkout && onPlanWorkout({ date: dateStr, plan: plan || null })}
-          onStartPlan={(plan, date) => onStartPlan && onStartPlan(plan, date)}
+          onStartPlan={handleStartPlan}
           weekStartDay={weekStartDay}
         />
 
@@ -448,6 +482,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       <div className="mt-4 flex flex-col gap-4">
         <FitnessTrends userId={userId} profile={profile} active={active} />
       </div>
+
+      {quickLogPlan && <QuickLogSheet plan={quickLogPlan} saving={quickLogSaving} onConfirm={(v) => logPlanNow(quickLogPlan, v)} onClose={() => setQuickLogPlan(null)} />}
 
       {showAssessment && (
         <FitnessAssessmentFlow
