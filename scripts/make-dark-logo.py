@@ -52,7 +52,7 @@ def neon(path, out, glow=True):
     if interior.any():
         idx = ndimage.distance_transform_edt(~interior, return_distances=False, return_indices=True)
         out_rgb = out_rgb[idx[0], idx[1]]
-    soft = ndimage.gaussian_filter(mask.astype(float), 0.6)  # anti-aliased edge
+    soft = ndimage.gaussian_filter(mask.astype(float), 0.4)  # anti-aliased edge
     layer = np.dstack([out_rgb, soft * 255]).astype(np.uint8)
     core = Image.fromarray(layer, 'RGBA')
     if not glow:
@@ -60,8 +60,8 @@ def neon(path, out, glow=True):
         return
     pad = 14
     canvas = Image.new('RGBA', (core.width, core.height), (0, 0, 0, 0))
-    wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 7) * 255 * 0.9]).astype(np.uint8), 'RGBA')
-    tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 2.5) * 255 * 0.8]).astype(np.uint8), 'RGBA')
+    wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 4) * 255 * 0.35]).astype(np.uint8), 'RGBA')
+    tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 1.6) * 255 * 0.45]).astype(np.uint8), 'RGBA')
     canvas.alpha_composite(wide)
     canvas.alpha_composite(tight)
     canvas.alpha_composite(core)
