@@ -193,7 +193,7 @@ function ArticleManager() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
+            placeholder="Title, e.g. [Benefits] Why walking helps"
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3"
           />

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Square, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import Wordmark from '../../Wordmark';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 import { RATING_SCALE, AEROBIC_ACTIVITIES, ONE_RM_LIFTS } from './fitnessAssessment';
 
@@ -81,9 +82,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
     <Portal>
     <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
       <div className="max-w-md mx-auto w-full px-4 pt-safe flex items-center justify-between">
-        <div style={{ color: PLUM, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
-          <em>GROOVE</em>
-        </div>
+<Wordmark height={26} />
         <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
           <X size={20} />
         </button>

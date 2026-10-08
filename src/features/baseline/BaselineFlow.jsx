@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import Wordmark from '../../Wordmark';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 import { BASELINE_SECTIONS, estimateSecondsRemaining } from './baselineQuestions';
 
@@ -94,9 +95,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />
-          <div style={{ color: PLUM, fontFamily: "'Segoe UI', sans-serif" }} className="text-sm font-extrabold tracking-widest uppercase italic">
-            <em>GROOVE</em>
-          </div>
+<Wordmark height={26} className="justify-self-center" />
           {onClose ? (
             <button
               onClick={() => { if (window.confirm("Close for now? Your answers won't be saved.")) onClose(); }}
