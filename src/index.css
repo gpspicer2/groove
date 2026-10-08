@@ -17,7 +17,7 @@
     --c-paper: #F1E9DC; --c-paper-dim: #C4B8A8; --c-text-soft: #9A8E80;
     --c-plum: #C9A3D8; --c-olive: #9DB36F; --c-sage: #A9BD92; --c-teal-deep: #6FB2D2;
     --c-teal: #4FC1B9; --c-amber: #F5B14A; --c-rust: #EE8650; --c-mauve: #C193B5;
-    --logo-filter: brightness(1.6) saturate(0.9);
+    --logo-filter: none;
   }
 }
 :root[data-theme="dark"] {
@@ -26,7 +26,7 @@
   --c-paper: #F1E9DC; --c-paper-dim: #C4B8A8; --c-text-soft: #9A8E80;
   --c-plum: #C9A3D8; --c-olive: #9DB36F; --c-sage: #A9BD92; --c-teal-deep: #6FB2D2;
   --c-teal: #4FC1B9; --c-amber: #F5B14A; --c-rust: #EE8650; --c-mauve: #C193B5;
-  --logo-filter: brightness(1.6) saturate(0.9);
+  --logo-filter: none;
 }
 .groove-logo { filter: var(--logo-filter); }
 

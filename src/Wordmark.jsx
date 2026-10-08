@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import useDarkMode from './useDarkMode';
 
 // The actual GROOVE logo artwork (pine-tree G, runner, bike wheel, sun,
 // barbell-V, heartbeat E), cropped from the brand reference image.
@@ -36,15 +37,17 @@ const PARTS = [
 const pct = (v, total) => `${(v / total) * 100}%`;
 
 export default function Wordmark({ className = '', height = 28, running = false }) {
+  // Dark mode uses neon versions of the artwork (made by scripts/make-dark-logo.py).
+  const sfx = useDarkMode() ? '-dark' : '';
   // Warm the cache so the swap to the animated version never flashes.
   useEffect(() => {
-    ['/wordmark-still.png', '/wordmark-runner.png'].forEach((src) => { new Image().src = src; });
-  }, []);
+    [`/wordmark-still${sfx}.png`, `/wordmark-runner${sfx}.png`].forEach((src) => { new Image().src = src; });
+  }, [sfx]);
 
   if (!running) {
     return (
       <img
-        src="/wordmark.png"
+        src={`/wordmark${sfx}.png`}
         alt="GROOVE"
         height={height}
         className={`${className} groove-logo`}
@@ -60,7 +63,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
       className={`${className} groove-logo`}
       style={{ position: 'relative', display: 'inline-block', height, aspectRatio: `${FULL_W} / 231` }}
     >
-      <img src="/wordmark-still.png" alt="" style={{ display: 'block', height: '100%', width: '100%' }} />
+      <img src={`/wordmark-still${sfx}.png`} alt="" style={{ display: 'block', height: '100%', width: '100%' }} />
       <span
         className="groove-run-body"
         style={{ position: 'absolute', top: 0, height: '100%', left: pct(RUNNER_LEFT, FULL_W), width: pct(RUNNER_W, FULL_W) }}
@@ -69,7 +72,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
           {PARTS.map((part) => (
             <img
               key={part.key}
-              src="/wordmark-runner.png"
+              src={`/wordmark-runner${sfx}.png`}
               alt=""
               className={`groove-run-part groove-run-p-${part.key}`}
               style={{
