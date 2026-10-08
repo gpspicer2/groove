@@ -420,7 +420,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             </button>
           </div>
 
-          <SwipeHint id="goals">Tip: swipe a goal left to edit or stop tracking it.</SwipeHint>
+          {trackedGoals.length > 0 ? (
+            <SwipeHint id="goals">Tip: swipe a goal left to edit or stop tracking it.</SwipeHint>
+          ) : (
+            <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="text-sm underline py-2">
+              No goals on. Tap to choose some.
+            </button>
+          )}
           {trackedGoals.map((g) => (
             <GoalRow
               key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} planned={g.planned}
