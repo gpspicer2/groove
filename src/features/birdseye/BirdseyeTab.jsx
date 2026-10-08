@@ -13,7 +13,7 @@ import MetBrowser from '../../MetBrowser';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
 import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanPopups';
-import { planKinds, planMinutes, hasDetails } from '../plan/plan';
+import { planKinds, planMinutes, planSummary, hasDetails } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { RecapCard, TodayPlanCard } from './WeekCards';
@@ -952,7 +952,8 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
         <DayChoicePopup
           day={choiceDay}
           count={workoutsForDay(choiceDay).length}
-          plannedCount={plansForDay(choiceDay).length}
+          plans={plansForDay(choiceDay)}
+          onStartPlan={(plan) => { setChoiceDay(null); onStartPlan && onStartPlan(plan, plan.planned_for); }}
           onPlanned={() => { const d = choiceDay; setChoiceDay(null); setPlannedDay(d); }}
           onClose={() => setChoiceDay(null)}
           onView={() => { const w = workoutsForDay(choiceDay)[0]; setChoiceDay(null); onOpenWorkout && onOpenWorkout(w.id); }}
@@ -987,7 +988,7 @@ function PlannedMark({ plans, past = false }) {
 
 // Shown when a calendar day already has workouts: look back at them, or
 // add another for that date.
-function DayChoicePopup({ day, count, plannedCount = 0, onPlanned, onView, onLog, onClose }) {
+function DayChoicePopup({ day, count, plans = [], onStartPlan, onPlanned, onView, onLog, onClose }) {
   const isFuture = day > new Date() && !sameDay(day, new Date());
   return (
     <Portal>
@@ -1008,10 +1009,22 @@ function DayChoicePopup({ day, count, plannedCount = 0, onPlanned, onView, onLog
               Log another workout
             </button>
           )}
-          {plannedCount > 0 && (
-            <button onClick={onPlanned} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mb-1">
-              Planned workout{plannedCount > 1 ? 's' : ''}
-            </button>
+          {plans.length > 0 && (
+            <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
+              <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Planned</div>
+              {plans.map((p) => (
+                <div key={p.id} style={{ background: INK_3 }} className="rounded-md px-3 py-2.5 mb-2">
+                  <div style={{ color: PAPER }} className="text-sm font-medium">{p.title}</div>
+                  {planSummary(p) && <div style={{ color: TEXT_SOFT }} className="text-sm">{planSummary(p)}</div>}
+                  {!isFuture && (
+                    <button onClick={() => onStartPlan(p)} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mt-2">
+                      {sameDay(day, new Date()) ? 'Start Workout' : 'Log It'}
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button onClick={onPlanned} style={{ color: TEXT_SOFT }} className="text-sm underline mb-1">Edit or delete plans</button>
+            </div>
           )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
         </div>

@@ -55,7 +55,9 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   }
 
   function handleTouchStart(e) {
-    if (isSwipeExempt(e.target)) {
+    // React bubbles touches from popups (rendered elsewhere on the page) up
+    // through here too; a swipe inside a popup must not move or peek the page.
+    if (!e.currentTarget.contains(e.target) || isSwipeExempt(e.target)) {
       suppressedRef.current = true;
       return;
     }
