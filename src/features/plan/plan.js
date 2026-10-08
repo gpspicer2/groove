@@ -46,7 +46,7 @@ export function planMinutes(plan) {
 export function planSummary(plan) {
   const d = plan?.details;
   if (!d) return '';
-  const parts = hasDetails(plan) ? [modeLabel(d.mode), d.style, d.location] : [];
+  const parts = hasDetails(plan) ? [modeLabel(d.mode), d.style, d.location] : (d.groups?.length ? [d.groups.join(', ')] : []);
   const minutes = planMinutes(plan);
   if (minutes) parts.push(`${minutes} min`);
   return parts.filter(Boolean).join(' · ');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Timer } from '../../lib/icons';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
+import { MUSCLE_GROUPS } from '../move/exerciseLibrary';
 import { PLAN_SUGGESTIONS, PLAN_MINUTE_OPTIONS, DEFAULT_PLAN_MINUTES, hasDetails, planKinds, planMinutes, planSummary, friendlyPlanDate } from './plan';
 
 function Sheet({ onClose, children }) {
@@ -36,16 +37,18 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
   // goal it counts toward); a plan with full details keeps its own.
   const [kind, setKind] = useState(plan && !hasDetails(plan) ? (plan.details?.kind || 'aerobic') : 'aerobic');
   const [minutes, setMinutes] = useState(Number(plan?.details?.minutes) || DEFAULT_PLAN_MINUTES);
+  const [groups, setGroups] = useState(plan && !hasDetails(plan) ? (plan.details?.groups || []) : []);
   const canSave = title.trim().length > 0 && !saving;
   const isTile = PLAN_SUGGESTIONS.some((s) => s.label === title);
   const aerobic = editing && hasDetails(plan) ? planKinds(plan).has('aerobic') : kind === 'aerobic';
+  const askMuscles = !(editing && hasDetails(plan)) && kind === 'resistance';
 
   async function save() {
     if (!canSave) return;
     setSaving(true);
     let details;
     if (editing && hasDetails(plan)) details = aerobic ? { ...plan.details, minutes } : plan.details;
-    else details = aerobic ? { kind, minutes } : { kind };
+    else details = aerobic ? { kind, minutes } : askMuscles ? { kind, groups } : { kind };
     await onSave({ title: title.trim(), notes: notes.trim(), details });
     setSaving(false);
   }
@@ -124,6 +127,27 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
             ))}
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-1">minutes</div>
+        </div>
+      )}
+
+      {askMuscles && (
+        <div className="mb-2">
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-1.5">Which muscles? (optional)</div>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {MUSCLE_GROUPS.map((g) => {
+              const on = groups.includes(g);
+              return (
+                <button
+                  key={g}
+                  onClick={() => setGroups(on ? groups.filter((x) => x !== g) : [...groups, g])}
+                  style={{ background: on ? LIME : INK_3, color: on ? INK : PAPER_DIM }}
+                  className="rounded-full px-3 py-1 text-sm"
+                >
+                  {g}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

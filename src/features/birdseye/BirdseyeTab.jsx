@@ -226,7 +226,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   // what it was); a detailed one goes to Move to fill in the specifics.
   function handleStartPlan(plan, date) {
     const missed = date && date < dayKey(new Date());
-    if (missed && !hasDetails(plan)) setQuickLogPlan(plan);
+    // A simple resistance plan opens Move with the gym, resistance and any
+    // planned muscles already chosen, so only the goal is left to pick.
+    if (!hasDetails(plan) && planKinds(plan).has('resistance')) {
+      const withDetails = { ...plan, details: { ...plan.details, mode: 'Resistance', location: 'At the Gym', groups: plan.details?.groups || [] } };
+      if (onStartPlan) onStartPlan(withDetails, date);
+    } else if (missed && !hasDetails(plan)) setQuickLogPlan(plan);
     else if (onStartPlan) onStartPlan(plan, date);
   }
   async function logPlanNow(plan, { minutes, intensity }) {
@@ -386,7 +391,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           </button>
         )}
 
-        {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => onStartPlan && onStartPlan(p)} />}
+        {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => handleStartPlan(p)} />}
         {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for yesterday" action="Log It" onStart={(p) => handleStartPlan(p, p.planned_for)} />}
 
         {recap && (
