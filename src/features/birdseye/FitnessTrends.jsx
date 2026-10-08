@@ -38,7 +38,7 @@ function testNote(kind, value, profile) {
 
 const KINDS = [
   { kind: 'vo2max', label: 'VO2max', unit: '', color: MOSS, upIsGood: true, retest: true },
-  { kind: 'resting_hr', label: 'Resting heart rate', unit: ' bpm', color: BRICK, upIsGood: false, retest: true },
+  { kind: 'resting_hr', label: 'Resting HR', unit: ' bpm', color: BRICK, upIsGood: false, retest: true },
   { kind: 'bodyweight', label: 'Bodyweight', unit: ' lb', color: PAPER_DIM, upIsGood: null, retest: false },
 ];
 

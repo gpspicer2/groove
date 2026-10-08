@@ -8,7 +8,7 @@ import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET , ON_AMBER } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
@@ -940,6 +940,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   }
 
   async function finishWorkout() {
+    // A workout with nothing logged would just clutter History as "0 exercises".
+    if (!sets.some((s) => s.workoutId === activeWorkoutId)) {
+      if (window.confirm("Nothing's logged yet. Discard this workout instead?")) discardWorkout(true);
+      return;
+    }
     const { data, error } = await supabase
       .from('workouts')
       .update({ completed_at: new Date().toISOString() })
@@ -995,8 +1000,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     scrollAppToTop();
   }
 
-  async function discardWorkout() {
-    if (!window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
+  async function discardWorkout(skipConfirm = false) {
+    if (skipConfirm !== true && !window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
@@ -1041,7 +1046,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
             We kept a copy of your last session's exercises ({new Date(lostBackup.savedAt).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}). Restore it to keep going — logged sets may need re-entering.
           </div>
           <div className="flex gap-2">
-            <button onClick={restoreLostWorkout} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2 text-sm font-medium">Restore workout</button>
+            <button onClick={restoreLostWorkout} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Restore workout</button>
             <button onClick={dismissLostWorkout} style={{ color: TEXT_SOFT }} className="px-3 text-sm">Dismiss</button>
           </div>
         </div>
@@ -1078,7 +1083,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onReorderWarmupDrill={reorderWarmupDrill}
           onRemoveExercise={removeExercise}
           onFinish={finishWorkout}
-          onDiscard={discardWorkout}
+          onDiscard={() => discardWorkout()}
         />
       ) : (
         <>
@@ -1555,7 +1560,7 @@ function StartWorkout({
                           <button
                             key={lvl}
                             onClick={() => setPendingIntensity(lvl)}
-                            style={{ background: pendingIntensity === lvl ? AMBER : INK_3, color: pendingIntensity === lvl ? INK : PAPER_DIM }}
+                            style={{ background: pendingIntensity === lvl ? AMBER : INK_3, color: pendingIntensity === lvl ? ON_AMBER : PAPER_DIM }}
                             className="flex-1 py-2 rounded-md text-sm"
                           >
                             {lvl}
@@ -1581,7 +1586,7 @@ function StartWorkout({
                             onSelectCombinedActivity(`${pendingActivity}|${pendingIntensity}|${Number(pendingMinutes) > 0 ? Number(pendingMinutes) : 5}`);
                             closeIntegrated();
                           }}
-                          style={{ background: AMBER, color: INK }}
+                          style={{ background: AMBER, color: ON_AMBER }}
                           className="flex-1 rounded-md py-2.5 text-sm font-medium"
                         >
                           Done
@@ -2344,7 +2349,7 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
             <button
               key={a}
               onClick={() => setName(a)}
-              style={{ background: name === a ? AMBER : INK_3, color: name === a ? INK : PAPER_DIM }}
+              style={{ background: name === a ? AMBER : INK_3, color: name === a ? ON_AMBER : PAPER_DIM }}
               className="px-2.5 py-1 rounded-full text-sm"
             >
               {a}
@@ -2357,7 +2362,7 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
           <button
             key={lvl}
             onClick={() => setIntensity(lvl)}
-            style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? INK : PAPER_DIM }}
+            style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? ON_AMBER : PAPER_DIM }}
             className="flex-1 py-1.5 rounded-md text-sm"
           >
             {lvl}
@@ -2376,7 +2381,7 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
           className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
         <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
-        <button onClick={submit} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2 text-sm font-medium">Log it</button>
+        <button onClick={submit} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Log it</button>
       </div>
     </div>
   );
@@ -2466,7 +2471,7 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
               <button
                 key={lvl}
                 onClick={() => setIntensity(lvl)}
-                style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? INK : PAPER_DIM }}
+                style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? ON_AMBER : PAPER_DIM }}
                 className="flex-1 py-1.5 rounded-md text-sm"
               >
                 {lvl}
@@ -2487,7 +2492,7 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
           </label>
           <div className="flex gap-2">
             <button onClick={onRemove} style={{ background: INK_3, color: BRICK }} className="rounded-md px-4 py-2.5 text-sm font-medium">Remove</button>
-            <button onClick={save} style={{ background: AMBER, color: INK }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Save</button>
+            <button onClick={save} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2.5 text-sm font-medium">Save</button>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, AMBER, BRICK , ON_AMBER } from '../../theme';
 import Portal from '../../Portal';
 
 const PROMPTS = [
@@ -92,7 +92,7 @@ export default function JournalTab() {
         <div data-tour="journal-prompts" className="flex gap-2 mb-4">
           <button
             onClick={() => setMode('checkin')}
-            style={{ background: INK_2, borderTop: `2px solid ${LIME}` }}
+            style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }}
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Post-Movement Reflection</div>
@@ -100,7 +100,7 @@ export default function JournalTab() {
           </button>
           <button
             onClick={() => setMode('freeform')}
-            style={{ background: INK_2, borderTop: `2px solid ${SKY}` }}
+            style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }}
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Just Journal</div>
@@ -167,7 +167,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         className="absolute right-0 top-0 h-full flex"
         style={{ width: 112, transform: `translateX(${revealed ? 0 : 112}px)`, transition: 'transform 0.2s ease' }}
       >
-        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
+        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 flex items-center justify-center">
           <Pencil size={16} />
         </button>
         <button onClick={onDelete} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
@@ -197,7 +197,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
               </div>
               <button
                 onClick={() => { setShowActions(false); onEdit(); }}
-                style={{ background: SKY, color: INK }}
+                style={{ background: AMBER, color: ON_AMBER }}
                 className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
               >
                 <Pencil size={16} /> Edit entry
@@ -258,10 +258,10 @@ function EditEntryModal({ entry, onClose, onSaved }) {
             <div className="space-y-4">
               <div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Mood</div>
-                <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-xl font-medium text-center mb-2">
+                <div style={{ color: AMBER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-xl font-medium text-center mb-2">
                   {MOOD_LABELS[mood - 1]}
                 </div>
-                <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: LIME }} />
+                <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
               </div>
               <LabeledInput label="Favorite movement" value={favoriteMovement} onChange={setFavoriteMovement} />
               <LabeledInput label="Least favorite movement" value={leastFavoriteMovement} onChange={setLeastFavoriteMovement} />
@@ -287,7 +287,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{ background: LIME, color: INK }}
+            style={{ background: AMBER, color: ON_AMBER }}
             className="w-full rounded-md py-3 text-sm font-medium mt-2"
           >
             {saving ? 'Saving…' : 'Save changes'}
@@ -347,7 +347,7 @@ function FreeformEntry({ onSaved, onCancel }) {
   }
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-5 mb-4">
+    <div style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }} className="rounded-lg px-5 py-5 mb-4">
       {!prompt ? (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">Pick a prompt</div>
@@ -386,7 +386,7 @@ function FreeformEntry({ onSaved, onCancel }) {
             <button
               onClick={handleSave}
               disabled={!response.trim() || saving}
-              style={{ background: response.trim() ? LIME : INK_3, color: response.trim() ? INK : TEXT_SOFT }}
+              style={{ background: response.trim() ? AMBER : INK_3, color: response.trim() ? ON_AMBER : TEXT_SOFT }}
               className="flex-1 rounded-md py-3 text-sm font-medium"
             >
               {saving ? 'Saving…' : 'Save entry'}
@@ -432,7 +432,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
   }
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6 mb-4">
+    <div style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }} className="rounded-lg px-5 py-6 mb-4">
       <div className="flex items-center justify-between mb-4">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
           <X size={18} />
@@ -443,7 +443,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
       {step === 'mood' && (
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">How did you feel today?</div>
-          <div style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl font-medium mb-3 text-center">
+          <div style={{ color: AMBER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl font-medium mb-3 text-center">
             {MOOD_LABELS[mood - 1]}
           </div>
           <input
@@ -453,7 +453,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
             value={mood}
             onChange={(e) => setMood(Number(e.target.value))}
             className="w-full"
-            style={{ accentColor: LIME }}
+            style={{ accentColor: AMBER }}
           />
           <div className="flex justify-between mt-1">
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[0]}</span>
@@ -473,7 +473,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
                 <button
                   key={name}
                   onClick={() => setFavoriteMovement(name)}
-                  style={{ background: favoriteMovement === name ? LIME : INK_3, color: favoriteMovement === name ? INK : PAPER_DIM }}
+                  style={{ background: favoriteMovement === name ? AMBER : INK_3, color: favoriteMovement === name ? ON_AMBER : PAPER_DIM }}
                   className="w-full text-center rounded-md px-4 py-2.5 text-sm"
                 >
                   {name}
@@ -481,7 +481,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
               ))}
               <button
                 onClick={() => setFavoriteMovement('None')}
-                style={{ background: favoriteMovement === 'None' ? LIME : INK_3, color: favoriteMovement === 'None' ? INK : PAPER_DIM }}
+                style={{ background: favoriteMovement === 'None' ? AMBER : INK_3, color: favoriteMovement === 'None' ? ON_AMBER : PAPER_DIM }}
                 className="w-full text-center rounded-md px-4 py-2.5 text-sm"
               >
                 None
@@ -519,7 +519,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
                 <button
                   key={name}
                   onClick={() => setLeastFavoriteMovement(name)}
-                  style={{ background: leastFavoriteMovement === name ? LIME : INK_3, color: leastFavoriteMovement === name ? INK : PAPER_DIM }}
+                  style={{ background: leastFavoriteMovement === name ? AMBER : INK_3, color: leastFavoriteMovement === name ? ON_AMBER : PAPER_DIM }}
                   className="w-full text-center rounded-md px-4 py-2.5 text-sm"
                 >
                   {name}
@@ -527,7 +527,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
               ))}
               <button
                 onClick={() => setLeastFavoriteMovement('None')}
-                style={{ background: leastFavoriteMovement === 'None' ? LIME : INK_3, color: leastFavoriteMovement === 'None' ? INK : PAPER_DIM }}
+                style={{ background: leastFavoriteMovement === 'None' ? AMBER : INK_3, color: leastFavoriteMovement === 'None' ? ON_AMBER : PAPER_DIM }}
                 className="w-full text-center rounded-md px-4 py-2.5 text-sm"
               >
                 None
@@ -597,7 +597,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
         <button
           onClick={handleNext}
           disabled={saving}
-          style={{ background: LIME, color: INK }}
+          style={{ background: AMBER, color: ON_AMBER }}
           className="flex-1 rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
         >
           {saving ? 'Saving…' : isLast ? 'Finish' : 'Next'}

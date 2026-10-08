@@ -32,5 +32,6 @@ export const MOSS = SAGE;            // positive / on-track
 export const BRICK = RUST;           // negative / off-track / errors
 
 // Per-tab accent colors
+export const ON_AMBER = 'var(--c-on-amber)'; // text on amber buttons (sand text is too faint on amber)
 export const AMBER = AMBER_C;        // Journal
 export const VIOLET = MAUVE;         // Learn

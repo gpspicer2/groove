@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useAuth } from './auth/AuthContext';
-import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET } from './theme';
+import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, ON_AMBER } from './theme';
 import Wordmark from './Wordmark';
 import AccountMenu from './AccountMenu';
 import SwipeTabs from './SwipeTabs';
@@ -97,7 +97,7 @@ export default function ClientApp() {
                 key={key}
                 data-tour={`tab-${key}`}
                 onClick={() => setTab(key)}
-                style={{ background: active ? color : INK_2, color: active ? INK : PAPER_DIM }}
+                style={{ background: active ? color : INK_2, color: active ? (key === 'journal' ? ON_AMBER : INK) : PAPER_DIM }}
                 className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors"
               >
                 {key === 'move' && moveStatus ? <RippleText text="Moving" /> : TAB_LABELS[key]}
