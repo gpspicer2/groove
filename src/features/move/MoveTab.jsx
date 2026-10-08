@@ -432,7 +432,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     } else {
       setPlanning(null);
       setStartingPlan({ id: plan.id, title: plan.title });
-      setSelectedDate(todayLocalISO());
+      // A missed plan is logged on the day it was planned for.
+      setSelectedDate(date && date < todayLocalISO() ? date : todayLocalISO());
     }
     scrollAppToTop();
     onConsumePlanRequest && onConsumePlanRequest();
@@ -1089,7 +1090,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
         )}
         {startingPlan && !planning && (
           <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
-            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Today's plan</div>
+            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{selectedDate < todayLocalISO() ? 'Missed plan' : "Today's plan"}</div>
             <div style={{ color: PAPER }} className="text-sm font-medium">{startingPlan.title}</div>
             <button onClick={() => { setStartingPlan(null); resetStartChoices(); }} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Dismiss</button>
           </div>

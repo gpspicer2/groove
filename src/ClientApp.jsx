@@ -58,8 +58,8 @@ export default function ClientApp() {
     setPlanRequest({ mode: 'plan', date, plan });
     setTab('move');
   }
-  function startPlan(plan) {
-    setPlanRequest({ mode: 'start', plan });
+  function startPlan(plan, date) {
+    setPlanRequest({ mode: 'start', plan, date });
     setTab('move');
   }
   function logWorkoutOn(dateStr) {

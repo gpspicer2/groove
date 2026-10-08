@@ -85,12 +85,12 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
 }
 
 // Today's planned workout, one tap to start it.
-export function TodayPlanCard({ plan, onStart }) {
+export function TodayPlanCard({ plan, onStart, label = 'Planned for today', action = 'Start Workout' }) {
   const detail = planSummary(plan);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
       <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1 inline-flex items-center gap-1.5 justify-center w-full">
-        <Calendar size={13} /> Planned for today
+        <Calendar size={13} /> {label}
       </div>
       <div style={{ color: PAPER }} className="text-sm font-medium">{plan.title}</div>
       {detail && <div style={{ color: TEXT_SOFT }} className="text-sm">{detail}</div>}
@@ -99,7 +99,7 @@ export function TodayPlanCard({ plan, onStart }) {
         style={{ background: LIME, color: '#0b0b0b' }}
         className="mt-3 rounded-md px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5"
       >
-        <Play size={14} /> Start Workout
+        <Play size={14} /> {action}
       </button>
     </div>
   );

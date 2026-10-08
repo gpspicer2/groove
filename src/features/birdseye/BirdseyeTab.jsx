@@ -70,7 +70,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [editingGoals, setEditingGoals] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
-  const [plans, setPlans] = useState([]); // planned workouts from today on
+  const [plans, setPlans] = useState([]); // planned workouts from the last 14 days on
   const [liftSetRows, setLiftSetRows] = useState([]);
   const [trackBalanceGoal, setTrackBalanceGoal] = useState(false);
   const [balanceGoal, setBalanceGoal] = useState(2);
@@ -84,7 +84,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       supabase.from('workout_sets').select('workout_id, exercise_name, muscle_group, distance, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
     ]);
     // Plans load on their own so a hiccup there never blocks the rest of Birdseye.
-    const planRes = await supabase.from('planned_workouts').select('*').eq('user_id', userId).gte('planned_for', dateInputValue(new Date())).order('planned_for', { ascending: true });
+    const planRes = await supabase.from('planned_workouts').select('*').eq('user_id', userId).gte('planned_for', dateInputValue(new Date(Date.now() - 14 * 864e5))).order('planned_for', { ascending: true });
     setPlans(planRes.error ? [] : (planRes.data || []));
     // Balance goal columns load separately so Birdseye still works before they exist.
     const balRes = await supabase.from('profiles').select('balance_goal, track_balance_goal').eq('id', userId).maybeSingle();
@@ -268,6 +268,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   let plannedResistance = 0;
   let plannedFlexibility = 0;
   plans.forEach((p) => {
+    if (p.planned_for < dayKey(now)) return; // missed plans don't count as upcoming progress
     const day = new Date(`${p.planned_for}T12:00:00`);
     if (day >= weekEnd) return;
     const kinds = planKinds(p);
@@ -283,6 +284,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     },
   });
   const todayPlan = plans.find((p) => p.planned_for === dayKey(now));
+  // A plan from yesterday that never got logged: offer to log it now.
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const missedPlan = plans.find((p) => p.planned_for === dayKey(yesterday));
   const kcalThisWeek = workoutsThisWeek.reduce((sum, w) => sum + (kcalByWorkout[w.id] || 0), 0);
   const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
 
@@ -349,6 +353,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         )}
 
         {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => onStartPlan && onStartPlan(p)} />}
+        {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for yesterday" action="Log It" onStart={(p) => onStartPlan && onStartPlan(p, p.planned_for)} />}
 
         {recap && (
           <RecapCard
@@ -420,7 +425,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           onSavePlan={savePlan}
           onDeletePlan={deletePlan}
           onPlanDetails={(dateStr, plan) => onPlanWorkout && onPlanWorkout({ date: dateStr, plan: plan || null })}
-          onStartPlan={(plan) => onStartPlan && onStartPlan(plan)}
+          onStartPlan={(plan, date) => onStartPlan && onStartPlan(plan, date)}
           weekStartDay={weekStartDay}
         />
 
@@ -863,7 +868,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
                   {a && <Activity size={10} color={MOSS} />}
                   {r && <Dumbbell size={10} color={SKY} />}
                   {f && <StretchHorizontal size={10} color={BRICK} />}
-                  {dayPlans.length > 0 && <PlannedMark plans={dayPlans} />}
+                  {dayPlans.length > 0 && <PlannedMark plans={dayPlans} past={day < now && !isToday} />}
                 </span>
               ) : (
                 <Plus size={9} color={INK_3} />
@@ -877,6 +882,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           dateStr={dateInputValue(plannedDay)}
           plans={plansForDay(plannedDay)}
           isToday={sameDay(plannedDay, now)}
+          isPast={plannedDay < now && !sameDay(plannedDay, now)}
           onClose={() => setPlannedDay(null)}
           onEdit={(plan) => { setPlannedDay(null); setPlanForm({ dateStr: plan.planned_for, plan }); }}
           onDetails={(plan) => { setPlannedDay(null); onPlanDetails && onPlanDetails(plan.planned_for, plan); }}
@@ -885,7 +891,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
             // Close once the last plan for this day is gone.
             if (deleted && plansForDay(plannedDay).length <= 1) setPlannedDay(null);
           }}
-          onStart={(plan) => { setPlannedDay(null); onStartPlan && onStartPlan(plan); }}
+          onStart={(plan) => { setPlannedDay(null); onStartPlan && onStartPlan(plan, plan.planned_for); }}
           onPlanAnother={() => { const d = plannedDay; setPlannedDay(null); setPlanForm({ dateStr: dateInputValue(d), plan: null }); }}
         />
       )}
@@ -919,7 +925,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 // A planned workout on the calendar: the same icon a logged one of that
 // type gets (aerobic unless the plan says otherwise), with a little timer
 // on it, pulsing gently.
-function PlannedMark({ plans }) {
+function PlannedMark({ plans, past = false }) {
   const kinds = new Set();
   plans.forEach((p) => planKinds(p).forEach((k) => kinds.add(k)));
   const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [StretchHorizontal, BRICK] };
@@ -928,7 +934,7 @@ function PlannedMark({ plans }) {
       {[...kinds].map((k) => {
         const [Icon, color] = icon[k];
         return (
-          <span key={k} className="groove-plan-blink relative inline-flex">
+          <span key={k} className={`${past ? 'opacity-60' : 'groove-plan-blink'} relative inline-flex`}>
             <Icon size={11} color={color} />
             <Timer size={7} color={color} strokeWidth={3} className="absolute -right-1 -bottom-0.5 rounded-full" style={{ background: INK_2 }} />
           </span>

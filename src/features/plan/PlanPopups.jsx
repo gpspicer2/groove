@@ -158,7 +158,7 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
 }
 
 // What's planned for a day, with edit/delete — and Start when it's today.
-export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDetails, onDelete, onStart, onPlanAnother, onClose }) {
+export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, onEdit, onDetails, onDelete, onStart, onPlanAnother, onClose }) {
   return (
     <Sheet onClose={onClose}>
       <div className="flex items-start justify-between mb-3">
@@ -178,9 +178,9 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, onEdit, onDetails
               <div style={{ color: PAPER }} className="text-sm font-medium">{p.title}</div>
               {summary && <div style={{ color: TEXT_SOFT }} className="text-sm">{summary}</div>}
               {p.notes && <div style={{ color: PAPER_DIM }} className="text-sm mt-1">{p.notes}</div>}
-              {isToday && (
+              {(isToday || isPast) && (
                 <button onClick={() => onStart(p)} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mt-2.5">
-                  Start Workout
+                  {isPast ? 'Log It' : 'Start Workout'}
                 </button>
               )}
               <div className="flex items-center justify-center gap-4 mt-2">
