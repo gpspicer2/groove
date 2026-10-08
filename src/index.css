@@ -56,6 +56,10 @@ html, body {
   font-family: 'Manrope', sans-serif;
 }
 
+/* Android Chrome: dragging down at the top of the app would pull-to-refresh
+   (reloading mid-workout); keep the app's own scroller from chaining to that. */
+#app-scroll { overscroll-behavior-y: contain; }
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
