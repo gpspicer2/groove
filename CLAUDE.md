@@ -12,7 +12,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Update the app tour (`src/features/onboarding/AppTour.jsx`) whenever a feature it describes changes.
 
 ## Design taste
-- Colors: each tab has its own (Birdseye green `LIME`, Move teal `SKY`, Journal amber `AMBER`, Learn mauve `VIOLET`). App-wide and onboarding screens (sign-in, consent, health check, tour intro/Account/exit cards, Getting to Know You, fitness assessment) use plum `PLUM`, matching the logo's G — never a tab's color.
+- Colors (all theme tokens, light and dark): each tab has its own (Birdseye green `LIME`, Move teal `SKY`, Journal amber `AMBER`, Learn mauve `VIOLET`). App-wide and onboarding screens (sign-in, consent, health check, tour intro/Account/exit cards, Getting to Know You, fitness assessment) use plum `PLUM`, matching the logo's G — never a tab's color.
 - Compact, consistent, clean. No wasted vertical space, no repeated titles.
 - Wording: Greg offers "mentorship", never "coaching"; refer to him as Greg rather than "your coach".
 - No walls of text anywhere. Short explanations only on demand ((i) popups, one-time swipe tips).
@@ -62,6 +62,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Condition tips (`screening/conditions.js`, shown as "Tailored to you" on Birdseye): drafted per reported condition from ACSM guidance, but every tip is `reviewed: false` and hidden until Greg approves the wording; then flip that tip's flag.
 - ACSM/NSCA layer: goal tiles show NSCA %1RM and rest ranges; lifts show "Aim X-Y lb" when the client has an estimated 1RM for that exercise (`move/oneRm.js`, loose name match); the muscle picker warns (softly, never blocks) about groups trained in the last 48 hours (`move/muscles.js`); Birdseye has a "Muscles This Week" card (each group 2 days/week, push/pull check) and a rest-day nudge after 6 straight training days; "Your Fitness" has "Log a strength or mobility test" (push-ups, plank, 30-sec chair stand, sit-and-reach, waist) stored in `fitness_measurements`. Only chair stand (CDC STEADI) and waist (ACSM/NIH risk) show a norm label; add push-up/plank/sit-and-reach norms once Greg supplies the ACSM tables, rather than guessing.
 - Muscle balance now lives in a dropdown under the Resistance goal row. Suggested resistance workouts end with 1-2 cool-down drills (`generateCooldown`): a stretch (if the Flexibility goal is tracked, brick color) and a balance drill (if Balance is tracked or age 65+, violet). Each card says which goal it counts toward.
+- Dark mode: Account > Settings > Appearance (Auto follows the phone / Light / Dark; saved per device in localStorage `groove:theme`, applied before first paint from index.html; `src/appearance.js`). Theme tokens in `src/theme.js` are CSS variables defined in `index.css` (light and two dark blocks: system dark and forced dark; keep them identical). Never append hex digits to a token (use `color-mix`) and never hard-code hex colors. Import icons from `src/lib/icons.jsx` (not `lucide-react` directly) so `color`/`fill` props work with the variables. The logo brightens in dark via `.groove-logo`.
 
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.

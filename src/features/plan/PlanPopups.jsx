@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Timer } from 'lucide-react';
+import { X, Timer } from '../../lib/icons';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
 import { PLAN_SUGGESTIONS, PLAN_MINUTE_OPTIONS, DEFAULT_PLAN_MINUTES, hasDetails, planKinds, planSummary, friendlyPlanDate } from './plan';

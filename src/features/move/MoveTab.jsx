@@ -1,6 +1,6 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from 'lucide-react';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';

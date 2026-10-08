@@ -47,7 +47,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
         src="/wordmark.png"
         alt="GROOVE"
         height={height}
-        className={className}
+        className={`${className} groove-logo`}
         style={{ height, width: 'auto' }}
       />
     );
@@ -57,7 +57,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
     <span
       role="img"
       aria-label="GROOVE"
-      className={className}
+      className={`${className} groove-logo`}
       style={{ position: 'relative', display: 'inline-block', height, aspectRatio: `${FULL_W} / 231` }}
     >
       <img src="/wordmark-still.png" alt="" style={{ display: 'block', height: '100%', width: '100%' }} />

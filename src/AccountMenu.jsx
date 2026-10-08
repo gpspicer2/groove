@@ -1,7 +1,7 @@
 import { workoutTitle } from './features/move/exerciseLibrary';
 import ScreeningStatus from './features/screening/ScreeningStatus';
 import React, { useState, useEffect, useRef } from 'react';
-import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from 'lucide-react';
+import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount } from './lib/api';
@@ -10,6 +10,7 @@ import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
 import BaselineFlow from './features/baseline/BaselineFlow';
 import { logMeasurement } from './lib/measurements';
+import { getThemePref, setThemePref } from './appearance';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -620,6 +621,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
   const [autoStartRest, setAutoStartRest] = useState(getAutoStartRestTimer);
+  const [themePref, setThemePrefState] = useState(getThemePref);
 
   return (
     <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
@@ -650,6 +652,24 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
               );
             })}
           </div>
+
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Appearance</div>
+          <div className="flex items-center gap-2 mb-2">
+            {[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([value, label]) => {
+              const selected = themePref === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => { setThemePref(value); setThemePrefState(value); }}
+                  style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }}
+                  className="flex-1 rounded-md py-2.5 text-sm font-medium"
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {themePref === 'auto' && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Matches your phone's setting.</div>}
 
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Rest Timer</div>
           <button

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Play, Calendar } from 'lucide-react';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, MOSS, AMBER } from '../../theme';
+import { X, Check, Play, Calendar } from '../../lib/icons';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, MOSS, AMBER } from '../../theme';
 import { planSummary } from '../plan/plan';
 
 function storageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
@@ -72,7 +72,7 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
           </div>
           <button
             onClick={() => { onRaiseGoal(suggestion.aerobicMinutes); setRaised(true); }}
-            style={{ background: LIME, color: '#0b0b0b' }}
+            style={{ background: LIME, color: INK }}
             className="rounded-md px-4 py-2 text-sm font-medium"
           >
             Raise to {suggestion.aerobicMinutes} min
@@ -96,7 +96,7 @@ export function TodayPlanCard({ plan, onStart, label = 'Planned for today', acti
       {detail && <div style={{ color: TEXT_SOFT }} className="text-sm">{detail}</div>}
       <button
         onClick={() => onStart(plan)}
-        style={{ background: LIME, color: '#0b0b0b' }}
+        style={{ background: LIME, color: INK }}
         className="mt-3 rounded-md px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5"
       >
         <Play size={14} /> {action}

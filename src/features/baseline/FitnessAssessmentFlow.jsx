@@ -1,6 +1,6 @@
 import { logMeasurement } from '../../lib/measurements';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Square, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Square, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';

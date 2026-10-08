@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2, X } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from './theme';

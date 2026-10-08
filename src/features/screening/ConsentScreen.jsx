@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check } from '../../lib/icons';
 import { useAuth } from '../../auth/AuthContext';
 import Wordmark from '../../Wordmark';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';

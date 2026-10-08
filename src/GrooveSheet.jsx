@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from './lib/icons';
 import Portal from './Portal';
 import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
 import Wordmark from './Wordmark';

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, X } from '../../lib/icons';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, AMBER, BRICK } from '../../theme';

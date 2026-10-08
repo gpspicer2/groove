@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -55,8 +55,8 @@ function Sparkline({ points, color }) {
   const xy = points.map((p, i) => [pad + (i / (points.length - 1)) * (w - pad * 2), h - pad - ((p.value - min) / span) * (h - pad * 2)]);
   return (
     <svg width={w} height={h} aria-hidden="true">
-      <polyline points={xy.map((p) => p.join(',')).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="2.5" fill={color} />
+      <polyline points={xy.map((p) => p.join(',')).join(' ')} fill="none" style={{ stroke: color }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="2.5" style={{ fill: color }} />
     </svg>
   );
 }

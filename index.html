@@ -8,7 +8,12 @@
     <meta name="apple-mobile-web-app-title" content="GROOVE" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="theme-color" content="#EFE6D6" />
+    <meta name="theme-color" content="#EFE6D6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1B1714" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply a saved Light/Dark choice before the first paint (no flash).
+      try { var t = localStorage.getItem('groove:theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    </script>
 
     <link rel="icon" type="image/png" href="/favicon-v8.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-v8.png" />

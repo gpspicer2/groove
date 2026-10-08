@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../lib/icons';
 import Portal from '../../Portal';
-import { INK, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM } from '../../theme';
+import { INK, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM } from '../../theme';
 
 // A real guided tour over the live app — dims everything but the thing
 // being explained, rather than standalone illustration slides. Each
@@ -298,7 +298,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
           >
             <div className="flex items-center justify-center gap-1.5 mb-3">
               {STEPS.map((s, i) => (
-                <span key={i} style={{ background: i === index ? step.color : '#3a2c42', width: i === index ? 16 : 5 }} className="h-1.5 rounded-full transition-all" />
+                <span key={i} style={{ background: i === index ? step.color : INK_3, width: i === index ? 16 : 5 }} className="h-1.5 rounded-full transition-all" />
               ))}
             </div>
             <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold mb-2 whitespace-pre-line">

@@ -1,6 +1,6 @@
 import { logMeasurement } from '../../lib/measurements';
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, Wind, Dumbbell } from 'lucide-react';
+import { X, ChevronRight, Wind, Dumbbell } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK } from '../../theme';
@@ -121,7 +121,7 @@ function vo2Category(vo2) {
 // age/weight/HR inputs around them.
 function FeatureCard({ color, icon: Icon, title, children }) {
   return (
-    <div style={{ background: INK_2, border: `1px solid ${color}33`, borderTop: `3px solid ${color}` }} className="rounded-lg px-4 py-4 mb-3">
+    <div style={{ background: INK_2, border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`, borderTop: `3px solid ${color}` }} className="rounded-lg px-4 py-4 mb-3">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Icon size={16} color={color} />
         <span style={{ color, fontFamily: 'Manrope, sans-serif' }} className="text-sm uppercase tracking-wide font-bold">{title}</span>

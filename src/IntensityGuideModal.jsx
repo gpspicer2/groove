@@ -1,7 +1,7 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X } from './lib/icons';
 import Portal from './Portal';
-import { INK_2, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from './theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from './theme';
 import MetBrowser from './MetBrowser';
 
 // Same Karvonen math Birdseye's Science & Strategy card uses, so the
@@ -46,7 +46,7 @@ export default function IntensityGuideModal({ onClose, hrZones }) {
             })}
           </div>
           {!hrZones && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm mb-5 pb-5 border-b border-white/10">
+            <div style={{ color: TEXT_SOFT, borderBottom: `1px solid ${INK_3}` }} className="text-sm mb-5 pb-5">
               Add your resting heart rate in Account to see your own personal bpm ranges here.
             </div>
           )}

@@ -1,11 +1,40 @@
 @import "tailwindcss";
 
+/* Color palette. Light is the default; dark applies when the phone is in
+   dark mode (unless the person chose Light) or when they chose Dark. */
+:root {
+  color-scheme: light;
+  --c-ink: #EFE6D6; --c-ink-2: #F8F3E8; --c-ink-3: #E4D8C3;
+  --c-paper: #2B2320; --c-paper-dim: #6B5D52; --c-text-soft: #8C7F72;
+  --c-plum: #4B3854; --c-olive: #6A7B48; --c-sage: #8FA17A; --c-teal-deep: #1E3D4F;
+  --c-teal: #3FA7A0; --c-amber: #F2A029; --c-rust: #D86A2A; --c-mauve: #9B6A8F;
+  --logo-filter: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --c-ink: #1B1714; --c-ink-2: #26201C; --c-ink-3: #362E28;
+    --c-paper: #F1E9DC; --c-paper-dim: #C4B8A8; --c-text-soft: #9A8E80;
+    --c-plum: #C9A3D8; --c-olive: #9DB36F; --c-sage: #A9BD92; --c-teal-deep: #6FB2D2;
+    --c-teal: #4FC1B9; --c-amber: #F5B14A; --c-rust: #EE8650; --c-mauve: #C193B5;
+    --logo-filter: brightness(1.6) saturate(0.9);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-ink: #1B1714; --c-ink-2: #26201C; --c-ink-3: #362E28;
+  --c-paper: #F1E9DC; --c-paper-dim: #C4B8A8; --c-text-soft: #9A8E80;
+  --c-plum: #C9A3D8; --c-olive: #9DB36F; --c-sage: #A9BD92; --c-teal-deep: #6FB2D2;
+  --c-teal: #4FC1B9; --c-amber: #F5B14A; --c-rust: #EE8650; --c-mauve: #C193B5;
+  --logo-filter: brightness(1.6) saturate(0.9);
+}
+.groove-logo { filter: var(--logo-filter); }
+
 /* Neither html nor body had a background set — on iOS Safari, rubber-band
    overscroll (especially at the bottom, past the home-indicator safe
    area) exposes whatever's behind the app's own div, which defaults to
    white. Setting it here, app-wide, kills that regardless of exactly
-   which element's height computation is a pixel short. Keep in sync with
-   theme.js's INK constant. */
+   which element's height computation is a pixel short. */
 html {
   /* Nudges every Tailwind text-* size up uniformly (they're all rem-based)
      without having to touch each component's classes individually —
@@ -14,7 +43,7 @@ html {
 }
 
 html, body {
-  background: #EFE6D6;
+  background: var(--c-ink);
   height: 100%;
   /* Portal (see Portal.jsx) renders modals straight into document.body,
      outside the app's own styled wrapper div — without a font set here,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Info, X } from 'lucide-react';
+import { Check, Info, X } from '../../lib/icons';
 import Portal from '../../Portal';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 import { BALANCE_BUCKETS, BALANCE_TARGET_DAYS, balanceBucket } from '../move/muscles';

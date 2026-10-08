@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SwipeHint from '../../SwipeHint';
-import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from '../../theme';

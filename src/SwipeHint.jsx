@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X } from './lib/icons';
 import { INK_3, TEXT_SOFT, PAPER_DIM } from './theme';
 
 // A one-time "swipe left to…" nudge — swipe-to-reveal has no visible
