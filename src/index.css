@@ -149,6 +149,8 @@ html, body {
   0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
   3.44%, 10.31% { transform: rotate(45deg); }
 }
+/* Idle burst (no workout): play the stride cycle once, then Wordmark swaps back. */
+.groove-run-once .groove-run-body, .groove-run-once .groove-run-lean, .groove-run-once .groove-run-part { animation-iteration-count: 1; }
 @media (prefers-reduced-motion: reduce) {
   .groove-run-body, .groove-run-lean, .groove-run-part { animation: none; }
 }

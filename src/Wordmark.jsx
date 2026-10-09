@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import useDarkMode from './useDarkMode';
 
 // The actual GROOVE logo artwork (pine-tree G, runner, bike wheel, sun,
@@ -44,7 +44,23 @@ export default function Wordmark({ className = '', height = 28, running = false 
     [`/wordmark-still${sfx}.png`, `/wordmark-runner${sfx}.png`].forEach((src) => { new Image().src = src; });
   }, [sfx]);
 
-  if (!running) {
+  // Even when no workout is going, the runner takes one quick burst of
+  // strides every so often, just to be a little alive.
+  const [burst, setBurst] = useState(false);
+  useEffect(() => {
+    if (running || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    let t;
+    const wait = (first) => {
+      t = setTimeout(() => {
+        setBurst(true);
+        t = setTimeout(() => { setBurst(false); wait(false); }, 1300);
+      }, first ? 5000 + Math.random() * 7000 : 25000 + Math.random() * 25000);
+    };
+    wait(true);
+    return () => clearTimeout(t);
+  }, [running]);
+
+  if (!running && !burst) {
     return (
       <img
         src={`/wordmark${sfx}.png`}
@@ -60,7 +76,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
     <span
       role="img"
       aria-label="GROOVE"
-      className={`${className} groove-logo`}
+      className={`${className} groove-logo${running ? '' : ' groove-run-once'}`}
       style={{ position: 'relative', display: 'inline-block', height, aspectRatio: `${FULL_W} / 231` }}
     >
       <img src={`/wordmark-still${sfx}.png`} alt="" style={{ display: 'block', height: '100%', width: '100%' }} />

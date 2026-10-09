@@ -1,6 +1,7 @@
 import { workoutTitle } from './features/move/exerciseLibrary';
 import ScreeningStatus from './features/screening/ScreeningStatus';
 import React, { useState, useEffect, useRef } from 'react';
+import { useRevealOnOpen } from './lib/reveal';
 import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
@@ -43,6 +44,7 @@ function AccountModal({ onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showMovements, setShowMovements] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const deleteRef = useRevealOnOpen(confirmingDelete);
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -137,7 +139,7 @@ function AccountModal({ onClose }) {
             <Trash2 size={16} /> Delete Account
           </button>
         ) : (
-          <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-4 mt-2">
+          <div ref={deleteRef} style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-4 mt-2">
             <p style={{ color: BRICK }} className="text-sm text-center mb-3">
               This permanently deletes your account and all your data. It can't be undone.
             </p>
@@ -511,6 +513,7 @@ function MovementsModal({ onClose }) {
 function BaselineDataSection({ userId }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   const [loading, setLoading] = useState(true);
   const [age, setAge] = useState(null);
   const [ageInput, setAgeInput] = useState('');
@@ -564,7 +567,7 @@ function BaselineDataSection({ userId }) {
   const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
 
   return (
-    <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Baseline Data</span>
@@ -692,11 +695,12 @@ function BaselineDataSection({ userId }) {
 function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMovements }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   const [autoStartRest, setAutoStartRest] = useState(getAutoStartRestTimer);
   const [themePref, setThemePrefState] = useState(getThemePref);
 
   return (
-    <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide font-bold">Settings</span>
@@ -772,6 +776,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
 
 function DeletedWorkoutsSection({ userId }) {
   const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   const [loading, setLoading] = useState(true);
   const [workouts, setWorkouts] = useState([]);
 
@@ -797,7 +802,7 @@ function DeletedWorkoutsSection({ userId }) {
   if (!loading && workouts.length === 0) return null;
 
   return (
-    <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Deleted Workouts {!loading && `(${workouts.length})`}</span>

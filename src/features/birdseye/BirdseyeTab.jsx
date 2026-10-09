@@ -10,6 +10,7 @@ import BaselineFlow from '../baseline/BaselineFlow';
 import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import MetBrowser from '../../MetBrowser';
+import { useRevealOnOpen } from '../../lib/reveal';
 import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
 import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanPopups';
@@ -642,6 +643,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
+  const goalRef = useRevealOnOpen(expanded);
   const startX = useRef(0);
   const dragging = useRef(false);
 
@@ -688,6 +690,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
 
   return (
     <div
+      ref={goalRef}
       data-no-swipe="row"
       data-revealed={revealed}
       className="relative mb-3 last:mb-0 rounded-md overflow-hidden"
@@ -1058,6 +1061,7 @@ const MOVEMENT_INFO = {
 function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
   const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   const [openInfo, setOpenInfo] = useState(null);
   const infoBtn = (label) => (
     <button onClick={() => setOpenInfo((v) => (v === label ? null : label))} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
@@ -1069,7 +1073,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
   );
 
   return (
-    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
+    <div ref={revealRef} data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">Science Supported Strategy</span>
@@ -1144,8 +1148,9 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
 export function MovementLibrary({ hrZones }) {
   const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   return (
-    <div data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+    <div ref={revealRef} data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">Movement Library</span>

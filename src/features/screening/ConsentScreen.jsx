@@ -32,34 +32,36 @@ export default function ConsentScreen() {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
-      <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm rounded-lg px-6 py-7">
-        <Wordmark height={40} className="mb-4 mx-auto block" />
-        <h1 style={{ color: PLUM }} className="text-xl font-medium text-center mb-4">Before You Start</h1>
-        <div className="space-y-3 mb-5">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex items-center justify-center px-4 py-4">
+      <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm max-h-full flex flex-col rounded-lg px-5 pt-4 pb-4">
+        <Wordmark height={32} className="mb-2 mx-auto block shrink-0" />
+        <h1 style={{ color: PLUM }} className="text-lg font-medium text-center mb-2 shrink-0">Before You Start</h1>
+        <div className="space-y-2 mb-3 overflow-y-auto min-h-0 flex-1">
           {CONSENT_POINTS.map((p) => (
             <p key={p} style={{ color: PAPER_DIM }} className="text-sm text-center">{p}</p>
           ))}
         </div>
-        <button onClick={() => setAgreed((v) => !v)} className="flex items-center justify-center gap-2.5 mb-4 mx-auto">
-          <span
-            style={{ background: agreed ? PLUM : INK_3, borderColor: agreed ? PLUM : TEXT_SOFT }}
-            className="w-5 h-5 rounded border flex items-center justify-center shrink-0"
+        <div className="shrink-0">
+          <button onClick={() => setAgreed((v) => !v)} className="flex items-center justify-center gap-2.5 mb-3 mx-auto">
+            <span
+              style={{ background: agreed ? PLUM : INK_3, borderColor: agreed ? PLUM : TEXT_SOFT }}
+              className="w-5 h-5 rounded border flex items-center justify-center shrink-0"
+            >
+              {agreed && <Check size={14} color={INK} strokeWidth={3} />}
+            </span>
+            <span style={{ color: PAPER }} className="text-sm">I've read this and agree.</span>
+          </button>
+          {error && <div style={{ color: BRICK }} className="text-sm mb-2 text-center">{error}</div>}
+          <button
+            onClick={handleAgree}
+            disabled={!agreed || saving}
+            style={{ background: agreed ? PLUM : INK_3, color: agreed ? INK : TEXT_SOFT }}
+            className="w-full rounded-md py-3 text-sm font-medium mb-2"
           >
-            {agreed && <Check size={14} color={INK} strokeWidth={3} />}
-          </span>
-          <span style={{ color: PAPER }} className="text-sm">I've read this and agree.</span>
-        </button>
-        {error && <div style={{ color: BRICK }} className="text-sm mb-3 text-center">{error}</div>}
-        <button
-          onClick={handleAgree}
-          disabled={!agreed || saving}
-          style={{ background: agreed ? PLUM : INK_3, color: agreed ? INK : TEXT_SOFT }}
-          className="w-full rounded-md py-3 text-sm font-medium mb-3"
-        >
-          {saving ? 'Saving…' : 'Continue'}
-        </button>
-        <button onClick={signOut} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center">Sign out</button>
+            {saving ? 'Saving…' : 'Continue'}
+          </button>
+          <button onClick={signOut} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center">Sign out</button>
+        </div>
       </div>
     </div>
   );

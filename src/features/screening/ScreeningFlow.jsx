@@ -89,7 +89,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
           </div>
         </div>
 
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-8">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4">
           {step === 'active' && (
             <Question
               title="Have you been active lately?"
@@ -150,9 +150,9 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
 function Question({ title, hint, children }) {
   return (
     <div>
-      <h1 style={{ color: PAPER }} className="text-xl font-medium text-center mt-4 mb-1">{title}</h1>
-      {hint && <p style={{ color: TEXT_SOFT }} className="text-sm text-center mb-5">{hint}</p>}
-      {!hint && <div className="mb-5" />}
+      <h1 style={{ color: PAPER }} className="text-xl font-medium text-center mt-1 mb-1">{title}</h1>
+      {hint && <p style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">{hint}</p>}
+      {!hint && <div className="mb-3" />}
       {children}
     </div>
   );
@@ -163,7 +163,7 @@ function Choice({ selected, onClick, children }) {
     <button
       onClick={onClick}
       style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER }}
-      className="w-full rounded-md px-4 py-3 text-sm text-center"
+      className="w-full rounded-md px-4 py-2.5 text-sm text-center"
     >
       {children}
     </button>
@@ -176,19 +176,22 @@ function MultiQuestion({ title, hint, options, selected, onChange, onNext, savin
   }
   return (
     <Question title={title} hint={hint}>
-      <div className="space-y-2 mb-5">
+      <div className="space-y-1.5 mb-3">
         {options.map((o) => (
           <Choice key={o.key} selected={selected.includes(o.key)} onClick={() => toggle(o.key)}>{o.label}</Choice>
         ))}
       </div>
-      <button
-        onClick={onNext}
-        disabled={saving}
-        style={{ background: selected.length ? PLUM : INK_2, color: selected.length ? INK : PAPER, border: selected.length ? 'none' : `1px solid ${INK_3}` }}
-        className="w-full rounded-md py-3 text-sm font-medium"
-      >
-        {saving ? 'Saving…' : selected.length ? 'Next' : 'None of these'}
-      </button>
+      {/* Pinned so it never needs a scroll to reach. */}
+      <div style={{ background: INK }} className="sticky bottom-0 -mx-4 px-4 pt-2 pb-5">
+        <button
+          onClick={onNext}
+          disabled={saving}
+          style={{ background: selected.length ? PLUM : INK_2, color: selected.length ? INK : PAPER, border: selected.length ? 'none' : `1px solid ${INK_3}` }}
+          className="w-full rounded-md py-3 text-sm font-medium"
+        >
+          {saving ? 'Saving…' : selected.length ? 'Next' : 'None of these'}
+        </button>
+      </div>
     </Question>
   );
 }

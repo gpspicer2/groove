@@ -1,5 +1,6 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { revealSoon } from '../../lib/reveal';
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
@@ -254,6 +255,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [activeWorkoutId, setActiveWorkoutId] = useState(null);
   const [planExercises, setPlanExercises] = useState([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  // Opening a past workout scrolls it into view.
+  useEffect(() => { if (expandedHistoryId) revealSoon(document.getElementById(`history-${expandedHistoryId}`)); }, [expandedHistoryId]);
   // Extra space under History while a workout opened from the calendar is
   // expanded, so the page can scroll far enough to put it at the very top.
   const [scrollPad, setScrollPad] = useState(false);

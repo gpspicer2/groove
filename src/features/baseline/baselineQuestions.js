@@ -8,13 +8,13 @@ export const BASELINE_SECTIONS = [
     title: 'Basic Information',
     subtitle: 'Please enter the following information.',
     questions: [
-      { key: 'name', label: 'Preferred First and Last Name', type: 'text', required: true },
-      { key: 'age', label: 'Age', type: 'age', required: true },
-      { key: 'bodyweight', label: 'Bodyweight (lb)', hint: 'For calorie estimates and bodyweight exercises.', type: 'number' },
+      { key: 'name', label: 'Preferred first and last name', type: 'text', required: true },
+      { key: 'age', label: 'Age', type: 'age', required: true, half: true },
+      { key: 'bodyweight', label: 'Bodyweight (lb)', hint: 'For calorie estimates.', type: 'number', half: true },
       { key: 'phone', label: 'Phone', type: 'tel', required: true },
       {
         key: 'preferred_contact',
-        label: 'Preferred method of communication (check one)',
+        label: 'Preferred way to reach you',
         type: 'radio',
         required: true,
         options: ['Email', 'Text', 'Phone call', 'Facetime', 'Other'],
@@ -24,33 +24,44 @@ export const BASELINE_SECTIONS = [
   {
     title: 'Goals & Background',
     questions: [
-      { key: 'goals', label: 'What are your primary exercise goals? (e.g., weight loss, muscle gain, make exercise fun, run a race, etc.)', type: 'textarea' },
+      { key: 'goals', label: 'What are your primary exercise goals?', placeholder: 'e.g., weight loss, muscle gain, make exercise fun, run a race', type: 'textarea' },
       { key: 'relationship_with_exercise', label: 'What has your relationship with exercise and your body been like?', type: 'textarea' },
-      { key: 'barriers', label: 'What barriers have you faced with exercise? What has discouraged you in the past?', type: 'textarea' },
+      { key: 'barriers', label: 'What barriers or discouragement have you faced with exercise?', type: 'textarea' },
       { key: 'motivation', label: "What's motivating you to improve your fitness?", type: 'textarea' },
     ],
   },
   {
     title: 'Health & Injury History',
     questions: [
-      { key: 'injuries', label: 'Do you have any current or past injuries or operations that cause you limitations with movement? (e.g., back pain, knee surgery, etc.)', type: 'textarea' },
-      { key: 'medical_conditions', label: 'Do you have any medical conditions that are relevant to exercise? (e.g., heart disease, diabetes, etc.)', type: 'textarea' },
-      { key: 'other_conditions', label: 'Do you have any other conditions that impact your performance in other aspects of your life? (e.g., ADHD, anxiety, depression, OCD, etc.)', type: 'textarea' },
-      { key: 'enjoyed_movement', label: "Which kinds of movement do you currently enjoy? If you don't enjoy movement, that's okay! Tell me why.", type: 'textarea' },
-      { key: 'formerly_enjoyed_movement', label: 'Which types of movement did you used to enjoy but no longer find enjoyable? What happened?', type: 'textarea' },
+      { key: 'injuries', label: 'Any injuries or operations that limit your movement?', placeholder: 'e.g., back pain, knee surgery', type: 'textarea' },
+      { key: 'medical_conditions', label: 'Any medical conditions relevant to exercise?', placeholder: 'e.g., heart disease, diabetes', type: 'textarea' },
+      { key: 'other_conditions', label: 'Anything else that affects your performance in daily life?', placeholder: 'e.g., ADHD, anxiety, depression, OCD', type: 'textarea' },
     ],
   },
   {
-    title: 'Logistics',
-    subtitle: 'When and how are we going to do this?',
+    title: 'Movement & Schedule',
+    subtitle: 'What do you enjoy, and when can we do it?',
     questions: [
-      { key: 'schedule', label: 'What are some days/times that work for you? What should I know about your schedule? (e.g., weekends, evenings)', type: 'textarea' },
-      { key: 'equipment', label: 'Do you have any equipment available to you? (e.g., gym membership, free weights, yoga mat, etc.)', type: 'textarea' },
+      { key: 'enjoyed_movement', label: 'Which kinds of movement do you enjoy now?', placeholder: "If you don't enjoy movement, that's okay! Tell me why.", type: 'textarea' },
+      { key: 'formerly_enjoyed_movement', label: 'Which movement did you used to enjoy but no longer do? What happened?', type: 'textarea' },
+      { key: 'schedule', label: 'Which days and times work for you?', placeholder: 'Anything I should know about your schedule? (e.g., weekends, evenings)', type: 'textarea' },
+      { key: 'equipment', label: 'What equipment do you have?', placeholder: 'e.g., gym membership, free weights, yoga mat', type: 'textarea' },
+    ],
+  },
+  {
+    title: 'How We Work',
+    questions: [
       {
         key: 'coaching_style',
-        label: 'Do you have a preferred mentorship, leading, or management style?',
+        label: 'Preferred mentorship style',
         type: 'radio',
         options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other (e.g., a mix of a couple styles — please explain)'],
+      },
+      {
+        key: 'decision_involvement',
+        label: 'How involved do you want to be in program decisions?',
+        type: 'radio',
+        options: ['I want very little involvement (<20%)', 'I want some involvement (40-60%)', 'I really want to be involved (>80%)', 'Other'],
       },
     ],
   },
@@ -58,14 +69,8 @@ export const BASELINE_SECTIONS = [
     title: 'Expectations',
     questions: [
       { key: 'expectations', label: 'What do you want from me as your Personal Exercise Physiologist?', type: 'textarea', required: true },
-      { key: 'accountability', label: 'What level of accountability feels right for you? What does this look like for you in an ideal world?', type: 'textarea' },
-      {
-        key: 'decision_involvement',
-        label: 'How much involvement do you want to have in any program-based decision making?',
-        type: 'radio',
-        options: ['I want very little involvement (<20%)', 'I want some involvement (40-60%)', 'I really want to be involved (>80%)', 'Other'],
-      },
-      { key: 'anything_else', label: 'What else do you want me to know before we get started?', type: 'textarea' },
+      { key: 'accountability', label: 'What level of accountability feels right for you?', placeholder: 'What does this look like in an ideal world?', type: 'textarea' },
+      { key: 'anything_else', label: 'Anything else you want me to know?', type: 'textarea' },
     ],
   },
 ];

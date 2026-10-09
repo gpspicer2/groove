@@ -10,22 +10,22 @@ export const SCREENING_VERSION = 'acsm-2015-v1';
 // Signs and symptoms suggestive of cardiovascular, metabolic, or renal
 // disease, in plain language.
 export const SYMPTOMS = [
-  { key: 'chest_pain', label: 'Pain, pressure, or tightness in your chest, neck, jaw, or arms' },
-  { key: 'breathless', label: 'Shortness of breath at rest or with light activity' },
+  { key: 'chest_pain', label: 'Chest, neck, jaw, or arm pain or tightness' },
+  { key: 'breathless', label: 'Short of breath at rest or light activity' },
   { key: 'dizziness', label: 'Dizziness or fainting' },
-  { key: 'orthopnea', label: 'Trouble breathing when lying flat, or waking up breathless' },
+  { key: 'orthopnea', label: 'Breathless lying flat or waking at night' },
   { key: 'ankle_swelling', label: 'Swelling in both ankles' },
-  { key: 'palpitations', label: 'A racing, pounding, or fluttering heartbeat' },
-  { key: 'claudication', label: 'Leg pain or cramping when you walk that eases with rest' },
+  { key: 'palpitations', label: 'Racing, pounding, or fluttering heartbeat' },
+  { key: 'claudication', label: 'Leg cramping when walking that eases with rest' },
   { key: 'murmur', label: 'A heart murmur' },
-  { key: 'unusual_fatigue', label: 'Unusual tiredness or breathlessness with everyday activities' },
+  { key: 'unusual_fatigue', label: 'Unusual tiredness with everyday activities' },
 ];
 
 // Known cardiovascular (cardiac, cerebrovascular, peripheral vascular),
 // metabolic (type 1 or 2 diabetes), or renal disease.
 export const DISEASES = [
-  { key: 'heart', label: 'Heart disease or a heart procedure (like a stent or bypass)' },
-  { key: 'stroke_vascular', label: 'Stroke, or poor circulation in your legs' },
+  { key: 'heart', label: 'Heart disease, stent, or bypass' },
+  { key: 'stroke_vascular', label: 'Stroke or poor leg circulation' },
   { key: 'diabetes', label: 'Type 1 or type 2 diabetes' },
   { key: 'kidney', label: 'Kidney disease' },
 ];
@@ -40,7 +40,7 @@ export const OTHER_CONDITIONS = [
   { key: 'lung', label: 'Asthma or COPD' },
   { key: 'arthritis', label: 'Arthritis or joint pain' },
   { key: 'osteoporosis', label: 'Osteoporosis' },
-  { key: 'pregnancy', label: 'Pregnant or had a baby in the past year' },
+  { key: 'pregnancy', label: 'Pregnant or baby in the past year' },
   { key: 'cancer', label: 'Cancer, now or in the past' },
 ];
 

@@ -121,9 +121,17 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-4 space-y-5">
-        {page.section.questions.map((q) => (
-          <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} allAnswers={answers} setAnswer={setAnswer} />
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto max-w-md mx-auto w-full px-4 pb-4 space-y-3">
+        {groupQuestions(page.section.questions).map((group) => (
+          group.length > 1 ? (
+            <div key={group[0].key} className="grid grid-cols-2 gap-3 items-start">
+              {group.map((q) => (
+                <QuestionField key={q.key} question={q} value={answers[q.key] || ''} onChange={(v) => setAnswer(q.key, v)} allAnswers={answers} setAnswer={setAnswer} />
+              ))}
+            </div>
+          ) : (
+            <QuestionField key={group[0].key} question={group[0]} value={answers[group[0].key] || ''} onChange={(v) => setAnswer(group[0].key, v)} allAnswers={answers} setAnswer={setAnswer} />
+          )
         ))}
         {error && <div style={{ color: BRICK }} className="text-sm text-center">{error}</div>}
       </div>
@@ -171,6 +179,17 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
   );
 }
 
+// Consecutive questions marked `half` sit side by side.
+function groupQuestions(questions) {
+  const groups = [];
+  for (const q of questions) {
+    const last = groups[groups.length - 1];
+    if (q.half && last && last[0].half && last.length < 2) last.push(q);
+    else groups.push([q]);
+  }
+  return groups;
+}
+
 function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
   const otherKey = `${question.key}_other`;
   const isOtherSelected = question.type === 'radio' && value.startsWith('Other');
@@ -186,7 +205,8 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          rows={3}
+          rows={2}
+          placeholder={question.placeholder}
           style={{ background: INK_3, color: PAPER }}
           className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
         />
@@ -233,7 +253,7 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
 
       {question.type === 'radio' && (
         <>
-          <div className="space-y-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {question.options.map((opt) => {
               const selected = value === opt;
               return (
@@ -242,7 +262,7 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
                   type="button"
                   onClick={() => onChange(opt)}
                   style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER_DIM }}
-                  className="w-full text-center rounded-md px-3 py-2.5 text-sm"
+                  className="text-center rounded-md px-3.5 py-2 text-sm"
                 >
                   {opt}
                 </button>
