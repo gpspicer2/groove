@@ -60,8 +60,8 @@ def neon(path, out, glow=True):
         return
     pad = 14
     canvas = Image.new('RGBA', (core.width, core.height), (0, 0, 0, 0))
-    wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 4) * 255 * 0.35]).astype(np.uint8), 'RGBA')
-    tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 1.6) * 255 * 0.45]).astype(np.uint8), 'RGBA')
+    wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 4) * 255 * 0.16]).astype(np.uint8), 'RGBA')
+    tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 1.2) * 255 * 0.22]).astype(np.uint8), 'RGBA')
     canvas.alpha_composite(wide)
     canvas.alpha_composite(tight)
     canvas.alpha_composite(core)
