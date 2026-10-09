@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
@@ -6,6 +6,10 @@ import Wordmark from '../Wordmark';
 export default function AuthScreen({ recovering = false, onRecovered }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : 'signin'); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
+  // While a field is focused the phone keyboard covers the bottom of the
+  // screen, so leave room to scroll and keep the Sign in button reachable.
+  const [typing, setTyping] = useState(false);
+  const submitRef = useRef(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -49,14 +53,18 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif', paddingBottom: typing ? '55svh' : 0 }} className="min-h-[100svh] flex items-center justify-center px-4">
       <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
         <Wordmark height={54} className="mb-6 mx-auto block" />
         <h1 style={{ color: accent, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-6">
           {TITLES[mode]}
         </h1>
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={handleSubmit}
+          onFocusCapture={() => { setTyping(true); setTimeout(() => submitRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 350); }}
+          onBlurCapture={() => setTimeout(() => { if (!document.activeElement || !document.activeElement.closest('form')) setTyping(false); }, 150)}
+        >
           {needsEmail && (<>
           <label htmlFor="email" style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Email</label>
           <input
@@ -94,6 +102,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           {info && <div style={{ color: PAPER_DIM }} className="text-sm mb-4">{info}</div>}
 
           <button
+            ref={submitRef}
             type="submit"
             disabled={!canSubmit}
             style={{ background: canSubmit ? accent : INK_3, color: canSubmit ? INK : TEXT_SOFT }}
