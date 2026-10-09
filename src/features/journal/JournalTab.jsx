@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
@@ -135,6 +136,7 @@ export default function JournalTab() {
 function JournalEntryRow({ entry, onEdit, onDelete }) {
   const [revealed, setRevealed] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const actionSheet = useSwipeDown(() => setShowActions(false));
   const startX = useRef(0);
   const dragging = useRef(false);
   useEffect(() => {
@@ -197,7 +199,8 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
       {showActions && (
         <Portal>
           <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={() => setShowActions(false)}>
-            <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+            <div ref={actionSheet.ref} {...actionSheet.handlers} style={{ background: INK_2, ...actionSheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+              <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               <div style={{ color: PAPER }} className="text-sm text-center mb-5">
                 {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
               </div>
@@ -235,6 +238,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
   const [smile, setSmile] = useState(entry.structured?.smile || '');
   const [extra, setExtra] = useState(entry.structured?.extra || '');
   const [saving, setSaving] = useState(false);
+  const sheet = useSwipeDown(onClose);
 
   async function handleSave() {
     setSaving(true);
@@ -254,7 +258,8 @@ function EditEntryModal({ entry, onClose, onSaved }) {
   return (
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
-        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-5">
             <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Edit entry</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>

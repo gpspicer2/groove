@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
@@ -544,6 +545,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
     { mode: 'Balance', icon: Footprints, color: VIOLET },
   ];
   const [confirmingLow, setConfirmingLow] = useState(null); // the value they tried to set below the ACSM floor
+  const sheet = useSwipeDown(onClose);
 
   function requestAerobicChange(next) {
     if (next < ACSM_AEROBIC_MINIMUM) { setConfirmingLow(next); return; }
@@ -553,7 +555,8 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   return (
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
-        <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-5">
             <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Weekly Goals</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>

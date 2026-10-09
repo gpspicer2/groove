@@ -2,6 +2,7 @@ import { workoutTitle } from './features/move/exerciseLibrary';
 import ScreeningStatus from './features/screening/ScreeningStatus';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRevealOnOpen } from './lib/reveal';
+import { useSwipeDown, GRAB_BAR_CLASS } from './lib/swipeDown';
 import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
@@ -45,6 +46,7 @@ function AccountModal({ onClose }) {
   const [showMovements, setShowMovements] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const deleteRef = useRevealOnOpen(confirmingDelete);
+  const sheet = useSwipeDown(onClose);
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -80,7 +82,8 @@ function AccountModal({ onClose }) {
   return (
     <Portal>
     <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50">
-      <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[90vh] overflow-y-auto">
+      <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[90vh] overflow-y-auto">
+        <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
         <div className="relative flex items-center justify-center mb-5">
           <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg text-center">Account</h2>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="absolute right-0 p-2 -m-2"><X size={20} /></button>

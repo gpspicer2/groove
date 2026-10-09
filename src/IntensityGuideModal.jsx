@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSwipeDown, GRAB_BAR_CLASS } from './lib/swipeDown';
 import { X } from './lib/icons';
 import Portal from './Portal';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from './theme';
@@ -18,15 +19,19 @@ const INTENSITY_GUIDE = [
 // entry point, for "oh, I can log that?" discovery). One component, one
 // dataset, so the two never drift apart.
 export default function IntensityGuideModal({ onClose, hrZones }) {
+  const sheet = useSwipeDown(onClose);
 
   return (
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
         <div
-          style={{ background: INK_2 }}
+          ref={sheet.ref}
+          {...sheet.handlers}
+          style={{ background: INK_2, ...sheet.style }}
           className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-4">
             <h3 style={{ color: PAPER }} className="text-base font-medium">Which intensity was it?</h3>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
