@@ -9,7 +9,7 @@ never in Groove. The app only learns "this person is paying".
   and sets `profiles.membership_status` (active, trialing, past_due, canceled).
 - `api/billing/portal.js` opens Stripe's customer portal (update card, receipts, cancel).
 - `comped` (set by Greg on the Billing tab) = free access.
-- `MembershipGate` blocks the app for people without access, but only when
+- Without access, Birdseye, Move and Journal show `LockedTab` (Join button; Birdseye keeps the Movement Library; Learn stays open), but only when
   `VITE_REQUIRE_MEMBERSHIP=true`. Until then everyone keeps full access.
 - Deleting an account cancels its Stripe subscription first.
 

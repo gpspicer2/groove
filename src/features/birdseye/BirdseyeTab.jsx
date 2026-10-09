@@ -1141,7 +1141,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
   );
 }
 
-function MovementLibrary({ hrZones }) {
+export function MovementLibrary({ hrZones }) {
   const [open, setOpen] = useState(false);
   return (
     <div data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">

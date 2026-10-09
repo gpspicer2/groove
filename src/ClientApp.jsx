@@ -10,6 +10,8 @@ import JournalTab from './features/journal/JournalTab';
 import LearnTab from './features/learn/LearnTab';
 import { GrooveDrawerHost, openGrooveDrawer } from './GrooveSheet';
 import AppTour from './features/onboarding/AppTour';
+import LockedTab from './features/membership/LockedTab';
+import { MEMBERSHIP_REQUIRED, hasAccess } from './lib/membership';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
 const TAB_LABELS = { birdseye: 'Birdseye', move: 'Move', journal: 'Journal', learn: 'Learn' };
@@ -28,7 +30,9 @@ function RippleText({ text }) {
 }
 
 export default function ClientApp() {
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile, reloadProfile } = useAuth();
+  // Without a membership, Birdseye, Move and Journal are locked; Learn stays open.
+  const locked = MEMBERSHIP_REQUIRED && !hasAccess(profile);
   const [tab, setTab] = useState('birdseye');
   // Lets swipe-to-reveal rows in any tab close themselves when the tab changes.
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
@@ -70,7 +74,20 @@ export default function ClientApp() {
   }
 
   const activeIndex = TABS.indexOf(tab);
-  const showTour = !profile.tour_done && !tourJustFinished;
+  const showTour = !profile.tour_done && !tourJustFinished && !locked;
+
+  // Coming back from Stripe, the payment takes a few seconds to arrive.
+  const justPaid = new URLSearchParams(window.location.search).get('checkout') === 'success';
+  useEffect(() => {
+    if (!locked || !justPaid) return undefined;
+    let tries = 0;
+    const id = setInterval(async () => {
+      tries += 1;
+      await reloadProfile();
+      if (tries >= 15) clearInterval(id);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [locked, justPaid]);
 
   return (
     <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex flex-col">
@@ -126,7 +143,7 @@ export default function ClientApp() {
           onEdgeSwipeRight={tab === 'birdseye' ? openGrooveDrawer : null}
           scrollContainerRef={scrollRef}
           pages={[
-            <BirdseyeTab
+            locked ? <LockedTab key="birdseye" showLibrary /> : <BirdseyeTab
               key="birdseye"
               userId={user.id}
               onOpenWorkout={openWorkout}
@@ -138,8 +155,8 @@ export default function ClientApp() {
               openBaselineOnLoad={openBaselineOnLoad}
               onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
             />,
-            <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />,
-            <JournalTab key="journal" />,
+            locked ? <LockedTab key="move" /> : <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />,
+            locked ? <LockedTab key="journal" /> : <JournalTab key="journal" />,
             <LearnTab key="learn" />,
           ]}
         />
