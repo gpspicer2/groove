@@ -16,7 +16,7 @@ import { INK, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRIC
 const STEPS = [
   {
     tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove.",
-    body: "Move more, feel better, and stick with it.\n\nBeing in a groove is that locked-in feeling: mind and body working together, effort fading away, and time doing something strange.",
+    body: "Move more, feel better, and stick with it.\n\nBeing in a groove is that locked-in feeling: mind and body working together, effort melting away, and time fading away.",
   },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: 'Four Tabs, Swipe or Tap',
