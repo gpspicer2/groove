@@ -16,48 +16,26 @@ const RUNNER_H = 231;
 
 const pct = (v, total) => `${(v / total) * 100}%`;
 
-// During a stride burst the runner is drawn as smooth shapes (round-capped
-// limbs that bend at the hip, knee and shoulder) instead of the picture, so
-// nothing can show a seam. This pose matches the artwork's runner (traced
-// from wordmark-runner.png); the CSS (.gr-*) swings the joints. Colors are
-// the logo artwork's own, not UI theme tokens.
-const RUNNER_FILL = { light: 'rgb(96, 106, 66)', dark: 'rgb(150, 255, 90)' };
-
-function VectorRunner({ dark }) {
-  const c = dark ? RUNNER_FILL.dark : RUNNER_FILL.light;
-  const limb = { stroke: c, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
-  return (
-    <svg viewBox="0 0 186 231" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }} aria-hidden="true">
-      <g className="gr-lean">
-        <circle cx="119" cy="28.5" r="22" fill={c} />
-        <polygon points="96,62 122,64 143,104 136,116 104,100" fill={c} />
-        <polygon points="64,100 58,140 40,176 52,176 74,140 80,100" fill={c} />
-        <line x1="99" y1="70" x2="80" y2="128" {...limb} strokeWidth="36" />
-        <line x1="53" y1="63" x2="118" y2="63" {...limb} strokeWidth="19" />
-        <g className="gr-arm-b"><polyline points="86,64 47,67 32,95" {...limb} strokeWidth="17" /></g>
-        <g className="gr-arm-f"><polyline points="110,72 138,112 169,87" {...limb} strokeWidth="19" /></g>
-        <g className="gr-thigh-b">
-          <line x1="82" y1="140" x2="48" y2="177" {...limb} strokeWidth="25" />
-          <g className="gr-shin-b"><line x1="48" y1="177" x2="21" y2="211" {...limb} strokeWidth="25" /></g>
-        </g>
-        <g className="gr-thigh-f">
-          <line x1="82" y1="140" x2="127" y2="158" {...limb} strokeWidth="24" />
-          <g className="gr-shin-f">
-            <polyline points="127,158 127,209 153,211" {...limb} strokeWidth="24" />
-          </g>
-        </g>
-      </g>
-    </svg>
-  );
-}
+// The stride is a strip of pre-drawn frames (public/runner-sprites*.png,
+// made by scripts/make-runner-sprites.py) that CSS flips through. The logo
+// is always the same two layers (the artwork with the runner erased, plus
+// the runner picture), so starting a stride never swaps images or moves
+// anything; only the runner layer changes to the sprite while he runs.
+const SPRITE_FRAME_W = 326;   // sprite frame size in the runner image's pixels
+const SPRITE_FRAME_H = 311;
+const SPRITE_MARGIN_X = 70;   // room around the runner for swinging limbs
+const SPRITE_MARGIN_Y = 40;
+const SPRITE_FRAMES = 12;
 
 export default function Wordmark({ className = '', height = 28, running = false }) {
   // Dark mode uses neon versions of the artwork (made by scripts/make-dark-logo.py).
   const dark = useDarkMode();
   const sfx = dark ? '-dark' : '';
-  // Warm the cache so the swap to the animated version never flashes.
+  // Load the sprite ahead of time so the first stride never stutters.
   useEffect(() => {
-    new Image().src = `/wordmark-still${sfx}.png`;
+    const img = new Image();
+    img.src = `/runner-sprites${sfx}.png`;
+    img.decode?.().catch(() => {});
   }, [sfx]);
 
   // The runner takes a quick burst of strides now and then: every 6 seconds
@@ -70,24 +48,12 @@ export default function Wordmark({ className = '', height = 28, running = false 
       const gap = running ? (first ? 1200 : 4700) : (first ? 3000 + Math.random() * 4000 : 10000 + Math.random() * 10000);
       t = setTimeout(() => {
         setBurst(true);
-        t = setTimeout(() => { setBurst(false); wait(false); }, 1300);
+        t = setTimeout(() => { setBurst(false); wait(false); }, 1250);
       }, gap);
     };
     wait(true);
     return () => { clearTimeout(t); setBurst(false); };
   }, [running]);
-
-  if (!burst) {
-    return (
-      <img
-        src={`/wordmark${sfx}.png`}
-        alt="GROOVE"
-        height={height}
-        className={`${className} groove-logo`}
-        style={{ height, width: 'auto' }}
-      />
-    );
-  }
 
   return (
     <span
@@ -101,7 +67,22 @@ export default function Wordmark({ className = '', height = 28, running = false 
         className="groove-run-body"
         style={{ position: 'absolute', top: 0, height: '100%', left: pct(RUNNER_LEFT, FULL_W), width: pct(RUNNER_W, FULL_W) }}
       >
-        <VectorRunner dark={dark} />
+        <img
+          src={`/wordmark-runner${sfx}.png`}
+          alt=""
+          style={{ display: 'block', width: '100%', height: '100%', visibility: burst ? 'hidden' : 'visible' }}
+        />
+        <span
+          className={`gr-sprite${burst ? ' on' : ''}`}
+          style={{
+            left: `-${(SPRITE_MARGIN_X / RUNNER_W) * 100}%`,
+            top: `-${(SPRITE_MARGIN_Y / RUNNER_H) * 100}%`,
+            width: `${(SPRITE_FRAME_W / RUNNER_W) * 100}%`,
+            height: `${(SPRITE_FRAME_H / RUNNER_H) * 100}%`,
+            backgroundImage: `url(/runner-sprites${sfx}.png)`,
+            backgroundSize: `100% ${SPRITE_FRAMES * 100}%`,
+          }}
+        />
       </span>
     </span>
   );
