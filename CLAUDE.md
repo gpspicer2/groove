@@ -83,3 +83,4 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - The same exercise can appear in two muscle groups — card keys carry a `#n` suffix.
 - localStorage keys: `groove:combinedLayout:<id>`, `groove:combinedActivity:<id>`, `groove:liveBackup`, `groove:swipeHint:<id>`, `groove:autoStartRestTimer`.
 - `workouts.plan` is a JSON array, so new entry types need no migration.
+- Learn posting (coach): paste a link, "Write it for me" calls `api/learn/summarize.js` (fetches the page, asks Claude for a catchy title, 1-2 sentence summary and a category, saved as the `[Benefits]/[Strategy]/[Adherence]` title prefix). Needs `ANTHROPIC_API_KEY` in Vercel; Greg can edit the draft before posting. Some sites block fetching; he then types it himself.

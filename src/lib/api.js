@@ -39,3 +39,18 @@ export async function deleteMember(id) {
   try { body = await res.json(); } catch { /* not JSON */ }
   if (!res.ok) throw new Error(body.error || 'Could not delete that member');
 }
+
+// Coach only: reads a link and drafts a Learn title, summary and category.
+export async function summarizeLink(url) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not signed in');
+  const res = await fetch('/api/learn/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ url }),
+  });
+  let body = {};
+  try { body = await res.json(); } catch { /* not JSON */ }
+  if (!res.ok) throw new Error(body.error || 'Could not read that link');
+  return body;
+}
