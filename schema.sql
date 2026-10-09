@@ -402,3 +402,51 @@ create table push_subscriptions (
 alter table push_subscriptions enable row level security;
 create policy "push_subscriptions_own" on push_subscriptions for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ── Friends & family get a free membership automatically ─────────────────
+-- Anyone whose email contains "spice" (covers "spicer") or "tamplen", or the
+-- whole word "roy" (so roy.smith@ and roy1@ match, but troy@ / royal@ / enjoy@
+-- do not), is marked 'comped' when their profile is created. Existing matching
+-- members are comped once, below. Greg can still change anyone on the coach
+-- Billing tab.
+create or replace function public.is_friend_or_family(e text) returns boolean
+language sql immutable as $$
+  select coalesce(lower(e) ~ '(spice|tamplen)' or lower(e) ~ '(^|[^a-z])roy([^a-z]|$)', false)
+$$;
+
+create or replace function public.comp_friends_and_family() returns trigger
+language plpgsql as $$
+begin
+  if new.role is distinct from 'trainer' and new.membership_status is null and public.is_friend_or_family(new.email) then
+    new.membership_status := 'comped';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists comp_friends_and_family on public.profiles;
+create trigger comp_friends_and_family before insert on public.profiles
+  for each row execute function public.comp_friends_and_family();
+
+update public.profiles set membership_status = 'comped'
+where role = 'client' and membership_status is null and public.is_friend_or_family(email);
+
+-- ── Members can't give themselves a membership (or the coach role) ──────────
+-- profiles_self_update lets a signed-in user change their own row, which
+-- included role and membership_status. Only the coach, or the server (which
+-- has no signed-in user, like the payment webhook), may change these.
+create or replace function public.protect_profile_columns() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_trainer() then
+    new.role := old.role;
+    new.membership_status := old.membership_status;
+    new.membership_renews_at := old.membership_renews_at;
+    new.stripe_customer_id := old.stripe_customer_id;
+    new.stripe_subscription_id := old.stripe_subscription_id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists protect_profile_columns on public.profiles;
+create trigger protect_profile_columns before update on public.profiles
+  for each row execute function public.protect_profile_columns();
