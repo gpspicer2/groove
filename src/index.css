@@ -114,8 +114,8 @@ html, body {
 /* The runner's stride (see Wordmark.jsx): a strip of 12 pre-drawn frames shown
    one at a time. One cycle is 0.6s and a burst plays it twice. */
 .groove-run-body { position: absolute; display: block; }
-.gr-sprite { position: absolute; background-repeat: no-repeat; visibility: hidden; pointer-events: none; }
-.gr-sprite.on { visibility: visible; animation: gr-frames 0.6s step-end 2; }
+.gr-sprite { position: absolute; background-repeat: no-repeat; opacity: 0; transition: opacity 120ms linear; pointer-events: none; }
+.gr-sprite.on { opacity: 1; animation: gr-frames 0.6s step-end 2; }
 @keyframes gr-frames {
   0.000% { background-position: 0 0.000%; }
   8.333% { background-position: 0 9.091%; }

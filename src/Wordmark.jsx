@@ -70,7 +70,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
         <img
           src={`/wordmark-runner${sfx}.png`}
           alt=""
-          style={{ display: 'block', width: '100%', height: '100%', visibility: burst ? 'hidden' : 'visible' }}
+          style={{ display: 'block', width: '100%', height: '100%', opacity: burst ? 0 : 1, transition: 'opacity 120ms linear' }}
         />
         <span
           className={`gr-sprite${burst ? ' on' : ''}`}

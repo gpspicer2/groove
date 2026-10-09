@@ -1,10 +1,12 @@
 """Renders the runner's stride as a vertical strip of frames
 (public/runner-sprites.png and runner-sprites-dark.png).
 
-Wordmark.jsx flips through these frames with plain CSS (no transforms on SVG
-parts, nothing browser-specific). The pose is traced to match
-public/wordmark-runner.png; joints bend with the same keyframes the old SVG
-version used. Needs pillow only. Run from the repo root:  python3 scripts/make-runner-sprites.py
+The runner is drawn from round-capped limbs whose pose was fitted to match
+public/wordmark-runner.png (about 93% overlap with the artwork), then bent at
+the hip, knee and shoulder through a stride cycle. Wordmark.jsx flips through
+the frames with plain CSS and fades to/from the real artwork at the start and
+end of each stride. Needs pillow only. Run from the repo root:
+    python3 scripts/make-runner-sprites.py
 """
 import math
 from PIL import Image, ImageDraw
@@ -17,16 +19,21 @@ MX, MY = 70, 40          # margin around the runner box (limbs swing outside it)
 FW, FH = W + 2 * MX, H + 2 * MY
 COLORS = {'': (96, 106, 66), '-dark': (150, 255, 90)}
 
-HIP = (82, 140); KNEE_B = (48, 177); ANKLE_B = (21, 211)
-KNEE_F = (127, 158); ANKLE_F = (127, 209); TOE_F = (153, 211)
-SH_B = (86, 64); SH_F = (110, 72)
+HIP = (82, 140)
+HEAD = (119.55, 28.85, 22)
+CHEST = [(97.5, 63.5), (125, 62), (150, 101.5), (139, 110), (108.5, 94)]
+TORSO = [(100.5, 71.5), (74.9, 135.8)]; TORSO_W = 37.5
+SHOULDER = [(54.9, 62.1), (107.5, 62.4)]; SHOULDER_W = 18.4
+ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5
+ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
+LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
+LEG_F = [(128.5, 161.0), (127.0, 208.0), (149.75, 211.5)]; LEG_F_W = 25.0   # knee, ankle, toe
 
 def rot(p, c, deg):
     a = math.radians(deg); dx, dy = p[0] - c[0], p[1] - c[1]
     return (c[0] + dx * math.cos(a) - dy * math.sin(a), c[1] + dx * math.sin(a) + dy * math.cos(a))
 
 def smooth(keys, t):
-    """keys: list of (t, value) sorted; cosine ease between neighbours."""
     for (t0, v0), (t1, v1) in zip(keys, keys[1:]):
         if t0 <= t <= t1:
             u = (t - t0) / (t1 - t0); u = (1 - math.cos(math.pi * u)) / 2
@@ -36,36 +43,34 @@ def smooth(keys, t):
 def K(a, b, c, d, e): return [(0, a), (.25, b), (.5, c), (.75, d), (1, e)]
 THIGH_B = K(0, -55, -110, -55, 0); SHIN_B = K(0, 37, 72, -30, 0)
 THIGH_F = K(0, 55, 110, 55, 0);    SHIN_F = K(0, -30, -72, 37, 0)
-ARM_B = K(0, -21, -42, -21, 0);    ARM_F = K(0, 20, 40, 20, 0)
-BOB = K(0, -9, 0, -9, 0);          LEAN = K(2, 4, 2, 4, 2)
+SWING_B = K(0, -21, -42, -21, 0);  SWING_F = K(0, 20, 40, 20, 0)
+BOB = K(0, -9, 0, -9, 0);          LEAN = K(0, 3, 0, 3, 0)
 
 def frame(color, t):
     img = Image.new('RGBA', (FW * SS, FH * SS), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
-    ox, oy = MX, MY
     bob = smooth(BOB, t); lean = smooth(LEAN, t)
     def tf(p):  # lean about the hip, then bob, then into the frame
         q = rot(p, HIP, lean)
-        return ((q[0] + ox) * SS, (q[1] + bob + oy) * SS)
+        return ((q[0] + MX) * SS, (q[1] + bob + MY) * SS)
     def line(pts, w):
         P = [tf(p) for p in pts]; r = w * SS / 2
         for a, b in zip(P, P[1:]): d.line([a, b], fill=color, width=int(w * SS))
         for x, y in P: d.ellipse([x - r, y - r, x + r, y + r], fill=color)
-    def poly(pts): d.polygon([tf(p) for p in pts], fill=color)
-    cx, cy = tf((119, 28.5)); r = 22 * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
-    poly([(96, 62), (122, 64), (143, 104), (136, 116), (104, 100)])
-    line([(99, 70), (80, 128)], 36); line([(53, 63), (118, 63)], 19)
-    ab = smooth(ARM_B, t); af = smooth(ARM_F, t)
-    line([rot(p, SH_B, ab) for p in [(86, 64), (47, 67), (32, 95)]], 17)
-    line([rot(p, SH_F, af) for p in [(110, 72), (138, 112), (169, 87)]], 19)
-    # back leg
-    tb = smooth(THIGH_B, t); sb = smooth(SHIN_B, t)
-    knee_b = rot(KNEE_B, HIP, tb); ankle_b = rot(rot(ANKLE_B, KNEE_B, sb), HIP, tb)
-    line([HIP, knee_b], 25); line([knee_b, ankle_b], 25)
+    cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
+    d.polygon([tf(p) for p in CHEST], fill=color)
+    line(TORSO, TORSO_W); line(SHOULDER, SHOULDER_W)
+    sb, sf = ARM_B[0], ARM_F[0]
+    line([rot(p, sb, smooth(SWING_B, t)) for p in ARM_B], ARM_B_W)
+    line([rot(p, sf, smooth(SWING_F, t)) for p in ARM_F], ARM_F_W)
+    # back leg: thigh swings from the hip, shin from the knee
+    tb, sbn = smooth(THIGH_B, t), smooth(SHIN_B, t)
+    knee_b = rot(LEG_B[0], HIP, tb); ankle_b = rot(rot(LEG_B[1], LEG_B[0], sbn), HIP, tb)
+    line([HIP, knee_b, ankle_b], LEG_B_W)
     # front leg (shin and foot swing from the knee)
-    tf_ = smooth(THIGH_F, t); sf = smooth(SHIN_F, t)
-    knee_f = rot(KNEE_F, HIP, tf_)
-    ankle_f = rot(rot(ANKLE_F, KNEE_F, sf), HIP, tf_); toe_f = rot(rot(TOE_F, KNEE_F, sf), HIP, tf_)
-    line([HIP, knee_f], 24); line([knee_f, ankle_f, toe_f], 24)
+    tfw, sfn = smooth(THIGH_F, t), smooth(SHIN_F, t)
+    knee_f = rot(LEG_F[0], HIP, tfw)
+    low = [rot(rot(p, LEG_F[0], sfn), HIP, tfw) for p in LEG_F[1:]]
+    line([HIP, knee_f], LEG_F_W); line([knee_f] + low, LEG_F_W)
     return img.resize((FW * OUT, FH * OUT), Image.LANCZOS)
 
 for sfx, color in COLORS.items():
@@ -74,4 +79,3 @@ for sfx, color in COLORS.items():
         sheet.paste(frame(color + (255,), i / N), (0, i * FH * OUT))
     path = f'public/runner-sprites{sfx}.png'
     sheet.save(path, optimize=True); print(path, sheet.size)
-print('frame box', FW, FH, 'margins', MX, MY)
