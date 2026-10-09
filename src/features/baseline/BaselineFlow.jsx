@@ -65,9 +65,10 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
       // Account's own age field (and anything reading profile.age instead
       // of falling back to the baseline blob) would otherwise show blank
       // even though the client already answered this.
-      (answers.age || parseFloat(answers.bodyweight) > 0)
+      (answers.age || answers.name || parseFloat(answers.bodyweight) > 0)
         ? supabase.from('profiles').update({
             ...(answers.age ? { age: parseInt(answers.age, 10) } : {}),
+            ...(answers.name && answers.name.trim() ? { full_name: answers.name.trim() } : {}),
             ...(parseFloat(answers.bodyweight) > 0 ? { bodyweight_lb: parseFloat(answers.bodyweight) } : {}),
           }).eq('id', userId).then((r) => r.error)
         : Promise.resolve(null),

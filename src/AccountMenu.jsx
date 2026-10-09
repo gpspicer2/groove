@@ -86,6 +86,8 @@ function AccountModal({ onClose }) {
 
         <AvatarPicker userId={user.id} />
 
+        <NameField />
+
         <div className="text-center mb-5">
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Signed in as</div>
           <div style={{ color: PAPER }} className="text-sm">{user.email}</div>
@@ -165,6 +167,42 @@ function AccountModal({ onClose }) {
     {showPassword === 'payment' && <PaymentModal onClose={() => setShowPassword(false)} />}
     {showMovements && <MovementsModal onClose={() => setShowMovements(false)} />}
     </Portal>
+  );
+}
+
+// Your name, as Greg sees it. Saves when you tap away.
+function NameField() {
+  const { profile, updateProfile, user } = useAuth();
+  const [name, setName] = useState(profile?.full_name || '');
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    const clean = name.trim();
+    if (clean === (profile?.full_name || '')) return;
+    const { error } = await updateProfile({ full_name: clean || null });
+    if (error) return;
+    // Keep the name in the "get to know you" answers in step too.
+    const { data: row } = await supabase.from('baseline_responses').select('form_answers').eq('user_id', user.id).maybeSingle();
+    if (row?.form_answers && 'name' in row.form_answers) {
+      await supabase.from('baseline_responses').update({ form_answers: { ...row.form_answers, name: clean } }).eq('user_id', user.id);
+    }
+    setSaved(true); setTimeout(() => setSaved(false), 1500);
+  }
+
+  return (
+    <div className="mb-4">
+      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide text-center mb-1">Your name</div>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={save}
+        placeholder="First and last name"
+        autoCapitalize="words"
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+      />
+      <div style={{ color: TEXT_SOFT }} className="text-sm text-center h-5 mt-0.5">{saved ? 'Saved' : ''}</div>
+    </div>
   );
 }
 

@@ -16,7 +16,7 @@ import Members from './features/coach/Members';
 const TABS = [
   ['today', 'Today', LayoutDashboard],
   ['clients', 'Members', Users],
-  ['library', 'Library', BookOpen],
+  ['library', 'Learn', BookOpen],
   ['billing', 'Billing', CreditCard],
 ];
 

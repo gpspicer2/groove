@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../theme';
 
 function viewName(role) {
-  return role === 'trainer' ? 'Coach view' : 'My view';
+  return role === 'trainer' ? 'Coach view' : 'Client view';
 }
 
 function LinkPopup({ onClose, onDone }) {
@@ -67,7 +67,7 @@ export function ViewToggle({ className = '' }) {
         style={{ background: INK_3, color: PAPER_DIM }}
         className={`rounded-full px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap ${className}`}
       >
-        <Repeat size={14} /> {other ? viewName(other.role) : 'My view'}
+        <Repeat size={14} /> {other ? viewName(other.role) : 'Client view'}
       </button>
       {error && <span style={{ color: BRICK }} className="text-sm ml-2">{error}</span>}
       {linking && <LinkPopup onClose={() => setLinking(false)} onDone={() => setLinking(false)} />}
