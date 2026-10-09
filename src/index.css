@@ -111,48 +111,37 @@ html, body {
 }
 
 
-/* The logo's runner, while a workout is in progress: every 8 seconds he
-   takes a few quick strides (about a second), then stands still. Arms and
-   legs swing from their own joints; the body bobs and leans into it. */
-.groove-run-body, .groove-run-lean { position: absolute; inset: 0; display: block; }
-/* Smoother motion: a sine-style easing curve, and each moving piece on its
-   own GPU layer so the clipped images aren't re-drawn every frame. */
-.groove-run-body, .groove-run-lean, .groove-run-part { will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.groove-run-body { animation: groove-run-bob 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-.groove-run-lean { transform-origin: 47% 58%; animation: groove-run-lean 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-.groove-run-part { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.groove-run-p-back-leg { animation: groove-run-back-leg 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-.groove-run-p-front-leg { animation: groove-run-front-leg 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-.groove-run-p-back-arm { animation: groove-run-back-arm 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-.groove-run-p-front-arm { animation: groove-run-front-arm 8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
-@keyframes groove-run-bob {
-  0%, 3.44%, 6.88%, 10.31%, 13.75%, 100% { transform: translateY(0); }
-  1.72%, 5.16%, 8.59%, 12.03% { transform: translateY(-9%); }
+/* The runner's stride (see Wordmark.jsx VectorRunner): one stride cycle is
+   0.6s and the burst plays it twice. Each joint swings from its own pivot
+   (user-space px of the runner's 186x231 box). */
+.groove-run-body { position: absolute; display: block; }
+.gr-lean, .gr-arm-b, .gr-arm-f, .gr-thigh-b, .gr-shin-b, .gr-thigh-f, .gr-shin-f {
+  transform-box: view-box;
+  animation-duration: 0.6s;
+  animation-iteration-count: 2;
+  animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  will-change: transform;
 }
-@keyframes groove-run-lean {
-  0%, 100% { transform: rotate(0deg); }
-  1.5%, 12.5% { transform: rotate(5deg); }
+.gr-lean { transform-origin: 82px 140px; animation-name: gr-lean; }
+.gr-arm-b { transform-origin: 86px 64px; animation-name: gr-arm-b; }
+.gr-arm-f { transform-origin: 110px 72px; animation-name: gr-arm-f; }
+.gr-thigh-b { transform-origin: 82px 140px; animation-name: gr-thigh-b; }
+.gr-shin-b { transform-origin: 48px 177px; animation-name: gr-shin-b; }
+.gr-thigh-f { transform-origin: 82px 140px; animation-name: gr-thigh-f; }
+.gr-shin-f { transform-origin: 127px 158px; animation-name: gr-shin-f; }
+@keyframes gr-lean {
+  0%, 50%, 100% { transform: translateY(0) rotate(2deg); }
+  25%, 75% { transform: translateY(-9px) rotate(4deg); }
 }
-@keyframes groove-run-back-leg {
-  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(-40deg); }
-}
-@keyframes groove-run-front-leg {
-  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(40deg); }
-}
-@keyframes groove-run-back-arm {
-  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(-50deg); }
-}
-@keyframes groove-run-front-arm {
-  0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(45deg); }
-}
-/* Idle burst (no workout): play the stride cycle once, then Wordmark swaps back. */
-.groove-run-once .groove-run-body, .groove-run-once .groove-run-lean, .groove-run-once .groove-run-part { animation-iteration-count: 1; }
+@keyframes gr-arm-b { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-42deg); } }
+@keyframes gr-arm-f { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(40deg); } }
+/* Leg that starts at the back swings forward with a deep knee bend, and vice versa. */
+@keyframes gr-thigh-b { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-55deg); } 50% { transform: rotate(-110deg); } 75% { transform: rotate(-55deg); } }
+@keyframes gr-shin-b  { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(37deg); } 50% { transform: rotate(72deg); } 75% { transform: rotate(-30deg); } }
+@keyframes gr-thigh-f { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(55deg); } 50% { transform: rotate(110deg); } 75% { transform: rotate(55deg); } }
+@keyframes gr-shin-f  { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-30deg); } 50% { transform: rotate(-72deg); } 75% { transform: rotate(37deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .groove-run-body, .groove-run-lean, .groove-run-part { animation: none; }
+  .gr-lean, .gr-arm-b, .gr-arm-f, .gr-thigh-b, .gr-shin-b, .gr-thigh-f, .gr-shin-f { animation: none; }
 }
 
 .groove-plan-blink, .groove-plan-pulse { will-change: opacity; }
