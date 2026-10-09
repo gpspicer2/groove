@@ -91,3 +91,9 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - The same exercise can appear in two muscle groups — card keys carry a `#n` suffix.
 - localStorage keys: `groove:combinedLayout:<id>`, `groove:combinedActivity:<id>`, `groove:liveBackup`, `groove:swipeHint:<id>`, `groove:autoStartRestTimer`.
 - `workouts.plan` is a JSON array, so new entry types need no migration.
+
+## Where we left off (2026-10-09)
+Greg is tired and will likely start the next session not remembering. Open with a short plain-words recap, then offer the list below one step at a time.
+- Everything built so far is live (membership paywall in Stripe sandbox, friends-and-family auto-comp, compact Account sheet, logo/runner polish).
+- Next, in order: (1) fresh sign-up walkthrough with a throwaway address like `gpspicer2+test2@gmail.com` (Sign up, consent, health check, tour, locked tabs/Join popup, test card 4242 4242 4242 4242), then delete the test account with the coach "Delete member" button; (2) business setup, not app work: email Lasell HR (his boss is starting her own side business, so he feels clear, but written OK is nice), liability insurance quote, separate account for Groove money (a second SoFi checking account is fine for a sole proprietor; SoFi has no business account; Found/Bluevine are options), ask MA DOR about sales tax; (3) switch Stripe from sandbox to live (keys only into Vercel, never chat).
+- Smaller optional items: review condition-tip wording (`conditions.js`), Android back button closing popups, fitness assessment one-screen pass, check the coach-view Account sheet after the compact redesign.
