@@ -60,14 +60,14 @@ export default function Wordmark({ className = '', height = 28, running = false 
     new Image().src = `/wordmark-still${sfx}.png`;
   }, [sfx]);
 
-  // The runner takes a quick burst of strides now and then: every 8 seconds
-  // during a workout, and every 25-50 seconds the rest of the time.
+  // The runner takes a quick burst of strides now and then: every 6 seconds
+  // during a workout, and every 10-20 seconds the rest of the time.
   const [burst, setBurst] = useState(false);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
     let t;
     const wait = (first) => {
-      const gap = running ? (first ? 1200 : 6700) : (first ? 5000 + Math.random() * 7000 : 25000 + Math.random() * 25000);
+      const gap = running ? (first ? 1200 : 4700) : (first ? 3000 + Math.random() * 4000 : 10000 + Math.random() * 10000);
       t = setTimeout(() => {
         setBurst(true);
         t = setTimeout(() => { setBurst(false); wait(false); }, 1300);
@@ -93,8 +93,8 @@ export default function Wordmark({ className = '', height = 28, running = false 
     <span
       role="img"
       aria-label="GROOVE"
-      className={`${className} groove-logo`}
-      style={{ position: 'relative', display: 'inline-block', height, aspectRatio: `${FULL_W} / 231` }}
+      className={`${className} groove-logo${/\bblock\b/.test(className) ? '' : ' inline-block'}`}
+      style={{ position: 'relative', height, aspectRatio: `${FULL_W} / 231` }}
     >
       <img src={`/wordmark-still${sfx}.png`} alt="" style={{ display: 'block', height: '100%', width: '100%' }} />
       <span
