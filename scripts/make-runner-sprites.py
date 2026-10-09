@@ -30,33 +30,51 @@ ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
 LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
 LEG_F = [(128.5, 161.0), (127.0, 208.0), (149.75, 211.5)]; LEG_F_W = 25.0   # knee, ankle, toe
 
-def rot(p, c, deg):
-    a = math.radians(deg); dx, dy = p[0] - c[0], p[1] - c[1]
-    return (c[0] + dx * math.cos(a) - dy * math.sin(a), c[1] + dx * math.sin(a) + dy * math.cos(a))
+import numpy as np
 
-def smooth(keys, t):
-    for (t0, v0), (t1, v1) in zip(keys, keys[1:]):
-        if t0 <= t <= t1:
-            u = (t - t0) / (t1 - t0); u = (1 - math.cos(math.pi * u)) / 2
-            return v0 + (v1 - v0) * u
-    return keys[-1][1]
+def pt(c, length, theta):
+    """Point `length` away from c, at angle theta from straight down (degrees, forward = +x)."""
+    a = math.radians(theta)
+    return (c[0] + length * math.sin(a), c[1] + length * math.cos(a))
 
-def K(a, b, c, d, e): return [(0, a), (.25, b), (.5, c), (.75, d), (1, e)]
-# A jog in place around the logo's own pose: each limb stays on its own side
-# (legs and arms never swap or cross over the body), so the figure never piles
-# up into a blob. Back leg: thigh swings forward and the knee kicks up behind.
-# Front leg: thigh pulls back and the knee straightens a little. The arms
-# open outward (back arm further back, front arm further forward) while the
-# legs come together, so the arms never fold in over the chest.
-THIGH_B = K(0, -18, -36, -18, 0); SHIN_B = K(0, 25, 50, 25, 0)
-THIGH_F = K(0, 18, 36, 18, 0);    SHIN_F = K(0, -18, -36, -18, 0)
-UPPER_B = K(0, 12, 24, 12, 0);   FORE_B = K(0, 6, 12, 6, 0)
-UPPER_F = K(0, -12, -24, -12, 0); FORE_F = K(0, -6, -12, -6, 0)
-BOB = K(0, -9, 0, -9, 0);          LEAN = K(0, 3, 0, 3, 0)
+# ---- A real run cycle -------------------------------------------------------
+# One cycle = two steps. Frame 0 is exactly the logo's pose: the front leg in its
+# knee-drive (thigh 68 deg forward, knee bent 68 deg) and the back leg at toe-off
+# (thigh 42 deg back, straight). The leg's journey, then, over a full cycle:
+# knee-drive -> reach -> support -> toe-off -> kick up behind -> knee-drive.
+# The other leg runs the same cycle half a cycle later. Arms pump against the
+# legs through their hanging position.
+LEG_T = [0, .17, .33, .5, .75, 1.0]
+LEG_THIGH = [68, 50, 10, -42, -5, 68]     # thigh angle from straight down, forward +
+LEG_FLEX = [68, 25, 5, 0, 105, 68]        # knee bend (shin falls behind the thigh)
+LEG_FOOT = [81, 75, 81, 0, 40, 81]        # foot angle relative to the shin (0 = straight on)
+THIGH_LEN, SHIN_LEN, FOOT_LEN = 50.7, 46.7, 23.0
+HIP_X = HIP
+
+def leg_pose(u):
+    u %= 1.0
+    th = float(np.interp(u, LEG_T, LEG_THIGH)); fl = float(np.interp(u, LEG_T, LEG_FLEX)); ft = float(np.interp(u, LEG_T, LEG_FOOT))
+    knee = pt(HIP, THIGH_LEN, th)
+    ankle = pt(knee, SHIN_LEN, th - fl)
+    toe = pt(ankle, FOOT_LEN, th - fl + ft)
+    return knee, ankle, toe
+
+def arm_pose(shoulder, upper_len, fore_len, u, base_phase):
+    # upper-arm angle swings between 31.7 (forward) and -85.4 (back); elbow flexes
+    # more on the forward swing. base_phase 0 = front arm, 0.5 = back arm.
+    ph = 2 * math.pi * (u + base_phase)
+    theta = -26.85 + 58.55 * math.cos(ph)
+    bend = 76.0 + 26.3 * math.cos(ph)
+    elbow = pt(shoulder, upper_len, theta)
+    hand = pt(elbow, fore_len, theta + bend)
+    return elbow, hand
 
 def frame(color, t):
     img = Image.new('RGBA', (FW * SS, FH * SS), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
-    bob = smooth(BOB, t); lean = smooth(LEAN, t)
+    bob = -6.0 * (1 - math.cos(4 * math.pi * t)) / 2 ; lean = 2.0 * (1 - math.cos(4 * math.pi * t)) / 2
+    def rot(p, c, deg):
+        a = math.radians(deg); dx, dy = p[0] - c[0], p[1] - c[1]
+        return (c[0] + dx * math.cos(a) - dy * math.sin(a), c[1] + dx * math.sin(a) + dy * math.cos(a))
     def tf(p):  # lean about the hip, then bob, then into the frame
         q = rot(p, HIP, lean)
         return ((q[0] + MX) * SS, (q[1] + bob + MY) * SS)
@@ -67,22 +85,12 @@ def frame(color, t):
     cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     d.polygon([tf(p) for p in CHEST], fill=color)
     line(TORSO, TORSO_W); line(SHOULDER, SHOULDER_W)
-    def arm(pts, upper, fore, w):
-        sh, el, hand = pts
-        u, f = smooth(upper, t), smooth(fore, t)
-        elbow = rot(el, sh, u); wrist = rot(rot(hand, el, f), sh, u)
-        line([sh, elbow, wrist], w)
-    arm(ARM_B, UPPER_B, FORE_B, ARM_B_W)
-    arm(ARM_F, UPPER_F, FORE_F, ARM_F_W)
-    # back leg: thigh swings from the hip, shin from the knee
-    tb, sbn = smooth(THIGH_B, t), smooth(SHIN_B, t)
-    knee_b = rot(LEG_B[0], HIP, tb); ankle_b = rot(rot(LEG_B[1], LEG_B[0], sbn), HIP, tb)
-    line([HIP, knee_b, ankle_b], LEG_B_W)
-    # front leg (shin and foot swing from the knee)
-    tfw, sfn = smooth(THIGH_F, t), smooth(SHIN_F, t)
-    knee_f = rot(LEG_F[0], HIP, tfw)
-    low = [rot(rot(p, LEG_F[0], sfn), HIP, tfw) for p in LEG_F[1:]]
-    line([HIP, knee_f], LEG_F_W); line([knee_f] + low, LEG_F_W)
+    # arms (back arm half a cycle behind the front arm)
+    elbow, hand = arm_pose(ARM_B[0], 37.6, 26.6, t, 0.5); line([ARM_B[0], elbow, hand], ARM_B_W)
+    elbow, hand = arm_pose(ARM_F[0], 48.5, 33.5, t, 0.0); line([ARM_F[0], elbow, hand], ARM_F_W)
+    # legs: the front leg starts at knee-drive, the back leg half a cycle later
+    kb, ab, tb = leg_pose(t + 0.5); line([HIP, kb, ab, tb], LEG_B_W)
+    kf, af, tf_ = leg_pose(t);      line([HIP, kf, af, tf_], LEG_F_W)
     return img.resize((FW * OUT, FH * OUT), Image.LANCZOS)
 
 for sfx, color in COLORS.items():
