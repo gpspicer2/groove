@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
+import { titleCase } from '../../lib/titleCase';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from '../../theme';
 import { BASELINE_SECTIONS } from '../baseline/baselineQuestions';
 import { MUSCLE_GROUPS, workoutTitle, plural } from '../move/exerciseLibrary';
@@ -32,7 +33,7 @@ export function ArticleManager() {
     setSaving(true);
     const { data, error } = await supabase
       .from('articles')
-      .insert({ title: title.trim(), summary: summary.trim(), url: url.trim() || null })
+      .insert({ title: titleCase(title.trim()), summary: summary.trim(), url: url.trim() || null })
       .select()
       .single();
     setSaving(false);
@@ -114,7 +115,7 @@ export function ArticleManager() {
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
                 {new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
-              <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{a.title}</div>
+              <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{titleCase(a.title)}</div>
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">{a.summary}</div>
               {a.url && <div style={{ color: VIOLET }} className="text-sm mb-2 break-all">{a.url}</div>}
               <button onClick={() => handleDelete(a.id)} style={{ color: TEXT_SOFT }} className="text-sm inline-flex items-center gap-1">

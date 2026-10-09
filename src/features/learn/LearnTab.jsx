@@ -1,3 +1,4 @@
+import { titleCase } from '../../lib/titleCase';
 import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, Search, Heart, X, ChevronDown, ChevronUp } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
@@ -33,7 +34,7 @@ function mapArticle(row) {
   const match = row.title.match(CATEGORY_PREFIX);
   return {
     id: row.id,
-    title: match ? row.title.slice(match[0].length) : row.title,
+    title: titleCase(match ? row.title.slice(match[0].length) : row.title),
     category: match ? match[1] : null,
     summary: row.summary,
     url: row.url,
