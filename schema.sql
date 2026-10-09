@@ -388,3 +388,17 @@ alter table public.profiles add column if not exists membership_status text;
 alter table public.profiles add column if not exists membership_renews_at timestamptz;
 alter table public.profiles add column if not exists stripe_customer_id text;
 alter table public.profiles add column if not exists stripe_subscription_id text;
+
+-- Push notification devices (one row per phone/browser that turned reminders on)
+create table push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) default auth.uid(),
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  tz text,
+  created_at timestamptz not null default now()
+);
+alter table push_subscriptions enable row level security;
+create policy "push_subscriptions_own" on push_subscriptions for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);

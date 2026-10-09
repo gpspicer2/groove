@@ -16,6 +16,7 @@ import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanP
 import { planKinds, planMinutes, planSummary, hasDetails } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
+import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
 import MuscleBalance from './MuscleBalance';
@@ -354,7 +355,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     if (i > 52) break;
   }
 
-  const daysSinceLast = workouts.length > 0 ? daysBetween(now, new Date(workouts[0].started_at)) : null;
+  const daysSinceLast = workouts.length > 0 ? calendarDaysBetween(now, new Date(workouts[0].started_at)) : null;
   // No "head over to Move" nudges while a doctor's okay is still recommended.
   // Consecutive training days ending today or yesterday; 6+ earns a rest-day nudge.
   const trainedDays = new Set(workouts.map((w) => dayKey(new Date(w.started_at))));
@@ -813,6 +814,11 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   const rDone = resistanceThisWeek >= resistanceGoal;
   const aDone = aerobicMinutesThisWeek >= aerobicGoalMinutes;
 
+  // A gap is the most useful thing to say, so it comes first.
+  if (daysSinceLast != null && daysSinceLast >= CLIENT_NUDGE_DAYS) {
+    return `Howdy! It's been ${daysSinceLast} days since your last session. Even a 20 min walk today gets you moving again.`;
+  }
+
   if (rDone && aDone) {
     return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
   }
@@ -824,9 +830,6 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   }
   if (resistanceThisWeek === resistanceGoal - 1 || (aerobicGoalMinutes - aerobicMinutesThisWeek > 0 && aerobicGoalMinutes - aerobicMinutesThisWeek <= 20)) {
     return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
-  }
-  if (daysSinceLast != null && daysSinceLast >= 4) {
-    return `Howdy! It's been ${daysSinceLast} days since your last session — do you have time for a 20 min walk today?`;
   }
   if (daysSinceLast == null) {
     return "Howdy! Ready for your first session? Head over to Move whenever you've got a few minutes.";

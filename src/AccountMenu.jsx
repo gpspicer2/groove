@@ -13,6 +13,7 @@ import BaselineFlow from './features/baseline/BaselineFlow';
 import { logMeasurement } from './lib/measurements';
 import { getThemePref, setThemePref } from './appearance';
 import { SwitchAccountSection } from './auth/SwitchAccount';
+import NotificationsRow from './features/push/NotificationsRow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -114,6 +115,8 @@ function AccountModal({ onClose }) {
             onManageMovements={() => setShowMovements(true)}
           />
         )}
+
+        {isTrainer && <NotificationsRow />}
 
         <button
           onClick={signOut}
@@ -701,6 +704,8 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
             })}
           </div>
           {themePref === 'auto' && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Matches your phone's setting.</div>}
+
+          <NotificationsRow />
 
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Rest Timer</div>
           <button

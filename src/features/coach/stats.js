@@ -2,7 +2,8 @@
 // and what needs Greg's attention. Uses the same rules as a client's
 // Birdseye (aerobic in moderate-equivalent minutes, resistance and
 // flexibility in days; yoga counts as both aerobic and flexibility).
-import { needsClearance } from '../screening/screening';
+import { needsClearance } from '../screening/screening.js';
+import { COACH_ALERT_DAYS, calendarDaysBetween } from '../../lib/activityGap.js';
 
 export const DAY = 864e5;
 
@@ -86,7 +87,7 @@ export function computeMemberStats(clients, workouts, sets, now = new Date()) {
     if (g.trackFlexibility) rows.push(st.week.flexibility >= g.flexibility);
     st.allGoalsMet = rows.length > 0 && rows.every(Boolean);
     st.avgRpe = st.rpes.length ? st.rpes.reduce((a, b) => a + b, 0) / st.rpes.length : null;
-    st.daysSince = st.lastAt ? Math.floor((now - st.lastAt) / DAY) : null;
+    st.daysSince = st.lastAt ? calendarDaysBetween(now, st.lastAt) : null;
   });
   return out;
 }
@@ -105,7 +106,7 @@ export function buildAttention(clients, stats, now = new Date()) {
     if (s && s.result !== 'stop_and_clearance' && needsClearance(s)) items.push({ id: c.id, level: 'amber', title: name, text: 'Needs a doctor’s okay before vigorous exercise.' });
     if (!s && joinedDays >= 2) items.push({ id: c.id, level: 'amber', title: name, text: 'Hasn’t finished the health check.' });
     if (st.daysSince == null && joinedDays >= 3) items.push({ id: c.id, level: 'amber', title: name, text: 'Hasn’t logged a workout yet.' });
-    else if (st.daysSince != null && st.daysSince >= 7) items.push({ id: c.id, level: 'amber', title: name, text: `${st.daysSince} days since the last workout.` });
+    else if (st.daysSince != null && st.daysSince >= COACH_ALERT_DAYS) items.push({ id: c.id, level: 'amber', title: name, text: `${st.daysSince} days since the last workout.` });
   });
   const rank = { red: 0, amber: 1 };
   return items.sort((a, b) => rank[a.level] - rank[b.level]);

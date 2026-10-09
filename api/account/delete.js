@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     await supabaseAdmin.from('fitness_measurements').delete().eq('user_id', uid);
     await supabaseAdmin.from('estimated_1rms').delete().eq('user_id', uid);
     await supabaseAdmin.from('article_favorites').delete().eq('user_id', uid);
+    await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', uid);
     await supabaseAdmin.from('coach_notes').delete().eq('client_id', uid);
     await supabaseAdmin.from('programs').delete().eq('client_id', uid);
     await supabaseAdmin.from('messages').delete().or(`sender_id.eq.${uid},recipient_id.eq.${uid}`);

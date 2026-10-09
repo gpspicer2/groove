@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Minus, Plus, Trash2 } from '../../lib/icons';
+import { ChevronLeft, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK, AMBER, MOSS } from '../../theme';
 import { Avatar, Stat, SectionTitle, WeekBars } from './CoachParts';
@@ -9,55 +9,6 @@ import { RESULT_COPY, needsClearance } from '../screening/screening';
 import { ClientScreening, ClientHeartRate, ClientBaseline, ProgramBuilder, ClientWorkouts } from './clientTools';
 
 const TABS = [['overview', 'Overview'], ['plan', 'Plan'], ['health', 'Health'], ['workouts', 'Workouts'], ['notes', 'Notes']];
-
-function Stepper({ label, value, unit, step, min, max, onChange }) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <span style={{ color: PAPER }} className="text-sm">{label}</span>
-      <span className="flex items-center gap-3">
-        <button onClick={() => onChange(Math.max(min, value - step))} style={{ background: INK_3, color: PAPER_DIM }} className="w-8 h-8 rounded-full inline-flex items-center justify-center" aria-label={`Less ${label}`}><Minus size={14} /></button>
-        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-base font-semibold w-16 text-center">{value}{unit}</span>
-        <button onClick={() => onChange(Math.min(max, value + step))} style={{ background: INK_3, color: PAPER_DIM }} className="w-8 h-8 rounded-full inline-flex items-center justify-center" aria-label={`More ${label}`}><Plus size={14} /></button>
-      </span>
-    </div>
-  );
-}
-
-// The weekly targets Greg sets for this member. They show up on the
-// member's Birdseye as their goals.
-function GoalPrescription({ client, onSaved }) {
-  const g = goalsFor(client);
-  const [vals, setVals] = useState({ aerobic: g.aerobic, resistance: g.resistance, flexibility: g.flexibility });
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const dirty = vals.aerobic !== g.aerobic || vals.resistance !== g.resistance || vals.flexibility !== g.flexibility;
-
-  async function save() {
-    setSaving(true);
-    const fields = { aerobic_goal_minutes: vals.aerobic, resistance_goal: vals.resistance, flexibility_goal: vals.flexibility };
-    const { error } = await supabase.from('profiles').update(fields).eq('id', client.id);
-    setSaving(false);
-    if (!error) { setSaved(true); onSaved(fields); setTimeout(() => setSaved(false), 1800); }
-  }
-
-  return (
-    <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3">
-      <div style={{ color: PAPER }} className="text-base font-semibold mb-1">Weekly targets</div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">These become their goals on Birdseye.</div>
-      <Stepper label="Aerobic" value={vals.aerobic} unit=" min" step={15} min={30} max={600} onChange={(v) => setVals({ ...vals, aerobic: v })} />
-      <Stepper label="Resistance" value={vals.resistance} unit=" days" step={1} min={1} max={7} onChange={(v) => setVals({ ...vals, resistance: v })} />
-      <Stepper label="Flexibility" value={vals.flexibility} unit=" days" step={1} min={1} max={7} onChange={(v) => setVals({ ...vals, flexibility: v })} />
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        style={{ background: dirty ? PLUM : INK_3, color: dirty ? INK : TEXT_SOFT }}
-        className="w-full rounded-xl py-2.5 text-sm font-medium mt-2"
-      >
-        {saving ? 'Saving…' : saved ? 'Saved' : 'Save targets'}
-      </button>
-    </div>
-  );
-}
 
 function CoachNotes({ clientId }) {
   const [notes, setNotes] = useState([]);
@@ -189,7 +140,6 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
 
       {tab === 'plan' && (
         <div className="space-y-4">
-          <GoalPrescription client={client} onSaved={(fields) => onClientChanged(client.id, fields)} />
           <ClientHeartRate clientId={client.id} />
           <ProgramBuilder clientId={client.id} trainerId={trainerId} />
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, ChevronRight } from '../../lib/icons';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK, AMBER, MOSS } from '../../theme';
 import { Avatar, WeekBars, StatusDot } from './CoachParts';
+import { COACH_ALERT_DAYS } from '../../lib/activityGap';
 
 const FILTERS = [
   ['all', 'All'],
@@ -30,7 +31,7 @@ export default function Clients({ clients, stats, attention, onOpenClient }) {
     if (q && !`${c.full_name || ''} ${c.email || ''}`.toLowerCase().includes(q)) return false;
     const st = stats[c.id];
     if (filter === 'attention') return attentionIds.has(c.id);
-    if (filter === 'quiet') return st.daysSince == null || st.daysSince >= 5;
+    if (filter === 'quiet') return st.daysSince == null || st.daysSince >= COACH_ALERT_DAYS;
     if (filter === 'new') return c.created_at && Date.now() - new Date(c.created_at).getTime() < 14 * 864e5;
     return true;
   });

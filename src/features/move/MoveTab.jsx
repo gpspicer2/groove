@@ -11,6 +11,7 @@ import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET , ON_AMBER } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
+import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
 import { recentlyTrained } from './muscles';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
@@ -967,6 +968,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     const id = checkInWorkoutId;
     setCheckInWorkoutId(null);
     await supabase.from('workouts').update(fields).eq('id', id);
+    if (fields.felt_off) notifyFeltOff();
   }
 
   // Reopens a finished workout as the live one, so a session that was
