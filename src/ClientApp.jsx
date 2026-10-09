@@ -74,7 +74,7 @@ export default function ClientApp() {
   }
 
   const activeIndex = TABS.indexOf(tab);
-  const showTour = !profile.tour_done && !tourJustFinished && !locked;
+  const showTour = !profile.tour_done && !tourJustFinished;
 
   // Coming back from Stripe, the payment takes a few seconds to arrive.
   const justPaid = new URLSearchParams(window.location.search).get('checkout') === 'success';
@@ -88,6 +88,25 @@ export default function ClientApp() {
     }, 2000);
     return () => clearInterval(id);
   }, [locked, justPaid]);
+
+  // Without a membership the real tabs still show (blurred, untouchable)
+  // behind a Join popup, so people can see what they'd get.
+  const birdseyeEl = (
+    <BirdseyeTab
+      key="birdseye"
+      userId={user.id}
+      onOpenWorkout={openWorkout}
+      onLogWorkout={logWorkoutOn}
+      onPlanWorkout={planWorkout}
+      onStartPlan={startPlan}
+      onOpenGroove={openGrooveDrawer}
+      active={tab === 'birdseye'}
+      openBaselineOnLoad={locked ? false : openBaselineOnLoad}
+      onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
+    />
+  );
+  const moveEl = <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />;
+  const journalEl = <JournalTab key="journal" />;
 
   return (
     <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex flex-col">
@@ -143,20 +162,9 @@ export default function ClientApp() {
           onEdgeSwipeRight={tab === 'birdseye' ? openGrooveDrawer : null}
           scrollContainerRef={scrollRef}
           pages={[
-            locked ? <LockedTab key="birdseye" showLibrary /> : <BirdseyeTab
-              key="birdseye"
-              userId={user.id}
-              onOpenWorkout={openWorkout}
-              onLogWorkout={logWorkoutOn}
-              onPlanWorkout={planWorkout}
-              onStartPlan={startPlan}
-              onOpenGroove={openGrooveDrawer}
-              active={tab === 'birdseye'}
-              openBaselineOnLoad={openBaselineOnLoad}
-              onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
-            />,
-            locked ? <LockedTab key="move" /> : <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />,
-            locked ? <LockedTab key="journal" /> : <JournalTab key="journal" />,
+            locked ? <LockedTab key="birdseye" showOverlay={!showTour} showLibrary>{birdseyeEl}</LockedTab> : birdseyeEl,
+            locked ? <LockedTab key="move" showOverlay={!showTour}>{moveEl}</LockedTab> : moveEl,
+            locked ? <LockedTab key="journal" showOverlay={!showTour}>{journalEl}</LockedTab> : journalEl,
             <LearnTab key="learn" />,
           ]}
         />

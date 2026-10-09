@@ -14,7 +14,7 @@ const INCLUDED = [
 
 // What Birdseye, Move and Journal show until someone joins. Learn and the
 // Movement Library stay open so people can look around first.
-export default function LockedTab({ showLibrary = false }) {
+export default function LockedTab({ children, showOverlay = true, showLibrary = false }) {
   const { profile } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -27,27 +27,45 @@ export default function LockedTab({ showLibrary = false }) {
     catch (e) { setError(e.message); setBusy(false); }
   }
 
-  return (
-    <div className="max-w-md mx-auto px-4 pb-12 space-y-3">
-      <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="rounded-lg px-6 py-6 text-center">
-        <Lock size={22} color={PLUM} className="mx-auto mb-2" />
-        <h2 style={{ color: PLUM }} className="text-xl font-medium mb-1">
-          {pastDue ? 'Payment needs attention' : canceled ? 'Welcome back' : 'Members only'}
-        </h2>
-        <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-4xl font-semibold mt-2">
-          ${MEMBERSHIP_PRICE}<span style={{ color: TEXT_SOFT }} className="text-base font-normal"> / month</span>
-        </div>
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Cancel anytime.</div>
-        <div className="space-y-1 mb-4">
-          {INCLUDED.map((t) => <p key={t} style={{ color: PAPER_DIM }} className="text-sm">{t}</p>)}
-        </div>
-        {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
-        <button onClick={join} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mb-2">
-          {busy ? 'Opening secure checkout…' : pastDue || canceled ? 'Update membership' : 'Join'}
-        </button>
-        <p style={{ color: TEXT_SOFT }} className="text-xs">Payment is handled securely by Stripe.</p>
+  const card = (
+    <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}`, boxShadow: '0 8px 30px color-mix(in srgb, black 25%, transparent)' }} className="rounded-lg px-6 py-6 text-center">
+      <Lock size={22} color={PLUM} className="mx-auto mb-2" />
+      <h2 style={{ color: PLUM }} className="text-xl font-medium mb-1">
+        {pastDue ? 'Payment needs attention' : canceled ? 'Welcome back' : 'Members only'}
+      </h2>
+      <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-4xl font-semibold mt-2">
+        ${MEMBERSHIP_PRICE}<span style={{ color: TEXT_SOFT }} className="text-base font-normal"> / month</span>
       </div>
-      {showLibrary && <MovementLibrary hrZones={null} />}
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Cancel anytime.</div>
+      <div className="space-y-1 mb-4">
+        {INCLUDED.map((t) => <p key={t} style={{ color: PAPER_DIM }} className="text-sm">{t}</p>)}
+      </div>
+      {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
+      <button onClick={join} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mb-2">
+        {busy ? 'Opening secure checkout…' : pastDue || canceled ? 'Update membership' : 'Join'}
+      </button>
+      <p style={{ color: TEXT_SOFT }} className="text-xs">Payment is handled securely by Stripe.</p>
+    </div>
+  );
+
+  // The real tab sits behind, blurred and untouchable. While the app tour
+  // runs it's shown clearly (no popup yet) so the tour can point at it.
+  return (
+    <div className="relative">
+      <div
+        inert=""
+        aria-hidden="true"
+        className="pointer-events-none select-none"
+        style={showOverlay ? { filter: 'blur(5px)', opacity: 0.55, maxHeight: '100svh', overflow: 'hidden' } : undefined}
+      >
+        {children}
+      </div>
+      {showOverlay && (
+        <div className="absolute inset-x-0 top-0 max-w-md mx-auto px-4 pt-3 space-y-3">
+          {card}
+          {showLibrary && <MovementLibrary hrZones={null} />}
+        </div>
+      )}
     </div>
   );
 }

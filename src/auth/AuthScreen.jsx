@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, SKY, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
 
 export default function AuthScreen({ recovering = false, onRecovered }) {
@@ -14,7 +14,8 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
   const needsEmail = mode !== 'newpassword';
   const needsPassword = mode !== 'reset';
   const canSubmit = (!needsEmail || email.trim().length > 0) && (!needsPassword || password.length >= 6) && !busy;
-  const accent = PLUM;
+  // Creating an account gets its own color so it never looks like signing in.
+  const accent = mode === 'signup' ? SKY : PLUM;
   const TITLES = { signin: '', signup: 'Create your account', reset: 'Reset your password', newpassword: 'Choose a new password' };
   const SUBMIT = { signin: 'Sign in', signup: 'Sign up', reset: 'Email me a reset link', newpassword: 'Save password' };
 
