@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
-import { summarizeLink } from '../../lib/api';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from '../../theme';
 import { BASELINE_SECTIONS } from '../baseline/baselineQuestions';
 import { MUSCLE_GROUPS, workoutTitle, plural } from '../move/exerciseLibrary';
@@ -19,8 +18,6 @@ export function ArticleManager() {
   const [summary, setSummary] = useState('');
   const [url, setUrl] = useState('');
   const [saving, setSaving] = useState(false);
-  const [drafting, setDrafting] = useState(false);
-  const [draftError, setDraftError] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -29,17 +26,6 @@ export function ArticleManager() {
       setLoading(false);
     })();
   }, []);
-
-  async function draftFromLink() {
-    setDrafting(true); setDraftError('');
-    try {
-      const d = await summarizeLink(url.trim());
-      setTitle(d.title); setSummary(d.summary);
-    } catch (err) {
-      setDraftError(err.message);
-    }
-    setDrafting(false);
-  }
 
   async function handleAdd() {
     if (!title.trim() || !summary.trim()) return;
@@ -70,25 +56,6 @@ export function ArticleManager() {
       {adding ? (
         <div style={{ background: INK_2, borderTop: `2px solid ${VIOLET}` }} className="rounded-lg px-5 py-5 mb-4">
           <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste a link"
-            autoCapitalize="none"
-            autoCorrect="off"
-            style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
-          />
-          <button
-            onClick={draftFromLink}
-            disabled={!url.trim() || drafting}
-            style={{ background: url.trim() ? VIOLET : INK_3, color: url.trim() ? INK : TEXT_SOFT }}
-            className="w-full rounded-md py-2.5 text-sm font-medium mb-3"
-          >
-            {drafting ? 'Reading the page…' : 'Write it for me'}
-          </button>
-          {draftError && <div style={{ color: BRICK }} className="text-sm mb-3">{draftError}</div>}
-          <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -103,6 +70,14 @@ export function ArticleManager() {
             placeholder="Main point / finding"
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center mb-3"
+          />
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Link, optional"
+            style={{ background: INK_3, color: PAPER }}
+            className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3"
           />
           <div className="flex items-center gap-2">
             <button onClick={() => setAdding(false)} style={{ color: TEXT_SOFT }} className="text-sm py-2.5 px-3">Cancel</button>
