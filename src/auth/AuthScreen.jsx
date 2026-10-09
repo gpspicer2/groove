@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
@@ -6,10 +6,6 @@ import Wordmark from '../Wordmark';
 export default function AuthScreen({ recovering = false, onRecovered }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : 'signin'); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
-  // While a field is focused the phone keyboard covers the bottom of the
-  // screen, so leave room to scroll and keep the Sign in button reachable.
-  const [typing, setTyping] = useState(false);
-  const submitRef = useRef(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -19,7 +15,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
   const needsPassword = mode !== 'reset';
   const canSubmit = (!needsEmail || email.trim().length > 0) && (!needsPassword || password.length >= 6) && !busy;
   const accent = PLUM;
-  const TITLES = { signin: 'Welcome back', signup: 'Create your account', reset: 'Reset your password', newpassword: 'Choose a new password' };
+  const TITLES = { signin: '', signup: 'Create your account', reset: 'Reset your password', newpassword: 'Choose a new password' };
   const SUBMIT = { signin: 'Sign in', signup: 'Sign up', reset: 'Email me a reset link', newpassword: 'Save password' };
 
   function switchMode(next) { setMode(next); setError(''); setInfo(''); }
@@ -53,29 +49,28 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif', paddingBottom: typing ? '55svh' : 0 }} className="min-h-[100svh] flex items-center justify-center px-4">
-      <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-8 text-center">
-        <Wordmark height={54} className="mb-6 mx-auto block" />
-        <h1 style={{ color: accent, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-6">
-          {TITLES[mode]}
-        </h1>
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-start justify-center px-4 pt-[7svh]">
+      <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-6 text-center">
+        {/* Compact on purpose: everything must fit above the phone keyboard. */}
+        <Wordmark height={44} className="mb-4 mx-auto block" />
+        {TITLES[mode] && (
+          <h1 style={{ color: accent, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-3">
+            {TITLES[mode]}
+          </h1>
+        )}
 
-        <form
-          onSubmit={handleSubmit}
-          onFocusCapture={() => { setTyping(true); setTimeout(() => submitRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 350); }}
-          onBlurCapture={() => setTimeout(() => { if (!document.activeElement || !document.activeElement.closest('form')) setTyping(false); }, 150)}
-        >
+        <form onSubmit={handleSubmit}>
           {needsEmail && (<>
-          <label htmlFor="email" style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Email</label>
+          <label htmlFor="email" className="sr-only">Email</label>
           <input
             type="email"
             name="email"
             id="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder="Email"
             style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-3 mt-1 mb-4 text-sm outline-none"
+            className="w-full rounded-md px-3 py-3 mb-3 text-sm outline-none"
             autoComplete="email"
             autoCapitalize="none"
             autoCorrect="off"
@@ -84,16 +79,16 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           </>)}
 
           {needsPassword && (<>
-          <label style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Password</label>
+          <label htmlFor="password" className="sr-only">Password</label>
           <input
             type="password"
             name="password"
             id="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder="Password (6+ characters)"
             style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-3 mt-1 mb-4 text-sm outline-none"
+            className="w-full rounded-md px-3 py-3 mb-3 text-sm outline-none"
             autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
           />
           </>)}
@@ -102,18 +97,17 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           {info && <div style={{ color: PAPER_DIM }} className="text-sm mb-4">{info}</div>}
 
           <button
-            ref={submitRef}
             type="submit"
             disabled={!canSubmit}
             style={{ background: canSubmit ? accent : INK_3, color: canSubmit ? INK : TEXT_SOFT }}
-            className="w-full rounded-md py-3 text-sm font-medium mb-4"
+            className="w-full rounded-md py-3 text-sm font-medium mb-3"
           >
             {busy ? 'Please wait…' : SUBMIT[mode]}
           </button>
         </form>
 
         {mode === 'signin' && (
-          <button onClick={() => switchMode('reset')} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center mb-3">
+          <button onClick={() => switchMode('reset')} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center mb-2 py-1">
             Forgot password?
           </button>
         )}
@@ -121,7 +115,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           <button
             onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
             style={{ color: TEXT_SOFT }}
-            className="w-full text-sm text-center"
+            className="w-full text-sm text-center py-1"
           >
             {mode === 'signin' ? "Don't have an account? Sign up" : mode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in'}
           </button>
