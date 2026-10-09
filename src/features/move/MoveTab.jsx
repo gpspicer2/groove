@@ -3083,7 +3083,8 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
 
   return (
     <div
-      data-no-swipe
+      data-no-swipe="row"
+      data-revealed={revealed}
       style={{ touchAction: 'pan-y' }}
       className="relative rounded-md overflow-hidden"
       onTouchStart={handleTouchStart}

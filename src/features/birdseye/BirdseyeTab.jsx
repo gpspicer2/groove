@@ -688,7 +688,8 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
 
   return (
     <div
-      data-no-swipe
+      data-no-swipe="row"
+      data-revealed={revealed}
       className="relative mb-3 last:mb-0 rounded-md overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

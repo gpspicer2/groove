@@ -13,6 +13,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   const [dragging, setDragging] = useState(false);
   const startRef = useRef({ x: 0, y: 0 });
   const isHorizontalRef = useRef(null); // null = undecided, true/false once decided
+  const rowRef = useRef(null); // a swipe-to-reveal row the gesture started on
   const suppressedRef = useRef(false); // gesture started on a control that needs its own horizontal drag
   const rawDxRef = useRef(0); // actual finger movement, before rubber-band dampening
 
@@ -51,7 +52,9 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   // horizontally-scrolling rows, etc.) opts out of the pager's own swipe
   // tracking entirely, rather than the two gestures fighting each other.
   function isSwipeExempt(target) {
-    return Boolean(target.closest && target.closest('input[type="range"], [data-no-swipe]'));
+    // Swipe-to-reveal rows (data-no-swipe="row") only keep LEFT swipes (and
+    // any swipe while open); a right swipe on them still changes tabs.
+    return Boolean(target.closest && target.closest('input[type="range"], [data-no-swipe]:not([data-no-swipe="row"])'));
   }
 
   function handleTouchStart(e) {
@@ -62,6 +65,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
       return;
     }
     suppressedRef.current = false;
+    rowRef.current = e.target.closest ? e.target.closest('[data-no-swipe="row"]') : null;
     const t = e.touches[0];
     startRef.current = { x: t.clientX, y: t.clientY };
     isHorizontalRef.current = null;
@@ -78,6 +82,14 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       isHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
       if (!isHorizontalRef.current) { setDragging(false); return; }
+      const row = rowRef.current;
+      if (row && (dx < 0 || row.dataset.revealed === 'true')) {
+        // The row owns this swipe (reveal or close its buttons).
+        suppressedRef.current = true;
+        isHorizontalRef.current = null;
+        setDragging(false);
+        return;
+      }
     }
     if (!isHorizontalRef.current) return;
     rawDxRef.current = dx;

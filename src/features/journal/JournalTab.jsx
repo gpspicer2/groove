@@ -162,7 +162,8 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
     // buttons IN from off-screen over it, instead of sliding the content
     // away to uncover them underneath.
     <div
-      data-no-swipe
+      data-no-swipe="row"
+      data-revealed={revealed}
       className="relative rounded-md overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
