@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { getAuthedUser } from '../_lib/auth.js';
+import { stripe } from '../_lib/stripe.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -9,6 +10,12 @@ export default async function handler(req, res) {
 
   try {
     const uid = user.id;
+    // Stop billing first so a deleted account is never charged again.
+    const { data: billing } = await supabaseAdmin.from('profiles').select('stripe_subscription_id').eq('id', uid).single();
+    if (billing?.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+      // If this fails we stop, so nobody is deleted while still being billed.
+      await stripe('DELETE', `/subscriptions/${billing.stripe_subscription_id}`);
+    }
     // Delete everything this account owns before the account itself —
     // several of these tables reference auth.users without ON DELETE
     // CASCADE, so the user row can't go first.

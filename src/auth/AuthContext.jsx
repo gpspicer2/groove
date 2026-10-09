@@ -144,6 +144,7 @@ export function AuthProvider({ children }) {
     recovering,
     finishRecovery: () => setRecovering(false),
     signOut,
+    reloadProfile: () => (session?.user ? loadProfile(session.user.id) : Promise.resolve()),
     linkedOthers: others,
     linkAccount,
     switchTo,

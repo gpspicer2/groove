@@ -5,6 +5,8 @@ import ClientApp from './ClientApp';
 import TrainerApp from './TrainerApp';
 import ConsentScreen from './features/screening/ConsentScreen';
 import ScreeningFlow from './features/screening/ScreeningFlow';
+import MembershipGate from './features/membership/MembershipGate';
+import { MEMBERSHIP_REQUIRED, hasAccess } from './lib/membership';
 import { INK, TEXT_SOFT } from './theme';
 
 function Shell() {
@@ -28,6 +30,8 @@ function Shell() {
   if (!profile.screening || screeningOpen) {
     return <ScreeningFlow onSaving={() => setScreeningOpen(true)} onDone={() => setScreeningOpen(false)} />;
   }
+  // Once membership is switched on, new members join before using the app.
+  if (MEMBERSHIP_REQUIRED && !hasAccess(profile)) return <MembershipGate />;
   // The one-time app tour (new-client walkthrough) and the baseline
   // intake prompt both live inside ClientApp now, as overlays on the
   // real app, rather than gating access to it here.

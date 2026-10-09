@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
-import { deleteAccount } from './lib/api';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK } from './theme';
+import { deleteAccount, startCheckout, openBillingPortal } from './lib/api';
+import { MEMBERSHIP_PRICE } from './lib/membership';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, PLUM } from './theme';
 import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
 import BaselineFlow from './features/baseline/BaselineFlow';
@@ -347,11 +348,38 @@ function PasswordModal({ onClose }) {
 }
 
 function PaymentModal({ onClose }) {
+  const { profile } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const status = profile?.membership_status;
+  const renews = profile?.membership_renews_at ? new Date(profile.membership_renews_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null;
+
+  async function go(fn) {
+    setBusy(true); setError('');
+    try { window.location.href = await fn(); } catch (e) { setError(e.message); setBusy(false); }
+  }
+
+  let line = 'No membership yet.';
+  if (status === 'comped') line = 'Your membership is on the house.';
+  else if (status === 'active' || status === 'trialing') line = `Membership active${renews ? `. Renews ${renews}.` : '.'}`;
+  else if (status === 'past_due') line = 'Your last payment did not go through.';
+  else if (status === 'canceled') line = 'Your membership has ended.';
+
   return (
-    <Popup title="Payment information" onClose={onClose}>
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
-        Billing isn't set up yet — Greg will let you know when payment is ready to add here.
-      </div>
+    <Popup title="Membership" onClose={onClose}>
+      <div style={{ color: PAPER }} className="text-sm text-center mb-3">{line}</div>
+      {error && <div style={{ color: BRICK }} className="text-sm text-center mb-2">{error}</div>}
+      {(status === 'active' || status === 'trialing' || status === 'past_due') && (
+        <button onClick={() => go(openBillingPortal)} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+          {busy ? 'Opening…' : 'Manage billing'}
+        </button>
+      )}
+      {(!status || status === 'canceled') && (
+        <button onClick={() => go(startCheckout)} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+          {busy ? 'Opening…' : `Join for $${MEMBERSHIP_PRICE}/month`}
+        </button>
+      )}
+      <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-3">Payments are handled securely by Stripe.</div>
     </Popup>
   );
 }
@@ -636,7 +664,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
           <LinkRow label="Change Password" onClick={onChangePassword} />
-          <LinkRow label="Payment Information" onClick={onPaymentInfo} />
+          <LinkRow label="Membership" onClick={onPaymentInfo} />
           <LinkRow label="Manage Your Movements" onClick={onManageMovements} />
 
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Week Starts On</div>
