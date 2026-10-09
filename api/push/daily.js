@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         ]);
         const stats = computeMemberStats(clients, w || [], s || []);
         const msg = coachMessage(buildAttention(clients, stats));
-        if (msg) for (const t of trainers) sent += await sendPush(byUser[t.id], { ...msg, url: '/' });
+        if (msg) for (const t of trainers) sent += await sendPush(byUser[t.id], { ...msg, url: '/?view=coach' });
       }
     }
     res.status(200).json({ sent });

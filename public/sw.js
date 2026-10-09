@@ -22,7 +22,12 @@ self.addEventListener('notificationclick', (event) => {
   const url = (event.notification.data && event.notification.data.url) || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const c of list) { if ('focus' in c) return c.focus(); }
+      for (const c of list) {
+        if ('focus' in c) {
+          // Reload into the notification's address so a "?view=coach" link can switch views.
+          return c.focus().then((f) => ((f || c).navigate ? (f || c).navigate(url) : f)).catch(() => c.focus());
+        }
+      }
       return self.clients.openWindow(url);
     })
   );

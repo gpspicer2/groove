@@ -64,6 +64,22 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // A coach notification opens "/?view=coach". If this device is on the
+  // personal account, flip to the linked coach account first.
+  const handledViewRef = useRef(false);
+  useEffect(() => {
+    if (handledViewRef.current || !profile) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') !== 'coach') return;
+    handledViewRef.current = true;
+    params.delete('view');
+    const qs = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    if (profile.role === 'trainer') return;
+    const coach = Object.entries(readLinked()).find(([id, v]) => v.role === 'trainer' && id !== profile.id);
+    if (coach) switchTo(coach[0]);
+  }, [profile]);
+
   async function updateProfile(fields) {
     if (!session?.user) return;
     const { data, error } = await supabase.from('profiles').update(fields).eq('id', session.user.id).select().single();

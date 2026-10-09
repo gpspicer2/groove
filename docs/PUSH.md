@@ -19,3 +19,5 @@ Reminders that arrive even when Groove is closed (Web Push).
 | `CRON_SECRET` | any long random string |
 
 New keys: `node -e "console.log(require('web-push').generateVAPIDKeys())"`
+
+Coach notifications open `/?view=coach`: if the phone is on the personal account, `AuthContext` flips to the linked coach account (the account must be linked on that device).

@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       title: `${me?.full_name || me?.email || 'A member'} felt off after a workout`,
       body: note || 'Open Groove to check in.',
       tag: `feltoff-${user.id}`,
-      url: '/',
+      url: '/?view=coach',
     });
     res.status(200).json({ sent });
   } catch (err) {
