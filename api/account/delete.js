@@ -12,10 +12,18 @@ export default async function handler(req, res) {
     // Delete everything this account owns before the account itself —
     // several of these tables reference auth.users without ON DELETE
     // CASCADE, so the user row can't go first.
+    // (Tables added later may not exist yet if their SQL hasn't been run; a
+    // "missing table" error from those is fine to ignore.)
     await supabaseAdmin.from('baseline_responses').delete().eq('user_id', uid);
     await supabaseAdmin.from('workout_sets').delete().eq('user_id', uid);
     await supabaseAdmin.from('workouts').delete().eq('user_id', uid);
     await supabaseAdmin.from('journal_entries').delete().eq('user_id', uid);
+    await supabaseAdmin.from('planned_workouts').delete().eq('user_id', uid);
+    await supabaseAdmin.from('fitness_measurements').delete().eq('user_id', uid);
+    await supabaseAdmin.from('estimated_1rms').delete().eq('user_id', uid);
+    await supabaseAdmin.from('article_favorites').delete().eq('user_id', uid);
+    await supabaseAdmin.from('coach_notes').delete().eq('client_id', uid);
+    await supabaseAdmin.from('programs').delete().eq('client_id', uid);
     await supabaseAdmin.from('messages').delete().or(`sender_id.eq.${uid},recipient_id.eq.${uid}`);
     await supabaseAdmin.from('profiles').delete().eq('id', uid);
 
