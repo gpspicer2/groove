@@ -17,7 +17,7 @@ export const CONSENT_POINTS = [
   'You take part by choice, accept these risks, and release Greg from liability for injuries from your participation, to the extent the law allows.',
 ];
 
-export default function ConsentScreen() {
+export default function ConsentScreen({ onBackToHealthCheck }) {
   const { updateProfile, signOut } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -29,6 +29,7 @@ export default function ConsentScreen() {
     const err = (await updateProfile({ consented_at: new Date().toISOString(), consent_version: CONSENT_VERSION }))?.error;
     setSaving(false);
     if (err) setError(err.message);
+    else onBackToHealthCheck?.();
   }
 
   return (

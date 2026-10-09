@@ -11,6 +11,8 @@ function Shell() {
   const { user, profile, isTrainer, loading, switching, recovering, finishRecovery } = useAuth();
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);
+  // Lets someone step back from the first health question to re-read the consent.
+  const [rereadConsent, setRereadConsent] = useState(false);
 
   if (loading || switching || (user && !profile)) {
     return (
@@ -24,9 +26,9 @@ function Shell() {
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
   if (isTrainer) return <TrainerApp />;
   // First run for clients: consent, then the health check, then the app.
-  if (!profile.consented_at) return <ConsentScreen />;
+  if (!profile.consented_at || rereadConsent) return <ConsentScreen onBackToHealthCheck={() => setRereadConsent(false)} />;
   if (!profile.screening || screeningOpen) {
-    return <ScreeningFlow onSaving={() => setScreeningOpen(true)} onDone={() => setScreeningOpen(false)} />;
+    return <ScreeningFlow onSaving={() => setScreeningOpen(true)} onDone={() => setScreeningOpen(false)} onBack={profile.screening ? undefined : () => setRereadConsent(true)} />;
   }
   // The one-time app tour (new-client walkthrough) and the baseline
   // intake prompt both live inside ClientApp now, as overlays on the

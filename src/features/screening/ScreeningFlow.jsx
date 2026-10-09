@@ -15,7 +15,7 @@ function stepsFor(symptoms) {
     : ['active', 'symptoms', 'diseases', 'other', 'result'];
 }
 
-export default function ScreeningFlow({ onDone, onClose, onSaving }) {
+export default function ScreeningFlow({ onDone, onClose, onSaving, onBack }) {
   const { updateProfile } = useAuth();
   const [step, setStep] = useState('active');
   const [active, setActive] = useState(null);
@@ -34,7 +34,8 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
   const questionCount = steps.length - 1;
 
   function goBack() {
-    setStep(steps[index - 1]);
+    if (index > 0) setStep(steps[index - 1]);
+    else onBack?.();
   }
 
   async function finish() {
@@ -75,7 +76,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
       <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="fixed inset-0 z-[70] flex flex-col">
         <div className="max-w-md mx-auto w-full px-4 pt-safe pb-3">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center h-10">
-            {index > 0 && step !== 'result' ? (
+            {(index > 0 || onBack) && step !== 'result' ? (
               <button onClick={goBack} style={{ color: TEXT_SOFT }} className="flex items-center gap-1 text-sm justify-self-start">
                 <ChevronLeft size={16} /> Back
               </button>
