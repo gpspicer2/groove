@@ -15,10 +15,10 @@ OUT_RX, OUT_RY = 89.5, 97.0
 RIM = 15.5                    # rim thickness
 IN_RX, IN_RY = OUT_RX - RIM, OUT_RY - RIM
 NAVY = (28, 62, 84)
-SPOKES = 32                   # a real wheel has 32-36
+SPOKES = 18                   # fewer, so it stays clean at logo size (a real wheel has 32-36)
 FLANGE = 7.5                  # spokes start on a small circle around the hub
 CROSS_DEG = 22                # how far around the rim each spoke lands: a gentle lean so spokes cross, like a laced wheel
-SPOKE_W = 1.5
+SPOKE_W = 1.7
 HUB_R = 5.5
 SS = 4
 
@@ -31,7 +31,7 @@ def redraw(path):
     # clear the old spokes and hub (navy-ish pixels inside the rim), leaving anything else alone
     r, g, b = a[..., 0].astype(int), a[..., 1].astype(int), a[..., 2].astype(int)
     navyish = (abs(r - NAVY[0]) + abs(g - NAVY[1]) + abs(b - NAVY[2]) < 110) & (a[..., 3] > 0)
-    a[inside & navyish] = 0
+    a[inside] = 0     # nothing but the old spokes and hub lives inside the rim, so clear it all (faint leftovers included)
     # draw the new spokes and hub, supersampled
     box = (int(CX - OUT_RX - 4), int(CY - OUT_RY - 4), int(CX + OUT_RX + 4), int(CY + OUT_RY + 4))
     bw, bh = box[2] - box[0], box[3] - box[1]
