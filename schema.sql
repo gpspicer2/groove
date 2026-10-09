@@ -371,3 +371,20 @@ create policy "fitness_measurements_trainer_read" on fitness_measurements for se
 -- Optional Balance (neuromotor) weekly goal
 alter table public.profiles add column if not exists balance_goal smallint;
 alter table public.profiles add column if not exists track_balance_goal boolean default false;
+
+-- Coach: private notes about each member (only the trainer can read/write)
+create table coach_notes (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null references auth.users(id),
+  body text not null,
+  created_at timestamptz not null default now()
+);
+alter table coach_notes enable row level security;
+create policy "coach_notes_trainer_all" on coach_notes for all
+  using (public.is_trainer()) with check (public.is_trainer());
+
+-- Membership (Stripe). membership_status: active | trialing | past_due | canceled | comped
+alter table public.profiles add column if not exists membership_status text;
+alter table public.profiles add column if not exists membership_renews_at timestamptz;
+alter table public.profiles add column if not exists stripe_customer_id text;
+alter table public.profiles add column if not exists stripe_subscription_id text;

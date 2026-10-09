@@ -11,6 +11,7 @@ import { predictedMaxHR, computeHrZones } from './lib/heartRate';
 import BaselineFlow from './features/baseline/BaselineFlow';
 import { logMeasurement } from './lib/measurements';
 import { getThemePref, setThemePref } from './appearance';
+import { SwitchAccountSection } from './auth/SwitchAccount';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -87,6 +88,8 @@ function AccountModal({ onClose }) {
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Signed in as</div>
           <div style={{ color: PAPER }} className="text-sm">{user.email}</div>
         </div>
+
+        <SwitchAccountSection />
 
         {!isTrainer && (
           <a

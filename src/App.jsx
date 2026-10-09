@@ -8,11 +8,11 @@ import ScreeningFlow from './features/screening/ScreeningFlow';
 import { INK, TEXT_SOFT } from './theme';
 
 function Shell() {
-  const { user, profile, isTrainer, loading, recovering, finishRecovery } = useAuth();
+  const { user, profile, isTrainer, loading, switching, recovering, finishRecovery } = useAuth();
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);
 
-  if (loading || (user && !profile)) {
+  if (loading || switching || (user && !profile)) {
     return (
       <div style={{ background: INK }} className="min-h-[100svh] flex items-center justify-center">
         <span style={{ color: TEXT_SOFT, fontFamily: 'Manrope, sans-serif' }} className="text-sm">Loading…</span>
