@@ -130,7 +130,11 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     (setRows || []).forEach((s) => {
       if (!types[s.workout_id]) types[s.workout_id] = new Set();
       types[s.workout_id].add(s.movement_type || 'resistance');
-      if (s.movement_type === 'aerobic') {
+      // Yoga is two birds with one stone: it counts as flexibility work and
+      // as aerobic activity, whichever list it was logged from.
+      const isYoga = /^yoga$/i.test(String(s.exercise_name || '').trim());
+      if (isYoga) { types[s.workout_id].add('aerobic'); types[s.workout_id].add('flexibility'); }
+      if (s.movement_type === 'aerobic' || isYoga) {
         const bucket = aerobicMinutes[s.workout_id] || { light: 0, moderate: 0, vigorous: 0 };
         bucket.light += Number(s.light_minutes) || 0;
         bucket.moderate += Number(s.moderate_minutes) || 0;

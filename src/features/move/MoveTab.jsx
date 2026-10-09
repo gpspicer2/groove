@@ -43,6 +43,7 @@ function daysBetween(a, b) {
 }
 
 const LIVE_BACKUP_KEY = 'groove:liveBackup';
+const BARBELL_MIN_LB = 45;
 
 // The aerobic piece that opens a resistance session starts unnamed so the
 // client picks their own activity (treadmill, bike, jump rope...) instead
@@ -2911,19 +2912,24 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const startWeight = useBodyweight
     ? (mostRecentLogged?.isBodyweight ? Math.max(0, (mostRecentLogged.weight ?? 0) - (bodyweight || 0)) : 0)
     : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? null);
-  const [weight, setWeight] = useState(startWeight != null ? roundToFive(startWeight) : 0);
+  // A barbell weighs 45 lb on its own, so a barbell lift is never lighter.
+  const isBarbell = exercise.equipment === 'barbell' || /barbell/i.test(exercise.name || '');
+  const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
+  const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? roundToFive(startWeight) : 0));
+  const belowBarbell = barbellFloor > 0 && Number(weight) < barbellFloor;
   // Switching to/from bodyweight changes what the number means (added
   // load vs. total), so start the field over instead of carrying it across.
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    setWeight(useBodyweight ? 0 : roundToFive(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0)));
+    setWeight(useBodyweight ? 0 : Math.max(isBarbell ? BARBELL_MIN_LB : 0, roundToFive(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
   const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? 30);
 
   function handleLog() {
+    if (belowBarbell) return;
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
     if (useBodyweight) {
       onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
@@ -2994,7 +3000,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           // mousedown keeps focus (and the keyboard) exactly where it was.
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleLog}
-          style={{ background: SKY, color: INK }}
+          disabled={belowBarbell}
+          style={{ background: belowBarbell ? INK_3 : SKY, color: belowBarbell ? TEXT_SOFT : INK }}
           className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
           <Plus size={14} /> Log
@@ -3010,6 +3017,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           </button>
         )}
       </div>
+      {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center -mt-1 mb-2">The bar alone is {BARBELL_MIN_LB} lb.</div>}
     </>
   );
 }
