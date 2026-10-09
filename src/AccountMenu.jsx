@@ -82,35 +82,35 @@ function AccountModal({ onClose }) {
   return (
     <Portal>
     <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50">
-      <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[90vh] overflow-y-auto">
+      <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-4 max-h-[94vh] overflow-y-auto">
         <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
-        <div className="relative flex items-center justify-center mb-5">
+        <div className="relative flex items-center justify-center mb-3">
           <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg text-center">Account</h2>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="absolute right-0 p-2 -m-2"><X size={20} /></button>
         </div>
 
-        <AvatarPicker userId={user.id} />
-
-        <NameField />
-
-        <div className="text-center mb-5">
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Signed in as</div>
-          <div style={{ color: PAPER }} className="text-sm">{user.email}</div>
+        <div className="flex items-center gap-4 mb-3">
+          <AvatarPicker userId={user.id} />
+          <div className="flex-1 min-w-0">
+            <NameField />
+            <div style={{ color: TEXT_SOFT }} className="text-sm truncate mt-1" title={user.email}>{user.email}</div>
+          </div>
         </div>
 
         <SwitchAccountSection />
 
         {!isTrainer && (
-          <a
-            href="sms:+16034754544"
-            style={{ background: LIME, color: INK }}
-            className="w-full flex items-center justify-center gap-2 rounded-md px-4 py-3 mb-2 text-sm font-medium"
-          >
-            <MessageCircle size={16} /> Message Greg
-          </a>
+          <div className="grid grid-cols-2 gap-2 mb-2 items-stretch">
+            <a
+              href="sms:+16034754544"
+              style={{ background: LIME, color: INK }}
+              className="flex flex-col items-center justify-center gap-1 rounded-md px-3 py-3 text-sm font-medium"
+            >
+              <MessageCircle size={20} /> Message Greg
+            </a>
+            <ScreeningStatus alwaysShow inset compact />
+          </div>
         )}
-
-        {!isTrainer && <ScreeningStatus alwaysShow inset />}
 
         {!isTrainer && <BaselineDataSection userId={user.id} />}
 
@@ -125,23 +125,24 @@ function AccountModal({ onClose }) {
 
         {isTrainer && <NotificationsRow />}
 
-        <button
-          onClick={signOut}
-          style={{ color: PAPER_DIM }}
-          className="w-full flex items-center justify-center gap-2 text-sm py-3 mb-2 mt-4"
-        >
-          <LogOut size={16} /> Sign Out
-        </button>
-
-        {!confirmingDelete ? (
+        <div className="grid grid-cols-2 gap-2 mt-2">
           <button
-            onClick={() => setConfirmingDelete(true)}
+            onClick={signOut}
+            style={{ color: PAPER_DIM }}
+            className="flex items-center justify-center gap-2 text-sm py-2.5"
+          >
+            <LogOut size={16} /> Sign Out
+          </button>
+          <button
+            onClick={() => setConfirmingDelete((v) => !v)}
             style={{ color: BRICK }}
-            className="w-full flex items-center justify-center gap-2 text-sm py-3"
+            className="flex items-center justify-center gap-2 text-sm py-2.5"
           >
             <Trash2 size={16} /> Delete Account
           </button>
-        ) : (
+        </div>
+
+        {confirmingDelete && (
           <div ref={deleteRef} style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-4 mt-2">
             <p style={{ color: BRICK }} className="text-sm text-center mb-3">
               This permanently deletes your account and all your data. It can't be undone.
@@ -195,18 +196,17 @@ function NameField() {
   }
 
   return (
-    <div className="mb-4">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide text-center mb-1">Your name</div>
+    <div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Your name{saved ? ' · Saved' : ''}</div>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         onBlur={save}
         placeholder="First and last name"
         autoCapitalize="words"
-        style={{ background: INK_3, color: PAPER, fontSize: '1.25rem', fontWeight: 500 }}
-        className="w-full rounded-md px-3 py-2.5 outline-none text-center"
+        style={{ background: INK_3, color: PAPER, fontSize: '1.2rem', fontWeight: 500 }}
+        className="w-full rounded-md px-3 py-2 outline-none"
       />
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center h-5 mt-0.5">{saved ? 'Saved' : ''}</div>
     </div>
   );
 }
@@ -245,25 +245,29 @@ function AvatarPicker({ userId }) {
   }
 
   return (
-    <div className="flex flex-col items-center mb-4">
+    <div className="shrink-0">
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        style={{ background: INK_3 }}
-        className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center"
+        aria-label="Change photo"
+        className="relative block w-24 h-24"
       >
-        {profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt="Account" className="w-full h-full object-cover" />
-        ) : (
-          <User size={28} color={TEXT_SOFT} />
+        <span style={{ background: INK_3 }} className="block w-24 h-24 rounded-full overflow-hidden flex items-center justify-center">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="Account" className="w-full h-full object-cover" />
+          ) : (
+            <User size={40} color={TEXT_SOFT} />
+          )}
+        </span>
+        {uploading && (
+          <span style={{ background: 'rgba(0,0,0,0.5)', color: PAPER }} className="absolute inset-0 rounded-full flex items-center justify-center text-xs">Uploading…</span>
         )}
-        <div style={{ background: 'rgba(0,0,0,0.45)' }} className="absolute inset-0 flex items-center justify-center">
-          <Camera size={18} color={PAPER} />
-        </div>
+        <span style={{ background: INK_2, border: `2px solid ${INK_3}` }} className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center">
+          <Camera size={15} color={PAPER} />
+        </span>
       </button>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5">{uploading ? 'Uploading…' : 'Tap to change photo'}</div>
-      {error && <div style={{ color: BRICK }} className="text-sm mt-1">{error}</div>}
+      {error && <div style={{ color: BRICK }} className="text-xs mt-1 max-w-[6rem]">{error}</div>}
       {pickedImage && (
         <AvatarCropModal
           image={pickedImage}
@@ -570,7 +574,7 @@ function BaselineDataSection({ userId }) {
   const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
 
   return (
-    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Baseline Data</span>
@@ -703,7 +707,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
   const [themePref, setThemePrefState] = useState(getThemePref);
 
   return (
-    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide font-bold">Settings</span>
@@ -805,7 +809,7 @@ function DeletedWorkoutsSection({ userId }) {
   if (!loading && workouts.length === 0) return null;
 
   return (
-    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2">
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
         <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Deleted Workouts {!loading && `(${workouts.length})`}</span>

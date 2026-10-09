@@ -6,7 +6,7 @@ import { RESULT_COPY, needsClearance } from './screening';
 
 // Short reminder while a doctor's okay is still recommended. Used on
 // Birdseye (only when clearance is pending) and in Account (always).
-export default function ScreeningStatus({ alwaysShow = false, inset = false }) {
+export default function ScreeningStatus({ alwaysShow = false, inset = false, compact = false }) {
   const { profile, updateProfile } = useAuth();
   const [retaking, setRetaking] = useState(false);
   const screening = profile?.screening;
@@ -28,10 +28,10 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false }) {
 
   return (
     <>
-      <div style={{ background: inset ? INK_3 : INK_2, borderTop: `2px solid ${color}` }} className={`rounded-${inset ? 'md' : 'lg'} px-5 py-4 text-center ${inset ? 'mb-2' : ''}`}>
-        <div style={{ color }} className="text-sm uppercase tracking-wide font-bold mb-1">Health check</div>
+      <div style={{ background: inset ? INK_3 : INK_2, borderTop: `2px solid ${color}` }} className={`rounded-${inset ? 'md' : 'lg'} ${compact ? 'px-3 py-2.5 flex flex-col justify-center' : 'px-5 py-4'} text-center ${inset && !compact ? 'mb-2' : ''}`}>
+        <div style={{ color }} className={`text-sm uppercase tracking-wide font-bold ${compact ? '' : 'mb-1'}`}>Health check</div>
         <div style={{ color: PAPER_DIM }} className="text-sm">{status}</div>
-        <div className="flex justify-center gap-4 mt-2">
+        <div className={`flex justify-center ${compact ? 'flex-col items-center gap-0.5 mt-1' : 'gap-4 mt-2'}`}>
           {pending && (
             <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-sm underline">My doctor cleared me</button>
           )}
