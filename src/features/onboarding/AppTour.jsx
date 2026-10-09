@@ -15,8 +15,8 @@ import { INK, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRIC
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove",
-    body: "Move more, feel better, and stick with it.",
+    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove.",
+    body: "Move more, feel better, and stick with it.\n\nA groove is literally a track worn by repetition — the more you move, the more natural the path becomes.",
   },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: 'Four Tabs, Swipe or Tap',
@@ -304,7 +304,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
             <div style={{ color: step.color, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-semibold mb-2 whitespace-pre-line">
               {step.title}
             </div>
-            <div style={{ color: PAPER_DIM }} className="text-base mb-4 leading-snug">
+            <div style={{ color: PAPER_DIM }} className="text-base mb-4 leading-snug whitespace-pre-line">
               {step.body}
             </div>
             <div className="flex items-center gap-3">
