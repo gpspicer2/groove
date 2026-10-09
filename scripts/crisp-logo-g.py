@@ -14,7 +14,10 @@ G_COLOR = np.array([68, 51, 73], dtype=float)
 G_RIGHT = 197     # the G touches the wheel at x~200; leave the last few columns alone
 CONTEXT = 8       # extra columns read (not changed) so the edge there stays continuous
 UP = 4
-THIN = 1.6        # shave this many pixels off the G's stroke (everywhere), so it reads as crisp as the other letters
+THIN = 1.6        # shave this many pixels off the G's stroke, so it reads as crisp as the other letters
+# The two little trees are fine detail: no thinning and much less smoothing there, so they stay well defined.
+TREES = (50, 100, 114, 166)   # x0, y0, x1, y1 in the artwork's pixels
+FEATHER = 6
 
 def crisp(path):
     """Run on the ORIGINAL artwork (not on an already processed file)."""
@@ -28,8 +31,17 @@ def crisp(path):
     solid = big > 0.5
     # shave the stroke: erode by THIN pixels (in original pixel units), then re-smooth for a clean edge
     dist = ndimage.distance_transform_edt(np.pad(solid, 1, constant_values=True))[1:-1, 1:-1]
-    shaved = np.clip((dist - THIN * UP) / 1.5 + 0.5, 0, 1)
+    shaved = np.clip((dist - THIN * UP) / 1.0 + 0.5, 0, 1)
     shaved = np.where(solid, shaved, 0)
+    # fine detail version for the trees (light smoothing, no thinning, hard edge)
+    detail_big = ndimage.gaussian_filter(np.array(alpha.resize((alpha.width * UP, alpha.height * UP), Image.BICUBIC)).astype(float) / 255.0, 1.1)
+    detail = np.clip((detail_big - 0.5) * 8 + 0.5, 0, 1)
+    x0, y0, x1, y1 = [v * UP for v in TREES]
+    yy, xx = np.mgrid[0:big.shape[0], 0:big.shape[1]]
+    f = FEATHER * UP
+    wx = np.clip(np.minimum(xx - x0, x1 - xx) / f, 0, 1); wy = np.clip(np.minimum(yy - y0, y1 - yy) / f, 0, 1)
+    w = wx * wy
+    shaved = w * detail + (1 - w) * shaved
     small = np.array(Image.fromarray((shaved * 255).astype(np.uint8)).resize(alpha.size, Image.BOX)).astype(float)
     out = a.copy()
     out[:, :G_RIGHT, 3] = small[:, :G_RIGHT]

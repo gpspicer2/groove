@@ -82,8 +82,10 @@ def frame(color, t):
         P = [tf(p) for p in pts]; r = w * SS / 2
         for a, b in zip(P, P[1:]): d.line([a, b], fill=color, width=int(w * SS))
         for x, y in P: d.ellipse([x - r, y - r, x + r, y + r], fill=color)
-    cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     line(TORSO, TORSO_W); d.polygon([tf(p) for p in SHOULDERS], fill=color)
+    # The logo's shoulder line is flat; the round top of the torso made a hump beside the neck, so slice it flat.
+    d.polygon([tf(p) for p in [(30, 0), (150, 0), (150, 54.5), (30, 54.5)]], fill=(0, 0, 0, 0))
+    cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     # arms (back arm half a cycle behind the front arm)
     elbow, hand = arm_pose(ARM_B[0], 37.6, 26.6, t, 0.5); line([ARM_B[0], elbow, hand], ARM_B_W)
     elbow, hand = arm_pose(ARM_F[0], 48.5, 33.5, t, 0.0); line([ARM_F[0], elbow, hand], ARM_F_W)

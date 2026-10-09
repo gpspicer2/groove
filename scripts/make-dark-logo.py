@@ -30,6 +30,10 @@ def neon(path, out, glow=True):
     a = np.asarray(im).astype(float)
     alpha = a[..., 3] / 255.0
     rgb = a[..., :3] * alpha[..., None] + CREAM * (1 - alpha[..., None])  # as seen on the light page
+    # The bike wheel (an ellipse, centre (487.5, 116), radii 89.5 x 97): its thin spokes would be
+    # lost by the clean-up below, so they are kept as-is and always colored the wheel's blue.
+    yy, xx = np.mgrid[0:alpha.shape[0], 0:alpha.shape[1]]
+    wheel = ((xx - 487.5) / 93.0) ** 2 + ((yy - 116.0) / 100.5) ** 2 < 1
     centers = np.array([p[0] for p in PALETTE], dtype=float)
     dist = np.linalg.norm(rgb[:, :, None, :] - centers[None, None], axis=-1)
     nearest = dist.argmin(-1)
@@ -43,16 +47,20 @@ def neon(path, out, glow=True):
         sizes = ndimage.sum(mask, labels, range(1, n + 1))
         keep = np.isin(labels, [i + 1 for i, s in enumerate(sizes) if s >= 60])
         mask = keep
+    mask = np.where(wheel, alpha > 0.5, mask)
     colors = np.array([p[1] for p in PALETTE], dtype=float)
     out_rgb = colors[nearest]
+    out_rgb[wheel] = np.array(PALETTE[2][1], dtype=float)
     # Outside the letters (glow and soft edges) take the color of the nearest
     # letter pixel instead of whatever palette color happens to be closest.
     # Edge pixels are noisy, so colors are taken from each shape's solid interior.
     interior = ndimage.binary_erosion(mask, iterations=2)
     if interior.any():
         idx = ndimage.distance_transform_edt(~interior, return_distances=False, return_indices=True)
-        out_rgb = out_rgb[idx[0], idx[1]]
+        keep_wheel = wheel.copy()
+        out_rgb = np.where(keep_wheel[..., None], out_rgb, out_rgb[idx[0], idx[1]])
     soft = ndimage.gaussian_filter(mask.astype(float), 0.4)  # anti-aliased edge
+    soft = np.where(wheel, alpha, soft)
     layer = np.dstack([out_rgb, soft * 255]).astype(np.uint8)
     core = Image.fromarray(layer, 'RGBA')
     if not glow:
@@ -62,8 +70,10 @@ def neon(path, out, glow=True):
     canvas = Image.new('RGBA', (core.width, core.height), (0, 0, 0, 0))
     wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 4) * 255 * 0.16]).astype(np.uint8), 'RGBA')
     tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 1.2) * 255 * 0.22]).astype(np.uint8), 'RGBA')
-    canvas.alpha_composite(wide)
-    canvas.alpha_composite(tight)
+    inner_wheel = ((xx - 487.5) / 76.0) ** 2 + ((yy - 116.0) / 83.0) ** 2 < 1
+    for glow_img in (wide, tight):
+        arr = np.array(glow_img); arr[inner_wheel, 3] = 0
+        canvas.alpha_composite(Image.fromarray(arr, 'RGBA'))
     canvas.alpha_composite(core)
     canvas.save(PUBLIC + out)
 
