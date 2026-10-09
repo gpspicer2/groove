@@ -42,12 +42,16 @@ def smooth(keys, t):
     return keys[-1][1]
 
 def K(a, b, c, d, e): return [(0, a), (.25, b), (.5, c), (.75, d), (1, e)]
-THIGH_B = K(0, -55, -110, -55, 0); SHIN_B = K(0, 37, 72, -30, 0)
-THIGH_F = K(0, 55, 110, 55, 0);    SHIN_F = K(0, -30, -72, 37, 0)
-# Arms swap front/back like the legs: the upper arm swings about the shoulder and
-# the forearm bends at the elbow.
-UPPER_B = K(0, -42, -85, -42, 0); FORE_B = K(0, -25, -40, -15, 0)
-UPPER_F = K(0, 42, 85, 42, 0);   FORE_F = K(0, 22, 40, 18, 0)
+# A jog in place around the logo's own pose: each limb stays on its own side
+# (legs and arms never swap or cross over the body), so the figure never piles
+# up into a blob. Back leg: thigh swings forward and the knee kicks up behind.
+# Front leg: thigh pulls back and the knee straightens a little. The arms
+# open outward (back arm further back, front arm further forward) while the
+# legs come together, so the arms never fold in over the chest.
+THIGH_B = K(0, -18, -36, -18, 0); SHIN_B = K(0, 25, 50, 25, 0)
+THIGH_F = K(0, 18, 36, 18, 0);    SHIN_F = K(0, -18, -36, -18, 0)
+UPPER_B = K(0, 12, 24, 12, 0);   FORE_B = K(0, 6, 12, 6, 0)
+UPPER_F = K(0, -12, -24, -12, 0); FORE_F = K(0, -6, -12, -6, 0)
 BOB = K(0, -9, 0, -9, 0);          LEAN = K(0, 3, 0, 3, 0)
 
 def frame(color, t):
