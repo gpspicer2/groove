@@ -22,9 +22,8 @@ COLORS = {'': (96, 106, 66), '-dark': (150, 255, 90)}
 
 HIP = (82, 140)
 HEAD = (119.55, 28.85, 22)
-CHEST = [(97.5, 63.5), (125, 62), (150, 101.5), (139, 110), (108.5, 94)]
 TORSO = [(100.5, 71.5), (74.9, 135.8)]; TORSO_W = 37.5
-SHOULDER = [(54.9, 62.1), (107.5, 62.4)]; SHOULDER_W = 18.4
+SHOULDER = [(86.0, 62.1), (107.5, 62.4)]; SHOULDER_W = 18.4   # only the part across the torso; the arms draw the rest
 ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5   # shoulder, elbow, hand
 ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
 LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
@@ -83,7 +82,6 @@ def frame(color, t):
         for a, b in zip(P, P[1:]): d.line([a, b], fill=color, width=int(w * SS))
         for x, y in P: d.ellipse([x - r, y - r, x + r, y + r], fill=color)
     cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
-    d.polygon([tf(p) for p in CHEST], fill=color)
     line(TORSO, TORSO_W); line(SHOULDER, SHOULDER_W)
     # arms (back arm half a cycle behind the front arm)
     elbow, hand = arm_pose(ARM_B[0], 37.6, 26.6, t, 0.5); line([ARM_B[0], elbow, hand], ARM_B_W)
