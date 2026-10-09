@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, ON_AMBER } from './theme';
 import Wordmark from './Wordmark';
