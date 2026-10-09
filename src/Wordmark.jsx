@@ -6,8 +6,7 @@ import useDarkMode from './useDarkMode';
 //
 // While `running` (a workout is in progress) the runner is lifted out of
 // the picture and animated on its own: every so often he takes a few
-// strides — arms and legs swinging from their own joints — then stands
-// still again. wordmark-still.png is the logo with the runner erased;
+// strides (a bounce and a lean) then stands still again. wordmark-still.png is the logo with the runner erased;
 // wordmark-runner.png is just the runner, which slots back into exactly
 // the same spot. Otherwise the original single image is used.
 const FULL_W = 1135;
@@ -15,23 +14,11 @@ const RUNNER_LEFT = 204;
 const RUNNER_W = 186;
 const RUNNER_H = 231;
 
-// The runner image cut into body parts (polygons in the image's own pixels).
-// Neighbouring parts overlap by a few pixels so no seam shows at rest.
-// origin = the joint each part swings from.
+// The runner is one piece (an earlier version cut him into swinging limbs,
+// but the cut edges showed as glitches mid-stride). He bounces and leans
+// into each stride instead, so his shape never changes.
 const PARTS = [
-  // Head, torso, shoulders, upper arm and pelvis stay put (and bob).
-  { key: 'body', origin: [88, 134],
-    pts: [[62, 0], [186, 0], [186, 70], [139, 70], [139, 150], [100, 156], [60, 150], [62, 46]] },
-  // The swinging back arm, hinged where it leaves the shoulder.
-  { key: 'back-arm', origin: [62, 62],
-    pts: [[15, 46], [65, 46], [65, 106], [15, 106]] },
-  // The front forearm, hinged at the elbow.
-  { key: 'front-arm', origin: [140, 108],
-    pts: [[137, 70], [186, 70], [186, 130], [137, 130]] },
-  { key: 'back-leg', origin: [88, 134],
-    pts: [[0, 125], [98, 125], [91, 134], [80, 150], [73, 170], [60, 190], [40, 232], [0, 232]] },
-  { key: 'front-leg', origin: [88, 134],
-    pts: [[92, 125], [186, 125], [186, 232], [74, 232], [74, 150], [85, 134]] },
+  { key: 'body', origin: [88, 134], pts: [[0, 0], [186, 0], [186, 231], [0, 231]] },
 ];
 
 const pct = (v, total) => `${(v / total) * 100}%`;

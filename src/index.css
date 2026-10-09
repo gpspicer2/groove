@@ -135,11 +135,11 @@ html, body {
 }
 @keyframes groove-run-back-leg {
   0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(-75deg); }
+  3.44%, 10.31% { transform: rotate(-40deg); }
 }
 @keyframes groove-run-front-leg {
   0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
-  3.44%, 10.31% { transform: rotate(75deg); }
+  3.44%, 10.31% { transform: rotate(40deg); }
 }
 @keyframes groove-run-back-arm {
   0%, 6.88%, 13.75%, 100% { transform: rotate(0deg); }
