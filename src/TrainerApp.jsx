@@ -70,7 +70,7 @@ export default function TrainerApp() {
   function goTab(key) { setSelectedId(null); setTab(key); window.scrollTo(0, 0); }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh]">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-safe">
         <div className="flex items-center justify-between gap-2 mb-3">
           <ViewToggle />

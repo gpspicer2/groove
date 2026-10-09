@@ -554,7 +554,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
         <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-5">
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Weekly Goals</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Weekly Goals</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Choose which modes show up, and what to aim for each week.</div>
@@ -584,7 +584,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
                         >
                           <Minus size={13} />
                         </button>
-                        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium w-14 text-center">
+                        <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium w-14 text-center">
                           {isAerobic ? `${aerobicGoalMinutes} min` : goals[mode]}
                         </span>
                         <button
@@ -721,7 +721,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
           {(aerobic || extra) && (expanded ? <ChevronUp size={13} color={TEXT_SOFT} /> : <ChevronDown size={13} color={TEXT_SOFT} />)}
         </span>
         <span className="flex items-center gap-1.5">
-          <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+          <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium">
             {displayCount}
             {displayPlanned > 0 && (
               <span className="groove-plan-pulse" style={{ color, borderBottom: `1.5px dashed ${color}` }}> +{displayPlanned}</span>
@@ -799,7 +799,7 @@ function AerobicSubBar({ label, minutes, color }) {
     <div>
       <div className="flex items-center justify-between mb-1">
         <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
-        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{rounded} min</span>
+        <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm">{rounded} min</span>
       </div>
       <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden">
         <div style={{ width: `${Math.min(100, (rounded / 150) * 100)}%`, background: color }} className="h-full rounded-full transition-all" />
@@ -873,7 +873,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
         <button onClick={() => setMonthOffset((m) => m - 1)} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
           <ChevronLeft size={16} />
         </button>
-        <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+        <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium">
           {viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </span>
         <button
@@ -1095,7 +1095,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
                   {zones.map((z) => (
                     <div key={z.label} className="flex items-center justify-center gap-2">
                       <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
-                      <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+                      <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
                     </div>
                   ))}
                 </div>

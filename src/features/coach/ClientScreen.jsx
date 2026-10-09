@@ -117,7 +117,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       <div className="flex items-center gap-3 mb-4">
         <Avatar client={client} size={56} />
         <div className="min-w-0">
-          <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold truncate">{name}</div>
+          <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-semibold truncate">{name}</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm truncate">{client.email}{since ? ` · since ${since}` : ''}</div>
         </div>
       </div>

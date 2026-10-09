@@ -255,7 +255,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
       <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
         <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-5">
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Edit entry</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Edit entry</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
           </div>
 
@@ -263,7 +263,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
             <div className="space-y-4">
               <div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Mood</div>
-                <div style={{ color: AMBER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-xl font-medium text-center mb-2">
+                <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium text-center mb-2">
                   {MOOD_LABELS[mood - 1]}
                 </div>
                 <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
@@ -448,7 +448,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
       {step === 'mood' && (
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">How did you feel today?</div>
-          <div style={{ color: AMBER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl font-medium mb-3 text-center">
+          <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-3 text-center">
             {MOOD_LABELS[mood - 1]}
           </div>
           <input

@@ -22,7 +22,7 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
   return (
     <div>
       <div className="px-1 mb-4">
-        <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-semibold">{greeting()}, {firstName}</div>
+        <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-semibold">{greeting()}, {firstName}</div>
         <div style={{ color: TEXT_SOFT }} className="text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
       </div>
 

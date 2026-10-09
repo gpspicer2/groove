@@ -50,7 +50,7 @@ export function ArticleManager() {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-1 text-center">Learn</h1>
+      <h1 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-1 text-center">Learn</h1>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-4 text-center">Reasons to Move — shown to every client</div>
 
       {adding ? (
@@ -204,7 +204,7 @@ export function ClientHeartRate({ clientId }) {
           {zones.map((z) => (
             <div key={z.label} className="flex items-center justify-between">
               <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}</span>
-              <span style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
+              <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm">{z.lowBpm}–{z.highBpm} bpm</span>
             </div>
           ))}
         </div>

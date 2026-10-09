@@ -301,7 +301,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
                 <span key={i} style={{ background: i === index ? step.color : INK_3, width: i === index ? 16 : 5 }} className="h-1.5 rounded-full transition-all" />
               ))}
             </div>
-            <div style={{ color: step.color, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-semibold mb-2 whitespace-pre-line">
+            <div style={{ color: step.color, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-semibold mb-2 whitespace-pre-line">
               {step.title}
             </div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-4 leading-snug">
@@ -325,7 +325,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
 
         {phase === 'confirmSkipTour' && (
           <div style={{ background: INK, border: `1px solid ${PLUM}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
+            <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Skip the tutorial?</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No worries — you can look around on your own instead.
             </div>
@@ -340,7 +340,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
 
         {phase === 'exitPrompt' && (
           <div style={{ background: INK, border: `1px solid ${PLUM}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: PLUM, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
+            <div style={{ color: PLUM, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               A few questions so I can mentor you. About 10 minutes.
             </div>
@@ -355,7 +355,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
 
         {phase === 'confirmSkip' && (
           <div style={{ background: INK, border: `1px solid ${BRICK}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: BRICK, fontFamily: 'Manrope, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
+            <div style={{ color: BRICK, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No rush. You can finish it anytime from Account.
             </div>

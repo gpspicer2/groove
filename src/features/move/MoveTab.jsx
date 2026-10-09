@@ -132,7 +132,7 @@ function LabeledMinutesInput({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0"
-        style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+        style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
         className="w-14 h-9 rounded-md text-center text-base font-semibold outline-none"
       />
     </div>
@@ -1576,7 +1576,7 @@ function StartWorkout({
                           inputMode="numeric"
                           value={pendingMinutes}
                           onChange={(e) => setPendingMinutes(e.target.value === '' ? '' : Number(e.target.value))}
-                          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                          style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
                           className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
                         />
                         <span style={{ color: TEXT_SOFT }} className="text-sm">minutes</span>
@@ -1946,7 +1946,7 @@ function ActiveWorkout({
   function RestBanner() {
     return (
       <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-2.5 mb-3 flex items-center gap-3">
-        <span style={{ color: LIME, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium tabular-nums">
+        <span style={{ color: LIME, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium tabular-nums">
           Rest {Math.floor(restElapsed / 60)}:{String(restElapsed % 60).padStart(2, '0')}
         </span>
         <div style={{ color: TEXT_SOFT }} className="text-sm flex-1">
@@ -2380,7 +2380,7 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
           onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
           onFocus={(e) => e.target.select()}
           aria-label="Minutes"
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
           className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
         <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
@@ -2488,7 +2488,7 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
               value={minutes}
               onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
               className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
             />
             <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
@@ -2963,7 +2963,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             value={weight}
             onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
             onFocus={(e) => e.target.select()}
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
             className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
           />
         </label>
@@ -2976,7 +2976,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
               value={seconds}
               onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
               className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
             />
           </label>
@@ -2989,7 +2989,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
               value={reps}
               onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
               className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
             />
           </label>
@@ -3172,7 +3172,7 @@ function ExerciseCard({
                   if (s.movementType === 'aerobic' && onUpdateSet) setEditingBurst(s);
                   else if (window.confirm('Delete this set?')) onDeleteSet(s.id);
                 }}
-                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.movementType === 'aerobic'
@@ -3246,7 +3246,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
               <button
                 key={s.id}
                 onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
@@ -3715,7 +3715,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
             <button
               key={s.id}
               onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
@@ -3781,7 +3781,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
             <button
               key={s.id}
               onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
@@ -3798,7 +3798,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           value={seconds}
           onChange={(e) => setSeconds(e.target.value)}
           placeholder="sec"
-          style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+          style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
           className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
         <button

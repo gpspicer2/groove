@@ -90,7 +90,7 @@ export default function MessageTab({ userId, peerId }) {
   return (
     <div className="max-w-md mx-auto flex flex-col" style={{ height: 'calc(100svh - 220px)' }}>
       {!peerId && (
-        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-4 px-4">
+        <h1 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-4 px-4">
           Message
         </h1>
       )}

@@ -80,7 +80,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
   return (
     <Portal>
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="fixed inset-0 flex flex-col z-50">
       <div className="max-w-md mx-auto w-full px-4 pt-safe flex items-center justify-between">
 <Wordmark height={26} />
         <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
@@ -91,7 +91,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
       <div className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col justify-center text-center">
         {step === 'intro' && (
           <div>
-            <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-2xl font-medium mb-3">
+            <h1 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-3">
               Where are you starting from?
             </h1>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-2">
@@ -105,7 +105,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
         {step === 'resting_hr' && (
           <div>
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-3">
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-3">
               What's your resting heart rate?
             </h2>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-4">
@@ -117,7 +117,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
               value={restingHr}
               onChange={(e) => setRestingHr(e.target.value)}
               placeholder="e.g., 62"
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
               className="w-24 rounded-md px-3 py-2.5 text-lg outline-none text-center mx-auto block"
             />
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">bpm</div>
@@ -130,7 +130,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
         {step === 'aerobic_mode' && (
           <div>
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-4">
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">
               Want to get more specific?
             </h2>
             <div className="space-y-2">
@@ -152,7 +152,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
         {step === 'aerobic_detail' && aerobicMode === 'described' && (
           <div>
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-3">
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-3">
               Describe your aerobic endurance
             </h2>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-3">
@@ -174,7 +174,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
         {step === 'resistance_1rm_ask' && (
           <div>
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-4">
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">
               Can you estimate your strength on any traditional lifts? (e.g., bench press, squat, deadlift)
             </h2>
             <div className="space-y-2">
@@ -186,7 +186,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 
         {step === 'resistance_1rm' && (
           <div>
-            <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-4">
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">
               Estimated 1-rep max (lb)
             </h2>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-3">Leave any blank if you're not sure.</p>
@@ -199,7 +199,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
                     inputMode="decimal"
                     value={oneRms[lift] || ''}
                     onChange={(e) => setOneRms((prev) => ({ ...prev, [lift]: e.target.value }))}
-                    style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                    style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
                     className="w-full rounded-md px-3 py-2.5 mt-1 text-sm outline-none"
                   />
                 </div>
@@ -233,7 +233,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
 function RatingStep({ title, value, onChange }) {
   return (
     <div>
-      <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-4">{title}</h2>
+      <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">{title}</h2>
       <div className="space-y-2">
         {RATING_SCALE.map((opt) => (
           <ModeButton key={opt} label={opt} selected={value === opt} onClick={() => onChange(opt)} />
@@ -291,7 +291,7 @@ function TimedAerobicStep({ activity, onSelectActivity, onSeconds, result, onRes
   if (!activity) {
     return (
       <div>
-        <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-4">Pick an activity</h2>
+        <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">Pick an activity</h2>
         <div className="space-y-2">
           {AEROBIC_ACTIVITIES.map((a) => (
             <ModeButton key={a.key} label={a.label} selected={activity === a.key} onClick={() => onSelectActivity(a.key)} />
@@ -305,10 +305,10 @@ function TimedAerobicStep({ activity, onSelectActivity, onSeconds, result, onRes
 
   return (
     <div>
-      <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-2">{activityInfo.label}</h2>
+      <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-2">{activityInfo.label}</h2>
       <p style={{ color: TEXT_SOFT }} className="text-sm mb-5">{activityInfo.instructions}</p>
 
-      <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-5xl font-medium mb-5 tabular-nums">
+      <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-5xl font-medium mb-5 tabular-nums">
         {mm}:{ss}
       </div>
 

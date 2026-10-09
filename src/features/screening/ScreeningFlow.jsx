@@ -72,7 +72,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving }) {
 
   return (
     <Portal>
-      <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 z-[70] flex flex-col">
+      <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="fixed inset-0 z-[70] flex flex-col">
         <div className="max-w-md mx-auto w-full px-4 pt-safe pb-3">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center h-10">
             {index > 0 && step !== 'result' ? (

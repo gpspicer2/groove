@@ -99,7 +99,7 @@ function NumberField({ label, value, onChange, placeholder }) {
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{ background: INK_3, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+        style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
       />
     </div>
@@ -124,7 +124,7 @@ function FeatureCard({ color, icon: Icon, title, children }) {
     <div style={{ background: INK_2, border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`, borderTop: `3px solid ${color}` }} className="rounded-lg px-4 py-4 mb-3">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Icon size={16} color={color} />
-        <span style={{ color, fontFamily: 'Manrope, sans-serif' }} className="text-sm uppercase tracking-wide font-bold">{title}</span>
+        <span style={{ color, fontFamily: 'Outfit, sans-serif' }} className="text-sm uppercase tracking-wide font-bold">{title}</span>
       </div>
       {children}
     </div>
@@ -169,7 +169,7 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
     <FeatureCard color={MOSS} icon={Wind} title="Aerobic Capacity — VO2max">
       {profile?.vo2max_estimate ? (
         <div className="text-center mb-3">
-          <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-4xl font-bold leading-none">
+          <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-4xl font-bold leading-none">
             {profile.vo2max_estimate}
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">ml/kg/min</div>
@@ -201,7 +201,7 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
           <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[60] flex items-end md:items-center justify-center px-4">
             <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-base">{activeTest.name}</h3>
+                <h3 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-base">{activeTest.name}</h3>
                 <button onClick={() => setActiveTest(null)} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
               </div>
               <ol style={{ color: PAPER_DIM }} className="text-sm space-y-1.5 mb-4 list-decimal list-inside">
@@ -223,7 +223,7 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
                 </div>
               ) : (
                 <div className="mt-2 text-center">
-                  <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-2xl mb-1">
+                  <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl mb-1">
                     {Math.round(result * 10) / 10} <span style={{ color: TEXT_SOFT }} className="text-sm">ml/kg/min</span>
                   </div>
                   <div style={{ color: MOSS }} className="text-sm mb-3">{vo2Category(result)}</div>
@@ -285,7 +285,7 @@ export function OneRMEstimator({ userId }) {
           {estimates.map((e) => (
             <div key={e.id} className="flex items-center justify-between">
               <span style={{ color: PAPER }} className="text-sm">{e.exercise_name}</span>
-              <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-lg font-bold">{Math.round(e.estimated_1rm_lb)} lb</span>
+              <span style={{ color: SKY, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-bold">{Math.round(e.estimated_1rm_lb)} lb</span>
             </div>
           ))}
         </div>
@@ -323,7 +323,7 @@ export function OneRMEstimator({ userId }) {
       </div>
       {estimate && (
         <div className="text-center mb-3">
-          <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-3xl font-bold leading-none">{estimate}</div>
+          <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-3xl font-bold leading-none">{estimate}</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">lb estimated 1RM</div>
         </div>
       )}

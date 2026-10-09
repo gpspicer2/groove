@@ -22,7 +22,7 @@ export function Stat({ label, value, sub, color = PAPER }) {
   return (
     <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3 text-left">
       <div style={{ color: TEXT_SOFT }} className="text-sm">{label}</div>
-      <div style={{ color, fontFamily: 'Space Grotesk, sans-serif' }} className="text-3xl font-semibold leading-tight">{value}</div>
+      <div style={{ color, fontFamily: 'Outfit, sans-serif' }} className="text-3xl font-semibold leading-tight">{value}</div>
       {sub && <div style={{ color: TEXT_SOFT }} className="text-sm">{sub}</div>}
     </div>
   );
@@ -44,7 +44,7 @@ export function MiniBar({ label, value, goal, color, unit = '' }) {
     <div className="flex-1 min-w-0">
       <div className="flex items-baseline justify-between gap-1">
         <span style={{ color: TEXT_SOFT }} className="text-xs uppercase tracking-wide">{label}</span>
-        <span style={{ color: PAPER_DIM, fontFamily: 'Space Grotesk, sans-serif' }} className="text-xs">{Math.round(value)}/{goal}{unit}</span>
+        <span style={{ color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }} className="text-xs">{Math.round(value)}/{goal}{unit}</span>
       </div>
       <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden mt-1">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full" />

@@ -53,7 +53,7 @@ html, body {
      every one of those (SwapPicker, IntensityGuideModal, etc.) silently
      fell back to the browser's plain system default instead of the
      app's actual font. */
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 /* Android Chrome: dragging down at the top of the app would pull-to-refresh

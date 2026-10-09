@@ -92,7 +92,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
 
   return (
     <Portal>
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="fixed inset-0 z-50 flex flex-col">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="fixed inset-0 z-50 flex flex-col">
       <div className="max-w-md mx-auto w-full px-4 pt-safe pb-4 text-center">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1">
           <div />
@@ -107,7 +107,7 @@ export default function BaselineFlow({ userId, onComplete, onClose }) {
             </button>
           ) : <div />}
         </div>
-        <h1 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-xl font-medium mb-1">
+        <h1 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-1">
           {page.section.title}
         </h1>
         {page.section.subtitle && (
@@ -309,7 +309,7 @@ function AgePicker({ value, onChange }) {
         {AGES.map((a) => (
           <div
             key={a}
-            style={{ height: ITEM_HEIGHT, scrollSnapAlign: 'center', color: String(a) === value ? PAPER : TEXT_SOFT, fontFamily: 'Space Grotesk, sans-serif' }}
+            style={{ height: ITEM_HEIGHT, scrollSnapAlign: 'center', color: String(a) === value ? PAPER : TEXT_SOFT, fontFamily: 'Outfit, sans-serif' }}
             className="flex items-center justify-center text-lg"
           >
             {a}

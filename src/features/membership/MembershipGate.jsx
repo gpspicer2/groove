@@ -41,7 +41,7 @@ export default function MembershipGate() {
   const canceled = profile?.membership_status === 'canceled';
 
   return (
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
       <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm rounded-lg px-6 py-7 text-center">
         <Wordmark height={40} className="mb-4 mx-auto block" />
         {waiting ? (
@@ -54,7 +54,7 @@ export default function MembershipGate() {
             <h1 style={{ color: PLUM }} className="text-xl font-medium mb-1">
               {pastDue ? 'Payment needs attention' : canceled ? 'Welcome back' : 'Join Groove'}
             </h1>
-            <div style={{ color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }} className="text-4xl font-semibold mt-3">
+            <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-4xl font-semibold mt-3">
               ${MEMBERSHIP_PRICE}<span style={{ color: TEXT_SOFT }} className="text-base font-normal"> / month</span>
             </div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">Cancel anytime.</div>

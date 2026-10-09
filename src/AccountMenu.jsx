@@ -79,9 +79,9 @@ function AccountModal({ onClose }) {
     <Portal>
     <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50">
       <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
-          <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">Account</h2>
-          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
+        <div className="relative flex items-center justify-center mb-5">
+          <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg text-center">Account</h2>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="absolute right-0 p-2 -m-2"><X size={20} /></button>
         </div>
 
         <AvatarPicker userId={user.id} />
@@ -288,7 +288,7 @@ function AvatarCropModal({ image, onCancel, onSave }) {
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-4">
         <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-2xl px-5 py-6">
-          <h3 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-base text-center mb-4">Adjust your photo</h3>
+          <h3 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-base text-center mb-4">Adjust your photo</h3>
           <div className="relative w-full" style={{ height: 280, background: INK_3, borderRadius: 12, overflow: 'hidden' }}>
             <Cropper
               image={image}
@@ -340,7 +340,7 @@ function Popup({ title, onClose, children }) {
     <div style={{ background: 'rgba(0,0,0,0.7)' }} className="fixed inset-0 flex items-center justify-center z-[60] px-4" onClick={onClose}>
       <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
-          <h2 style={{ color: PAPER, fontFamily: 'Manrope, sans-serif' }} className="text-lg">{title}</h2>
+          <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">{title}</h2>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
         </div>
         {children}
@@ -592,7 +592,7 @@ function BaselineDataSection({ userId }) {
               onChange={(e) => setAgeInput(e.target.value)}
               onBlur={(e) => saveAge(e.target.value)}
               placeholder="—"
-              style={{ background: INK_2, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+              style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
               className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none mx-auto block"
             />
           </div>
@@ -624,7 +624,7 @@ function BaselineDataSection({ userId }) {
                 onChange={(e) => setBodyweight(e.target.value)}
                 onBlur={(e) => saveBodyweight(e.target.value)}
                 placeholder="—"
-                style={{ background: INK_2, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
                 className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
               />
               <span style={{ color: TEXT_SOFT }} className="text-sm">lb</span>
@@ -645,7 +645,7 @@ function BaselineDataSection({ userId }) {
                   onChange={(e) => setRestingHr(e.target.value)}
                   onBlur={(e) => saveHr('resting_hr_bpm', e.target.value)}
                   placeholder="—"
-                  style={{ background: INK_2, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                  style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
                   className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
                 />
               </div>
@@ -663,7 +663,7 @@ function BaselineDataSection({ userId }) {
                   onChange={(e) => setMaxHr(e.target.value)}
                   onBlur={(e) => saveHr('max_hr_bpm', e.target.value)}
                   placeholder={maxHrIsPredicted ? String(maxHrNum) : '—'}
-                  style={{ background: INK_2, color: PAPER, fontFamily: 'Space Grotesk, sans-serif' }}
+                  style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
                   className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
                 />
               </div>

@@ -73,7 +73,7 @@ export default function ClientApp() {
   const showTour = !profile.tour_done && !tourJustFinished;
 
   return (
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="h-[100svh] flex flex-col">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex flex-col">
       <div data-tour="app-header" style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           {tab === 'birdseye' ? (
@@ -109,7 +109,7 @@ export default function ClientApp() {
         </div>
         {moveStatus && (moveStatus.totalWeight > 0 || moveStatus.kcal > 0) && (
           <div className="flex justify-end gap-3 mb-3 -mt-1">
-            <span style={{ color: SKY, fontFamily: 'Space Grotesk, sans-serif' }} className="text-sm font-medium">
+            <span style={{ color: SKY, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium">
               {[
                 moveStatus.totalWeight > 0 && `${moveStatus.totalWeight.toLocaleString()} lb lifted`,
                 moveStatus.kcal > 0 && `~${moveStatus.kcal} kcal`,

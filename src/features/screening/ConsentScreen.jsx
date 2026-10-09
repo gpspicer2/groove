@@ -32,7 +32,7 @@ export default function ConsentScreen() {
   }
 
   return (
-    <div style={{ background: INK, fontFamily: 'Manrope, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-center justify-center px-4 py-8">
       <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm rounded-lg px-6 py-7">
         <Wordmark height={40} className="mb-4 mx-auto block" />
         <h1 style={{ color: PLUM }} className="text-xl font-medium text-center mb-4">Before You Start</h1>
