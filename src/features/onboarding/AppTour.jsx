@@ -15,7 +15,7 @@ import { INK, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRIC
 // bottom, out of the way of whatever's highlighted above it.
 const STEPS = [
   {
-    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nIt's Time to Groove",
+    tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome\nLet's Groove",
     body: "Move more, feel better, and stick with it.\n\n\"Getting your groove on\" — movement as something you enjoy, not a box to check.",
   },
   {

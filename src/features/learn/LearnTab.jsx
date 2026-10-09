@@ -6,10 +6,11 @@ import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS, BRICK } from '../../theme';
 import Portal from '../../Portal';
 
-// Cycled by list position so each tidbit's title reads as its own color,
-// stable across reloads (not randomized) — purely a visual "each of
-// these is its own little thing" cue, not tied to meaning.
-const TITLE_COLORS = [VIOLET, SKY, LIME, AMBER, MOSS, BRICK];
+// Cycled by position in the list being shown, so neighbors are always
+// different colors (stable across reloads, not randomized). The order keeps
+// the two greens (LIME, MOSS) and the teal apart, so no two tidbits next to
+// each other ever look alike, whatever category or search is showing.
+const TITLE_COLORS = [VIOLET, LIME, AMBER, SKY, BRICK, MOSS];
 
 // Category lives inside the stored title as a "[Tag] " prefix — the
 // articles table has no category column, so this avoids needing a
@@ -259,9 +260,8 @@ export default function LearnTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {visibleArticles.map((a) => {
-            const originalIndex = articles.indexOf(a);
-            const color = TITLE_COLORS[originalIndex % TITLE_COLORS.length];
+          {visibleArticles.map((a, shownIndex) => {
+            const color = TITLE_COLORS[shownIndex % TITLE_COLORS.length];
             const isFav = favoriteIds.has(a.id);
             const { teaser: shortText, hasMore } = teaser(a.summary);
             const expanded = expandedIds.has(a.id);
