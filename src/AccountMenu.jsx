@@ -198,8 +198,8 @@ function NameField() {
         onBlur={save}
         placeholder="First and last name"
         autoCapitalize="words"
-        style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+        style={{ background: INK_3, color: PAPER, fontSize: '1.25rem', fontWeight: 500 }}
+        className="w-full rounded-md px-3 py-2.5 outline-none text-center"
       />
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center h-5 mt-0.5">{saved ? 'Saved' : ''}</div>
     </div>

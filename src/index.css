@@ -42,7 +42,7 @@ html {
   /* Nudges every Tailwind text-* size up uniformly (they're all rem-based)
      without having to touch each component's classes individually —
      feedback was that text throughout reads too small. */
-  font-size: 17.5px;
+  font-size: 18.5px;
 }
 
 html, body {
@@ -67,7 +67,7 @@ html, body {
    under 16px — this keeps every text input/textarea/select at 16px on
    small screens so tapping into a field never triggers that zoom. */
 @media (max-width: 768px) {
-  input, textarea, select { font-size: 16px; }
+  input, textarea, select { font-size: max(16px, 1rem); }
 }
 
 /* viewport-fit=cover (needed to fix the earlier zoom issue) lets content
