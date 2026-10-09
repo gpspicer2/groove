@@ -137,6 +137,11 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
   const [showActions, setShowActions] = useState(false);
   const startX = useRef(0);
   const dragging = useRef(false);
+  useEffect(() => {
+    const close = () => setRevealed(false);
+    window.addEventListener('groove:tabchange', close);
+    return () => window.removeEventListener('groove:tabchange', close);
+  }, []);
 
   function handleTouchStart(e) {
     startX.current = e.touches[0].clientX;

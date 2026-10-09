@@ -3029,6 +3029,11 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // three buttons slide in from off-screen to overlay it.
 function SwipeActions({ children, onSwap, onEdit, onRemove }) {
   const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const close = () => setRevealed(false);
+    window.addEventListener('groove:tabchange', close);
+    return () => window.removeEventListener('groove:tabchange', close);
+  }, []);
   const startX = useRef(0);
   const dragging = useRef(false);
 

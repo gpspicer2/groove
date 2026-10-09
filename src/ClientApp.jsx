@@ -30,6 +30,8 @@ function RippleText({ text }) {
 export default function ClientApp() {
   const { user, profile, updateProfile } = useAuth();
   const [tab, setTab] = useState('birdseye');
+  // Lets swipe-to-reveal rows in any tab close themselves when the tab changes.
+  useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
   const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
