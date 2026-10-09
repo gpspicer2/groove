@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, SKY, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
+import { isReturningDevice } from './AuthContext';
 
 export default function AuthScreen({ recovering = false, onRecovered }) {
-  const [mode, setMode] = useState(recovering ? 'newpassword' : 'signin'); // 'signin' | 'signup' | 'reset' | 'newpassword'
+  const [mode, setMode] = useState(recovering ? 'newpassword' : isReturningDevice() ? 'signin' : 'signup'); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

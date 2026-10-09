@@ -15,6 +15,16 @@ function writeLinked(obj) {
   try { localStorage.setItem(LINK_KEY, JSON.stringify(obj)); } catch { /* storage blocked */ }
 }
 
+// Remembers that this phone has used Groove before, so the first-ever visit
+// opens on "Sign up" and everyone after that opens on "Sign in".
+const RETURNING_KEY = 'groove:returning';
+export function isReturningDevice() {
+  try { return localStorage.getItem(RETURNING_KEY) === '1'; } catch { return true; }
+}
+function markReturning() {
+  try { localStorage.setItem(RETURNING_KEY, '1'); } catch { /* storage blocked */ }
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -41,6 +51,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
+      if (data.session) markReturning();
       if (data.session) await loadProfile(data.session.user.id);
       setLoading(false);
     });
@@ -49,6 +60,7 @@ export function AuthProvider({ children }) {
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(newSession);
       if (newSession) {
+        markReturning();
         // Keep a linked account's saved login fresh as Supabase renews it.
         const all = readLinked();
         if (all[newSession.user.id]) {
