@@ -60,7 +60,7 @@ export default function Wordmark({ className = '', height = 28, running = false 
       role="img"
       aria-label="GROOVE"
       className={`${className} groove-logo${/\bblock\b/.test(className) ? '' : ' inline-block'}`}
-      style={{ position: 'relative', height, aspectRatio: `${FULL_W} / 231` }}
+      style={{ position: 'relative', height, width: (height * FULL_W) / 231, aspectRatio: `${FULL_W} / 231` }}
     >
       <img src={`/wordmark-still${sfx}.png`} alt="" style={{ display: 'block', height: '100%', width: '100%' }} />
       <span

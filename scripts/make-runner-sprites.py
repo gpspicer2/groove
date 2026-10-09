@@ -13,8 +13,9 @@ from PIL import Image, ImageDraw
 
 W, H = 186, 231          # the runner image's own pixels
 N = 12                   # frames per stride cycle
-SS = 3                   # supersampling for smooth edges
-OUT = 2                  # output pixels per runner pixel
+SS = 4                   # supersampling for smooth edges
+OUT = 1                  # output pixels per runner pixel (he's only ~35-60 px tall on screen,
+                         # and phones scale big images down roughly, so keep the strip small)
 MX, MY = 70, 40          # margin around the runner box (limbs swing outside it)
 FW, FH = W + 2 * MX, H + 2 * MY
 COLORS = {'': (96, 106, 66), '-dark': (150, 255, 90)}
@@ -24,7 +25,7 @@ HEAD = (119.55, 28.85, 22)
 CHEST = [(97.5, 63.5), (125, 62), (150, 101.5), (139, 110), (108.5, 94)]
 TORSO = [(100.5, 71.5), (74.9, 135.8)]; TORSO_W = 37.5
 SHOULDER = [(54.9, 62.1), (107.5, 62.4)]; SHOULDER_W = 18.4
-ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5
+ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5   # shoulder, elbow, hand
 ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
 LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
 LEG_F = [(128.5, 161.0), (127.0, 208.0), (149.75, 211.5)]; LEG_F_W = 25.0   # knee, ankle, toe
@@ -43,7 +44,10 @@ def smooth(keys, t):
 def K(a, b, c, d, e): return [(0, a), (.25, b), (.5, c), (.75, d), (1, e)]
 THIGH_B = K(0, -55, -110, -55, 0); SHIN_B = K(0, 37, 72, -30, 0)
 THIGH_F = K(0, 55, 110, 55, 0);    SHIN_F = K(0, -30, -72, 37, 0)
-SWING_B = K(0, -21, -42, -21, 0);  SWING_F = K(0, 20, 40, 20, 0)
+# Arms swap front/back like the legs: the upper arm swings about the shoulder and
+# the forearm bends at the elbow.
+UPPER_B = K(0, -42, -85, -42, 0); FORE_B = K(0, -25, -40, -15, 0)
+UPPER_F = K(0, 42, 85, 42, 0);   FORE_F = K(0, 22, 40, 18, 0)
 BOB = K(0, -9, 0, -9, 0);          LEAN = K(0, 3, 0, 3, 0)
 
 def frame(color, t):
@@ -59,9 +63,13 @@ def frame(color, t):
     cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     d.polygon([tf(p) for p in CHEST], fill=color)
     line(TORSO, TORSO_W); line(SHOULDER, SHOULDER_W)
-    sb, sf = ARM_B[0], ARM_F[0]
-    line([rot(p, sb, smooth(SWING_B, t)) for p in ARM_B], ARM_B_W)
-    line([rot(p, sf, smooth(SWING_F, t)) for p in ARM_F], ARM_F_W)
+    def arm(pts, upper, fore, w):
+        sh, el, hand = pts
+        u, f = smooth(upper, t), smooth(fore, t)
+        elbow = rot(el, sh, u); wrist = rot(rot(hand, el, f), sh, u)
+        line([sh, elbow, wrist], w)
+    arm(ARM_B, UPPER_B, FORE_B, ARM_B_W)
+    arm(ARM_F, UPPER_F, FORE_F, ARM_F_W)
     # back leg: thigh swings from the hip, shin from the knee
     tb, sbn = smooth(THIGH_B, t), smooth(SHIN_B, t)
     knee_b = rot(LEG_B[0], HIP, tb); ankle_b = rot(rot(LEG_B[1], LEG_B[0], sbn), HIP, tb)
