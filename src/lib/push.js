@@ -26,10 +26,14 @@ function keyToBytes(base64) {
 }
 
 // 'unsupported' | 'blocked' | 'on' | 'off'
-export async function pushStatus() {
+const OWNER_KEY = 'groove:pushUser';
+
+// A phone can send reminders to one account at a time; remember which.
+export async function pushStatus(userId) {
   if (!pushSupported()) return 'unsupported';
   if (Notification.permission === 'denied') return 'blocked';
   try {
+    if (userId && localStorage.getItem(OWNER_KEY) !== userId) return 'off';
     const reg = await navigator.serviceWorker.getRegistration('/sw.js');
     const sub = reg ? await reg.pushManager.getSubscription() : null;
     return sub && Notification.permission === 'granted' ? 'on' : 'off';
@@ -45,17 +49,14 @@ export async function enablePush(userId) {
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyToBytes(PUBLIC_KEY) });
   const json = sub.toJSON();
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: userId,
-      endpoint: json.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
-    },
-    { onConflict: 'endpoint' }
-  );
-  if (error) throw new Error('Could not save your reminder setting. Try again.');
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+    body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || null }),
+  });
+  if (!res.ok) throw new Error('Could not save your reminder setting. Try again.');
+  try { localStorage.setItem(OWNER_KEY, userId); } catch { /* storage blocked */ }
 }
 
 export async function disablePush() {
@@ -65,6 +66,7 @@ export async function disablePush() {
     await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
     await sub.unsubscribe();
   }
+  try { localStorage.removeItem(OWNER_KEY); } catch { /* storage blocked */ }
 }
 
 // Tells Greg right away that someone felt off (the server sends the push).

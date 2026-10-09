@@ -10,7 +10,7 @@ export default function NotificationsRow() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { pushStatus().then(setStatus); }, []);
+  useEffect(() => { pushStatus(user.id).then(setStatus); }, [user.id]);
   if (!PUSH_CONFIGURED) return null;
 
   const needsInstall = isIos() && !isInstalled();
@@ -21,7 +21,7 @@ export default function NotificationsRow() {
     try {
       if (on) { await disablePush(); setStatus('off'); }
       else { await enablePush(user.id); setStatus('on'); }
-    } catch (e) { setError(e.message); setStatus(await pushStatus()); }
+    } catch (e) { setError(e.message); setStatus(await pushStatus(user.id)); }
     setBusy(false);
   }
 
