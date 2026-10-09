@@ -25,3 +25,17 @@ async function billingUrl(path) {
 }
 export const startCheckout = () => billingUrl('/api/billing/checkout');
 export const openBillingPortal = () => billingUrl('/api/billing/portal');
+
+// Coach only: removes a member account and all of its data.
+export async function deleteMember(id) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not signed in');
+  const res = await fetch('/api/members/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ id }),
+  });
+  let body = {};
+  try { body = await res.json(); } catch { /* not JSON */ }
+  if (!res.ok) throw new Error(body.error || 'Could not delete that member');
+}

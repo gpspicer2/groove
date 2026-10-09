@@ -90,6 +90,7 @@ export default function TrainerApp() {
             trainerId={user.id}
             onBack={() => setSelectedId(null)}
             onClientChanged={clientChanged}
+            onClientRemoved={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setSelectedId(null); }}
           />
         ) : tab === 'today' ? (
           <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} />

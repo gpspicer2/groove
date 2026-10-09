@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Trash2 } from '../../lib/icons';
+import { deleteMember } from '../../lib/api';
 import { supabase } from '../../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK, AMBER, MOSS } from '../../theme';
 import { Avatar, Stat, SectionTitle, WeekBars } from './CoachParts';
@@ -65,7 +66,39 @@ function CoachNotes({ clientId }) {
   );
 }
 
-export default function ClientScreen({ client, stat, workouts, trainerId, onBack, onClientChanged }) {
+// Remove a member and all of their data (for test accounts, or someone who left).
+function RemoveMember({ client, onRemoved }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function remove() {
+    setBusy(true); setError('');
+    try { await deleteMember(client.id); onRemoved(); }
+    catch (e) { setError(e.message); setBusy(false); }
+  }
+
+  if (!open) {
+    return <button onClick={() => setOpen(true)} style={{ color: BRICK }} className="w-full text-sm py-3 mt-6">Delete this member</button>;
+  }
+  return (
+    <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-4 mt-6 text-center">
+      <p style={{ color: BRICK }} className="text-sm mb-2">This permanently deletes {client.full_name || client.email} and all of their workouts, notes and data. It can't be undone.</p>
+      <p style={{ color: TEXT_SOFT }} className="text-sm mb-2">Type DELETE to confirm</p>
+      <input value={text} onChange={(e) => setText(e.target.value)} autoCapitalize="characters" style={{ background: INK_3, color: PAPER }} className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-center mb-3" />
+      {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
+      <div className="flex gap-2">
+        <button onClick={() => { setOpen(false); setText(''); }} style={{ color: TEXT_SOFT }} className="flex-1 text-sm py-2.5">Cancel</button>
+        <button onClick={remove} disabled={text !== 'DELETE' || busy} style={{ background: text === 'DELETE' ? BRICK : INK_3, color: text === 'DELETE' ? PAPER : TEXT_SOFT }} className="flex-1 rounded-xl text-sm font-medium py-2.5">
+          {busy ? 'Deleting…' : 'Delete'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function ClientScreen({ client, stat, workouts, trainerId, onBack, onClientChanged, onClientRemoved }) {
   const [tab, setTab] = useState('overview');
   const name = client.full_name || client.email;
   const mine = workouts.filter((w) => w.user_id === client.id).slice(0, 3);
@@ -152,6 +185,8 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       )}
       {tab === 'workouts' && <ClientWorkouts clientId={client.id} />}
       {tab === 'notes' && <CoachNotes clientId={client.id} />}
+
+      <RemoveMember client={client} onRemoved={() => onClientRemoved(client.id)} />
     </div>
   );
 }

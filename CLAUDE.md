@@ -69,6 +69,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Membership (Stripe, one flat monthly price): see `docs/PAYMENTS.md`. Serverless `api/billing/*` (checkout, portal, signature-verified webhook) set `profiles.membership_status`; `MembershipGate` only blocks when `VITE_REQUIRE_MEMBERSHIP=true`; Greg can comp members from the coach Billing tab. Card data never touches Groove (Stripe-hosted pages). Not yet live-tested against real Stripe (needs Greg's keys).
 - Activity gaps: members get a nudge on day 3 without activity; Greg is alerted on day 5 (`lib/activityGap.js`). Basis: ADA/ACSM guidance for diabetes of no more than 2 days in a row without activity. Members set their own weekly targets; the coach side can't change them.
 - Push notifications (see `docs/PUSH.md`): service worker `public/sw.js`, `push_subscriptions` table, `api/push/daily.js` (Vercel Cron, 13:00 UTC), `api/push/felt-off.js`. The Reminders switch in Account only appears once `VITE_VAPID_PUBLIC_KEY` is set. Files that `api/` imports from `src/` need explicit `.js` extensions in their imports.
+- Coach can delete a member (member screen, bottom: type DELETE) via `api/members/delete.js`; it only works on member accounts, never coaches or himself, and shares `api/_lib/deleteUser.js` with self-delete (which also cancels any Stripe subscription first).
 
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
