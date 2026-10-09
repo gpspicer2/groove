@@ -88,7 +88,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
             id="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="Password (6+ characters)"
+            placeholder={mode === 'signin' ? 'Password' : 'Password (6+ characters)'}
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-3 mb-3 text-sm outline-none"
             autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
