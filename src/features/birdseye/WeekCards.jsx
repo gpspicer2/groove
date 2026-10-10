@@ -43,7 +43,7 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
   function dismiss() { storageSet(storageKey, '1'); setHidden(true); }
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 relative">
+    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3 relative">
       <button onClick={dismiss} aria-label="Dismiss" style={{ color: TEXT_SOFT }} className="absolute top-3 right-3 p-1">
         <X size={14} />
       </button>
@@ -88,16 +88,17 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
 export function TodayPlanCard({ plan, onStart, label = 'Planned for today', action = 'Start Workout' }) {
   const detail = planSummary(plan);
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1 inline-flex items-center gap-1.5 justify-center w-full">
-        <Calendar size={13} /> {label}
+    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-left">
+      <div className="min-w-0">
+        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide inline-flex items-center gap-1.5">
+          <Calendar size={13} /> {label}
+        </div>
+        <div style={{ color: PAPER }} className="text-sm font-medium truncate">{plan.title}{detail ? <span style={{ color: TEXT_SOFT }} className="font-normal"> · {detail}</span> : null}</div>
       </div>
-      <div style={{ color: PAPER }} className="text-sm font-medium">{plan.title}</div>
-      {detail && <div style={{ color: TEXT_SOFT }} className="text-sm">{detail}</div>}
       <button
         onClick={() => onStart(plan)}
         style={{ background: LIME, color: INK }}
-        className="mt-3 rounded-md px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5"
+        className="shrink-0 rounded-md px-3.5 py-2 text-sm font-medium inline-flex items-center gap-1.5"
       >
         <Play size={14} /> {action}
       </button>

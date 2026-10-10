@@ -383,18 +383,17 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           {loadError}
         </div>
       )}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <ScreeningStatus />
         <TailoredTips />
         {!intakeDone && (
           <button
             onClick={() => setShowBaseline(true)}
             style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }}
-            className="w-full rounded-lg px-5 py-4 text-center"
+            className="w-full rounded-lg px-5 py-3 text-center"
           >
-            <div style={{ color: PLUM }} className="text-sm uppercase tracking-wide mb-1">Let's get to know you</div>
-            <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account →</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">About 10 minutes, whenever you're ready.</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account <span style={{ color: PLUM }}>→</span></div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm">About 10 minutes, whenever you're ready</div>
           </button>
         )}
 
@@ -413,13 +412,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         )}
 
         {insight && (
-          <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
+          <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
             <div style={{ color: PAPER }} className="text-sm">{insight}</div>
           </div>
         )}
 
-        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-6">
-          <div className="flex items-center justify-between mb-3">
+        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
+          <div className="flex items-center justify-between mb-2">
             <span />
             <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
             <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
@@ -452,15 +451,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             />
           ))}
 
-          {kcalThisWeek > 0 && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-3">
-              ~{kcalThisWeek.toLocaleString()} kcal burned this week <span style={{ opacity: 0.7 }}>(ACSM estimate)</span>
-            </div>
-          )}
-
-          {streak > 0 && (
-            <div style={{ color: LIME }} className="text-sm mt-3">
-              🔥 {streak} week{streak === 1 ? '' : 's'} in a row hitting both goals
+          {(kcalThisWeek > 0 || streak > 0) && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-2 flex flex-wrap items-center justify-center gap-x-3">
+              {kcalThisWeek > 0 && <span>~{kcalThisWeek.toLocaleString()} kcal this week</span>}
+              {streak > 0 && <span style={{ color: LIME }}>🔥 {streak} week{streak === 1 ? '' : 's'} hitting both goals</span>}
             </div>
           )}
         </div>
@@ -696,7 +690,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
       ref={goalRef}
       data-no-swipe="row"
       data-revealed={revealed}
-      className="relative mb-3 last:mb-0 rounded-md overflow-hidden"
+      className="relative mb-2.5 last:mb-0 rounded-md overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -823,23 +817,23 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
 
   // A gap is the most useful thing to say, so it comes first.
   if (daysSinceLast != null && daysSinceLast >= CLIENT_NUDGE_DAYS) {
-    return `Howdy! It's been ${daysSinceLast} days since your last session. Even a 20 min walk today gets you moving again.`;
+    return `Howdy! It's been ${daysSinceLast} days. Even a 20 min walk gets you moving again.`;
   }
 
   if (rDone && aDone) {
     return 'Howdy! You hit both your resistance and aerobic goals this week — nice work. 🎉';
   }
   if (aDone && !rDone) {
-    return "Howdy! Aerobic goal is done for the week — one more resistance session would round things out nicely.";
+    return "Howdy! Aerobic goal done. One more resistance session rounds out the week.";
   }
   if (rDone && !aDone) {
-    return "Howdy! Resistance goal is done for the week — got time for some aerobic activity, like a walk, today or tomorrow?";
+    return "Howdy! Resistance goal done. Time for a walk or other aerobic today or tomorrow?";
   }
   if (resistanceThisWeek === resistanceGoal - 1 || (aerobicGoalMinutes - aerobicMinutesThisWeek > 0 && aerobicGoalMinutes - aerobicMinutesThisWeek <= 20)) {
-    return "Howdy! You're close on one of your weekly goals — let's close the gap today or tomorrow!";
+    return "Howdy! You're close on a weekly goal. Let's close the gap today or tomorrow!";
   }
   if (daysSinceLast == null) {
-    return "Howdy! Ready for your first session? Head over to Move whenever you've got a few minutes.";
+    return "Howdy! Ready for your first session? Head to Move when you can.";
   }
   return null;
 }
