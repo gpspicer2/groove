@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Portal from '../../Portal';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 
 // Borg CR10-style effort scale, in plain words.
@@ -14,30 +15,35 @@ export default function CheckInSheet({ onSave, onSkip }) {
   const [feltOff, setFeltOff] = useState(null); // null | false | true
   const [note, setNote] = useState('');
   const canSave = rpe != null || feltOff != null;
+  const sheet = useSwipeDown(onSkip);
 
   return (
     <Portal>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onSkip} />
-        <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 space-y-4 text-center">
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 space-y-4 text-center">
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div style={{ color: PAPER }} className="text-base font-medium">Nice work! Quick check-in</div>
 
           <div>
-            <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How hard did that feel?</div>
-            <input
-              type="range" min="1" max="10" step="1"
-              value={rpe ?? 5}
-              onChange={(e) => setRpe(Number(e.target.value))}
-              onPointerDown={() => rpe == null && setRpe(5)}
-              aria-label="Effort from 1 to 10"
-              style={{ accentColor: SKY, opacity: rpe == null ? 0.5 : 1 }}
-              className="w-full h-8"
-            />
-            <div className="flex justify-between text-sm" style={{ color: TEXT_SOFT }}>
-              <span>1</span><span>10</span>
+            <div style={{ color: PAPER_DIM }} className="text-sm mb-1">How hard did that feel? <span style={{ color: TEXT_SOFT }}>1 easy, 10 all out</span></div>
+            {/* The chosen rating reads above the buttons, so a finger never covers it. */}
+            <div style={{ color: rpe ? PAPER : TEXT_SOFT, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium h-8 mb-2">
+              {rpe ? `${rpe} · ${RPE_LABELS[rpe]}` : 'Tap a number'}
             </div>
-            <div style={{ color: rpe ? PAPER : TEXT_SOFT }} className="text-sm mt-0.5 h-5">
-              {rpe ? `${rpe} · ${RPE_LABELS[rpe]}` : 'Slide to rate. 1 = very easy, 10 = all out'}
+            <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Effort from 1 to 10">
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  role="radio"
+                  aria-checked={rpe === n}
+                  onClick={() => setRpe(n)}
+                  style={{ background: rpe === n ? SKY : INK_3, color: rpe === n ? INK : PAPER }}
+                  className="rounded-md py-2.5 text-base font-medium"
+                >
+                  {n}
+                </button>
+              ))}
             </div>
           </div>
 
