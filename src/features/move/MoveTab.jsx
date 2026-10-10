@@ -979,6 +979,16 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   // ended early (or lost mid-session) picks up exactly where it left off
   // with the full logging UI, instead of being limited to history editing.
   async function resumeWorkout(w) {
+    // A brand-new workout with nothing logged (e.g. one the app started on its
+    // own) shouldn't block going back to the real one: clear it first.
+    if (activeWorkoutId && activeWorkoutId !== w.id) {
+      if (sets.some((x) => x.workoutId === activeWorkoutId)) return;
+      const emptyId = activeWorkoutId;
+      const { error: delError } = await supabase.from('workouts').delete().eq('id', emptyId);
+      if (delError) { setLoadError(delError.message); return; }
+      setWorkouts((prev) => prev.filter((x) => x.id !== emptyId));
+      try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
+    }
     const { data, error } = await supabase
       .from('workouts')
       .update({ completed_at: null })
@@ -1278,7 +1288,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                         >
                           {editing ? 'Done editing' : 'Edit this workout'}
                         </button>
-                        {!activeWorkout && !editing && (
+                        {(!activeWorkout || !sets.some((x) => x.workoutId === activeWorkout.id)) && !editing && (
                           <button
                             onClick={() => resumeWorkout(w)}
                             style={{ color: LIME }}
