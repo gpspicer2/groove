@@ -1790,6 +1790,7 @@ function ActiveWorkout({
   // Exercise" / "Superset" instead of navigating to a separate chooser
   // card — tapping anywhere outside it collapses it back.
   const [splitAddOpen, setSplitAddOpen] = useState(false);
+  const [serialAeroOpen, setSerialAeroOpen] = useState(false);
   const splitAddRef = useRef(null);
   useEffect(() => {
     if (!splitAddOpen) return;
@@ -2207,12 +2208,6 @@ function ActiveWorkout({
         })}
       </div>
 
-      {serialBlock && !addMenuOpen && (
-        <QuickAerobicButton
-          onSubmit={(name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, exercises.length)}
-        />
-      )}
-
       {addMenuOpen ? (
         addMode === null ? (
           <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
@@ -2279,53 +2274,55 @@ function ActiveWorkout({
             onCancel={closeAddForm}
           />
         )
-      ) : lifts ? (
+      ) : serialAeroOpen ? (
+        <QuickAerobicForm
+          onCancel={() => setSerialAeroOpen(false)}
+          onSubmit={(name, intensity, minutes) => { submitQuickAerobic(name, intensity, minutes, exercises.length); setSerialAeroOpen(false); }}
+        />
+      ) : lifts && splitAddOpen ? (
         <div ref={splitAddRef} className="flex gap-2 mb-4">
-          {splitAddOpen ? (
-            <>
-              <button
-                onClick={() => { setAddMode('resistance'); setAddMenuOpen(true); setSplitAddOpen(false); }}
-                style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
-                className="flex-1 rounded-md py-2.5 text-sm font-medium"
-              >
-                Single Exercise
-              </button>
-              <button
-                onClick={() => { setAddMode('superset'); setAddMenuOpen(true); setSplitAddOpen(false); }}
-                style={{ background: INK_2, color: LIME, borderLeft: `3px solid ${LIME}` }}
-                className="flex-1 rounded-md py-2.5 text-sm font-medium"
-              >
-                Superset
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setSplitAddOpen(true)}
-              style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
-              className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
-            >
-              <Plus size={14} /> Add Resistance Exercise
-            </button>
-          )}
+          <button
+            onClick={() => { setAddMode('resistance'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+            style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+            className="flex-1 rounded-md py-2.5 text-sm font-medium"
+          >
+            Single Exercise
+          </button>
+          <button
+            onClick={() => { setAddMode('superset'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+            style={{ background: INK_2, color: LIME, borderLeft: `3px solid ${LIME}` }}
+            className="flex-1 rounded-md py-2.5 text-sm font-medium"
+          >
+            Superset
+          </button>
         </div>
       ) : (
-        <button
-          onClick={() => setAddMenuOpen(true)}
-          style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
-          className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
-        >
-          <Plus size={14} /> Add to Workout
-        </button>
-      )}
-
-      {!addMenuOpen && (
-        <button
-          onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
-          style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
-          className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
-        >
-          <Plus size={14} /> Add Flexibility
-        </button>
+        // One row of add buttons side by side instead of a stack.
+        <div className="flex gap-2 mb-4">
+          {serialBlock && (
+            <button
+              onClick={() => setSerialAeroOpen(true)}
+              style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
+              className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
+            >
+              <Plus size={13} /> Aerobic
+            </button>
+          )}
+          <button
+            onClick={() => (lifts ? setSplitAddOpen(true) : setAddMenuOpen(true))}
+            style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+            className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
+          >
+            <Plus size={13} /> {lifts ? 'Resistance' : 'Add to Workout'}
+          </button>
+          <button
+            onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+            style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
+            className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
+          >
+            <Plus size={13} /> Flexibility
+          </button>
+        </div>
       )}
 
       <button
