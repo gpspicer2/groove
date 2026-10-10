@@ -1,7 +1,7 @@
 import { estimateKcal } from '../../lib/calories';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, StretchHorizontal, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -22,6 +22,7 @@ import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
 import Trends from './Trends';
+import GoalCelebration from './GoalCelebration';
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
@@ -373,7 +374,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
     trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
-    trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: StretchHorizontal, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
+    trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: PersonStanding, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
     trackBalanceGoal && { mode: 'Balance', label: 'Balance', icon: Footprints, color: VIOLET, count: balanceThisWeek, goal: balanceGoal, planned: 0, field: 'balance_goal' },
   ].filter(Boolean);
 
@@ -384,6 +385,16 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           {loadError}
         </div>
       )}
+      <GoalCelebration
+        userId={userId}
+        weekKey={dayKey(weekStart)}
+        active={active}
+        latestAt={workoutsThisWeek.reduce((m, w) => { const t = w.completed_at || w.started_at; return !m || t > m ? t : m; }, null)}
+        goals={trackedGoals.map((g) => ({
+          mode: g.mode, label: g.label,
+          met: g.goal > 0 && (g.mode === 'Aerobic' ? moderateEquivMinutesThisWeek >= aerobicGoalMinutes : g.count >= g.goal),
+        }))}
+      />
       <div className="flex flex-col gap-3">
         <ScreeningStatus />
         <TailoredTips />
@@ -532,7 +543,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   const MODES = [
     { mode: 'Aerobic', icon: Activity, color: MOSS },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
-    { mode: 'Flexibility', icon: StretchHorizontal, color: BRICK },
+    { mode: 'Flexibility', icon: PersonStanding, color: BRICK },
     { mode: 'Balance', icon: Footprints, color: VIOLET },
   ];
   const [confirmingLow, setConfirmingLow] = useState(null); // the value they tried to set below the ACSM floor
@@ -919,7 +930,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
                 <span className="flex items-center gap-0.5">
                   {a && <Activity size={10} color={MOSS} />}
                   {r && <Dumbbell size={10} color={SKY} />}
-                  {f && <StretchHorizontal size={10} color={BRICK} />}
+                  {f && <PersonStanding size={10} color={BRICK} />}
                   {dayPlans.length > 0 && <PlannedMark plans={dayPlans} past={day < now && !isToday} />}
                 </span>
               ) : (
@@ -981,7 +992,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
 function PlannedMark({ plans, past = false }) {
   const kinds = new Set();
   plans.forEach((p) => planKinds(p).forEach((k) => kinds.add(k)));
-  const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [StretchHorizontal, BRICK] };
+  const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [PersonStanding, BRICK] };
   return (
     <>
       {[...kinds].map((k) => {
