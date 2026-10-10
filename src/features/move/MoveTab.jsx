@@ -54,6 +54,8 @@ const BARBELL_MIN_LB = 45;
 const WARMUP_AEROBIC_PLACEHOLDER = 'Aerobic Warm-up';
 // Names that are flexibility work even when typed into the resistance form.
 const FLEX_NAME_RE = /stretch|yoga|pilates|foam roll|mobility|tai chi|balance training/i;
+// Same, minus yoga: yoga logged from an aerobic list keeps counting as aerobic too.
+const FLEX_ONLY_RE = /stretch|pilates|foam roll|mobility|tai chi|balance training/i;
 
 function mapSet(row) {
   return {
@@ -636,9 +638,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       plan = [...plan, ...flexActivityEntries];
     }
     if (usesAerobic) {
-      const activityEntries = selectedActivities.map((name) => ({
-        name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '',
-      }));
+      // Stretching-type names picked here are flexibility work, not cardio.
+      const activityEntries = selectedActivities.map((name) => (FLEX_ONLY_RE.test(name)
+        ? { name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '' }
+        : { name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' }));
       plan = [...plan, ...activityEntries];
     }
 
@@ -826,12 +829,13 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   function addAerobic(name, targetNote, insertAt = null) {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const newEx = { name: trimmed, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: targetNote.trim() };
+    const flex = FLEX_ONLY_RE.test(trimmed);
+    const newEx = { name: trimmed, muscleGroup: flex ? 'Flexibility' : 'Cardio', type: flex ? 'flexibility-activity' : 'aerobic', supersetId: null, targetNote: targetNote.trim() };
     setPlanExercises((prev) => {
       if (insertAt == null || insertAt >= prev.length) return [...prev, newEx];
       return [...prev.slice(0, insertAt), newEx, ...prev.slice(insertAt)];
     });
-    upgradeToCombinedIfNeeded('aerobic');
+    if (!flex) upgradeToCombinedIfNeeded('aerobic');
   }
 
   // A single stretch (holds, like the suggested ones in a flexibility workout).
@@ -1941,11 +1945,12 @@ function ActiveWorkout({
   // and "after the last one".
   function submitQuickAerobic(name, intensity, minutes, insertAt) {
     onAddAerobic(name, '', insertAt);
+    const flex = FLEX_ONLY_RE.test(name);
     onLogSet({
       exerciseName: name,
-      muscleGroup: 'Cardio',
+      muscleGroup: flex ? 'Flexibility' : 'Cardio',
       setNumber: 1,
-      movementType: 'aerobic',
+      movementType: flex ? 'flexibility' : 'aerobic',
       weight: null,
       reps: null,
       durationSeconds: minutes * 60,
