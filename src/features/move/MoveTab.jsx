@@ -2862,11 +2862,11 @@ function formatDaysSince(days) {
 
 function CardHeader({ title, index, onOpenSwap, onRemove, onDone }) {
   return (
-    <div className="flex items-center justify-between mb-1">
-      <div onClick={onDone} style={{ color: PAPER }} className={`flex-1 min-w-0 text-base font-bold flex items-center gap-2 ${onDone ? 'cursor-pointer' : ''}`}>
-        {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>} {title}
+    <div className="relative flex items-center justify-center mb-1 min-h-[2rem]">
+      <div onClick={onDone} style={{ color: PAPER, paddingInline: `${((onDone ? 1 : 0) + (onOpenSwap ? 1 : 0) + 1) * 1.9}rem` }} className={`min-w-0 text-base font-bold text-center ${onDone ? 'cursor-pointer' : ''}`}>
+        {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium mr-1.5">{index}.</span>}{title}
       </div>
-      <div className="flex items-center gap-0.5">
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
         {onDone && (
           <button onClick={onDone} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Done — collapse this exercise">
             <Check size={14} />
@@ -3157,7 +3157,8 @@ function ExerciseCard({
     <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-2.5">
         <div className="flex items-center justify-between mb-1">
-          <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center gap-2">
+          <span className="w-4 shrink-0" aria-hidden="true" />
+          <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
           </span>
           <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
