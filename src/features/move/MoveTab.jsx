@@ -52,6 +52,8 @@ const BARBELL_MIN_LB = 45;
 // client picks their own activity (treadmill, bike, jump rope...) instead
 // of every workout assuming a treadmill.
 const WARMUP_AEROBIC_PLACEHOLDER = 'Aerobic Warm-up';
+// Names that are flexibility work even when typed into the resistance form.
+const FLEX_NAME_RE = /stretch|yoga|pilates|foam roll|mobility|tai chi|balance training/i;
 
 function mapSet(row) {
   return {
@@ -832,6 +834,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     upgradeToCombinedIfNeeded('aerobic');
   }
 
+  // A single stretch (holds, like the suggested ones in a flexibility workout).
+  function addStretch(name, muscleGroup, lib) {
+    setPlanExercises((prev) => [...prev, { name, muscleGroup: muscleGroup || 'Flexibility', type: 'flexibility', supersetId: null, sets: lib?.sets ?? 2, reps: lib?.reps ?? '20-30s' }]);
+  }
+
   function addFlexibility(name, targetNote = '') {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -1100,6 +1107,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onAddSuperset={addSuperset}
           onAddAerobic={addAerobic}
           onAddFlexibility={addFlexibility}
+          onAddStretch={addStretch}
           onAddWarmup={() => addWarmup(activeWorkout.muscleGroups)}
           onAddWarmupDrill={addWarmupDrill}
           onRenameWarmupDrill={renameWarmupDrill}
@@ -1781,7 +1789,7 @@ function ActiveWorkout({
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup,
-  onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddWarmup,
+  onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddStretch, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard,
 }) {
@@ -2239,6 +2247,20 @@ function ActiveWorkout({
             location={workout.location}
             onAdd={(name, group) => {
               const typed = titleCaseWords(name);
+              // Stretching typed into the resistance form is still flexibility work.
+              const stretch = Object.entries(FLEXIBILITY_LIBRARY).flatMap(([g, list]) => list.map((e) => ({ ...e, group: g }))).find((e) => e.name.toLowerCase() === typed.toLowerCase());
+              if (stretch) {
+                onAddStretch(stretch.name, stretch.group, stretch);
+                setActiveGroupKey(`flexibility-${stretch.name}`);
+                closeAddForm();
+                return;
+              }
+              if (FLEX_NAME_RE.test(typed)) {
+                onAddFlexibility(typed);
+                setActiveGroupKey(`flexibility-activity-${typed}`);
+                closeAddForm();
+                return;
+              }
               const lib = (EXERCISE_LIBRARY[group] || []).find((e) => e.name.toLowerCase() === typed.toLowerCase());
               const finalName = lib?.name || typed;
               onAddExercise(finalName, group);
@@ -3665,7 +3687,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   if (isActive === false) {
     return (
       <>
-        <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
+        <div style={{ background: INK_2, borderLeft: `3px solid ${movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
           <button
             onClick={onActivate}
             className="flex-1 min-w-0 px-4 py-3 flex items-center justify-between text-left"
@@ -3728,7 +3750,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3">
+    <div style={{ background: INK_2, borderLeft: `3px solid ${movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3">
       <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={onCollapse} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
@@ -3775,19 +3797,21 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 
       <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={distance}
-          onChange={(e) => setDistance(e.target.value)}
-          placeholder="Distance"
-          style={{ background: INK_3, color: PAPER }}
-          className="flex-1 min-w-0 rounded-md px-2 py-2 text-sm outline-none text-center"
-        />
+        {movementType !== 'flexibility' && (
+          <input
+            type="text"
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            placeholder="Distance"
+            style={{ background: INK_3, color: PAPER }}
+            className="flex-1 min-w-0 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
+        )}
         <button
           onClick={handleLog}
           disabled={!canLog}
           style={{ background: canLog ? SKY : INK_3, color: canLog ? INK : TEXT_SOFT }}
-          className="w-24 shrink-0 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
+          className={`${movementType === 'flexibility' ? 'flex-1' : 'w-24 shrink-0'} rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1`}
         >
           <Plus size={14} /> Log
         </button>
