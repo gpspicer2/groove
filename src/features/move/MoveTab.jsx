@@ -150,8 +150,8 @@ function IntensityMinutesGroup({ light, setLight, moderate, setModerate, vigorou
   return (
     <>
       <div className="flex items-center justify-center gap-1.5 mb-1.5">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Minutes spent at each intensity</span>
-        <button onClick={() => setShowGuide(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2">
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Minutes by intensity</span>
+        <button onClick={() => setShowGuide(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2 whitespace-nowrap">
           Not sure?
         </button>
       </div>
@@ -1446,18 +1446,19 @@ function StartWorkout({
       <div ref={locationHeadingRef} style={{ color: PAPER }} className="text-base font-medium mb-3 text-center">
         {planning ? 'Where will you move?' : isToday ? 'Where are we moving today?' : 'Where did you move?'}
       </div>
-      <div className="space-y-2 mb-5">
+      <div className="grid grid-cols-3 gap-2 mb-5">
         {WORKOUT_LOCATIONS.map((loc) => {
           const selected = selectedLocation === loc;
-          const [left, right] = locationEmojis(loc, gender);
+          const [left] = locationEmojis(loc, gender);
           return (
             <button
               key={loc}
               onClick={() => onSelectLocation(selected ? '' : loc)}
-              style={{ background: selected ? SKY : INK_3 }}
-              className="w-full text-center rounded-xl px-4 py-3 text-sm font-medium"
+              style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
+              className="rounded-xl px-1.5 py-3 text-sm font-medium flex flex-col items-center justify-center gap-1 leading-tight"
             >
-              <span style={{ color: selected ? INK : PAPER }}>{left} {loc} {right}</span>
+              <span className="text-xl leading-none">{left}</span>
+              <span>{loc}</span>
             </button>
           );
         })}
@@ -3771,22 +3772,24 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
       )}
 
       <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
-      <input
-        type="text"
-        value={distance}
-        onChange={(e) => setDistance(e.target.value)}
-        placeholder="distance (optional)"
-        style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-2 py-2 text-sm outline-none text-center mb-2"
-      />
-      <button
-        onClick={handleLog}
-        disabled={!canLog}
-        style={{ background: canLog ? SKY : INK_3, color: canLog ? INK : TEXT_SOFT }}
-        className="w-full rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
-      >
-        <Plus size={14} /> {canLog ? 'Log activity' : 'Enter minutes to log'}
-      </button>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={distance}
+          onChange={(e) => setDistance(e.target.value)}
+          placeholder="Distance"
+          style={{ background: INK_3, color: PAPER }}
+          className="flex-1 min-w-0 rounded-md px-2 py-2 text-sm outline-none text-center"
+        />
+        <button
+          onClick={handleLog}
+          disabled={!canLog}
+          style={{ background: canLog ? SKY : INK_3, color: canLog ? INK : TEXT_SOFT }}
+          className="w-24 shrink-0 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
+        >
+          <Plus size={14} /> Log
+        </button>
+      </div>
     </div>
   );
 }
