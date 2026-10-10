@@ -2980,21 +2980,23 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // there is no label row above them.
   const rmTarget = targetLoad(style, oneRmFor(exercise.name));
   const contextBits = [
-    `Target ${exercise.sets}×${exercise.reps}`,
+    nextSetNumber === 1 && `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
     last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
     suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);
 
-  const boxClass = 'w-full rounded-md pl-1.5 pr-6 py-2 text-sm outline-none text-center';
+  const boxClass = 'w-full rounded-md pl-1.5 pr-6 py-1.5 text-sm outline-none text-center';
   const boxStyle = { background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' };
   const unitClass = 'absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none';
 
   return (
     <>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
-        {contextBits.join(' · ')}
-      </div>
+      {contextBits.length > 0 && (
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 text-center">
+          {contextBits.join(' · ')}
+        </div>
+      )}
       <div className="flex items-center justify-center gap-2">
         <label className="relative w-[4.3rem] shrink-0">
           <input
@@ -3210,7 +3212,7 @@ function ExerciseCard({
         )}
 
         {loggedSets.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 mb-1.5">
+          <div className="flex flex-wrap justify-center gap-1 mb-1">
             {loggedSets.map((s) => (
               <button
                 key={s.id}
