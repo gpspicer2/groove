@@ -19,6 +19,7 @@ import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { titleCaseLive } from '../../lib/titleCase';
+import { dayLabel } from '../../lib/dayLabel';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -1201,7 +1202,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                         {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
-                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {workoutSummary(workoutSets, exerciseNames.length)}
+                        {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length)}
                         {total > 0 && ` · ${Math.round(total).toLocaleString()} lb lifted`}
                         {kcal > 0 && ` · ~${kcal} kcal`}
                       </div>
@@ -2004,7 +2005,7 @@ function ActiveWorkout({
         {(workout.style || workout.location || !isSameDay(workout.startedAt)) && (
           <div style={{ color: SKY }} className="text-sm">
             {[
-              !isSameDay(workout.startedAt) && new Date(workout.startedAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              !isSameDay(workout.startedAt) && dayLabel(workout.startedAt),
               workout.style,
               workout.location,
             ].filter(Boolean).join(' · ')}

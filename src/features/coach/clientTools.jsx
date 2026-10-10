@@ -9,6 +9,7 @@ import { computeHrZones } from '../../lib/heartRate';
 import { RESULT_COPY, SYMPTOMS, DISEASES, OTHER_CONDITIONS, labelsFor } from '../screening/screening';
 import { TONE_COLOR } from '../screening/ScreeningFlow';
 import { titleCaseLive } from '../../lib/titleCase';
+import { dayLabel } from '../../lib/dayLabel';
 
 // The coach's detail tools, used by the client screen and the Library tab.
 
@@ -512,7 +513,7 @@ export function ClientWorkouts({ clientId }) {
               <div className="text-left">
                 <div style={{ color: PAPER }} className="text-sm font-medium">{workoutTitle(w.muscle_groups || [], w.activities || [])}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm">
-                  {new Date(w.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {plural(workoutSets.length, 'set')}
+                  {dayLabel(w.started_at)} · {plural(workoutSets.length, 'set')}
                   {w.program_id ? ' · Followed assigned program' : ' · Self-directed'}
                   {w.rpe ? ` · Effort ${w.rpe}/10` : ''}
                 </div>
