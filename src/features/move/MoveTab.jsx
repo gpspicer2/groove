@@ -832,6 +832,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     upgradeToCombinedIfNeeded('aerobic');
   }
 
+  function addFlexibility(name, targetNote = '') {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setPlanExercises((prev) => [...prev, { name: trimmed, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: targetNote.trim() }]);
+  }
+
   function addWarmup(muscleGroups) {
     const drills = generateDynamicWarmup(muscleGroups);
     if (drills.length === 0) return;
@@ -1093,6 +1099,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onAddExercise={addExercise}
           onAddSuperset={addSuperset}
           onAddAerobic={addAerobic}
+          onAddFlexibility={addFlexibility}
           onAddWarmup={() => addWarmup(activeWorkout.muscleGroups)}
           onAddWarmupDrill={addWarmupDrill}
           onRenameWarmupDrill={renameWarmupDrill}
@@ -1773,12 +1780,12 @@ function ActiveWorkout({
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
   onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup,
-  onAddExercise, onAddSuperset, onAddAerobic, onAddWarmup,
+  onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic'
+  const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic' | 'flexibility'
   // The "Add Resistance Exercise" button splits in place into "Single
   // Exercise" / "Superset" instead of navigating to a separate chooser
   // card — tapping anywhere outside it collapses it back.
@@ -2225,6 +2232,9 @@ function ActiveWorkout({
                   Aerobic / cardio
                 </button>
               )}
+              <button onClick={() => setAddMode('flexibility')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                Flexibility / stretching
+              </button>
               <button onClick={closeAddForm} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
                 Cancel
               </button>
@@ -2259,6 +2269,13 @@ function ActiveWorkout({
             }}
             onCancel={closeAddForm}
           />
+        ) : addMode === 'flexibility' ? (
+          <AddAerobicForm
+            activities={FLEXIBILITY_ACTIVITIES}
+            targetPlaceholder="Target, optional (e.g. 10 min)"
+            onAdd={(name, note) => { onAddFlexibility(name, note); setActiveGroupKey(`flexibility-activity-${name.trim()}`); closeAddForm(); }}
+            onCancel={closeAddForm}
+          />
         ) : (
           <AddAerobicForm
             onAdd={(name, note) => { onAddAerobic(name, note); setActiveGroupKey(`aerobic-${name.trim()}`); closeAddForm(); }}
@@ -2274,7 +2291,7 @@ function ActiveWorkout({
                 style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
                 className="flex-1 rounded-md py-2.5 text-sm font-medium"
               >
-                Single Exercise
+                Exercise
               </button>
               <button
                 onClick={() => { setAddMode('superset'); setAddMenuOpen(true); setSplitAddOpen(false); }}
@@ -2282,6 +2299,13 @@ function ActiveWorkout({
                 className="flex-1 rounded-md py-2.5 text-sm font-medium"
               >
                 Superset
+              </button>
+              <button
+                onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+                style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
+                className="flex-1 rounded-md py-2.5 text-sm font-medium"
+              >
+                Flexibility
               </button>
             </>
           ) : (
@@ -2809,7 +2833,7 @@ function AddAerobicToHistoryForm({ onAdd, onCancel, hrZones }) {
   );
 }
 
-function AddAerobicForm({ onAdd, onCancel }) {
+function AddAerobicForm({ onAdd, onCancel, activities = AEROBIC_ACTIVITIES_QUICK, targetPlaceholder = 'Target, optional (e.g. 10 min @ moderate pace)' }) {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
 
@@ -2817,7 +2841,7 @@ function AddAerobicForm({ onAdd, onCancel }) {
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Pick an activity, or type your own</div>
       <div className="flex flex-wrap justify-center gap-2 mb-3">
-        {AEROBIC_ACTIVITIES_QUICK.map((a) => (
+        {activities.map((a) => (
           <button
             key={a}
             onClick={() => setName(a)}
@@ -2840,7 +2864,7 @@ function AddAerobicForm({ onAdd, onCancel }) {
         type="text"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Target, optional (e.g. 10 min @ moderate pace)"
+        placeholder={targetPlaceholder}
         style={{ background: INK_3, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3"
       />
