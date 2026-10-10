@@ -2232,9 +2232,6 @@ function ActiveWorkout({
                   Aerobic / cardio
                 </button>
               )}
-              <button onClick={() => setAddMode('flexibility')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Flexibility / stretching
-              </button>
               <button onClick={closeAddForm} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
                 Cancel
               </button>
@@ -2291,7 +2288,7 @@ function ActiveWorkout({
                 style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
                 className="flex-1 rounded-md py-2.5 text-sm font-medium"
               >
-                Exercise
+                Single Exercise
               </button>
               <button
                 onClick={() => { setAddMode('superset'); setAddMenuOpen(true); setSplitAddOpen(false); }}
@@ -2299,13 +2296,6 @@ function ActiveWorkout({
                 className="flex-1 rounded-md py-2.5 text-sm font-medium"
               >
                 Superset
-              </button>
-              <button
-                onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
-                style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
-                className="flex-1 rounded-md py-2.5 text-sm font-medium"
-              >
-                Flexibility
               </button>
             </>
           ) : (
@@ -2325,6 +2315,16 @@ function ActiveWorkout({
           className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
         >
           <Plus size={14} /> Add to Workout
+        </button>
+      )}
+
+      {!addMenuOpen && (
+        <button
+          onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
+          style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
+          className="w-full rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 mb-4"
+        >
+          <Plus size={14} /> Add Flexibility
         </button>
       )}
 
