@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 // onto the sheet element:  const sheet = useSwipeDown(onClose);
 //   <div ref={sheet.ref} {...sheet.handlers} style={{ ...sheet.style, background: ... }}>
 // It only starts when the sheet's own content is scrolled to the top, so
-// scrolling a long sheet still works; a pull past ~110px closes it.
+// scrolling a long sheet still works; a pull past ~110px closes it. Mark a
+// child with data-no-sheet-drag to keep sheet-dragging off it entirely.
 export function useSwipeDown(onClose) {
   const ref = useRef(null);
   const st = useRef({ y0: 0, x0: 0, canDrag: false, active: false, dy: 0 });
@@ -14,7 +15,9 @@ export function useSwipeDown(onClose) {
   function onTouchStart(e) {
     const t = e.touches[0];
     const el = ref.current;
-    st.current = { y0: t.clientY, x0: t.clientX, canDrag: !el || el.scrollTop <= 0, active: false, dy: 0 };
+    // Anything marked data-no-sheet-drag (a sideways scroller, a slider) keeps its own gesture.
+    const locked = e.target.closest && e.target.closest('[data-no-sheet-drag]');
+    st.current = { y0: t.clientY, x0: t.clientX, canDrag: !locked && (!el || el.scrollTop <= 0), active: false, dy: 0 };
   }
   function onTouchMove(e) {
     const s = st.current;

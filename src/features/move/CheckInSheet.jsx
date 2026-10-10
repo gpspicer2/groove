@@ -52,14 +52,14 @@ export default function CheckInSheet({ onSave, onSkip }) {
             <div style={{ color: rpe ? PAPER : TEXT_SOFT, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium h-8 mb-1">
               {rpe ? `${rpe} · ${RPE_LABELS[rpe]}` : 'Slide to rate'}
             </div>
-            <div className="relative">
+            <div className="relative" data-no-sheet-drag>
               <div
                 ref={scrollerRef}
                 onScroll={handleScroll}
                 role="slider"
                 aria-label="Effort from 1 to 10"
                 aria-valuemin={1} aria-valuemax={10} aria-valuenow={rpe ?? undefined}
-                style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingInline: `calc(50% - ${ITEM_W / 2}px)` }}
+                style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', touchAction: 'pan-x', paddingInline: `calc(50% - ${ITEM_W / 2}px)` }}
                 className="flex overflow-x-auto no-scrollbar py-1"
               >
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
