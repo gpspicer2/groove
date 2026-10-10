@@ -2943,58 +2943,66 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     }
   }
 
-  // One compact line instead of three stacked ones for target/last/suggested.
+  // One short line for target/last/suggested; units sit inside the boxes so
+  // there is no label row above them.
   const rmTarget = targetLoad(style, oneRmFor(exercise.name));
   const contextBits = [
     `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
     last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
-    suggestion && `Suggested ${formatMoneyLikeWeight(suggestion.weight)}`,
+    suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);
+
+  const boxClass = 'w-full rounded-md pl-1.5 pr-6 py-2 text-sm outline-none text-center';
+  const boxStyle = { background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' };
+  const unitClass = 'absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none';
 
   return (
     <>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
         {contextBits.join(' · ')}
       </div>
-      <div className="flex items-end justify-center gap-2 mb-2.5">
-        <label className="flex flex-col items-center gap-0.5">
-          <span style={{ color: TEXT_SOFT }} className="text-sm">{useBodyweight ? '+lb' : 'lb'}</span>
+      <div className="flex items-center justify-center gap-2">
+        <label className="relative w-[4.3rem] shrink-0">
           <input
             type="number"
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
             onFocus={(e) => e.target.select()}
-            style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-            className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+            style={boxStyle}
+            className={boxClass}
+            aria-label="Weight in pounds"
           />
+          <span style={{ color: TEXT_SOFT }} className={unitClass}>{useBodyweight ? '+lb' : 'lb'}</span>
         </label>
         {byTime ? (
-          <label className="flex flex-col items-center gap-0.5">
-            <span style={{ color: TEXT_SOFT }} className="text-sm">sec</span>
+          <label className="relative w-[4.3rem] shrink-0">
             <input
               type="number"
               inputMode="numeric"
               value={seconds}
               onChange={(e) => setSeconds(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-              className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+              style={boxStyle}
+              className={boxClass}
+              aria-label="Seconds"
             />
+            <span style={{ color: TEXT_SOFT }} className={unitClass}>sec</span>
           </label>
         ) : (
-          <label className="flex flex-col items-center gap-0.5">
-            <span style={{ color: TEXT_SOFT }} className="text-sm">reps</span>
+          <label className="relative w-[4.3rem] shrink-0">
             <input
               type="number"
               inputMode="numeric"
               value={reps}
               onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-              className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
+              style={boxStyle}
+              className={boxClass}
+              aria-label="Reps"
             />
+            <span style={{ color: TEXT_SOFT }} className={unitClass}>reps</span>
           </label>
         )}
         <button
@@ -3146,7 +3154,7 @@ function ExerciseCard({
 
   return (
     <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
-      <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
+      <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-2.5">
         <div className="flex items-center justify-between mb-1">
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center gap-2">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
@@ -3168,7 +3176,7 @@ function ExerciseCard({
         )}
 
         {loggedSets.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+          <div className="flex flex-wrap justify-center gap-1.5 mb-1.5">
             {loggedSets.map((s) => (
               <button
                 key={s.id}
