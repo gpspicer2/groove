@@ -8,6 +8,7 @@ import { MUSCLE_GROUPS, workoutTitle, plural } from '../move/exerciseLibrary';
 import { computeHrZones } from '../../lib/heartRate';
 import { RESULT_COPY, SYMPTOMS, DISEASES, OTHER_CONDITIONS, labelsFor } from '../screening/screening';
 import { TONE_COLOR } from '../screening/ScreeningFlow';
+import { titleCaseLive } from '../../lib/titleCase';
 
 // The coach's detail tools, used by the client screen and the Library tab.
 
@@ -411,7 +412,7 @@ export function ProgramBuilder({ clientId, trainerId }) {
               <input
                 type="text"
                 value={ex.name}
-                onChange={(e) => updateExercise(i, 'name', e.target.value)}
+                onChange={(e) => updateExercise(i, 'name', titleCaseLive(e.target.value))}
                 placeholder="Exercise name"
                 style={{ background: INK_3, color: PAPER }}
                 className="flex-1 rounded-md px-2 py-2 text-sm outline-none"

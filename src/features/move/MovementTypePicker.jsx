@@ -2,6 +2,7 @@ import { titleCaseWords } from '../../lib/text';
 import React, { useState, useEffect } from 'react';
 import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, INK } from '../../theme';
 import { MUSCLE_GROUPS, LIFESTYLE_ACTIVITIES, BODY_REGION_GROUPS, LEGS_BUNDLE, ARMS_BUNDLE } from './exerciseLibrary';
+import { titleCaseLive } from '../../lib/titleCase';
 
 const LONG_PRESS_MS = 550;
 
@@ -146,7 +147,7 @@ export function ActivityPicker({ baseActivities = LIFESTYLE_ACTIVITIES, selected
             autoFocus
             type="text"
             value={customInput}
-            onChange={(e) => setCustomInput(e.target.value)}
+            onChange={(e) => setCustomInput(titleCaseLive(e.target.value))}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
             placeholder="Activity name…"
             style={{ background: INK_3, color: PAPER }}

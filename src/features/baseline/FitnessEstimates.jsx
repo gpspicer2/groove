@@ -4,6 +4,7 @@ import { X, ChevronRight, Wind, Dumbbell } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK } from '../../theme';
+import { titleCaseLive } from '../../lib/titleCase';
 
 // Three submaximal, exercise-based field tests — deliberately not the
 // Bruce Protocol or any other maximal/symptom-limited test, which
@@ -293,7 +294,7 @@ export function OneRMEstimator({ userId }) {
       <input
         type="text"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => setName(titleCaseLive(e.target.value))}
         placeholder="Exercise (e.g. Back Squat)"
         style={{ background: INK_3, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"

@@ -22,3 +22,16 @@ export function titleCase(text) {
   });
   return head + out.join(' ');
 }
+
+// Same idea while typing: no "last word" rule (the last word keeps changing),
+// and a trailing space or hyphen survives so typing flows normally.
+export function titleCaseLive(text) {
+  if (!text) return text;
+  let first = true;
+  return text.replace(/[A-Za-z][A-Za-z']*/g, (word, at) => {
+    const isFirst = first; first = false;
+    if (word !== word.toLowerCase()) return word; // ACSM, VO2max, already capitalized
+    if (!isFirst && SMALL.has(word)) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+}

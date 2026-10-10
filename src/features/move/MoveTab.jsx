@@ -18,6 +18,7 @@ import { recentlyTrained } from './muscles';
 import { MuscleGroupPicker, ActivityPicker } from './MovementTypePicker';
 import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
+import { titleCaseLive } from '../../lib/titleCase';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -2467,7 +2468,7 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
           </div>
           <input
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(titleCaseLive(e.target.value))}
             placeholder="Activity"
             style={{ background: INK_3, color: PAPER }}
             className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
@@ -2605,7 +2606,7 @@ function MovementPicker({ label, group, setGroup, name, setName, location }) {
       <input
         type="text"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => setName(titleCaseLive(e.target.value))}
         placeholder="Exercise name"
         style={{ background: INK_3, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
@@ -2691,7 +2692,7 @@ function AddExerciseToHistoryForm({ onAdd, onCancel }) {
       <input
         type="text"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => setName(titleCaseLive(e.target.value))}
         placeholder="Exercise name"
         style={{ background: INK_2, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
@@ -2767,7 +2768,7 @@ function AddAerobicToHistoryForm({ onAdd, onCancel, hrZones }) {
       <input
         type="text"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => setName(titleCaseLive(e.target.value))}
         placeholder="Activity name"
         style={{ background: INK_2, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
@@ -2820,7 +2821,7 @@ function AddAerobicForm({ onAdd, onCancel }) {
       <input
         type="text"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => setName(titleCaseLive(e.target.value))}
         placeholder="Activity name"
         style={{ background: INK_3, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3"
@@ -3585,7 +3586,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
           <input
             autoFocus
             value={otherValue}
-            onChange={(e) => setOtherValue(e.target.value)}
+            onChange={(e) => setOtherValue(titleCaseLive(e.target.value))}
             onKeyDown={(e) => { if (e.key === 'Enter') { onAddDrill(otherValue); setOtherValue(''); setAddingOther(false); } }}
             placeholder="Movement name"
             style={{ background: INK_3, color: PAPER }}
