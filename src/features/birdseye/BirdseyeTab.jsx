@@ -21,6 +21,7 @@ import { buildRecap, dayKey } from './weekly';
 import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
+import Trends from './Trends';
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
@@ -485,14 +486,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           prescribedZone={prescribedZone}
         />
 
-      </div>
 
-      <div className="mt-4">
-        <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
-      </div>
-
-      <div className="mt-4 flex flex-col gap-4">
+        <Trends userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} />
         <FitnessTrends userId={userId} profile={profile} active={active} />
+        <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
 
       {quickLogPlan && <QuickLogSheet plan={quickLogPlan} saving={quickLogSaving} onConfirm={(v) => logPlanNow(quickLogPlan, v)} onClose={() => setQuickLogPlan(null)} />}

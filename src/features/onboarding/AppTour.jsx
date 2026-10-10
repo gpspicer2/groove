@@ -24,7 +24,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Your weekly overview — progress, calendar, and the science behind your plan.",
+    body: "Your weekly overview: progress, calendar, trends over time, and the science behind your plan.",
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
