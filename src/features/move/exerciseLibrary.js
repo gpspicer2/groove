@@ -249,7 +249,7 @@ export function locationEmojis(location, gender) {
   const pick = (neutral, female, male) => (g === 'female' ? female : g === 'male' ? male : neutral);
   switch (location) {
     case 'The Great Outdoors':
-      return ['🏂', pick('🚵', '🚵‍♀️', '🚵‍♂️')];
+      return ['🌲', pick('🚵', '🚵‍♀️', '🚵‍♂️')];
     case 'In the Home':
       return [pick('🧘', '🧘‍♀️', '🧘‍♂️'), '🏡'];
     case 'At the Gym':
