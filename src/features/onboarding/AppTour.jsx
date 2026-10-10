@@ -24,39 +24,11 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Your home base: your week, your calendar, and your progress over time.",
-  },
-  {
-    tab: 'birdseye', selector: '[data-tour="birdseye-goals"]', color: LIME, title: 'Weekly Goals',
-    body: "Your week at a glance, built on ACSM guidelines. Swipe a goal to edit it. Planned workouts show as dashed progress.",
-  },
-  {
-    tab: 'birdseye', selector: '[data-tour="birdseye-calendar"]', color: LIME, title: 'Calendar',
-    body: "Tap a day to log a workout or plan one. Planned days blink until you do them.",
-  },
-  {
-    tab: 'birdseye', selector: '[data-tour="birdseye-science"]', color: LIME, title: 'Science Supported Strategy',
-    body: "Your plan in plain words, built on ACSM guidelines. Heart rate zones show up once your resting heart rate is set.",
-  },
-  {
-    tab: 'birdseye', selector: '[data-tour="birdseye-trends"]', color: LIME, title: 'Trends',
-    body: "Open Trends to watch weight lifted, calories, aerobic minutes, and more over time, with a trend line.",
-  },
-  {
-    tab: 'birdseye', selector: '[data-tour="birdseye-library"]', color: LIME, title: 'Movement Library',
-    body: "Not sure how hard something is? See everyday activities sorted by light, moderate, and vigorous.",
+    body: "Your overview: weekly goals, a calendar for logging and planning workouts, trends over time, and the science behind your plan.",
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Log any kind of workout: resistance, aerobic, flexibility, or mixed. Today or a past day.",
-  },
-  {
-    tab: 'move', selector: '[data-tour="move-start"]', color: SKY, title: 'Log a Workout',
-    body: "Pick where and what, and Groove suggests a workout. Add aerobic, resistance, or flexibility any time. Swipe an exercise to swap or delete it.",
-  },
-  {
-    tab: 'move', selector: '[data-tour="move-history"]', color: SKY, title: 'History',
-    body: "Tap a past workout to edit it, or resume one you finished by accident. After each workout, tell us how it felt.",
+    body: "Log any workout, today or a past day: resistance, aerobic, flexibility, or mixed. Add cardio or stretches any time, and tell us how it felt after.",
   },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
@@ -97,13 +69,6 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabHighlight]);
   useEffect(() => () => onTabHighlight?.(null), []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Extra room at the bottom of the page while the tour runs, so sections near
-  // the end (Trends, Movement Library) can scroll up out from under the card.
-  useEffect(() => {
-    document.body.setAttribute('data-touring', '1');
-    return () => document.body.removeAttribute('data-touring');
-  }, []);
 
   useEffect(() => {
     const header = document.querySelector('[data-tour="app-header"]');

@@ -133,6 +133,3 @@ html, body {
 }
 
 .groove-plan-blink, .groove-plan-pulse { will-change: opacity; }
-
-/* Room for the tour card under sections at the end of a page. */
-body[data-touring] #app-scroll { padding-bottom: 70vh; }
