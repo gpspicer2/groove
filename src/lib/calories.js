@@ -19,6 +19,7 @@ export function kcalPerMinute(met, lb) {
 // for less than a Vigorous one.
 const AEROBIC_KEYWORD_METS = [
   [/jump rope/i, 10.5], [/run|jog/i, 8.5], [/stair/i, 8.0], [/row/i, 6.5], [/cycl|bike|spin/i, 6.8],
+  [/basketball/i, 6.5], [/pickleball/i, 5.0], [/tennis/i, 6.5], [/soccer/i, 7.0], [/volleyball/i, 4.0], [/golf/i, 4.3],
   [/swim/i, 6.0], [/hik/i, 5.8], [/elliptical/i, 5.0], [/dance/i, 5.0], [/walk/i, 3.8],
 ];
 const INTENSITY_SCALE = { light: 0.65, moderate: 1.0, vigorous: 1.3 };

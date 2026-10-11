@@ -56,6 +56,7 @@ export const AEROBIC_ACTIVITIES_QUICK = [
 // appended alongside these (see profiles.custom_activities).
 export const LIFESTYLE_ACTIVITIES = [
   'Walking', 'Jogging', 'Cycling', 'Hiking', 'Swimming', 'Yoga', 'Dancing', 'Gardening', 'Yard Work',
+  'Pickleball', 'Basketball', 'Tennis', 'Soccer', 'Volleyball', 'Golf',
 ];
 
 // What kind of flexibility work, selected alongside which muscle groups
