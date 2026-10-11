@@ -3,24 +3,30 @@ import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, SKY, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
 import { isReturningDevice } from './AuthContext';
+import { Eye, EyeOff } from '../lib/icons';
 
 export default function AuthScreen({ recovering = false, onRecovered }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : isReturningDevice() ? 'signin' : 'signup'); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
   const needsEmail = mode !== 'newpassword';
   const needsPassword = mode !== 'reset';
-  const canSubmit = (!needsEmail || email.trim().length > 0) && (!needsPassword || password.length >= 6) && !busy;
+  // New passwords are typed twice so a typo can't lock someone out.
+  const needsConfirm = mode === 'signup' || mode === 'newpassword';
+  const mismatch = needsConfirm && confirm.length > 0 && confirm !== password;
+  const canSubmit = (!needsEmail || email.trim().length > 0) && (!needsPassword || password.length >= 6) && (!needsConfirm || (confirm === password && confirm.length > 0)) && !busy;
   // Creating an account gets its own color so it never looks like signing in.
   const accent = mode === 'signup' ? SKY : PLUM;
   const TITLES = { signin: '', signup: 'Create your account', reset: 'Reset your password', newpassword: 'Choose a new password' };
   const SUBMIT = { signin: 'Sign in', signup: 'Sign up', reset: 'Email me a reset link', newpassword: 'Save password' };
 
-  function switchMode(next) { setMode(next); setError(''); setInfo(''); }
+  function switchMode(next) { setMode(next); setError(''); setInfo(''); setConfirm(''); setShowPw(false); }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,7 +43,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
       if (error) setError(error.message);
       // With email confirmation on, Supabase returns no session until the
       // link in the confirmation email is tapped.
-      else if (!data?.session) { setMode('signin'); setPassword(''); setInfo('Almost there! Check your email to confirm your account, then sign in.'); }
+      else if (!data?.session) { setMode('signin'); setPassword(''); setConfirm(''); setInfo('Almost there! Check your email to confirm your account, then sign in.'); }
     } else if (mode === 'reset') {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
       if (error) setError(error.message);
@@ -81,18 +87,46 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           </>)}
 
           {needsPassword && (<>
-          <label htmlFor="password" className="sr-only">Password</label>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder={mode === 'signin' ? 'Password' : 'Password (6+ characters)'}
-            style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-3 mb-3 text-sm outline-none"
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-          />
+          <div className="relative mb-3">
+            <label htmlFor="password" className="sr-only">Password</label>
+            <input
+              type={showPw ? 'text' : 'password'}
+              name="password"
+              id="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder={mode === 'signin' ? 'Password' : 'Password (6+ characters)'}
+              style={{ background: INK_3, color: PAPER }}
+              className="w-full rounded-md pl-3 pr-10 py-3 text-sm outline-none"
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? 'Hide password' : 'Show password'}
+              style={{ color: TEXT_SOFT }}
+              className="absolute right-0 top-0 bottom-0 px-3 flex items-center"
+            >
+              {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {needsConfirm && (
+            <div className="mb-3">
+              <label htmlFor="confirm" className="sr-only">Confirm password</label>
+              <input
+                type={showPw ? 'text' : 'password'}
+                name="confirm"
+                id="confirm"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="Confirm password"
+                style={{ background: INK_3, color: PAPER, outline: mismatch ? `1px solid ${BRICK}` : 'none' }}
+                className="w-full rounded-md px-3 py-3 text-sm outline-none"
+                autoComplete="new-password"
+              />
+              {mismatch && <div style={{ color: BRICK }} className="text-sm mt-1">Passwords don't match yet</div>}
+            </div>
+          )}
           </>)}
 
           {error && <div style={{ color: BRICK }} className="text-sm mb-4">{error}</div>}
