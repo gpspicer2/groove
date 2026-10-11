@@ -1059,7 +1059,7 @@ const MOVEMENT_INFO = {
   Aerobic: 'Anything that gets your heart rate up counts: walking, cycling, dancing, even yard work.',
   Resistance: 'No gym needed. Bodyweight moves, bands, carrying groceries, and yard work all count.',
   Flexibility: 'Stretching, yoga, and mobility work all count.',
-  RPE: 'RPE is how hard it feels, from 1 (sitting still) to 10 (all out). Light is about 2-4, moderate 5-6 (you can talk but not sing), and vigorous 7-8 (only a few words at a time). It is the same scale as your check-in after a workout, and it works without a heart rate monitor.',
+  RPE: 'Rating of perceived exertion (RPE) is how hard it feels, from 1 (sitting still) to 10 (all out). Light is about 2-4, moderate 5-6 (you can talk but not sing), and vigorous 7-8 (only a few words at a time). It is the same scale as your check-in after a workout, and it works without a heart rate monitor.',
 };
 // ACSM's 0-10 effort scale mapped to the three intensity bands.
 const RPE_BY_ZONE = { Light: '2–4', Moderate: '5–6', Vigorous: '7–8' };
@@ -1103,7 +1103,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
             </p>
             {prescribedZone && zones && <div style={{ color: SKY }} className="text-sm mb-1">Greg recommends: {prescribedZone} zone</div>}
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              {zones ? `Heart-rate ranges${maxHrIsPredicted ? ' (est.)' : ''} and RPE` : 'Effort by feel (RPE)'}{' '}
+              {zones ? `Heart-rate ranges${maxHrIsPredicted ? ' (est.)' : ''} and rating of perceived exertion (RPE)` : 'Effort by feel: rating of perceived exertion (RPE)'}{' '}
               <span className="inline-block align-middle">{infoBtn('RPE')}</span>
             </div>
             <div className="space-y-1">
