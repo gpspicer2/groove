@@ -1096,7 +1096,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: MOSS }} className="text-sm font-medium">Aerobic</span>{infoBtn('Aerobic')}
+              <span style={{ color: MOSS }} className="text-lg font-bold">Aerobic</span>{infoBtn('Aerobic')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
               {aerobicGoalMinutes} min/week of moderate-intensity activity, over 3+ days. Vigorous minutes count double.
@@ -1123,7 +1123,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: SKY }} className="text-sm font-medium">Resistance</span>{infoBtn('Resistance')}
+              <span style={{ color: SKY }} className="text-lg font-bold">Resistance</span>{infoBtn('Resistance')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm">
               {resistanceGoal} day{resistanceGoal === 1 ? '' : 's'}/week, all major muscles, 2–4 sets of 8–12 reps.
@@ -1133,7 +1133,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: BRICK }} className="text-sm font-medium">Flexibility</span>{infoBtn('Flexibility')}
+              <span style={{ color: BRICK }} className="text-lg font-bold">Flexibility</span>{infoBtn('Flexibility')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm">
               2–3 days/week. Hold each stretch 10–30 sec.
