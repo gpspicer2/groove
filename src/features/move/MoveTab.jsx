@@ -1510,7 +1510,7 @@ function StartWorkout({
                   className="rounded-xl py-3 flex flex-col items-center gap-0.5"
                 >
                   <span className="text-2xl leading-none">{MODE_EMOJI[mode]}</span>
-                  <span className="text-lg font-bold">{modeLabel(mode)}</span>
+                  <span className="text-sm font-medium">{modeLabel(mode)}</span>
                 </button>
               );
             })}
