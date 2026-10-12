@@ -351,7 +351,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
-  const programWeek = useProgramWeek(user?.id, program, true, workouts.length, profile?.week_start_day || 'sunday');
+  const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
   // while one is active. If the workout later vanishes from the database
@@ -469,7 +469,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     setSelectedDate(todayLocalISO());
     setCleanSlate(false);
     if (sess.kind === 'aerobic') {
+      // Cardio day: set up an easy walk to swap or confirm, then tap Log Workout.
+      setSelectedLocation(completedWorkouts[0]?.location || 'The Great Outdoors');
       setMovementMode('Aerobic');
+      setSelectedActivities((prev) => (prev.length ? prev : ['Walking']));
       setSelectedGroups([]);
       setSelectedStyle('');
       setProgramSession(null);
