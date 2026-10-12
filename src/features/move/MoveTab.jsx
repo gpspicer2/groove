@@ -2051,6 +2051,24 @@ function ActiveWorkout({
   const [restElapsed, setRestElapsed] = useState(0);
 
   const groups = groupPlan(exercises);
+  // An exercise counts as complete once it's ticked, or its target sets are logged
+  // (cardio: anything logged). Same key rule as the cards below.
+  function isGroupDone(group, groupKey) {
+    if (doneKeys.has(groupKey)) return true;
+    return group.every((m) => {
+      const n = sets.filter((x) => x.exerciseName === m.name).length;
+      return n > 0 && (m.type === 'aerobic' || m.type === 'flexibility-activity' || n >= (m.sets || 1));
+    });
+  }
+  const progressCounts = new Map();
+  const doneFlags = groups.map((group) => {
+    const base = group.length === 2 ? `superset-${group[0].name}-${group[1].name}` : `${group[0].type || 'ex'}-${group[0].name}`;
+    const n = progressCounts.get(base) || 0;
+    progressCounts.set(base, n + 1);
+    return isGroupDone(group, n === 0 ? base : `${base}#${n}`);
+  });
+  const doneCount = doneFlags.filter(Boolean).length;
+  const donePct = groups.length ? Math.round((doneCount / groups.length) * 100) : 0;
   // Recomputed fresh every render — see the dupeCount disambiguation below.
   const groupKeyCounts = new Map();
   groupInfoRef.current = [];
@@ -2161,6 +2179,14 @@ function ActiveWorkout({
             {workout.location || 'Add location'}
           </button>
         </div>
+        {groups.length > 0 && (
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <div style={{ background: INK_3 }} className="h-1.5 w-28 rounded-full overflow-hidden">
+              <div style={{ width: `${donePct}%`, background: LIME, transition: 'width 0.3s ease' }} className="h-full rounded-full" />
+            </div>
+            <span style={{ color: TEXT_SOFT }} className="text-xs tabular-nums">{doneCount} of {groups.length} done · {donePct}%</span>
+          </div>
+        )}
         {editingLocation && (
           <div className="flex justify-center gap-1.5 mt-1.5">
             {WORKOUT_LOCATIONS.map((loc) => (
@@ -2225,10 +2251,7 @@ function ActiveWorkout({
           const groupKey = dupeCount === 0 ? baseGroupKey : `${baseGroupKey}#${dupeCount}`;
           const displayIndex = gi + 1;
           const lead = group[0];
-          const leadSets = sets.filter((s) => s.exerciseName === lead.name);
-          const isDone = doneKeys.has(groupKey)
-            || (group.length === 1 && leadSets.length > 0
-              && (lead.type === 'aerobic' || lead.type === 'flexibility-activity' || leadSets.length >= (lead.sets || 1)));
+          const isDone = isGroupDone(group, groupKey);
           groupInfoRef.current.push({ key: groupKey, complete: isDone, type: lead.type });
           let card;
 
