@@ -134,7 +134,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
     // an explicit, not merely min-, height on every ancestor to resolve).
     <div
       ref={containerRef}
-      style={{ touchAction: 'pan-y', overflow: 'hidden', minHeight: '100%', display: 'flex', flexDirection: 'column' }}
+      style={{ touchAction: 'pan-y', overflow: 'clip', minHeight: '100%', display: 'flex', flexDirection: 'column' }}
       onScroll={() => {
         // This element is only overflow:hidden to clip the sliding strip —
         // it should never itself scroll. But overflow:hidden still makes it
@@ -172,7 +172,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
               width: `${100 / pages.length}%`,
               flexShrink: 0,
               maxHeight: i === index ? 'none' : '100svh',
-              overflow: i === index ? 'visible' : 'hidden',
+              overflow: i === index ? 'visible' : 'clip',
             }}
           >
             {page}

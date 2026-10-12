@@ -2109,7 +2109,8 @@ function ActiveWorkout({
 
   return (
     <div className="mb-8">
-      <div className="mb-3 text-center">
+      <div style={{ background: INK, zIndex: 5 }} className="sticky top-0 py-1.5 -mt-1.5 mb-2 text-center">
+       <div>
         <div style={{ color: PAPER }} className="text-sm font-medium">
           {workoutTitle(workout.muscleGroups, workout.activities)}
         </div>
@@ -2133,13 +2134,14 @@ function ActiveWorkout({
             ))}
           </div>
         )}
-        {guide && (
-          <div className="mt-1">
-            {guide.title && <div style={{ color: PAPER_DIM }} className="text-sm font-medium">{guide.title}</div>}
-            {guide.lines.map((l) => <div key={l} style={{ color: TEXT_SOFT }} className="text-sm">{l}</div>)}
-          </div>
-        )}
+       </div>
       </div>
+      {guide && (
+        <div className="mb-3 text-center">
+          {guide.title && <div style={{ color: PAPER_DIM }} className="text-sm font-medium">{guide.title}</div>}
+          {guide.lines.map((l) => <div key={l} style={{ color: TEXT_SOFT }} className="text-sm">{l}</div>)}
+        </div>
+      )}
 
       <SwipeHint id="exercises">Tip: swipe an exercise left to swap, edit, or delete it — and drag the dots to reorder.</SwipeHint>
       <div className="space-y-3 mb-4">
