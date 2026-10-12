@@ -248,6 +248,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [sets, setSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [progress, setProgress] = useState({ done: 0, total: 0 }); // exercises complete, shown under the tabs
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [movementMode, setMovementMode] = useState('');
@@ -418,8 +419,8 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     }
     const totalWeight = Math.round(totalWeightLifted(sets.filter((s) => s.workoutId === activeWorkout.id)));
     const kcal = estimateKcal(sets.filter((s) => s.workoutId === activeWorkout.id), bodyweight);
-    onActiveWorkoutChange({ totalWeight, kcal });
-  }, [activeWorkout, sets, onActiveWorkoutChange, bodyweight]);
+    onActiveWorkoutChange({ totalWeight, kcal, done: progress.done, total: progress.total });
+  }, [activeWorkout, sets, onActiveWorkoutChange, bodyweight, progress]);
 
   // Keep the active workout's plan mirrored to the database as it's
   // edited (exercises added/removed/reordered, supersets formed) so the
@@ -1170,6 +1171,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
 
       {activeWorkout ? (
         <ActiveWorkout
+          onProgress={(p) => setProgress((prev) => (prev.done === p.done && prev.total === p.total ? prev : p))}
           guide={workoutGuide(activeWorkout)}
           onChangeLocation={changeLocation}
           combinedActivity={(() => {
@@ -1907,7 +1909,7 @@ function ActiveWorkout({
   onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup,
   onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddStretch, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
-  onRemoveExercise, onFinish, onDiscard,
+  onRemoveExercise, onFinish, onDiscard, onProgress,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(false);
@@ -2068,7 +2070,7 @@ function ActiveWorkout({
     return isGroupDone(group, n === 0 ? base : `${base}#${n}`);
   });
   const doneCount = doneFlags.filter(Boolean).length;
-  const donePct = groups.length ? Math.round((doneCount / groups.length) * 100) : 0;
+  useEffect(() => { onProgress && onProgress({ done: doneCount, total: groups.length }); }, [doneCount, groups.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // Recomputed fresh every render — see the dupeCount disambiguation below.
   const groupKeyCounts = new Map();
   groupInfoRef.current = [];
@@ -2170,7 +2172,7 @@ function ActiveWorkout({
     <div className="mb-8">
       <div style={{ background: INK, zIndex: 5 }} className="sticky top-0 py-1.5 -mt-1.5 mb-2 text-center">
        <div>
-        <div style={{ color: PAPER }} className="text-sm font-medium">
+        <div style={{ color: PAPER }} className="text-xl font-extrabold leading-tight">
           {workoutTitle(workout.muscleGroups, workout.activities)}
         </div>
         <div style={{ color: SKY }} className="text-sm">
@@ -2179,14 +2181,6 @@ function ActiveWorkout({
             {workout.location || 'Add location'}
           </button>
         </div>
-        {groups.length > 0 && (
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <div style={{ background: INK_3 }} className="h-1.5 w-28 rounded-full overflow-hidden">
-              <div style={{ width: `${donePct}%`, background: LIME, transition: 'width 0.3s ease' }} className="h-full rounded-full" />
-            </div>
-            <span style={{ color: TEXT_SOFT }} className="text-xs tabular-nums">{doneCount} of {groups.length} done · {donePct}%</span>
-          </div>
-        )}
         {editingLocation && (
           <div className="flex justify-center gap-1.5 mt-1.5">
             {WORKOUT_LOCATIONS.map((loc) => (

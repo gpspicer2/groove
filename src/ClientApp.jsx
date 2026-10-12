@@ -169,9 +169,19 @@ export default function ClientApp() {
             );
           })}
         </div>
-        {moveStatus && (moveStatus.totalWeight > 0 || moveStatus.kcal > 0) && (
-          <div className="flex justify-end gap-3 mb-3 -mt-1">
-            <span style={{ color: SKY, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium">
+        {moveStatus && (moveStatus.total > 0 || moveStatus.totalWeight > 0 || moveStatus.kcal > 0) && (
+          <div className="flex items-center justify-between gap-3 mb-3 -mt-1">
+            {moveStatus.total > 0 ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <div style={{ background: INK_2 }} className="h-1.5 w-12 rounded-full overflow-hidden shrink-0">
+                  <div style={{ width: `${Math.round((moveStatus.done / moveStatus.total) * 100)}%`, background: LIME, transition: 'width 0.3s ease' }} className="h-full rounded-full" />
+                </div>
+                <span style={{ color: LIME }} className="text-sm font-medium tabular-nums whitespace-nowrap">
+                  {moveStatus.done}/{moveStatus.total} · {Math.round((moveStatus.done / moveStatus.total) * 100)}%
+                </span>
+              </div>
+            ) : <span />}
+            <span style={{ color: SKY, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium whitespace-nowrap">
               {[
                 moveStatus.totalWeight > 0 && `${moveStatus.totalWeight.toLocaleString()} lb lifted`,
                 moveStatus.kcal > 0 && `~${moveStatus.kcal} kcal`,
