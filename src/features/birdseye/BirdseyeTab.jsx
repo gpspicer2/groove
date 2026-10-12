@@ -291,7 +291,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
   const now = new Date();
   const weekStart = startOfWeek(now, weekStartDay);
-  const workoutsThisWeek = workouts.filter((w) => new Date(w.started_at) >= weekStart);
+  // A workout still being logged (started in the last 12 hours, not finished) shows as
+  // flashing tentative progress, and only counts once it's finished.
+  const isLive = (w) => !w.completed_at && now.getTime() - new Date(w.started_at).getTime() < 12 * 3600 * 1000;
+  const weekAll = workouts.filter((w) => new Date(w.started_at) >= weekStart);
+  const liveThisWeek = weekAll.filter(isLive);
+  const workoutsThisWeek = weekAll.filter((w) => !isLive(w));
   const thisWeekIds = new Set(workoutsThisWeek.map((w) => w.id));
   const liftsThisWeek = liftSetRows.filter((s) => thisWeekIds.has(s.workout_id));
   const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
@@ -328,6 +333,15 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     if (kinds.has('aerobic')) { plannedAerobicMinutes += planMinutes(p); plannedAerobicSessions += 1; }
     if (kinds.has('resistance')) plannedResistance += 1;
     if (kinds.has('flexibility')) plannedFlexibility += 1;
+  });
+  liveThisWeek.forEach((w) => {
+    if (hasResistance(w)) plannedResistance += 1;
+    if (hasFlexibility(w)) plannedFlexibility += 1;
+    if (hasAerobic(w)) {
+      plannedAerobicSessions += 1;
+      const b = aerobicMinutesByWorkout[w.id];
+      plannedAerobicMinutes += b ? b.moderate + b.vigorous * 2 : 0;
+    }
   });
   const recap = buildRecap({
     workouts, weekStart, aerobicMinutesByWorkout, kcalByWorkout, hasResistance, hasFlexibility,
