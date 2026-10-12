@@ -103,6 +103,7 @@ Greg is tired and will likely start the next session not remembering. Open with 
 - Smaller optional items: review condition-tip wording (`conditions.js`), Android back button closing popups, fitness assessment one-screen pass, check the coach-view Account sheet after the compact redesign.
 
 ## START HERE next session (do these first, in order, before payments or anything else)
+Trigger: when Greg says he is "at my computer now", begin with the list below, one step at a time.
 1. Vercel: Greg got "deployment failed" emails (2026-10-12). Locally a clean build passes, so ask him to open the email, tap View Build Logs, and send the red error lines. My guess is the Hobby plan's daily deployment cap (each push goes to `main` and the side branch, which doubles deployments). Confirm whether groove-rho.vercel.app is on the latest version.
 2. Supabase: have him run `alter table public.profiles add column if not exists program jsonb;` in the SQL editor (see below).
 3. Then resume the earlier list (sign-up walkthrough, business setup, Stripe live).
