@@ -3080,10 +3080,12 @@ function roundToFive(n) {
 // Pull-ups, dips and chin-ups default to "use bodyweight" because the
 // lifter's own weight is the load. Any other exercise (walking lunges,
 // push-ups...) can still be switched to bodyweight from its edit panel.
-// "BW" for bodyweight alone, "BW+15" when weight was added on top.
+// Bodyweight lifts show the real load (bodyweight plus whatever was added,
+// e.g. 185 + 15 = 200), or "BW" when nothing was added.
 function bwLabel(totalWeight, bodyweight) {
-  const added = Math.round((Number(totalWeight) || 0) - (Number(bodyweight) || 0));
-  return added > 0 ? `BW+${added}` : 'BW';
+  const total = Math.round(Number(totalWeight) || 0);
+  const added = total - Math.round(Number(bodyweight) || 0);
+  return added > 0 ? String(total) : 'BW';
 }
 
 function isBodyweightEligible(name) {
