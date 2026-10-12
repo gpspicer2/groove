@@ -2320,6 +2320,10 @@ function ActiveWorkout({
                   onLogSet={onLogSet}
                   onDeleteSet={onDeleteSet}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
+                  isActive={activeGroupKey === groupKey}
+                  onActivate={() => setActiveGroupKey(groupKey)}
+                  onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  onDone={() => markDone(groupKey)}
                 />
               );
             } else {
@@ -4025,7 +4029,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   );
 }
 
-function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
+function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone }) {
   // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
   const targetSeconds = /\ds/.test(String(exercise.reps || '')) ? String(exercise.reps).match(/\d+/)?.[0] || '' : '';
   const [seconds, setSeconds] = useState(targetSeconds);
@@ -4049,16 +4053,41 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
     setSeconds(targetSeconds);
   }
 
+  // Collapsed, like the lifts: one slim row.
+  if (!isActive) {
+    return (
+      <SwipeActions onSwap={onOpenSwap} onEdit={onActivate} onRemove={onRemove}>
+        <button
+          onClick={onActivate}
+          style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }}
+          className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+        >
+          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
+          </span>
+          <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+            {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+          </span>
+        </button>
+      </SwipeActions>
+    );
+  }
+
   return (
-    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={`${exercise.name}${isDone ? ' ✅' : ''}`} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
-        Target: {exercise.sets} holds, {exercise.reps}
-        <div style={{ color: accent }} className="font-medium">Counts toward your {isBalance ? 'Balance' : 'Flexibility'} goal</div>
+    <SwipeActions onSwap={onOpenSwap} onEdit={onCollapse} onRemove={onRemove}>
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-2.5">
+      <div className="flex items-center justify-between mb-1">
+        <span className="w-4 shrink-0" aria-hidden="true" />
+        <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
+        </span>
+        <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
+          <ChevronUp size={16} />
+        </button>
       </div>
 
       {loggedSets.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+        <div className="flex flex-wrap justify-center gap-1 mb-1">
           {loggedSets.map((s) => (
             <button
               key={s.id}
@@ -4074,6 +4103,9 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         </div>
       )}
 
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
+        Target {exercise.sets}×{exercise.reps} <span style={{ color: accent }}>· {isBalance ? 'Balance' : 'Flexibility'}</span>
+      </div>
       <div className="flex items-center justify-center gap-2">
         <input
           type="number"
@@ -4091,7 +4123,18 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         >
           <Plus size={14} /> Log hold {nextSetNumber}
         </button>
+        {loggedSets.length > 0 && (
+          <button
+            onClick={() => { onDone && onDone(); onCollapse && onCollapse(); }}
+            style={{ background: INK_3, color: PAPER }}
+            className="rounded-md py-2 px-2.5"
+            title="Finish this exercise"
+          >
+            <Check size={14} />
+          </button>
+        )}
       </div>
     </div>
+    </SwipeActions>
   );
 }
