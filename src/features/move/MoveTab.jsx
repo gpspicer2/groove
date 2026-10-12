@@ -1105,6 +1105,14 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     scrollAppToTop();
   }
 
+  // Fix a mis-tapped location after the workout has started.
+  async function changeLocation(loc) {
+    if (!activeWorkoutId || !loc) return;
+    const { data, error } = await supabase.from('workouts').update({ location: loc }).eq('id', activeWorkoutId).select().single();
+    if (error) { setLoadError(error.message); return; }
+    setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
+  }
+
   async function discardWorkout(skipConfirm = false) {
     if (skipConfirm !== true && !window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
@@ -1137,9 +1145,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       className={`max-w-md mx-auto px-4 pb-12 ${activeWorkout ? 'pt-3' : ''}`}
     >
       {loadError && (
-        <div style={{ background: INK_2, color: BRICK }} className="rounded-md px-4 py-3 mb-4 text-sm text-center">
-          {loadError}
-        </div>
+        <button onClick={() => setLoadError('')} style={{ background: INK_2, color: BRICK }} className="w-full rounded-md px-4 py-3 mb-4 text-sm text-center">
+          {/load failed|failed to fetch|networkerror/i.test(loadError) ? "Couldn't reach the server for a moment. Check that your last set saved. Tap to dismiss." : `${loadError} (tap to dismiss)`}
+        </button>
       )}
 
       {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => setCheckInWorkoutId(null)} />}
@@ -1163,6 +1171,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       {activeWorkout ? (
         <ActiveWorkout
           guide={workoutGuide(activeWorkout)}
+          onChangeLocation={changeLocation}
           combinedActivity={(() => {
             try { return localStorage.getItem(`groove:combinedActivity:${activeWorkout.id}`) || ''; } catch { return ''; }
           })()}
@@ -1890,7 +1899,7 @@ function workoutGuide(workout) {
 }
 
 function ActiveWorkout({
-  guide,
+  guide, onChangeLocation,
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
@@ -1900,6 +1909,7 @@ function ActiveWorkout({
   onRemoveExercise, onFinish, onDiscard,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
   const [addMode, setAddMode] = useState(null); // 'resistance' | 'superset' | 'aerobic' | 'flexibility'
   // The "Add Resistance Exercise" button splits in place into "Single
   // Exercise" / "Superset" instead of navigating to a separate chooser
@@ -2103,13 +2113,24 @@ function ActiveWorkout({
         <div style={{ color: PAPER }} className="text-sm font-medium">
           {workoutTitle(workout.muscleGroups, workout.activities)}
         </div>
-        {(workout.style || workout.location || !isSameDay(workout.startedAt)) && (
-          <div style={{ color: SKY }} className="text-sm">
-            {[
-              !isSameDay(workout.startedAt) && dayLabel(workout.startedAt),
-              workout.style,
-              workout.location,
-            ].filter(Boolean).join(' · ')}
+        <div style={{ color: SKY }} className="text-sm">
+          {[!isSameDay(workout.startedAt) && dayLabel(workout.startedAt), workout.style].filter(Boolean).map((t) => <span key={t}>{t} · </span>)}
+          <button onClick={() => setEditingLocation((v) => !v)} className="underline decoration-dotted underline-offset-2" aria-label="Change location">
+            {workout.location || 'Add location'}
+          </button>
+        </div>
+        {editingLocation && (
+          <div className="flex justify-center gap-1.5 mt-1.5">
+            {WORKOUT_LOCATIONS.map((loc) => (
+              <button
+                key={loc}
+                onClick={() => { onChangeLocation && onChangeLocation(loc); setEditingLocation(false); }}
+                style={{ background: workout.location === loc ? SKY : INK_3, color: workout.location === loc ? INK : PAPER_DIM }}
+                className="rounded-full px-3 py-1 text-sm"
+              >
+                {loc}
+              </button>
+            ))}
           </div>
         )}
         {guide && (
