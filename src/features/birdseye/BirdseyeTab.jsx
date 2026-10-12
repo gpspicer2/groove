@@ -25,8 +25,9 @@ import FitnessTrends from './FitnessTrends';
 import Trends from './Trends';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
+import { programPlans } from '../program/programs';
 import ProgramSheet from '../program/ProgramSheet';
-import { ProgramWeekCard } from '../program/ProgramCards';
+import { ProgramWeekCard, useProgramWeek } from '../program/ProgramCards';
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
@@ -49,6 +50,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const { program, save: saveProgram } = useProgram(userId);
   const [showProgramSheet, setShowProgramSheet] = useState(false);
   const [workouts, setWorkouts] = useState([]);
+  const [programSheetStep, setProgramSheetStep] = useState(null);
+  const programWeek = useProgramWeek(userId, program, active, workouts.length, weekStartDay);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [assessmentDone, setAssessmentDone] = useState(true);
   const [intakeDone, setIntakeDone] = useState(true);
@@ -240,6 +243,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   // A missed plan with no details is logged right here (the plan already says
   // what it was); a detailed one goes to Move to fill in the specifics.
   function handleStartPlan(plan, date) {
+    if (plan.programSession) { if (onStartProgramSession) onStartProgramSession(plan.programSession); return; }
     const missed = date && date < dayKey(new Date());
     // A simple resistance plan opens Move with the gym, resistance and any
     // planned muscles already chosen, so only the goal is left to pick.
@@ -321,11 +325,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   // (planned aerobic is assumed to be moderate intensity).
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 7);
+  // Your program's sessions on the days you picked, alongside your own plans.
+  const doneProgramIds = new Set((programWeek?.sessions || []).filter((x) => x.done).map((x) => x.id));
+  const calendarPlans = [...plans, ...(program ? programPlans(program, weekStartDay, doneProgramIds) : [])];
   let plannedAerobicMinutes = 0;
   let plannedAerobicSessions = 0;
   let plannedResistance = 0;
   let plannedFlexibility = 0;
-  plans.forEach((p) => {
+  calendarPlans.forEach((p) => {
     if (p.planned_for < dayKey(now)) return; // missed plans don't count as upcoming progress
     const day = new Date(`${p.planned_for}T12:00:00`);
     if (day >= weekEnd) return;
@@ -444,9 +451,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
         {program && (
           <ProgramWeekCard
-            userId={userId} program={program} active={active} weekStartDay={weekStartDay} refreshKey={workouts.length}
+            program={program} week={programWeek}
             onStart={(sess) => onStartProgramSession && onStartProgramSession(sess)}
-            onManage={() => setShowProgramSheet(true)}
+            onManage={() => { setProgramSheetStep(null); setShowProgramSheet(true); }}
+            onPickDays={() => { setProgramSheetStep('weekdays'); setShowProgramSheet(true); }}
           />
         )}
 
@@ -506,7 +514,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           hasFlexibility={hasFlexibility}
           onOpenWorkout={onOpenWorkout}
           onLogOnDate={(day) => onLogWorkout && onLogWorkout(dateInputValue(day))}
-          plans={plans}
+          plans={calendarPlans}
           onSavePlan={savePlan}
           onDeletePlan={deletePlan}
           onPlanDetails={(dateStr, plan) => onPlanWorkout && onPlanWorkout({ date: dateStr, plan: plan || null })}
@@ -530,7 +538,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
 
-      {showProgramSheet && <ProgramSheet userId={userId} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={weekStartDay} />}
+      {showProgramSheet && <ProgramSheet userId={userId} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={weekStartDay} initialStep={programSheetStep} />}
 
       {quickLogPlan && <QuickLogSheet plan={quickLogPlan} saving={quickLogSaving} onConfirm={(v) => logPlanNow(quickLogPlan, v)} onClose={() => setQuickLogPlan(null)} />}
 

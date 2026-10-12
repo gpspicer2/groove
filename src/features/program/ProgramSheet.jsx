@@ -7,7 +7,7 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
   GOALS, MODELS, GOAL_INFO, MODEL_INFO, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
-  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit,
+  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays,
 } from './programs';
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -33,19 +33,20 @@ function WeekList({ program, week }) {
 }
 
 // Pick a program (goal, method, days a week) or manage the one in progress.
-export default function ProgramSheet({ userId, program, onSave, onClose, weekStartDay }) {
+export default function ProgramSheet({ userId, program, onSave, onClose, weekStartDay, initialStep }) {
   const arm = useArmed();
   const sheet = useSwipeDown(onClose);
-  const [step, setStep] = useState(program ? 'manage' : 'goal');
+  const [step, setStep] = useState(initialStep || (program ? 'manage' : 'goal'));
   const [goal, setGoal] = useState(program?.goal || null);
   const [model, setModel] = useState(program?.model || null);
   const [days, setDays] = useState(program?.days || 3);
   const [split, setSplit] = useState(program?.split || null);
+  const [weekdays, setWeekdays] = useState(hasChosenDays(program) ? program.weekdays : []);
 
   const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
   const options = goal ? splitOptions(draftBase) : [];
   const splitId = options.find((o) => o.id === split)?.id || options[0]?.id || null;
-  const draft = { ...draftBase, split: splitId };
+  const draft = { ...draftBase, split: splitId, weekdays: weekdays.length === days ? weekdays : null };
 
   async function start() {
     // Changing only the days or split keeps your place in the cycle; a new goal or method starts fresh.
@@ -83,7 +84,10 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week{chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · {phaseLabel(program, week)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This week</div>
                 <WeekList program={program} week={week} />
-                <div className="grid grid-cols-2 gap-2 mt-4">
+                <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
+                  {hasChosenDays(program) ? 'Change Training Days' : 'Pick Your Training Days'}
+                </button>
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   <button onClick={() => setStep('goal')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">Change Program</button>
                   <button onClick={() => arm.press('end', end)} data-armed={arm.armed === 'end'} style={arm.armed === 'end' ? { background: BRICK, color: PAPER } : { background: INK_3, color: BRICK }} className="rounded-md py-2.5 text-sm font-medium">{arm.armed === 'end' ? 'Tap again to end (workouts stay)' : 'End Program'}</button>
                 </div>
@@ -142,7 +146,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How many days a week can you train?</div>
               <div className="flex justify-center gap-2 mb-1">
                 {[2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => { setDays(n); setSplit(null); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
+                  <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays([]); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
                 ))}
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
@@ -169,8 +173,45 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">Your resistance goal on Birdseye becomes {resistanceDays(draft)} day{resistanceDays(draft) === 1 ? '' : 's'} a week.</div>
               <div className="flex items-center justify-between mt-3">
                 {back(goal === 'hypertrophy' ? 'model' : 'goal')}
-                <button onClick={start} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium flex items-center gap-1.5">
-                  <Check size={14} /> Start Program
+                <button onClick={() => setStep('weekdays')} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
+              </div>
+            </>
+          )}
+
+          {step === 'weekdays' && goal && (
+            <>
+              <div style={{ color: SKY }} className="text-sm font-medium mb-1">{programTitle(draft)}</div>
+              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which days will you train?</div>
+              <div className="flex justify-center gap-1.5 mb-1">
+                {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                  const on = weekdays.includes(d);
+                  const full = weekdays.length >= days;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setWeekdays((cur) => (cur.includes(d) ? cur.filter((x) => x !== d) : cur.length >= days ? cur : [...cur, d]))}
+                      style={{ ...tile(on), opacity: !on && full ? 0.45 : 1 }}
+                      className="w-11 h-12 rounded-xl text-sm font-medium"
+                    >
+                      {DAY_NAMES[d]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
+                {weekdays.length === days ? 'Your sessions will show up on the Birdseye calendar.' : `Pick ${days - weekdays.length} more day${days - weekdays.length === 1 ? '' : 's'}.`}
+              </div>
+              {weekdays.length === days && <WeekList program={draft} week={1} />}
+              <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">Your resistance goal on Birdseye becomes {resistanceDays(draft)} day{resistanceDays(draft) === 1 ? '' : 's'} a week.</div>
+              <div className="flex items-center justify-between mt-3">
+                {back('days')}
+                <button
+                  disabled={weekdays.length !== days}
+                  onClick={start}
+                  style={{ background: weekdays.length === days ? SKY : INK_3, color: weekdays.length === days ? INK : TEXT_SOFT }}
+                  className="rounded-md px-6 py-2.5 text-sm font-medium flex items-center gap-1.5"
+                >
+                  <Check size={14} /> {program ? 'Save Program' : 'Start Program'}
                 </button>
               </div>
             </>

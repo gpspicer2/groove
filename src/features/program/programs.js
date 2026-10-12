@@ -112,6 +112,11 @@ const FAT_LOSS = {
 };
 const DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 4, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Weekdays (0 = Sunday) in Monday-first order, so sessions run in calendar order.
+export const orderedWeekdays = (list) => [...list].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+// True once the member has picked exactly as many training days as the program needs.
+export const hasChosenDays = (program) => Array.isArray(program?.weekdays) && program.weekdays.length === program.days;
+
 
 const rx = (sets, reps, rpe, rest) => ({ sets, reps, rpe, rest });
 
@@ -194,7 +199,9 @@ export function sessionsForWeek(program, week) {
 
   const lifts = program.goal === 'fat_loss' ? FAT_LOSS[program.days].lifts : chosenSplit(program).sessions;
   const seq = program.goal === 'fat_loss' ? FAT_LOSS[program.days].seq : 'R'.repeat(program.days);
-  const days = program.goal === 'fat_loss' ? FAT_LOSS[program.days].days : DAYS[program.days];
+  const defaultDays = program.goal === 'fat_loss' ? FAT_LOSS[program.days].days : DAYS[program.days];
+  // The days the member picked (Mon-first order), else a sensible default spread.
+  const days = hasChosenDays(program) ? orderedWeekdays(program.weekdays) : defaultDays;
   let li = 0; let ai = 0;
   seq.split('').forEach((c, i) => {
     const day = days[i];
@@ -245,4 +252,30 @@ export function prescriptionLine(s) {
 export function accessoryLine(s) {
   if (!s.acc) return null;
   return `Accessories ${s.acc.sets} × ${dash(s.acc.reps)} · RPE ${dash(s.acc.rpe)}`;
+}
+
+// The program's sessions laid onto real calendar dates (today onward), for the Birdseye
+// calendar. Sessions already done this week are left off. Needs the member's chosen days.
+export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set(), horizonDays = 84) {
+  if (!hasChosenDays(program)) return [];
+  const out = [];
+  const pad = (n) => String(n).padStart(2, '0');
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  for (let i = 0; i < horizonDays; i += 1) {
+    const d = new Date(today.getTime() + i * 864e5);
+    if (d < new Date(`${program.startedAt}T00:00:00`)) continue;
+    const week = weekNumber(program, d, weekStartDay);
+    const sess = sessionsForWeek(program, week).find((x) => x.day === d.getDay());
+    if (!sess || doneIds.has(sess.id)) continue;
+    out.push({
+      id: `program-${pad(d.getMonth() + 1)}${pad(d.getDate())}-${sess.id}`,
+      planned_for: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      title: sess.name,
+      notes: null,
+      details: sess.kind === 'aerobic' ? { kind: 'aerobic', minutes: sess.minutes } : { kind: 'resistance' },
+      programSession: sess,
+    });
+  }
+  return out;
 }

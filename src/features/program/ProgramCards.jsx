@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
-import { DAY_NAMES, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
+import { DAY_NAMES, hasChosenDays, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
 
 // This week's sessions with done / next flags, from this week's logged workouts.
 export function useProgramWeek(userId, program, active, refreshKey, weekStartDay) {
@@ -67,8 +67,7 @@ export function MoveProgramLink({ onOpen }) {
 }
 
 // Birdseye: the week laid out on suggested days, tap a day to see and start it.
-export function ProgramWeekCard({ userId, program, active, weekStartDay, refreshKey, onStart, onManage }) {
-  const week = useProgramWeek(userId, program, active, refreshKey, weekStartDay);
+export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }) {
   const [picked, setPicked] = useState(null);
   if (!program || !week) return null;
   const shown = week.sessions.find((s) => s.id === picked) || week.next || week.sessions[week.sessions.length - 1];
@@ -81,6 +80,11 @@ export function ProgramWeekCard({ userId, program, active, weekStartDay, refresh
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.label} · {week.doneCount} of {week.sessions.length} done</div>
+      {!hasChosenDays(program) && onPickDays && (
+        <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
+          Pick your training days
+        </button>
+      )}
       <div className="flex gap-1.5 mb-2">
         {week.sessions.map((s) => {
           const on = shown?.id === s.id;

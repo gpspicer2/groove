@@ -209,11 +209,12 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, o
                   {isPast ? 'Log It' : 'Start Workout'}
                 </button>
               )}
-              <div className="flex items-center justify-center gap-4 mt-2">
+              {p.programSession && <div style={{ color: LIME }} className="text-sm mt-1.5">From your training program</div>}
+              {!p.programSession && <div className="flex items-center justify-center gap-4 mt-2">
                 <button onClick={() => onEdit(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">Edit</button>
                 <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{hasDetails(p) ? 'Edit details' : 'Add details'}</button>
                 <button onClick={() => arm.press(p.id, () => onDelete(p))} data-armed={arm.armed === p.id} style={arm.armed === p.id ? { background: BRICK, color: PAPER } : { color: BRICK }} className={`text-sm ${arm.armed === p.id ? 'rounded-md px-2 py-0.5' : 'underline'}`}>{arm.armed === p.id ? 'Tap again to delete' : 'Delete'}</button>
-              </div>
+              </div>}
             </div>
           );
         })}
