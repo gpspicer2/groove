@@ -3106,10 +3106,10 @@ function formatDaysSince(days) {
   return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
 }
 
-function CardHeader({ title, index, onOpenSwap, onRemove, onDone }) {
+function CardHeader({ title, index, onOpenSwap, onRemove, onDone, onTitleClick }) {
   return (
     <div className="relative flex items-center justify-center mb-1 min-h-[2rem]">
-      <div onClick={onDone} style={{ color: PAPER, paddingInline: `${((onDone ? 1 : 0) + (onOpenSwap ? 1 : 0) + 1) * 1.9}rem` }} className={`min-w-0 text-base font-bold text-center ${onDone ? 'cursor-pointer' : ''}`}>
+      <div onClick={onTitleClick || onDone} style={{ color: PAPER, paddingInline: `${((onDone ? 1 : 0) + (onOpenSwap ? 1 : 0) + 1) * 1.9}rem` }} className={`min-w-0 text-base font-bold text-center ${onDone ? 'cursor-pointer' : ''}`}>
         {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium mr-1.5">{index}.</span>}{title}
       </div>
       <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
@@ -3401,10 +3401,9 @@ function ExerciseCard({
           className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
         >
           <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
           <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-            {isDone && <Check size={14} color={LIME} className="inline mr-1 -mt-0.5" />}
             {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
           </span>
         </button>
@@ -3418,7 +3417,7 @@ function ExerciseCard({
         <div className="flex items-center justify-between mb-1">
           <span className="w-4 shrink-0" aria-hidden="true" />
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
-            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
           <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
             <ChevronUp size={16} />
@@ -3899,7 +3898,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
             className="flex-1 min-w-0 px-4 py-3 flex items-center justify-between text-left"
           >
             <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-              <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+              <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
             </span>
             <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
               {loggedSets.length > 0 ? `${loggedSets.length} logged` : 'tap to log'}
@@ -3957,7 +3956,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 
   return (
     <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={() => { onDone && onDone(); onCollapse(); }} />
+      <CardHeader title={`${exercise.name}${isDone ? ' ✅' : ''}`} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onTitleClick={onCollapse} onDone={() => { onDone && onDone(); onCollapse(); }} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
       )}
