@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
@@ -683,6 +684,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
 
 function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, extra, active }) {
   const [revealed, setRevealed] = useState(false);
+  useSingleOpenRow(revealed, setRevealed);
   const arm = useArmed();
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);

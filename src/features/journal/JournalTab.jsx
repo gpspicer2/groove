@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import SwipeHint from '../../SwipeHint';
@@ -135,6 +136,7 @@ export default function JournalTab() {
 
 function JournalEntryRow({ entry, onEdit, onDelete }) {
   const [revealed, setRevealed] = useState(false);
+  useSingleOpenRow(revealed, setRevealed);
   const [showActions, setShowActions] = useState(false);
   const actionSheet = useSwipeDown(() => setShowActions(false));
   const arm = useArmed();

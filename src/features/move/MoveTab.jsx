@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { revealSoon } from '../../lib/reveal';
 import { useArmed } from '../../lib/useArmed';
@@ -3314,6 +3315,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // three buttons slide in from off-screen to overlay it.
 function SwipeActions({ children, onSwap, onEdit, onRemove }) {
   const [revealed, setRevealed] = useState(false);
+  useSingleOpenRow(revealed, setRevealed);
   const arm = useArmed();
   useEffect(() => {
     const close = () => setRevealed(false);
