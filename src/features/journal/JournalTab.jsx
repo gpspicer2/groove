@@ -177,10 +177,9 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
     >
       <RevealPills
         revealed={revealed}
-        height="h-9"
         actions={[
           { key: 'edit', label: 'Edit', icon: Pencil, color: AMBER, onClick: () => { onEdit(); setRevealed(false); } },
-          { key: 'del', label: 'Delete', icon: Trash2, color: BRICK, onClick: () => arm.press('row', onDelete), armed: arm.armed === 'row', armedLabel: 'Tap again to delete' },
+          { key: 'del', label: 'Delete', icon: Trash2, color: BRICK, onClick: () => arm.press('row', onDelete), armed: arm.armed === 'row' },
         ]}
       />
       <div

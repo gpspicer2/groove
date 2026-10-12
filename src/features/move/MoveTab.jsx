@@ -3371,11 +3371,11 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
     >
       <RevealPills
         revealed={revealed}
-        height="h-10"
+        place="top-0 h-14"
         actions={[
           ...(onSwap ? [{ key: 'swap', label: 'Swap', icon: Replace, color: LIME, fireOnTouch: true, onClick: () => { onSwap(); setRevealed(false); } }] : []),
           { key: 'edit', label: 'Edit', icon: SlidersHorizontal, color: SKY, fireOnTouch: true, onClick: () => { onEdit(); setRevealed(false); } },
-          { key: 'del', label: 'Remove', icon: Trash2, color: BRICK, fireOnTouch: true, onClick: () => arm.press('remove', onRemove), armed: arm.armed === 'remove', armedLabel: 'Tap again' },
+          { key: 'del', label: 'Remove', icon: Trash2, color: BRICK, fireOnTouch: true, onClick: () => arm.press('remove', onRemove), armed: arm.armed === 'remove' },
         ]}
       />
       <div className="relative bg-inherit">{children}</div>

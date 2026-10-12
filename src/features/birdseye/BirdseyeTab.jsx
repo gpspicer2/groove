@@ -4,7 +4,7 @@ import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, Trash2, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -752,10 +752,10 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
           without needing to fight anything for stacking. */}
       <RevealPills
         revealed={revealed}
-        height="h-10"
+        place="top-0 h-7"
         actions={[
           { key: 'edit', label: 'Edit', icon: Pencil, color: SKY, onClick: onEdit },
-          { key: 'del', label: 'Stop tracking', icon: X, color: BRICK, onClick: () => arm.press('goal', onDelete), armed: arm.armed === 'goal', armedLabel: 'Tap again to stop tracking' },
+          { key: 'del', label: 'Stop tracking', icon: Trash2, color: BRICK, onClick: () => arm.press('goal', onDelete), armed: arm.armed === 'goal' },
         ]}
       />
       <button
