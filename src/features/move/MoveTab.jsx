@@ -3080,6 +3080,12 @@ function roundToFive(n) {
 // Pull-ups, dips and chin-ups default to "use bodyweight" because the
 // lifter's own weight is the load. Any other exercise (walking lunges,
 // push-ups...) can still be switched to bodyweight from its edit panel.
+// "BW" for bodyweight alone, "BW+15" when weight was added on top.
+function bwLabel(totalWeight, bodyweight) {
+  const added = Math.round((Number(totalWeight) || 0) - (Number(bodyweight) || 0));
+  return added > 0 ? `BW+${added}` : 'BW';
+}
+
 function isBodyweightEligible(name) {
   return /pull-up|dip|chin-up/i.test(name || '');
 }
@@ -3138,7 +3144,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const contextBits = [
     nextSetNumber === 1 && `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
-    last && `Last ${last.isBodyweight ? 'BW ' : ''}${formatMoneyLikeWeight(last.weight) ?? '—'}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
+    last && `Last ${last.isBodyweight ? bwLabel(last.weight, bodyweight) : (formatMoneyLikeWeight(last.weight) ?? '—')}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
     suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);
 
@@ -3381,7 +3387,7 @@ function ExerciseCard({
               >
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
-                  : <>{s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
+                  : <>{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
@@ -3453,7 +3459,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
                 style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
-                {s.isBodyweight ? 'BW' : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                {s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
