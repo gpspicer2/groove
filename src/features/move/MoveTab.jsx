@@ -659,7 +659,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       const recentNames = lastWorkout
         ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
         : [];
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, 2, profile?.gender)
+      // A one-muscle program day (chest day, arm day) needs more picks per muscle.
+      const perGroup = programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
     if (usesResistance) {

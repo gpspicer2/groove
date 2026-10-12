@@ -6,7 +6,7 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
   GOALS, MODELS, GOAL_INFO, MODEL_INFO, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
-  sessionsForWeek, prescriptionLine, accessoryLine,
+  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit,
 } from './programs';
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -38,8 +38,12 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const [goal, setGoal] = useState(program?.goal || null);
   const [model, setModel] = useState(program?.model || null);
   const [days, setDays] = useState(program?.days || 3);
+  const [split, setSplit] = useState(program?.split || null);
 
-  const draft = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
+  const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
+  const options = goal ? splitOptions(draftBase) : [];
+  const splitId = options.find((o) => o.id === split)?.id || options[0]?.id || null;
+  const draft = { ...draftBase, split: splitId };
 
   async function start() {
     const next = { ...draft };
@@ -73,7 +77,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
             return (
               <>
                 <div style={{ color: SKY }} className="text-base font-medium">{programTitle(program)}</div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week · {phaseLabel(program, week)}</div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week{chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · {phaseLabel(program, week)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This week</div>
                 <WeekList program={program} week={week} />
                 <div className="grid grid-cols-2 gap-2 mt-4">
@@ -135,12 +139,29 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How many days a week can you train?</div>
               <div className="flex justify-center gap-2 mb-1">
                 {[2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => setDays(n)} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
+                  <button key={n} onClick={() => { setDays(n); setSplit(null); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
                 ))}
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
                 {goal === 'fat_loss' ? `${resistanceDays(draft)} lifting days and ${days - resistanceDays(draft)} cardio day${days - resistanceDays(draft) === 1 ? '' : 's'} a week` : 'Pick what you can keep up. Consistency beats ambition.'}
               </div>
+              {options.length > 0 && (
+                <>
+                  <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Choose a split <span style={{ color: TEXT_SOFT }}>(best supported first)</span></div>
+                  <div className="space-y-1.5 mb-2">
+                    {options.map((o) => (
+                      <button key={o.id} onClick={() => setSplit(o.id)} style={tile(splitId === o.id)} className="w-full rounded-xl px-3 py-2 text-left">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-sm font-medium">{o.label}</span>
+                          <span style={{ opacity: 0.85 }} className="text-xs whitespace-nowrap">{o.tag}</span>
+                        </div>
+                        <div style={{ opacity: 0.85 }} className="text-sm">{o.freq}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2 text-sm mb-3">{chosenSplit(draft).info}</div>
+                </>
+              )}
               <WeekList program={draft} week={1} />
               <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">Your resistance goal on Birdseye becomes {resistanceDays(draft)} day{resistanceDays(draft) === 1 ? '' : 's'} a week.</div>
               <div className="flex items-center justify-between mt-3">

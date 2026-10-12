@@ -43,6 +43,17 @@ const T = {
   push: { name: 'Push', groups: ['Chest', 'Shoulders', 'Triceps'] },
   pull: { name: 'Pull', groups: ['Back', 'Biceps', 'Core'] },
   legs: { name: 'Legs', groups: ['Legs', 'Hamstrings', 'Glutes'] },
+  upperC: { name: 'Upper C', groups: UPPER },
+  lowerC: { name: 'Lower C', groups: LOWER },
+  fullMix: { name: 'Full Body', groups: FULL.A },
+  chestTri: { name: 'Chest & Triceps', groups: ['Chest', 'Triceps'] },
+  backBi: { name: 'Back & Biceps', groups: ['Back', 'Biceps'] },
+  legsOnly: { name: 'Legs', groups: ['Legs', 'Quadriceps', 'Hamstrings', 'Glutes'] },
+  shouldersCore: { name: 'Shoulders & Core', groups: ['Shoulders', 'Core'] },
+  chest: { name: 'Chest', groups: ['Chest'] },
+  back: { name: 'Back', groups: ['Back'] },
+  shoulders: { name: 'Shoulders', groups: ['Shoulders', 'Core'] },
+  arms: { name: 'Arms', groups: ['Biceps', 'Triceps'] },
   pushB: { name: 'Push B', groups: ['Chest', 'Shoulders', 'Triceps'] },
   pullB: { name: 'Pull B', groups: ['Back', 'Biceps', 'Core'] },
   legsB: { name: 'Legs B', groups: ['Legs', 'Hamstrings', 'Glutes'] },
@@ -55,6 +66,42 @@ const SPLITS = {
   5: [T.upperA, T.lowerA, T.push, T.pull, T.legs],
   6: [T.push, T.pull, T.legs, T.pushB, T.pullB, T.legsB],
 };
+
+// Splits to choose from for each number of days, best-supported first. Meta-analyses
+// (Schoenfeld et al., 2016 and 2019) find that training a muscle about twice a week
+// beats once a week, and that once weekly volume is matched, the exact split matters
+// much less than total hard sets, effort and sticking with it.
+export const SPLIT_OPTIONS = {
+  2: [
+    { id: 'full2', label: 'Full Body ×2', freq: 'Each muscle 2× a week', tag: 'Best supported', sessions: [T.fullA, T.fullB], info: 'Two full-body days hit every muscle twice a week, the frequency with the most support, in a schedule that is easy to keep.' },
+    { id: 'ul2', label: 'Upper / Lower', freq: 'Each muscle 1× a week', tag: 'Less efficient', sessions: [T.upperA, T.lowerA], info: 'Each half of the body is trained once a week. It works, but a muscle only gets one hit, so it usually needs more sets per session to match the progress of twice-weekly training.' },
+  ],
+  3: [
+    { id: 'full3', label: 'Full Body ×3', freq: 'Each muscle 3× a week', tag: 'Best supported', sessions: [T.fullA, T.fullB, T.fullC], info: 'Every muscle is trained three times a week with fewer sets per day. Great for beginners and for fitting training around a busy life.' },
+    { id: 'ulf', label: 'Upper / Lower / Full', freq: 'Each muscle 1.5–2× a week', tag: 'Good', sessions: [T.upperA, T.lowerA, T.fullMix], info: 'An upper day, a lower day and a full-body day. Most muscles get close to two hits a week.' },
+    { id: 'ppl3', label: 'Push / Pull / Legs', freq: 'Each muscle 1× a week', tag: 'Less efficient', sessions: [T.push, T.pull, T.legs], info: 'Each muscle group is trained once a week. Fine for variety, but a single weekly hit is usually the least efficient way to use three training days.' },
+  ],
+  4: [
+    { id: 'ul4', label: 'Upper / Lower ×2', freq: 'Each muscle 2× a week', tag: 'Best supported', sessions: [T.upperA, T.lowerA, T.upperB, T.lowerB], info: 'The best default for most lifters: every muscle twice a week, balanced, and easy to recover from.' },
+    { id: 'bro4', label: 'Body-part Split', freq: 'Each muscle 1× a week', tag: 'Less efficient', sessions: [T.chestTri, T.backBi, T.legsOnly, T.shouldersCore], info: 'The classic bodybuilding split: chest and triceps, back and biceps, legs, shoulders and core. Each muscle is hit hard once a week. It can work for advanced lifters but is usually less efficient.' },
+  ],
+  5: [
+    { id: 'ulppl', label: 'Upper / Lower / Push / Pull / Legs', freq: 'Each muscle about 2× a week', tag: 'Best supported', sessions: [T.upperA, T.lowerA, T.push, T.pull, T.legs], info: 'Chest, back, shoulders and legs get about two hits a week, arms a little more. A popular hybrid that adds volume without getting repetitive.' },
+    { id: 'bro5', label: 'Body-part Split', freq: 'Each muscle 1× a week', tag: 'Less efficient', sessions: [T.chest, T.back, T.legsOnly, T.shoulders, T.arms], info: 'One muscle group a day: chest, back, legs, shoulders, arms. Lots of volume per muscle in one session, but only one hit a week.' },
+  ],
+  6: [
+    { id: 'ppl6', label: 'Push / Pull / Legs ×2', freq: 'Each muscle 2× a week', tag: 'Best supported', sessions: [T.push, T.pull, T.legs, T.pushB, T.pullB, T.legsB], info: 'Each muscle twice a week with room for plenty of volume. The most bodybuilder-style plan, but it needs good recovery and time.' },
+    { id: 'ul6', label: 'Upper / Lower ×3', freq: 'Each muscle 3× a week', tag: 'Good', sessions: [T.upperA, T.lowerA, T.upperB, T.lowerB, T.upperC, T.lowerC], info: 'Every muscle three times a week with fewer sets per day. A high frequency approach that works well if recovery is good.' },
+  ],
+};
+export function splitOptions(program) {
+  return program.goal === 'fat_loss' ? [] : SPLIT_OPTIONS[program.days] || [];
+}
+export function chosenSplit(program) {
+  const opts = splitOptions(program);
+  return opts.find((o) => o.id === program.split) || opts[0] || null;
+}
+
 // Fat loss: fewer lifting days, the rest are cardio days.
 const FAT_LOSS = {
   2: { seq: 'RR', days: [1, 4], lifts: [T.fullA, T.fullB] },
@@ -145,7 +192,7 @@ export function sessionsForWeek(program, week) {
   const deload = pos === cyc.len && (key !== 'undulating' ? cyc.weeks[pos - 1].phase === 'Deload' : true);
   const out = [];
 
-  const lifts = program.goal === 'fat_loss' ? FAT_LOSS[program.days].lifts : SPLITS[program.days];
+  const lifts = program.goal === 'fat_loss' ? FAT_LOSS[program.days].lifts : chosenSplit(program).sessions;
   const seq = program.goal === 'fat_loss' ? FAT_LOSS[program.days].seq : 'R'.repeat(program.days);
   const days = program.goal === 'fat_loss' ? FAT_LOSS[program.days].days : DAYS[program.days];
   let li = 0; let ai = 0;
