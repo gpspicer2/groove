@@ -38,6 +38,7 @@ export default function ClientApp() {
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
+  const [programRequest, setProgramRequest] = useState(null); // { session } from a training program
   const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
   // A local override alongside profile.tour_done: updateProfile()'s
   // round trip can lag a render behind, and without this the tour would
@@ -66,6 +67,10 @@ export default function ClientApp() {
   }
   function startPlan(plan, date) {
     setPlanRequest({ mode: 'start', plan, date });
+    setTab('move');
+  }
+  function startProgramSession(session) {
+    setProgramRequest({ session });
     setTab('move');
   }
   function logWorkoutOn(dateStr) {
@@ -99,13 +104,14 @@ export default function ClientApp() {
       onLogWorkout={logWorkoutOn}
       onPlanWorkout={planWorkout}
       onStartPlan={startPlan}
+      onStartProgramSession={startProgramSession}
       onOpenGroove={openGrooveDrawer}
       active={tab === 'birdseye'}
       openBaselineOnLoad={locked ? false : openBaselineOnLoad}
       onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
     />
   );
-  const moveEl = <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />;
+  const moveEl = <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} programRequest={programRequest} onConsumeProgramRequest={() => setProgramRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />;
   const journalEl = <JournalTab key="journal" />;
 
   return (

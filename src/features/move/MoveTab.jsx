@@ -20,6 +20,10 @@ import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { titleCaseLive } from '../../lib/titleCase';
 import { dayLabel } from '../../lib/dayLabel';
+import { useProgram } from '../program/useProgram';
+import ProgramSheet from '../program/ProgramSheet';
+import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
+import { programTitle } from '../program/programs';
 
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
@@ -231,7 +235,7 @@ function scrollAppToTop() {
 const HISTORY_FIRST_PAGE = 3;
 const HISTORY_PAGE = 5;
 
-export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, planRequest, onConsumePlanRequest, onPlanSaved, onActiveWorkoutChange }) {
+export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, planRequest, onConsumePlanRequest, onPlanSaved, onActiveWorkoutChange, programRequest, onConsumeProgramRequest }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
     profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
@@ -274,6 +278,11 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [checkInWorkoutId, setCheckInWorkoutId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
+  // Self-guided training program (goal + days a week), and the session being started from it.
+  const { program, save: saveProgram } = useProgram(user?.id);
+  const [showProgramSheet, setShowProgramSheet] = useState(false);
+  const [programSession, setProgramSession] = useState(null);
+  const [autoStart, setAutoStart] = useState(false);
 
   const customActivities = profile?.custom_activities || [];
 
@@ -342,6 +351,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+  const programWeek = useProgramWeek(user?.id, program, true, workouts.length, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
   // while one is active. If the workout later vanishes from the database
@@ -450,6 +460,43 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
     onConsumePlanRequest && onConsumePlanRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planRequest]);
+
+  // Starting a session from a program (here in Move or from Birdseye): fill in
+  // the choices, and for a lifting session begin right away.
+  function beginProgramSession(sess) {
+    setPlanning(null);
+    setStartingPlan(null);
+    setSelectedDate(todayLocalISO());
+    setCleanSlate(false);
+    if (sess.kind === 'aerobic') {
+      setMovementMode('Aerobic');
+      setSelectedGroups([]);
+      setSelectedStyle('');
+      setProgramSession(null);
+    } else {
+      setSelectedLocation(completedWorkouts[0]?.location || 'At the Gym');
+      setMovementMode('Resistance');
+      setSelectedGroups(sess.groups);
+      setSelectedStyle(sess.style);
+      setProgramSession(sess);
+      setAutoStart(true);
+    }
+    scrollAppToTop();
+  }
+  useEffect(() => {
+    if (!programRequest) return;
+    beginProgramSession(programRequest.session);
+    onConsumeProgramRequest && onConsumeProgramRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programRequest]);
+  useEffect(() => {
+    if (!autoStart || loading || activeWorkoutId) return;
+    if (movementMode === 'Resistance' && selectedStyle && selectedGroups.length > 0 && selectedLocation && programSession) {
+      setAutoStart(false);
+      startWorkout();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, loading, movementMode, selectedStyle, selectedGroups, selectedLocation, programSession]);
 
   // A day picked on Birdseye's calendar: land on Move's first question
   // with that date already chosen, ready to walk through logging.
@@ -646,6 +693,20 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       plan = [...plan, ...activityEntries];
     }
 
+    // A session from a program sets the number of exercises, sets and reps.
+    const sameGroups = programSession && selectedGroups.length === programSession.groups.length && programSession.groups.every((g) => selectedGroups.includes(g));
+    const appliedSession = programSession && !cleanSlate && movementMode === 'Resistance' && selectedStyle === programSession.style && sameGroups ? programSession : null;
+    if (appliedSession) {
+      let j = 0;
+      plan = plan.flatMap((ex) => {
+        if (ex.type !== 'resistance') return [ex];
+        const idx = j++;
+        if (idx >= appliedSession.exercises) return [];
+        const rxn = idx < appliedSession.mainCount || !appliedSession.acc ? appliedSession.presc : appliedSession.acc;
+        return [{ ...ex, sets: rxn.sets, reps: rxn.reps }];
+      });
+    }
+
     const isToday = selectedDate === todayLocalISO();
     // Noon avoids the date silently shifting by a day if this ever
     // crosses a UTC day boundary near midnight in the client's time zone.
@@ -670,6 +731,10 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
       setStartingPlan(null);
     }
+    if (appliedSession) {
+      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: programTitle(program), name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
+    }
+    setProgramSession(null);
     if (movementMode === 'Combined' && combinedLayout) {
       try { localStorage.setItem(`groove:combinedLayout:${data.id}`, combinedLayout); } catch { /* storage blocked */ }
     }
@@ -1073,6 +1138,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
       )}
 
       {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => setCheckInWorkoutId(null)} />}
+      {showProgramSheet && user && (
+        <ProgramSheet userId={user.id} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={profile?.week_start_day || 'sunday'} />
+      )}
 
       {!activeWorkout && lostBackup && (
         <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4 text-center">
@@ -1089,6 +1157,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
 
       {activeWorkout ? (
         <ActiveWorkout
+          guide={workoutGuide(activeWorkout)}
           combinedActivity={(() => {
             try { return localStorage.getItem(`groove:combinedActivity:${activeWorkout.id}`) || ''; } catch { return ''; }
           })()}
@@ -1137,6 +1206,9 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
             <button onClick={() => { setStartingPlan(null); resetStartChoices(); }} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Dismiss</button>
           </div>
         )}
+        {!planning && program && (
+          <MoveProgramCard program={program} week={programWeek} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
+        )}
         <StartWorkout
           recentTrained={recentTrained}
           planning={planning}
@@ -1172,6 +1244,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           cleanSlate={cleanSlate}
           onToggleCleanSlate={setCleanSlate}
         />
+        {!planning && !program && <MoveProgramLink onOpen={() => setShowProgramSheet(true)} />}
         </>
       )}
 
@@ -1729,6 +1802,7 @@ function StartWorkout({
                   <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{STYLE_EMOJI[style]} {style}</div>
                   <div style={{ color: selected ? INK : TEXT_SOFT }} className="text-sm">{STYLE_CONFIG[style].blurb}</div>
                   <div style={{ color: selected ? INK : TEXT_SOFT, opacity: 0.85 }} className="text-sm">{STYLE_CONFIG[style].nsca}</div>
+                  <div style={{ color: selected ? INK : TEXT_SOFT, opacity: 0.85 }} className="text-sm">{STYLE_CONFIG[style].suggest}</div>
                 </button>
               );
             })}
@@ -1789,7 +1863,29 @@ function StartWorkout({
   );
 }
 
+// Plain-words suggestions shown at the top of a lifting workout: from the
+// program session it came from, or the general guide for its training style.
+function workoutGuide(workout) {
+  if (!workout) return null;
+  const dash = (x) => String(x).replace('-', '–');
+  try {
+    const raw = localStorage.getItem(`groove:programSession:${workout.id}`);
+    if (raw) {
+      const m = JSON.parse(raw);
+      const lines = [`${m.exercises} exercises · ${m.main.sets} × ${dash(m.main.reps)} · RPE ${dash(m.main.rpe)} · rest ${dash(m.main.rest)}`];
+      if (m.acc) lines.push(`Accessories ${m.acc.sets} × ${dash(m.acc.reps)} · RPE ${dash(m.acc.rpe)}`);
+      return { title: `${m.program} · ${m.name}`, lines };
+    }
+  } catch { /* ignore */ }
+  const cfg = STYLE_CONFIG[workout.style];
+  if ((workout.movementMode === 'Resistance' || workout.movementMode === 'Combined') && cfg?.suggest) {
+    return { title: null, lines: [`Suggested: ${cfg.suggest}`] };
+  }
+  return null;
+}
+
 function ActiveWorkout({
+  guide,
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
@@ -2009,6 +2105,12 @@ function ActiveWorkout({
               workout.style,
               workout.location,
             ].filter(Boolean).join(' · ')}
+          </div>
+        )}
+        {guide && (
+          <div className="mt-1">
+            {guide.title && <div style={{ color: PAPER_DIM }} className="text-sm font-medium">{guide.title}</div>}
+            {guide.lines.map((l) => <div key={l} style={{ color: TEXT_SOFT }} className="text-sm">{l}</div>)}
           </div>
         )}
       </div>

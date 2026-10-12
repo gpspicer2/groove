@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import {
-  Activity as RawActivity, Calendar as RawCalendar, Camera as RawCamera, Check as RawCheck, ChevronDown as RawChevronDown, ChevronLeft as RawChevronLeft, ChevronRight as RawChevronRight, ChevronUp as RawChevronUp, Dumbbell as RawDumbbell, ExternalLink as RawExternalLink, Footprints as RawFootprints, GripVertical as RawGripVertical, Heart as RawHeart, Info as RawInfo, Link2 as RawLink2, Lock as RawLock, LogOut as RawLogOut, MessageCircle as RawMessageCircle, Minus as RawMinus, Pencil as RawPencil, Play as RawPlay, Plus as RawPlus, Replace as RawReplace, RotateCcw as RawRotateCcw, Search as RawSearch, Send as RawSend, SlidersHorizontal as RawSlidersHorizontal, Square as RawSquare, StretchHorizontal as RawStretchHorizontal, PersonStanding as RawPersonStanding, Eye as RawEye, EyeOff as RawEyeOff, Timer as RawTimer, Trash2 as RawTrash2, User as RawUser, Wind as RawWind, X as RawX, Repeat as RawRepeat, LayoutDashboard as RawLayoutDashboard, Users as RawUsers, BookOpen as RawBookOpen, CreditCard as RawCreditCard, AlertTriangle as RawAlertTriangle, StickyNote as RawStickyNote, CheckCircle2 as RawCheckCircle2, Sparkles as RawSparkles
+  Activity as RawActivity, Calendar as RawCalendar, Camera as RawCamera, Check as RawCheck, ChevronDown as RawChevronDown, ChevronLeft as RawChevronLeft, ChevronRight as RawChevronRight, ChevronUp as RawChevronUp, Dumbbell as RawDumbbell, ExternalLink as RawExternalLink, Footprints as RawFootprints, GripVertical as RawGripVertical, Heart as RawHeart, Info as RawInfo, Link2 as RawLink2, Lock as RawLock, LogOut as RawLogOut, MessageCircle as RawMessageCircle, Minus as RawMinus, Pencil as RawPencil, Play as RawPlay, Plus as RawPlus, Replace as RawReplace, RotateCcw as RawRotateCcw, Search as RawSearch, Send as RawSend, SlidersHorizontal as RawSlidersHorizontal, Square as RawSquare, StretchHorizontal as RawStretchHorizontal, PersonStanding as RawPersonStanding, Eye as RawEye, EyeOff as RawEyeOff, ListChecks as RawListChecks, Timer as RawTimer, Trash2 as RawTrash2, User as RawUser, Wind as RawWind, X as RawX, Repeat as RawRepeat, LayoutDashboard as RawLayoutDashboard, Users as RawUsers, BookOpen as RawBookOpen, CreditCard as RawCreditCard, AlertTriangle as RawAlertTriangle, StickyNote as RawStickyNote, CheckCircle2 as RawCheckCircle2, Sparkles as RawSparkles
 } from 'lucide-react';
 
 // Lucide draws icons with SVG attributes, which can't use the theme's CSS
@@ -48,6 +48,7 @@ export const StretchHorizontal = themed(RawStretchHorizontal);
 export const PersonStanding = themed(RawPersonStanding);
 export const Eye = themed(RawEye);
 export const EyeOff = themed(RawEyeOff);
+export const ListChecks = themed(RawListChecks);
 export const Timer = themed(RawTimer);
 export const Trash2 = themed(RawTrash2);
 export const User = themed(RawUser);

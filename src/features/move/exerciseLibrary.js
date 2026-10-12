@@ -279,9 +279,9 @@ export function filterByLocation(pool, location) {
 export const TRAINING_STYLES = ['Strength', 'Hypertrophy', 'Endurance'];
 
 export const STYLE_CONFIG = {
-  Strength: { sets: 4, reps: '3-6', incrementMultiplier: 1.5, restSeconds: 150, blurb: 'Heavy loads, low reps, full recovery between sets.', nsca: '85%+ of your max · rest 2-5 min' },
-  Hypertrophy: { sets: 4, reps: '8-12', incrementMultiplier: 1, restSeconds: 90, blurb: 'Moderate reps, steady load progression, shorter rests.', nsca: '67-85% of your max · rest 30-90 sec' },
-  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, restSeconds: 45, blurb: 'Lighter loads, higher reps, minimal rest.', nsca: 'Under 67% of your max · rest under 30 sec' },
+  Strength: { sets: 4, reps: '3-6', incrementMultiplier: 1.5, restSeconds: 150, blurb: 'Heavy loads, low reps, full recovery between sets.', nsca: '85%+ of your max · rest 2-5 min', suggest: '4–5 exercises · 3–5 × 3–6 · RPE 8–9' },
+  Hypertrophy: { sets: 4, reps: '8-12', incrementMultiplier: 1, restSeconds: 90, blurb: 'Moderate reps, steady load progression, shorter rests.', nsca: '67-85% of your max · rest 30-90 sec', suggest: '5–6 exercises · 3–4 × 8–12 · RPE 7–9' },
+  Endurance: { sets: 3, reps: '15-20', incrementMultiplier: 0.6, restSeconds: 45, blurb: 'Lighter loads, higher reps, minimal rest.', nsca: 'Under 67% of your max · rest under 30 sec', suggest: '4–6 exercises · 2–3 × 15–20 · RPE 6–8' },
 };
 
 // NSCA program-design convention: multi-joint compound lifts (squat,

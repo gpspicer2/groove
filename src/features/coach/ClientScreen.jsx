@@ -7,7 +7,7 @@ import { Avatar, Stat, SectionTitle, WeekBars } from './CoachParts';
 import { goalsFor, timeAgo } from './stats';
 import { workoutTitle } from '../move/exerciseLibrary';
 import { RESULT_COPY, needsClearance } from '../screening/screening';
-import { ClientScreening, ClientHeartRate, ClientBaseline, ProgramBuilder, ClientWorkouts } from './clientTools';
+import { ClientScreening, ClientHeartRate, ClientProgramLine, ClientBaseline, ProgramBuilder, ClientWorkouts } from './clientTools';
 
 const TABS = [['overview', 'Overview'], ['plan', 'Plan'], ['health', 'Health'], ['workouts', 'Workouts'], ['notes', 'Notes']];
 
@@ -173,6 +173,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
 
       {tab === 'plan' && (
         <div className="space-y-4">
+          <ClientProgramLine clientId={client.id} />
           <ClientHeartRate clientId={client.id} />
           <ProgramBuilder clientId={client.id} trainerId={trainerId} />
         </div>

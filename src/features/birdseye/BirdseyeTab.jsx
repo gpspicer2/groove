@@ -23,6 +23,9 @@ import { RecapCard, TodayPlanCard } from './WeekCards';
 import FitnessTrends from './FitnessTrends';
 import Trends from './Trends';
 import GoalCelebration from './GoalCelebration';
+import { useProgram } from '../program/useProgram';
+import ProgramSheet from '../program/ProgramSheet';
+import { ProgramWeekCard } from '../program/ProgramCards';
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
@@ -39,9 +42,11 @@ function dateInputValue(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPlanWorkout, onStartPlan, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
+export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPlanWorkout, onStartPlan, onStartProgramSession, onOpenGroove, active, openBaselineOnLoad, onBaselineAutoOpened }) {
   const { profile, updateProfile } = useAuth();
   const weekStartDay = profile?.week_start_day || 'sunday';
+  const { program, save: saveProgram } = useProgram(userId);
+  const [showProgramSheet, setShowProgramSheet] = useState(false);
   const [workouts, setWorkouts] = useState([]);
   const [workoutTypes, setWorkoutTypes] = useState({}); // workoutId -> Set('resistance'|'aerobic')
   const [assessmentDone, setAssessmentDone] = useState(true);
@@ -423,6 +428,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           />
         )}
 
+        {program && (
+          <ProgramWeekCard
+            userId={userId} program={program} active={active} weekStartDay={weekStartDay} refreshKey={workouts.length}
+            onStart={(sess) => onStartProgramSession && onStartProgramSession(sess)}
+            onManage={() => setShowProgramSheet(true)}
+          />
+        )}
+
         {insight && (
           <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
             <div style={{ color: PAPER }} className="text-sm">{insight}</div>
@@ -502,6 +515,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         <FitnessTrends userId={userId} profile={profile} active={active} />
         <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
+
+      {showProgramSheet && <ProgramSheet userId={userId} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={weekStartDay} />}
 
       {quickLogPlan && <QuickLogSheet plan={quickLogPlan} saving={quickLogSaving} onConfirm={(v) => logPlanNow(quickLogPlan, v)} onClose={() => setQuickLogPlan(null)} />}
 

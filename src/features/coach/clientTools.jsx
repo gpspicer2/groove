@@ -10,6 +10,7 @@ import { RESULT_COPY, SYMPTOMS, DISEASES, OTHER_CONDITIONS, labelsFor } from '..
 import { TONE_COLOR } from '../screening/ScreeningFlow';
 import { titleCaseLive } from '../../lib/titleCase';
 import { dayLabel } from '../../lib/dayLabel';
+import { programTitle, weekNumber } from '../program/programs';
 
 // The coach's detail tools, used by the client screen and the Library tab.
 
@@ -172,6 +173,25 @@ export function ClientScreening({ client }) {
 }
 
 const HR_ZONE_OPTIONS = ['Light', 'Moderate', 'Vigorous'];
+
+// The member's self-chosen training program, if they follow one.
+export function ClientProgramLine({ clientId }) {
+  const [program, setProgram] = useState(null);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.from('profiles').select('program').eq('id', clientId).maybeSingle();
+      if (!error) setProgram(data?.program || null);
+    })();
+  }, [clientId]);
+  return (
+    <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
+      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Training program</div>
+      <div style={{ color: program ? PAPER : TEXT_SOFT }} className="text-sm">
+        {program ? `${programTitle(program)} · ${program.days} days a week · week ${weekNumber(program)}` : 'Not following one'}
+      </div>
+    </div>
+  );
+}
 
 export function ClientHeartRate({ clientId }) {
   const [hr, setHr] = useState(null);

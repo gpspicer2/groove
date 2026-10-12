@@ -450,3 +450,7 @@ end $$;
 drop trigger if exists protect_profile_columns on public.profiles;
 create trigger protect_profile_columns before update on public.profiles
   for each row execute function public.protect_profile_columns();
+
+-- Self-guided training program (goal, method, days a week, start date).
+-- Until this runs, the app keeps each member's program on their own device.
+alter table public.profiles add column if not exists program jsonb;
