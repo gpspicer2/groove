@@ -1929,7 +1929,17 @@ function ActiveWorkout({
   // collapsed to a single numbered row. Starts on the first exercise so
   // there's an obvious place to begin instead of an all-collapsed list.
   const discardArm = useArmed();
-  const [activeGroupKey, setActiveGroupKey] = useState(null);
+  // Remember which exercise was open, so reopening the app lands right back on it.
+  const groupMemoryKey = `groove:activeGroup:${workout.id}`;
+  const [activeGroupKey, setActiveGroupKey] = useState(() => {
+    try { return localStorage.getItem(groupMemoryKey) || null; } catch { return null; }
+  });
+  useEffect(() => {
+    try {
+      if (activeGroupKey) localStorage.setItem(groupMemoryKey, activeGroupKey);
+      else localStorage.removeItem(groupMemoryKey);
+    } catch { /* storage blocked */ }
+  }, [activeGroupKey, groupMemoryKey]);
   // Drag-to-reorder: the dragged card follows the finger via a live
   // translateY (dragOffsetY) rather than snapping the list around mid-
   // drag — the actual reorder only happens once, on release, based on
