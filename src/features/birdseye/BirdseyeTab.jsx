@@ -748,14 +748,27 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
           in CSS, so once these are on-screen they're guaranteed visible
           without needing to fight anything for stacking. */}
       <div
-        className="absolute right-0 top-0 bottom-0 flex"
-        style={{ width: 96, transform: `translateX(${revealed ? 0 : 96}px)`, transition: 'transform 0.2s ease' }}
+        className="absolute right-0 top-0 h-7 flex items-center gap-2 pl-4 z-10"
+        style={{
+          background: `linear-gradient(to right, transparent, ${INK_2} 14px)`,
+          transform: `translateX(${revealed ? 0 : 200}px)`, opacity: revealed ? 1 : 0,
+          transition: 'transform 0.2s ease, opacity 0.2s ease', pointerEvents: revealed ? 'auto' : 'none',
+        }}
       >
-        <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
-          <Pencil size={14} />
+        <button
+          onClick={onEdit}
+          style={{ background: `color-mix(in srgb, ${SKY} 22%, transparent)`, color: SKY }}
+          className="h-6 rounded-full px-3 text-sm font-medium flex items-center gap-1"
+        >
+          <Pencil size={13} /> Edit
         </button>
-        <button onClick={() => arm.press('goal', onDelete)} data-armed={arm.armed === 'goal'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          {arm.armed === 'goal' ? <span className="text-xs font-medium">Sure?</span> : <X size={14} />}
+        <button
+          onClick={() => arm.press('goal', onDelete)}
+          data-armed={arm.armed === 'goal'}
+          style={arm.armed === 'goal' ? { background: BRICK, color: PAPER } : { background: `color-mix(in srgb, ${BRICK} 22%, transparent)`, color: BRICK }}
+          className="h-6 rounded-full px-3 text-sm font-medium flex items-center gap-1"
+        >
+          {arm.armed === 'goal' ? 'Sure?' : <><X size={13} /> Remove</>}
         </button>
       </div>
       <button
