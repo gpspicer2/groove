@@ -1083,21 +1083,22 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
   return (
     <div ref={revealRef} data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
+      <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
+        <button
+          onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
+          aria-label="About this plan"
+          style={{ color: TEXT_SOFT }}
+          className="justify-self-start p-1 -m-1"
+        >
+          <Info size={14} />
+        </button>
         <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">Science Supported Strategy</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
+      </div>
 
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
-          <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm italic">
-              Your plan, built on ACSM guidelines{' '}
-              <span className="inline-block align-middle not-italic">{infoBtn('ACSM')}</span>
-            </div>
-            {infoBox('ACSM')}
-          </div>
+          {infoBox('ACSM')}
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -1151,6 +1152,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               Complete your fitness baseline for a fuller picture →
             </button>
           )}
+          <div style={{ color: TEXT_SOFT }} className="text-sm">— American College of Sports Medicine</div>
         </div>
       )}
     </div>
