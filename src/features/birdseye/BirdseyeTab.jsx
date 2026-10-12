@@ -1059,6 +1059,7 @@ const MOVEMENT_INFO = {
   Aerobic: 'Anything that gets your heart rate up counts: walking, cycling, dancing, even yard work.',
   Resistance: 'No gym needed. Bodyweight moves, bands, carrying groceries, and yard work all count.',
   Flexibility: 'Stretching, yoga, and mobility work all count.',
+  ACSM: 'ACSM is the American College of Sports Medicine, one of the largest sports medicine and exercise science organizations in the world. These targets come from its published exercise guidelines, which line up with the U.S. Physical Activity Guidelines: 150 to 300 minutes of moderate aerobic activity a week, strength work on 2 or more days, and regular stretching. Treat them as a solid starting point, not a rulebook. Message Greg if you want help tailoring them to you.',
   RPE: 'Rating of perceived exertion (RPE) is how hard it feels, from 1 (sitting still) to 10 (all out). Light is about 2-4, moderate 5-6 (you can talk but not sing), and vigorous 7-8 (only a few words at a time). It is the same scale as your check-in after a workout, and it works without a heart rate monitor.',
 };
 // ACSM's 0-10 effort scale mapped to the three intensity bands.
@@ -1090,9 +1091,13 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
-          <p style={{ color: TEXT_SOFT }} className="text-sm italic">
-            Your plan, built on ACSM guidelines.
-          </p>
+          <div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm italic">
+              Your plan, built on ACSM guidelines{' '}
+              <span className="inline-block align-middle not-italic">{infoBtn('ACSM')}</span>
+            </div>
+            {infoBox('ACSM')}
+          </div>
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -1146,7 +1151,6 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
               Complete your fitness baseline for a fuller picture →
             </button>
           )}
-          <div style={{ color: TEXT_SOFT }} className="text-sm">— American College of Sports Medicine</div>
         </div>
       )}
     </div>
