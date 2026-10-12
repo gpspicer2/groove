@@ -3628,6 +3628,7 @@ function WarmupInfoModal({ onClose }) {
 // touch-drag reordering as the main exercise list — its own small-scale
 // copy of that gesture, scoped to this card's drill rows.
 function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
+  const isDone = loggedSets.length > 0; // the set is logged only once every drill is checked
   // Finishing every drill logs the warm-up as a flexibility set, so it
   // counts toward the weekly flexibility goal; unchecking one takes it back.
   const completedSet = loggedSets.find((s) => s.movementType === 'flexibility');
@@ -3652,11 +3653,11 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
     return (
       <button
         onClick={onActivate}
-        style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }}
+        style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : VIOLET}` }}
         className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
       >
         <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
         </span>
         <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
           {doneCount > 0 ? `${doneCount}/${exercise.drills.length} done` : `${exercise.drills.length} drills`}
@@ -3743,7 +3744,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }} className="rounded-md px-4 py-3">
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : VIOLET}` }} className="rounded-md px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <div onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center gap-1.5">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
@@ -4032,6 +4033,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
   const accent = isBalance ? VIOLET : BRICK;
+  const isDone = loggedSets.length >= (exercise.sets || 1);
 
   function handleLog() {
     const durationSeconds = seconds === '' ? null : parseInt(seconds, 10);
@@ -4049,8 +4051,8 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${accent}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-3">
+      <CardHeader title={`${exercise.name}${isDone ? ' ✅' : ''}`} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} />
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">
         Target: {exercise.sets} holds, {exercise.reps}
         <div style={{ color: accent }} className="font-medium">Counts toward your {isBalance ? 'Balance' : 'Flexibility'} goal</div>
