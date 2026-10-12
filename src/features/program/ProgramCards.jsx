@@ -16,8 +16,10 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
       return { ...s, done: isDone };
     });
     const next = sessions.find((s) => !s.done) || null;
+    // The session being logged right now.
+    if (next && done.inProgress && (done.inProgress === 'aerobic') === (next.kind === 'aerobic')) next.inProgress = true;
     return { week, sessions, next, doneCount: sessions.filter((s) => s.done).length, label: phaseLabel(program, week) };
-  }, [program, done.resistance, done.aerobic, weekStartDay]);
+  }, [program, done.resistance, done.aerobic, done.inProgress, weekStartDay]);
 }
 
 function sessionDetail(s) {
@@ -102,7 +104,10 @@ export function ProgramWeekCard({ userId, program, active, weekStartDay, refresh
             <div style={{ color: TEXT_SOFT }} className="text-sm">{sessionDetail(shown)}</div>
             {accessoryLine(shown) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(shown)}</div>}
           </div>
-          {!shown.done && (
+          {!shown.done && shown.inProgress && (
+            <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In progress</span>
+          )}
+          {!shown.done && !shown.inProgress && (
             <button onClick={() => onStart(shown)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3.5 py-2 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start
             </button>

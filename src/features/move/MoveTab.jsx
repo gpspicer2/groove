@@ -2435,7 +2435,7 @@ function ActiveWorkout({
       ) : (
         // One row of add buttons side by side instead of a stack.
         <div className="flex gap-2 mb-4">
-          {serialBlock && (
+          {(serialBlock || workout.movementMode === 'Resistance') && (
             <button
               onClick={() => setSerialAeroOpen(true)}
               style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
