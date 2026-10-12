@@ -2027,10 +2027,12 @@ function ActiveWorkout({
     if (!pendingScrollKey) return;
     const id = requestAnimationFrame(() => {
       const el = [...document.querySelectorAll('[data-group-key]')].find((n) => n.dataset.groupKey === pendingScrollKey);
-      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); setPendingScrollKey(null); }
+      if (el) { el.style.scrollMarginTop = '64px'; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); setPendingScrollKey(null); }
     });
     return () => cancelAnimationFrame(id);
   }, [pendingScrollKey, exercises]);
+  // Opening any exercise brings its card to the top (below the pinned title).
+  useEffect(() => { if (activeGroupKey) setPendingScrollKey(activeGroupKey); }, [activeGroupKey]);
 
   function closeAddForm() {
     setAddMenuOpen(false);
