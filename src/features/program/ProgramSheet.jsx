@@ -46,7 +46,9 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const draft = { ...draftBase, split: splitId };
 
   async function start() {
-    const next = { ...draft };
+    // Changing only the days or split keeps your place in the cycle; a new goal or method starts fresh.
+    const sameCycle = program && program.goal === draft.goal && (program.model || null) === (draft.model || null);
+    const next = { ...draft, startedAt: sameCycle ? program.startedAt : draft.startedAt };
     await onSave(next);
     // Lifting days a week become the resistance goal on Birdseye.
     await supabase.from('profiles').update({ resistance_goal: resistanceDays(next), track_resistance_goal: true }).eq('id', userId);
