@@ -52,6 +52,8 @@ function daysBetween(a, b) {
 }
 
 const LIVE_BACKUP_KEY = 'groove:liveBackup';
+// A checked-off exercise reads green (a soft tint of the Birdseye green).
+const DONE_BG = `color-mix(in srgb, ${LIME} 28%, ${INK_2})`;
 const BARBELL_MIN_LB = 45;
 
 // The aerobic piece that opens a resistance session starts unnamed so the
@@ -1934,6 +1936,32 @@ function ActiveWorkout({
   const [activeGroupKey, setActiveGroupKey] = useState(() => {
     try { return localStorage.getItem(groupMemoryKey) || null; } catch { return null; }
   });
+  // Exercises ticked off with the check button (stay green after reopening).
+  const doneMemoryKey = `groove:doneGroups:${workout.id}`;
+  const [doneKeys, setDoneKeys] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(doneMemoryKey) || '[]')); } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(doneMemoryKey, JSON.stringify([...doneKeys])); } catch { /* storage blocked */ }
+  }, [doneKeys, doneMemoryKey]);
+  const markDone = (k) => setDoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  // Filled in while the cards render: each exercise's key and whether it's complete.
+  const groupInfoRef = useRef([]);
+  // On reopening a workout already underway with nothing left open, open the
+  // first exercise that isn't complete yet.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current) return;
+    autoOpened.current = true;
+    if (activeGroupKey || sets.length === 0) return;
+    // Prefer the first unfinished exercise after the last finished one, so
+    // a skipped warm-up above doesn't pull you back up the list.
+    const info = groupInfoRef.current.filter((g) => g.type !== 'warmup');
+    const lastDone = info.map((g) => g.complete).lastIndexOf(true);
+    const next = info.slice(lastDone + 1).find((g) => !g.complete) || info.find((g) => !g.complete);
+    if (next) setActiveGroupKey(next.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     try {
       if (activeGroupKey) localStorage.setItem(groupMemoryKey, activeGroupKey);
@@ -2025,6 +2053,7 @@ function ActiveWorkout({
   const groups = groupPlan(exercises);
   // Recomputed fresh every render — see the dupeCount disambiguation below.
   const groupKeyCounts = new Map();
+  groupInfoRef.current = [];
 
   // Nothing is expanded by default — a suggested workout starts fully
   // collapsed, and clients tap in when they're ready to log or edit.
@@ -2195,6 +2224,12 @@ function ActiveWorkout({
           groupKeyCounts.set(baseGroupKey, dupeCount + 1);
           const groupKey = dupeCount === 0 ? baseGroupKey : `${baseGroupKey}#${dupeCount}`;
           const displayIndex = gi + 1;
+          const lead = group[0];
+          const leadSets = sets.filter((s) => s.exerciseName === lead.name);
+          const isDone = doneKeys.has(groupKey)
+            || (group.length === 1 && leadSets.length > 0
+              && (lead.type === 'aerobic' || lead.type === 'flexibility-activity' || leadSets.length >= (lead.sets || 1)));
+          groupInfoRef.current.push({ key: groupKey, complete: isDone, type: lead.type });
           let card;
 
           if (group.length === 2) {
@@ -2252,6 +2287,8 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  isDone={isDone}
+                  onDone={() => markDone(groupKey)}
                   onQuickAdd={canQuickAddAerobic ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
               );
@@ -2283,6 +2320,8 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  isDone={isDone}
+                  onDone={() => markDone(groupKey)}
                   combinedActivity={combinedActivity}
                   preset={preset}
                   onQuickAerobic={betweenSets ? (name, intensity, minutes) => onLogSet({
@@ -3344,7 +3383,7 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3358,13 +3397,14 @@ function ExerciseCard({
       <SwipeActions onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove}>
         <button
           onClick={onActivate}
-          style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }}
+          style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
           className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
         >
           <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
           </span>
           <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+            {isDone && <Check size={14} color={LIME} className="inline mr-1 -mt-0.5" />}
             {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
           </span>
         </button>
@@ -3374,7 +3414,7 @@ function ExerciseCard({
 
   return (
     <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
-      <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-2.5">
+      <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5">
         <div className="flex items-center justify-between mb-1">
           <span className="w-4 shrink-0" aria-hidden="true" />
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
@@ -3420,7 +3460,7 @@ function ExerciseCard({
 
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={last}
-          onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? onCollapse : null}
+          onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
         {onQuickAerobic && nextSetNumber > 1 && (
@@ -3839,7 +3879,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd, isDone, onDone }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -3853,7 +3893,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   if (isActive === false) {
     return (
       <>
-        <div style={{ background: INK_2, borderLeft: `3px solid ${movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
+        <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
           <button
             onClick={onActivate}
             className="flex-1 min-w-0 px-4 py-3 flex items-center justify-between text-left"
@@ -3916,8 +3956,8 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   }
 
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={onCollapse} />
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3">
+      <CardHeader title={exercise.name} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onDone={() => { onDone && onDone(); onCollapse(); }} />
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
       )}
