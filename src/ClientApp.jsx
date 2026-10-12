@@ -11,6 +11,7 @@ import LearnTab from './features/learn/LearnTab';
 import { GrooveDrawerHost, openGrooveDrawer } from './GrooveSheet';
 import AppTour from './features/onboarding/AppTour';
 import LockedTab from './features/membership/LockedTab';
+import { supabase } from './lib/supabaseClient';
 import { MEMBERSHIP_REQUIRED, hasAccess } from './lib/membership';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
@@ -41,6 +42,18 @@ export default function ClientApp() {
     } catch { /* ignore */ }
     return 'birdseye';
   });
+  // Also ask the database: an unfinished workout from the last 12 hours sends a fresh open to Move,
+  // even if this phone has no local backup. Only acts if the person hasn't already switched tabs.
+  const touchedTab = useRef(false);
+  const firstTab = useRef(tab);
+  useEffect(() => { if (tab !== firstTab.current) touchedTab.current = true; }, [tab]);
+  useEffect(() => {
+    if (!user?.id) return;
+    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+    supabase.from('workouts').select('id').is('completed_at', null).is('deleted_at', null)
+      .gte('started_at', since).limit(1)
+      .then(({ data }) => { if (data?.length && !touchedTab.current) setTab('move'); });
+  }, [user?.id]);
   // Lets swipe-to-reveal rows in any tab close themselves when the tab changes.
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
