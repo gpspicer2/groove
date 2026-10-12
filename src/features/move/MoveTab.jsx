@@ -3144,7 +3144,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // there is no label row above them.
   const rmTarget = targetLoad(style, oneRmFor(exercise.name));
   const contextBits = [
-    nextSetNumber === 1 && `Target ${exercise.sets}×${exercise.reps}`,
+    `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
     last && `Last ${last.isBodyweight ? bwLabel(last.weight, bodyweight) : (formatMoneyLikeWeight(last.weight) ?? '—')}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
     suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
