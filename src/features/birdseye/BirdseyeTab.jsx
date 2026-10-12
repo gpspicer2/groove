@@ -748,27 +748,27 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
           in CSS, so once these are on-screen they're guaranteed visible
           without needing to fight anything for stacking. */}
       <div
-        className="absolute right-0 top-0 h-7 flex items-center gap-2 pl-4 z-10"
+        className="absolute inset-0 flex items-center gap-2.5 z-10"
         style={{
-          background: `linear-gradient(to right, transparent, ${INK_2} 14px)`,
-          transform: `translateX(${revealed ? 0 : 200}px)`, opacity: revealed ? 1 : 0,
+          background: INK_2,
+          transform: `translateX(${revealed ? 0 : 100}%)`, opacity: revealed ? 1 : 0,
           transition: 'transform 0.2s ease, opacity 0.2s ease', pointerEvents: revealed ? 'auto' : 'none',
         }}
       >
         <button
           onClick={onEdit}
           style={{ background: `color-mix(in srgb, ${SKY} 22%, transparent)`, color: SKY }}
-          className="h-6 rounded-full px-3 text-sm font-medium flex items-center gap-1"
+          className="flex-1 h-10 rounded-full text-sm font-medium flex items-center justify-center gap-1.5"
         >
-          <Pencil size={13} /> Edit
+          <Pencil size={14} /> Edit
         </button>
         <button
           onClick={() => arm.press('goal', onDelete)}
           data-armed={arm.armed === 'goal'}
           style={arm.armed === 'goal' ? { background: BRICK, color: PAPER } : { background: `color-mix(in srgb, ${BRICK} 22%, transparent)`, color: BRICK }}
-          className="h-6 rounded-full px-3 text-sm font-medium flex items-center gap-1"
+          className="flex-1 h-10 rounded-full text-sm font-medium flex items-center justify-center gap-1.5"
         >
-          {arm.armed === 'goal' ? 'Sure?' : <><X size={13} /> Remove</>}
+          {arm.armed === 'goal' ? 'Tap again to stop tracking' : <><X size={14} /> Stop tracking</>}
         </button>
       </div>
       <button
