@@ -4045,7 +4045,9 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 }
 
 function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
-  const [seconds, setSeconds] = useState('');
+  // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
+  const targetSeconds = /\ds/.test(String(exercise.reps || '')) ? String(exercise.reps).match(/\d+/)?.[0] || '' : '';
+  const [seconds, setSeconds] = useState(targetSeconds);
   const { armed, press } = useArmed();
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
@@ -4053,8 +4055,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   const isDone = loggedSets.length >= (exercise.sets || 1);
 
   function handleLog() {
-    const durationSeconds = seconds === '' ? null : parseInt(seconds, 10);
-    if (!durationSeconds) return;
+    const durationSeconds = seconds === '' ? null : parseInt(seconds, 10) || null;
     onLogSet({
       exerciseName: exercise.name,
       muscleGroup: exercise.muscleGroup,
@@ -4064,7 +4065,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
       reps: null,
       durationSeconds,
     });
-    setSeconds('');
+    setSeconds(targetSeconds);
   }
 
   return (
@@ -4104,8 +4105,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         />
         <button
           onClick={handleLog}
-          disabled={seconds === ''}
-          style={{ background: seconds === '' ? INK_3 : accent, color: seconds === '' ? TEXT_SOFT : PAPER }}
+          style={{ background: accent, color: PAPER }}
           className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
           <Plus size={14} /> Log hold {nextSetNumber}
