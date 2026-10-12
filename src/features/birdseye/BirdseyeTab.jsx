@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
@@ -274,7 +275,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     await loadAll();
   }
   async function deletePlan(plan) {
-    if (!window.confirm('Delete this planned workout?')) return false;
     const { error } = await supabase.from('planned_workouts').delete().eq('id', plan.id);
     if (error) { setLoadError(`Couldn't delete your plan: ${error.message}`); return false; }
     await loadAll();
@@ -478,7 +478,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
               active={active}
               extra={g.mode === 'Resistance' && liftsThisWeek.length > 0 ? <MuscleBalance bare sets={liftsThisWeek} /> : null}
               onEdit={() => setEditingGoals(true)}
-              onDelete={() => { if (window.confirm('Stop tracking this goal?')) setGoalTracked(g.mode, false); }}
+              onDelete={() => setGoalTracked(g.mode, false)}
               aerobic={g.mode === 'Aerobic' ? {
                 goalMinutes: aerobicGoalMinutes,
                 moderateEquivMinutes: moderateEquivMinutesThisWeek,
@@ -675,6 +675,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
 
 function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, extra, active }) {
   const [revealed, setRevealed] = useState(false);
+  const arm = useArmed();
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
   const goalRef = useRevealOnOpen(expanded);
@@ -745,8 +746,8 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
         <button onClick={onEdit} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <Pencil size={14} />
         </button>
-        <button onClick={onDelete} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          <X size={14} />
+        <button onClick={() => arm.press('goal', onDelete)} data-armed={arm.armed === 'goal'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          {arm.armed === 'goal' ? <span className="text-xs font-medium">Sure?</span> : <X size={14} />}
         </button>
       </div>
       <button

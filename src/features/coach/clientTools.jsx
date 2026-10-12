@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useArmed } from '../../lib/useArmed';
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { titleCase } from '../../lib/titleCase';
@@ -15,6 +16,7 @@ import { programTitle, weekNumber } from '../program/programs';
 // The coach's detail tools, used by the client screen and the Library tab.
 
 export function ArticleManager() {
+  const arm = useArmed();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -47,7 +49,6 @@ export function ArticleManager() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this article?')) return;
     await supabase.from('articles').delete().eq('id', id);
     setArticles((prev) => prev.filter((a) => a.id !== id));
   }
@@ -121,8 +122,8 @@ export function ArticleManager() {
               <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{titleCase(a.title)}</div>
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">{a.summary}</div>
               {a.url && <div style={{ color: VIOLET }} className="text-sm mb-2 break-all">{a.url}</div>}
-              <button onClick={() => handleDelete(a.id)} style={{ color: TEXT_SOFT }} className="text-sm inline-flex items-center gap-1">
-                <Trash2 size={12} /> Delete
+              <button onClick={() => arm.press(a.id, () => handleDelete(a.id))} data-armed={arm.armed === a.id} style={arm.armed === a.id ? { background: BRICK, color: PAPER } : { color: TEXT_SOFT }} className="text-sm inline-flex items-center gap-1 rounded-md px-1">
+                <Trash2 size={12} /> {arm.armed === a.id ? 'Tap again to delete' : 'Delete'}
               </button>
             </div>
           ))}

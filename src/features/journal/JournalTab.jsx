@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
@@ -64,7 +65,6 @@ export default function JournalTab() {
   }
 
   async function deleteEntry(id) {
-    if (!window.confirm('Delete this journal entry? This can\'t be undone.')) return;
     const { error } = await supabase.from('journal_entries').delete().eq('id', id);
     if (error) return;
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -137,6 +137,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
   const [revealed, setRevealed] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const actionSheet = useSwipeDown(() => setShowActions(false));
+  const arm = useArmed();
   const startX = useRef(0);
   const dragging = useRef(false);
   useEffect(() => {
@@ -178,8 +179,8 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 flex items-center justify-center">
           <Pencil size={16} />
         </button>
-        <button onClick={onDelete} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          <Trash2 size={16} />
+        <button onClick={() => arm.press('row', onDelete)} data-armed={arm.armed === 'row'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          {arm.armed === 'row' ? <span className="text-xs font-medium">Sure?</span> : <Trash2 size={16} />}
         </button>
       </div>
       <div
@@ -212,11 +213,12 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
                 <Pencil size={16} /> Edit entry
               </button>
               <button
-                onClick={() => { setShowActions(false); onDelete(); }}
-                style={{ background: BRICK, color: PAPER }}
+                onClick={() => arm.press('sheet', () => { setShowActions(false); onDelete(); })}
+                data-armed={arm.armed === 'sheet'}
+                style={{ background: BRICK, color: PAPER, outline: arm.armed === 'sheet' ? `2px solid ${PAPER}` : 'none', outlineOffset: -4 }}
                 className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
               >
-                <Trash2 size={16} /> Delete entry
+                <Trash2 size={16} /> {arm.armed === 'sheet' ? 'Tap again to delete' : 'Delete entry'}
               </button>
               <button onClick={() => setShowActions(false)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 text-center">
                 Cancel

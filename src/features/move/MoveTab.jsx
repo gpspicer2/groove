@@ -1,6 +1,7 @@
 import { estimateKcal } from '../../lib/calories';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { revealSoon } from '../../lib/reveal';
+import { useArmed } from '../../lib/useArmed';
 import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
@@ -272,6 +273,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [scrollPad, setScrollPad] = useState(false);
   useEffect(() => { if (expandedHistoryId == null) setScrollPad(false); }, [expandedHistoryId]);
   const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const setArm = useArmed();
   const [historyShown, setHistoryShown] = useState(HISTORY_FIRST_PAGE);
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
@@ -794,7 +796,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   }
 
   async function deleteWorkout(workoutId) {
-    if (!window.confirm('Delete this workout? You can restore it later from Birdseye if you change your mind.')) return;
     const { error } = await supabase.from('workouts').update({ deleted_at: new Date().toISOString() }).eq('id', workoutId).select().single();
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, deletedAt: new Date().toISOString() } : w)));
@@ -961,9 +962,6 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   }
 
   function removeExercise(index, hasLoggedSets) {
-    if (hasLoggedSets && !window.confirm('Remove this exercise? Logged sets stay in your history.')) {
-      return;
-    }
     setPlanExercises((prev) => cleanupSupersets(prev.filter((_, i) => i !== index)));
   }
 
@@ -1203,7 +1201,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
           onReorderWarmupDrill={reorderWarmupDrill}
           onRemoveExercise={removeExercise}
           onFinish={finishWorkout}
-          onDiscard={() => discardWorkout()}
+          onDiscard={() => discardWorkout(true)}
         />
       ) : (
         <>
@@ -1308,7 +1306,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                             {editing ? (
                               <div className="space-y-1.5">
                                 {exSets.map((s) => (
-                                  <div key={s.id} className="flex items-center gap-2 justify-center">
+                                  <div key={s.id} data-armed={setArm.armed === s.id} style={setArm.armed === s.id ? { background: BRICK, color: PAPER } : undefined} className="flex items-center gap-2 justify-center rounded-md py-0.5">
                                     {s.movementType === 'aerobic' ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
                                         {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
@@ -1336,7 +1334,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                                         />
                                       </>
                                     )}
-                                    <button onClick={() => { if (window.confirm('Delete this set?')) deleteSet(s.id); }} style={{ color: BRICK }} className="p-2 -m-1">
+                                    <button onClick={() => setArm.press(s.id, () => deleteSet(s.id))} data-armed={setArm.armed === s.id} style={{ color: setArm.armed === s.id ? PAPER : BRICK }} className="p-2 -m-1">
                                       <X size={14} />
                                     </button>
                                   </div>
@@ -1405,11 +1403,12 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
                           </button>
                         )}
                         <button
-                          onClick={() => deleteWorkout(w.id)}
-                          style={{ color: BRICK }}
-                          className="text-sm py-2 text-center underline"
+                          onClick={() => setArm.press('w' + w.id, () => deleteWorkout(w.id))}
+                          data-armed={setArm.armed === 'w' + w.id}
+                          style={setArm.armed === 'w' + w.id ? { background: BRICK, color: PAPER } : { color: BRICK }}
+                          className={`text-sm py-2 text-center ${setArm.armed === 'w' + w.id ? 'rounded-md' : 'underline'}`}
                         >
-                          Delete workout
+                          {setArm.armed === 'w' + w.id ? 'Tap again to delete' : 'Delete workout'}
                         </button>
                       </div>
                     </div>
@@ -1929,6 +1928,7 @@ function ActiveWorkout({
   // The one exercise currently expanded for logging — the rest stay
   // collapsed to a single numbered row. Starts on the first exercise so
   // there's an obvious place to begin instead of an all-collapsed list.
+  const discardArm = useArmed();
   const [activeGroupKey, setActiveGroupKey] = useState(null);
   // Drag-to-reorder: the dragged card follows the finger via a live
   // translateY (dragOffsetY) rather than snapping the list around mid-
@@ -2494,8 +2494,13 @@ function ActiveWorkout({
         <Check size={16} /> Finish Workout
       </button>
 
-      <button onClick={onDiscard} style={{ color: BRICK }} className="w-full text-sm py-2 underline text-center">
-        Discard this workout
+      <button
+        onClick={() => discardArm.press('d', onDiscard)}
+        data-armed={discardArm.armed === 'd'}
+        style={discardArm.armed === 'd' ? { background: BRICK, color: PAPER } : { color: BRICK }}
+        className={`w-full text-sm py-2 text-center ${discardArm.armed === 'd' ? 'rounded-md' : 'underline'}`}
+      >
+        {discardArm.armed === 'd' ? 'Tap again to discard (logged sets are deleted)' : 'Discard this workout'}
       </button>
 
       {swapIndex !== null && (
@@ -3243,6 +3248,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // three buttons slide in from off-screen to overlay it.
 function SwipeActions({ children, onSwap, onEdit, onRemove }) {
   const [revealed, setRevealed] = useState(false);
+  const arm = useArmed();
   useEffect(() => {
     const close = () => setRevealed(false);
     window.addEventListener('groove:tabchange', close);
@@ -3317,8 +3323,8 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
         <button {...tapHandlers(() => { onEdit(); setRevealed(false); })} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
           <SlidersHorizontal size={16} />
         </button>
-        <button {...tapHandlers(onRemove)} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          <Trash2 size={16} />
+        <button {...tapHandlers(() => arm.press('remove', onRemove))} data-armed={arm.armed === 'remove'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
+          {arm.armed === 'remove' ? <span className="text-xs font-medium">Sure?</span> : <Trash2 size={16} />}
         </button>
       </div>
       <div className="relative bg-inherit">{children}</div>
@@ -3335,6 +3341,7 @@ function ExerciseCard({
   const [editingBurst, setEditingBurst] = useState(null);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
+  const { armed, press } = useArmed();
 
   if (!isActive) {
     return (
@@ -3386,9 +3393,10 @@ function ExerciseCard({
                 key={s.id}
                 onClick={() => {
                   if (s.movementType === 'aerobic' && onUpdateSet) setEditingBurst(s);
-                  else if (window.confirm('Delete this set?')) onDeleteSet(s.id);
+                  else press(s.id, () => onDeleteSet(s.id));
                 }}
-                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                data-armed={armed === s.id}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.movementType === 'aerobic'
@@ -3461,8 +3469,9 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
             {loggedSets.map((s) => (
               <button
                 key={s.id}
-                onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-                style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                onClick={() => press(s.id, () => onDeleteSet(s.id))}
+                style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                data-armed={armed === s.id}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
                 {s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
@@ -3829,6 +3838,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   // card is redundant real estate — this card can just offer its own
   // compact "+" to log another cardio burst right after it.
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const { armed, press } = useArmed();
 
   if (isActive === false) {
     return (
@@ -3930,8 +3940,9 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
           {loggedSets.map((s) => (
             <button
               key={s.id}
-              onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+              onClick={() => press(s.id, () => onDeleteSet(s.id))}
+              style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                data-armed={armed === s.id}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
@@ -3968,6 +3979,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 
 function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove }) {
   const [seconds, setSeconds] = useState('');
+  const { armed, press } = useArmed();
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
   const accent = isBalance ? VIOLET : BRICK;
@@ -4000,8 +4012,9 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           {loggedSets.map((s) => (
             <button
               key={s.id}
-              onClick={() => { if (window.confirm('Delete this set?')) onDeleteSet(s.id); }}
-              style={{ background: INK_3, color: PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+              onClick={() => press(s.id, () => onDeleteSet(s.id))}
+              style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                data-armed={armed === s.id}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
               {s.durationSeconds ? `${s.durationSeconds}s` : '—'}

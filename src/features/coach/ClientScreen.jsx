@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useArmed } from '../../lib/useArmed';
 import { ChevronLeft, Trash2 } from '../../lib/icons';
 import { deleteMember } from '../../lib/api';
 import { supabase } from '../../lib/supabaseClient';
@@ -12,6 +13,7 @@ import { ClientScreening, ClientHeartRate, ClientProgramLine, ClientBaseline, Pr
 const TABS = [['overview', 'Overview'], ['plan', 'Plan'], ['health', 'Health'], ['workouts', 'Workouts'], ['notes', 'Notes']];
 
 function CoachNotes({ clientId }) {
+  const arm = useArmed();
   const [notes, setNotes] = useState([]);
   const [text, setText] = useState('');
   const [state, setState] = useState('loading'); // loading | ready | missing
@@ -33,7 +35,6 @@ function CoachNotes({ clientId }) {
     if (!error && data) { setNotes((n) => [data, ...n]); setText(''); }
   }
   async function remove(id) {
-    if (!window.confirm('Delete this note?')) return;
     const { error } = await supabase.from('coach_notes').delete().eq('id', id);
     if (!error) setNotes((n) => n.filter((x) => x.id !== id));
   }
@@ -57,7 +58,7 @@ function CoachNotes({ clientId }) {
             <div style={{ color: PAPER }} className="text-sm whitespace-pre-wrap">{n.body}</div>
             <div className="flex items-center justify-between mt-1.5">
               <span style={{ color: TEXT_SOFT }} className="text-sm">{new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <button onClick={() => remove(n.id)} style={{ color: BRICK }} className="p-1" aria-label="Delete note"><Trash2 size={15} /></button>
+              <button onClick={() => arm.press(n.id, () => remove(n.id))} data-armed={arm.armed === n.id} style={arm.armed === n.id ? { background: BRICK, color: PAPER } : { color: BRICK }} className="p-1 rounded-md" aria-label="Delete note">{arm.armed === n.id ? <span className="text-xs font-medium px-1">Sure?</span> : <Trash2 size={15} />}</button>
             </div>
           </div>
         ))}

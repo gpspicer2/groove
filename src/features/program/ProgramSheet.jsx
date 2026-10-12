@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useArmed } from '../../lib/useArmed';
 import Portal from '../../Portal';
 import { X, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
@@ -33,6 +34,7 @@ function WeekList({ program, week }) {
 
 // Pick a program (goal, method, days a week) or manage the one in progress.
 export default function ProgramSheet({ userId, program, onSave, onClose, weekStartDay }) {
+  const arm = useArmed();
   const sheet = useSwipeDown(onClose);
   const [step, setStep] = useState(program ? 'manage' : 'goal');
   const [goal, setGoal] = useState(program?.goal || null);
@@ -55,7 +57,6 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
     onClose();
   }
   async function end() {
-    if (!window.confirm('End this program? Your workouts stay in your history.')) return;
     await onSave(null);
     onClose();
   }
@@ -84,7 +85,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 <WeekList program={program} week={week} />
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <button onClick={() => setStep('goal')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">Change Program</button>
-                  <button onClick={end} style={{ background: INK_3, color: BRICK }} className="rounded-md py-2.5 text-sm font-medium">End Program</button>
+                  <button onClick={() => arm.press('end', end)} data-armed={arm.armed === 'end'} style={arm.armed === 'end' ? { background: BRICK, color: PAPER } : { background: INK_3, color: BRICK }} className="rounded-md py-2.5 text-sm font-medium">{arm.armed === 'end' ? 'Tap again to end (workouts stay)' : 'End Program'}</button>
                 </div>
               </>
             );

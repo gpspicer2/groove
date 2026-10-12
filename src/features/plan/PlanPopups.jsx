@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useArmed } from '../../lib/useArmed';
 import { X, Timer } from '../../lib/icons';
 import Portal from '../../Portal';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
@@ -183,6 +184,7 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
 
 // What's planned for a day, with edit/delete — and Start when it's today.
 export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, onEdit, onDetails, onDelete, onStart, onPlanAnother, onClose }) {
+  const arm = useArmed();
   return (
     <Sheet onClose={onClose}>
       <div className="flex items-start justify-between mb-3">
@@ -210,7 +212,7 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, o
               <div className="flex items-center justify-center gap-4 mt-2">
                 <button onClick={() => onEdit(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">Edit</button>
                 <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{hasDetails(p) ? 'Edit details' : 'Add details'}</button>
-                <button onClick={() => onDelete(p)} style={{ color: BRICK }} className="text-sm underline">Delete</button>
+                <button onClick={() => arm.press(p.id, () => onDelete(p))} data-armed={arm.armed === p.id} style={arm.armed === p.id ? { background: BRICK, color: PAPER } : { color: BRICK }} className={`text-sm ${arm.armed === p.id ? 'rounded-md px-2 py-0.5' : 'underline'}`}>{arm.armed === p.id ? 'Tap again to delete' : 'Delete'}</button>
               </div>
             </div>
           );
