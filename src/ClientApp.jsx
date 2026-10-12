@@ -33,7 +33,14 @@ export default function ClientApp() {
   const { user, profile, updateProfile, reloadProfile } = useAuth();
   // Without a membership, Birdseye, Move and Journal are locked; Learn stays open.
   const locked = MEMBERSHIP_REQUIRED && !hasAccess(profile);
-  const [tab, setTab] = useState('birdseye');
+  // Opening the app mid-workout lands on Move (MoveTab writes this backup while a workout is active).
+  const [tab, setTab] = useState(() => {
+    try {
+      const b = JSON.parse(localStorage.getItem('groove:liveBackup') || 'null');
+      if (b && Date.now() - b.savedAt < 12 * 3600 * 1000) return 'move';
+    } catch { /* ignore */ }
+    return 'birdseye';
+  });
   // Lets swipe-to-reveal rows in any tab close themselves when the tab changes.
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
