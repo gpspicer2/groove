@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
@@ -749,30 +750,14 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
           positioned elements always paint above normal in-flow content
           in CSS, so once these are on-screen they're guaranteed visible
           without needing to fight anything for stacking. */}
-      <div
-        className="absolute inset-0 flex items-center gap-2.5 z-10"
-        style={{
-          background: INK_2,
-          transform: `translateX(${revealed ? 0 : 100}%)`, opacity: revealed ? 1 : 0,
-          transition: 'transform 0.2s ease, opacity 0.2s ease', pointerEvents: revealed ? 'auto' : 'none',
-        }}
-      >
-        <button
-          onClick={onEdit}
-          style={{ background: `color-mix(in srgb, ${SKY} 22%, transparent)`, color: SKY }}
-          className="flex-1 h-10 rounded-full text-sm font-medium flex items-center justify-center gap-1.5"
-        >
-          <Pencil size={14} /> Edit
-        </button>
-        <button
-          onClick={() => arm.press('goal', onDelete)}
-          data-armed={arm.armed === 'goal'}
-          style={arm.armed === 'goal' ? { background: BRICK, color: PAPER } : { background: `color-mix(in srgb, ${BRICK} 22%, transparent)`, color: BRICK }}
-          className="flex-1 h-10 rounded-full text-sm font-medium flex items-center justify-center gap-1.5"
-        >
-          {arm.armed === 'goal' ? 'Tap again to stop tracking' : <><X size={14} /> Stop tracking</>}
-        </button>
-      </div>
+      <RevealPills
+        revealed={revealed}
+        height="h-10"
+        actions={[
+          { key: 'edit', label: 'Edit', icon: Pencil, color: SKY, onClick: onEdit },
+          { key: 'del', label: 'Stop tracking', icon: X, color: BRICK, onClick: () => arm.press('goal', onDelete), armed: arm.armed === 'goal', armedLabel: 'Tap again to stop tracking' },
+        ]}
+      />
       <button
         onClick={() => (aerobic || extra) && setExpanded((v) => !v)}
         className="w-full flex items-center justify-between mb-1 py-0.5"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
@@ -174,17 +175,14 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div
-        className="absolute right-0 top-0 h-full flex"
-        style={{ width: 112, transform: `translateX(${revealed ? 0 : 112}px)`, transition: 'transform 0.2s ease' }}
-      >
-        <button onClick={() => { onEdit(); setRevealed(false); }} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 flex items-center justify-center">
-          <Pencil size={16} />
-        </button>
-        <button onClick={() => arm.press('row', onDelete)} data-armed={arm.armed === 'row'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          {arm.armed === 'row' ? <span className="text-xs font-medium">Sure?</span> : <Trash2 size={16} />}
-        </button>
-      </div>
+      <RevealPills
+        revealed={revealed}
+        height="h-9"
+        actions={[
+          { key: 'edit', label: 'Edit', icon: Pencil, color: AMBER, onClick: () => { onEdit(); setRevealed(false); } },
+          { key: 'del', label: 'Delete', icon: Trash2, color: BRICK, onClick: () => arm.press('row', onDelete), armed: arm.armed === 'row', armedLabel: 'Tap again to delete' },
+        ]}
+      />
       <div
         onClick={() => { if (!revealed) setShowActions(true); }}
         style={{ background: INK_2 }}

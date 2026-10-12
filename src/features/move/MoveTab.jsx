@@ -1,4 +1,5 @@
 import { estimateKcal } from '../../lib/calories';
+import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { revealSoon } from '../../lib/reveal';
@@ -3354,21 +3355,6 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
     dragging.current = false;
   }
 
-  // A real swipe-then-tap is usually one continuous gesture that ends
-  // with the finger already resting on whichever button it revealed —
-  // but a browser's synthesized "click" fires on whatever element was
-  // under the *touchstart*, not the touchend, so a button that only
-  // existed once the drawer was revealed never gets a click at all. Its
-  // own touchend (which does hit-test at the final, current position)
-  // fires the action directly instead; preventDefault stops the
-  // following synthetic mouse/click events so it doesn't also double-fire.
-  function tapHandlers(action) {
-    return {
-      onClick: action,
-      onTouchEnd: (e) => { e.preventDefault(); e.stopPropagation(); action(); },
-    };
-  }
-
   return (
     <div
       data-no-swipe="row"
@@ -3379,22 +3365,15 @@ function SwipeActions({ children, onSwap, onEdit, onRemove }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div
-        className="absolute right-0 top-0 bottom-0 flex z-10"
-        style={{ width: 144, transform: `translateX(${revealed ? 0 : 144}px)`, transition: 'transform 0.2s ease' }}
-      >
-        {onSwap && (
-          <button {...tapHandlers(() => { onSwap(); setRevealed(false); })} style={{ background: LIME, color: INK }} className="flex-1 flex items-center justify-center">
-            <Replace size={16} />
-          </button>
-        )}
-        <button {...tapHandlers(() => { onEdit(); setRevealed(false); })} style={{ background: SKY, color: INK }} className="flex-1 flex items-center justify-center">
-          <SlidersHorizontal size={16} />
-        </button>
-        <button {...tapHandlers(() => arm.press('remove', onRemove))} data-armed={arm.armed === 'remove'} style={{ background: BRICK, color: PAPER }} className="flex-1 flex items-center justify-center">
-          {arm.armed === 'remove' ? <span className="text-xs font-medium">Sure?</span> : <Trash2 size={16} />}
-        </button>
-      </div>
+      <RevealPills
+        revealed={revealed}
+        height="h-10"
+        actions={[
+          ...(onSwap ? [{ key: 'swap', label: 'Swap', icon: Replace, color: LIME, fireOnTouch: true, onClick: () => { onSwap(); setRevealed(false); } }] : []),
+          { key: 'edit', label: 'Edit', icon: SlidersHorizontal, color: SKY, fireOnTouch: true, onClick: () => { onEdit(); setRevealed(false); } },
+          { key: 'del', label: 'Remove', icon: Trash2, color: BRICK, fireOnTouch: true, onClick: () => arm.press('remove', onRemove), armed: arm.armed === 'remove', armedLabel: 'Tap again' },
+        ]}
+      />
       <div className="relative bg-inherit">{children}</div>
     </div>
   );
