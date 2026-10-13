@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
-import { DAY_NAMES, hasChosenDays, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
+import { DAY_NAMES, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
 
 // This week's sessions with done / next flags, from this week's logged workouts.
 export function useProgramWeek(userId, program, active, refreshKey, weekStartDay) {
@@ -11,7 +11,10 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
     if (!program) return null;
     const week = weekNumber(program, new Date(), weekStartDay);
     let r = 0; let a = 0;
-    const sessions = sessionsForWeek(program, week).map((s) => {
+    const moves = normalizeMoves(program, weekStartDay);
+    const sessions = sessionsForWeek(program, week).map((s0) => {
+      // A moved session shows the weekday it was moved to.
+      const s = moves[s0.id] ? { ...s0, day: new Date(`${moves[s0.id]}T12:00:00`).getDay() } : s0;
       const isDone = s.kind === 'aerobic' ? a++ < done.aerobic : r++ < done.resistance;
       return { ...s, done: isDone };
     });

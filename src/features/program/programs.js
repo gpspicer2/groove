@@ -256,6 +256,37 @@ export function accessoryLine(s) {
 
 // The program's sessions laid onto real calendar dates (today onward), for the Birdseye
 // calendar. Sessions already done this week are left off. Needs the member's chosen days.
+// Where a session naturally falls (YYYY-MM-DD) before any moves.
+function naturalDate(program, week, day, weekStartDay) {
+  const start = startOfWeek(new Date(`${program.startedAt}T12:00:00`), weekStartDay);
+  const first = weekStartDay === 'monday' ? 1 : 0;
+  const d = new Date(start.getTime() + ((week - 1) * 7 + ((day - first + 7) % 7)) * 864e5);
+  d.setHours(12, 0, 0, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// The program's moved sessions, tidied so the sessions of one kind always run in
+// order: whichever lifting day comes first in a week is the first workout (A, then B,
+// then C), so moving B past C just makes the old C day the new B. `change` is an
+// optional { id, date } for a move being made now. Returns { sessionId: 'YYYY-MM-DD' }.
+export function normalizeMoves(program, weekStartDay = 'sunday', change = null) {
+  const moves = { ...(program.moves || {}) };
+  if (change) moves[change.id] = change.date;
+  const weeks = new Set(Object.keys(moves).map((id) => Number((id.match(/^w(\d+)-/) || [])[1])).filter(Boolean));
+  weeks.forEach((week) => {
+    const sessions = sessionsForWeek(program, week);
+    ['resistance', 'aerobic'].forEach((kind) => {
+      const same = sessions.filter((x) => x.kind === kind);
+      const dates = same.map((x) => moves[x.id] || naturalDate(program, week, x.day, weekStartDay)).sort();
+      same.forEach((x, i) => {
+        if (dates[i] === naturalDate(program, week, x.day, weekStartDay)) delete moves[x.id];
+        else moves[x.id] = dates[i];
+      });
+    });
+  });
+  return moves;
+}
+
 export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set(), horizonDays = 84) {
   if (!hasChosenDays(program)) return [];
   const out = [];
@@ -265,7 +296,7 @@ export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   const todayStr = iso(today);
-  const moves = program.moves || {}; // a session moved to another day: { sessionId: 'YYYY-MM-DD' }
+  const moves = normalizeMoves(program, weekStartDay); // a session moved to another day: { sessionId: 'YYYY-MM-DD' }
   const plan = (sess, dateStr) => ({
     id: `program-${sess.id}`,
     planned_for: dateStr,

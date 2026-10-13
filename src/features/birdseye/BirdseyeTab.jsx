@@ -27,7 +27,7 @@ import FitnessTrends from './FitnessTrends';
 import Trends from './Trends';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
-import { programPlans } from '../program/programs';
+import { programPlans, normalizeMoves } from '../program/programs';
 import ProgramSheet from '../program/ProgramSheet';
 import { ProgramWeekCard, useProgramWeek } from '../program/ProgramCards';
 import MuscleBalance from './MuscleBalance';
@@ -284,7 +284,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   // remembering the new day in the program; one of your own plans just changes date.
   async function movePlan(plan, dateStr) {
     if (plan.programSession) {
-      await saveProgram({ ...program, moves: { ...(program.moves || {}), [plan.programSession.id]: dateStr } });
+      await saveProgram({ ...program, moves: normalizeMoves(program, weekStartDay, { id: plan.programSession.id, date: dateStr }) });
       return true;
     }
     const { error } = await supabase.from('planned_workouts').update({ planned_for: dateStr }).eq('id', plan.id);
