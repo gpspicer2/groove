@@ -183,8 +183,15 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
 }
 
 // What's planned for a day, with edit/delete — and Start when it's today.
-export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, onEdit, onDetails, onDelete, onStart, onPlanAnother, onClose }) {
+export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, onEdit, onDetails, onDelete, onMove, onStart, onPlanAnother, onClose }) {
   const arm = useArmed();
+  const [movingId, setMovingId] = useState(null);
+  // Next 7 days (starting today) as quick choices for moving a plan.
+  const quickDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + i);
+    const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { v, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${d.toLocaleDateString('en-US', { weekday: 'short' })} ${d.getDate()}` };
+  }).filter((x) => x.v !== dateStr);
   return (
     <Sheet onClose={onClose}>
       <div className="flex items-start justify-between mb-3">
@@ -210,6 +217,32 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, o
                 </button>
               )}
               {p.programSession && <div style={{ color: LIME }} className="text-sm mt-1.5">From your training program</div>}
+              {onMove && (
+                <div className="mt-2">
+                  <button onClick={() => setMovingId(movingId === p.id ? null : p.id)} style={{ color: TEXT_SOFT }} className="text-sm underline">
+                    {movingId === p.id ? 'Cancel move' : 'Move to another day'}
+                  </button>
+                  {movingId === p.id && (
+                    <div className="mt-2">
+                      <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+                        {quickDays.map((q) => (
+                          <button key={q.v} onClick={() => { setMovingId(null); onMove(p, q.v); }} style={{ background: INK_2, color: PAPER }} className="rounded-full px-3 py-1.5 text-sm">{q.label}</button>
+                        ))}
+                      </div>
+                      <label style={{ color: TEXT_SOFT }} className="text-sm flex items-center justify-center gap-2">
+                        Other day
+                        <input
+                          type="date"
+                          min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
+                          onChange={(e) => { if (e.target.value) { setMovingId(null); onMove(p, e.target.value); } }}
+                          style={{ background: INK_2, color: PAPER }}
+                          className="rounded-md px-2 py-1 text-sm"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
               {!p.programSession && <div className="flex items-center justify-center gap-4 mt-2">
                 <button onClick={() => onEdit(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">Edit</button>
                 <button onClick={() => onDetails(p)} style={{ color: TEXT_SOFT }} className="text-sm underline">{hasDetails(p) ? 'Edit details' : 'Add details'}</button>

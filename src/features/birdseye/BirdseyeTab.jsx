@@ -280,6 +280,18 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     setQuickLogPlan(null);
     await loadAll();
   }
+  // Move a planned workout to another day. A program session is moved by
+  // remembering the new day in the program; one of your own plans just changes date.
+  async function movePlan(plan, dateStr) {
+    if (plan.programSession) {
+      await saveProgram({ ...program, moves: { ...(program.moves || {}), [plan.programSession.id]: dateStr } });
+      return true;
+    }
+    const { error } = await supabase.from('planned_workouts').update({ planned_for: dateStr }).eq('id', plan.id);
+    if (error) { setLoadError(`Couldn't move your plan: ${error.message}`); return false; }
+    await loadAll();
+    return true;
+  }
   async function deletePlan(plan) {
     const { error } = await supabase.from('planned_workouts').delete().eq('id', plan.id);
     if (error) { setLoadError(`Couldn't delete your plan: ${error.message}`); return false; }
@@ -519,6 +531,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           plans={calendarPlans}
           onSavePlan={savePlan}
           onDeletePlan={deletePlan}
+          onMovePlan={movePlan}
           onPlanDetails={(dateStr, plan) => onPlanWorkout && onPlanWorkout({ date: dateStr, plan: plan || null })}
           onStartPlan={handleStartPlan}
           weekStartDay={weekStartDay}
@@ -884,7 +897,7 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
+function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onMovePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [choiceDay, setChoiceDay] = useState(null); // a day that already has workouts
   const [plannedDay, setPlannedDay] = useState(null); // a day with planned workouts
@@ -987,6 +1000,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           onClose={() => setPlannedDay(null)}
           onEdit={(plan) => { setPlannedDay(null); setPlanForm({ dateStr: plan.planned_for, plan }); }}
           onDetails={(plan) => { setPlannedDay(null); onPlanDetails && onPlanDetails(plan.planned_for, plan); }}
+          onMove={async (plan, d) => { const ok = await onMovePlan(plan, d); if (ok && plansForDay(plannedDay).length <= 1) setPlannedDay(null); }}
           onDelete={async (plan) => {
             const deleted = await onDeletePlan(plan);
             // Close once the last plan for this day is gone.

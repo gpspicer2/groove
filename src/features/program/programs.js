@@ -259,23 +259,38 @@ export function accessoryLine(s) {
 export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set(), horizonDays = 84) {
   if (!hasChosenDays(program)) return [];
   const out = [];
+  const placed = new Set();
   const pad = (n) => String(n).padStart(2, '0');
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const today = new Date();
   today.setHours(12, 0, 0, 0);
+  const todayStr = iso(today);
+  const moves = program.moves || {}; // a session moved to another day: { sessionId: 'YYYY-MM-DD' }
+  const plan = (sess, dateStr) => ({
+    id: `program-${sess.id}`,
+    planned_for: dateStr,
+    title: sess.name,
+    notes: null,
+    details: sess.kind === 'aerobic' ? { kind: 'aerobic', minutes: sess.minutes } : { kind: 'resistance' },
+    programSession: sess,
+  });
   for (let i = 0; i < horizonDays; i += 1) {
     const d = new Date(today.getTime() + i * 864e5);
     if (d < new Date(`${program.startedAt}T00:00:00`)) continue;
     const week = weekNumber(program, d, weekStartDay);
     const sess = sessionsForWeek(program, week).find((x) => x.day === d.getDay());
-    if (!sess || doneIds.has(sess.id)) continue;
-    out.push({
-      id: `program-${pad(d.getMonth() + 1)}${pad(d.getDate())}-${sess.id}`,
-      planned_for: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-      title: sess.name,
-      notes: null,
-      details: sess.kind === 'aerobic' ? { kind: 'aerobic', minutes: sess.minutes } : { kind: 'resistance' },
-      programSession: sess,
-    });
+    if (!sess || doneIds.has(sess.id) || placed.has(sess.id)) continue;
+    const moved = moves[sess.id];
+    if (moved && moved >= todayStr) continue; // shown on its new day below
+    placed.add(sess.id);
+    out.push(plan(sess, iso(d)));
   }
-  return out;
+  // Moved sessions land on the day they were moved to (even if their old day has passed).
+  Object.entries(moves).forEach(([id, dateStr]) => {
+    if (dateStr < todayStr || doneIds.has(id)) return;
+    const week = Number((id.match(/^w(\d+)-/) || [])[1]);
+    const sess = week ? sessionsForWeek(program, week).find((x) => x.id === id) : null;
+    if (sess) out.push(plan(sess, dateStr));
+  });
+  return out.sort((x, y) => (x.planned_for < y.planned_for ? -1 : 1));
 }
