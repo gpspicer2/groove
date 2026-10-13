@@ -93,23 +93,33 @@ export function computeMemberStats(clients, workouts, sets, now = new Date()) {
 }
 
 // Who needs Greg's attention, most urgent first. level: 'red' | 'amber'.
-export function buildAttention(clients, stats, now = new Date()) {
+// Each item has a `kind` and a `sig` (what the issue looks like right now). Once Greg has
+// opened a member, their items are acknowledged: an item stays hidden until its signature
+// changes (a new "felt off", a new workout and then a new gap, a different screening result).
+// `acks` is { memberId: { kind: sig } }, merged with the member's saved `coach_ack`.
+export function buildAttention(clients, stats, now = new Date(), acks = {}) {
   const items = [];
   clients.forEach((c) => {
     const st = stats[c.id];
     const name = c.full_name || c.email;
     const s = c.screening;
     const joinedDays = c.created_at ? Math.floor((now - new Date(c.created_at)) / DAY) : 0;
-    if (s && s.result === 'stop_and_clearance' && !s.cleared_at) items.push({ id: c.id, level: 'red', title: name, text: 'Reported symptoms. Paused until a doctor clears them.' });
-    if (st.feltOff) items.push({ id: c.id, level: 'red', title: name, text: `Felt off after a workout${st.feltOff.note ? `: ${st.feltOff.note}` : ''}` });
-    if (c.membership_status === 'past_due') items.push({ id: c.id, level: 'red', title: name, text: 'Membership payment failed.' });
-    if (s && s.result !== 'stop_and_clearance' && needsClearance(s)) items.push({ id: c.id, level: 'amber', title: name, text: 'Needs a doctor’s okay before vigorous exercise.' });
-    if (!s && joinedDays >= 2) items.push({ id: c.id, level: 'amber', title: name, text: 'Hasn’t finished the health check.' });
-    if (st.daysSince == null && joinedDays >= 3) items.push({ id: c.id, level: 'amber', title: name, text: 'Hasn’t logged a workout yet.' });
-    else if (st.daysSince != null && st.daysSince >= COACH_ALERT_DAYS) items.push({ id: c.id, level: 'amber', title: name, text: `${st.daysSince} days since the last workout.` });
+    const add = (level, kind, sig, text) => items.push({ id: c.id, level, kind, sig: String(sig), title: name, text });
+    if (s && s.result === 'stop_and_clearance' && !s.cleared_at) add('red', 'symptoms', s.result, 'Reported symptoms. Paused until a doctor clears them.');
+    if (st.feltOff) add('red', 'feltOff', +new Date(st.feltOff.at), `Felt off after a workout${st.feltOff.note ? `: ${st.feltOff.note}` : ''}`);
+    if (c.membership_status === 'past_due') add('red', 'pastDue', 'past_due', 'Membership payment failed.');
+    if (s && s.result !== 'stop_and_clearance' && needsClearance(s)) add('amber', 'clearance', s.result, 'Needs a doctor’s okay before vigorous exercise.');
+    if (!s && joinedDays >= 2) add('amber', 'healthCheck', 'none', 'Hasn’t finished the health check.');
+    if (st.daysSince == null && joinedDays >= 3) add('amber', 'gap', 'none', 'Hasn’t logged a workout yet.');
+    else if (st.daysSince != null && st.daysSince >= COACH_ALERT_DAYS) add('amber', 'gap', +new Date(st.lastAt), `${st.daysSince} days since the last workout.`);
   });
+  const byId = Object.fromEntries(clients.map((c) => [c.id, c]));
+  const seen = (item) => {
+    const mine = { ...(byId[item.id]?.coach_ack || {}), ...(acks[item.id] || {}) };
+    return mine[item.kind] === item.sig;
+  };
   const rank = { red: 0, amber: 1 };
-  return items.sort((a, b) => rank[a.level] - rank[b.level]);
+  return items.filter((i) => !seen(i)).sort((a, b) => rank[a.level] - rank[b.level]);
 }
 
 export function timeAgo(date, now = new Date()) {

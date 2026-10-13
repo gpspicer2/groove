@@ -61,12 +61,30 @@ export default function TrainerApp() {
     setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...fields } : c)));
   }
 
+  // Opening a member acknowledges their current flags: they stay gone until something new happens.
+  const ackKey = `groove:coachAck:${user.id}`;
+  const [acks, setAcks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(ackKey) || '{}'); } catch { return {}; }
+  });
   const stats = computeMemberStats(clients, workouts, sets);
-  const attention = buildAttention(clients, stats);
+  const attention = buildAttention(clients, stats, new Date(), acks);
+  function acknowledge(id) {
+    const mine = {};
+    buildAttention(clients, stats, new Date(), {}).filter((i) => i.id === id).forEach((i) => { mine[i.kind] = i.sig; });
+    if (Object.keys(mine).length === 0) return;
+    setAcks((prev) => {
+      const next = { ...prev, [id]: { ...(prev[id] || {}), ...mine } };
+      try { localStorage.setItem(ackKey, JSON.stringify(next)); } catch { /* storage blocked */ }
+      return next;
+    });
+    // Also saved on the member's row (so the morning push respects it); quietly skipped if the column isn't there yet.
+    const merged = { ...(clients.find((c) => c.id === id)?.coach_ack || {}), ...mine };
+    supabase.from('profiles').update({ coach_ack: merged }).eq('id', id).then(() => {});
+  }
   const selected = clients.find((c) => c.id === selectedId) || null;
   const firstName = (profile?.full_name || '').split(' ')[0] || 'Greg';
 
-  function open(id) { setSelectedId(id); setTab('clients'); window.scrollTo(0, 0); }
+  function open(id) { acknowledge(id); setSelectedId(id); setTab('clients'); window.scrollTo(0, 0); }
   function goTab(key) { setSelectedId(null); setTab(key); window.scrollTo(0, 0); }
 
   return (

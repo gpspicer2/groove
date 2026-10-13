@@ -454,3 +454,7 @@ create trigger protect_profile_columns before update on public.profiles
 -- Self-guided training program (goal, method, days a week, start date).
 -- Until this runs, the app keeps each member's program on their own device.
 alter table public.profiles add column if not exists program jsonb;
+
+-- Coach acknowledgments: once Greg opens a member, their current "needs attention" flags
+-- go quiet (also in the morning push) until something new happens.
+alter table public.profiles add column if not exists coach_ack jsonb;
