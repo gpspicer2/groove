@@ -22,10 +22,10 @@ export default function DeviceSheet({ onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-1">
             <span className="w-6" />
-            <div style={{ color: PAPER }} className="text-base font-medium">Connect your watch</div>
+            <div style={{ color: PAPER }} className="text-base font-medium">Garmin: coming soon</div>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
           </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Link your watch to Strava once. Groove then picks up every workout.</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">Direct Garmin sync is on the way. Until then, link your watch to Strava once and Groove picks up every workout.</div>
 
           <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2.5 space-y-2">
             <div style={{ color: PAPER }} className="text-sm font-medium text-left">Garmin</div>

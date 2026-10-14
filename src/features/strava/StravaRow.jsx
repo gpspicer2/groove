@@ -39,8 +39,9 @@ export default function StravaRow() {
           <StravaMark />
           {busy ? 'Opening…' : connected ? (<><span style={{ background: LIME }} className="w-2 h-2 rounded-full" /> Connected</>) : 'Connect Strava'}
         </button>
-        <button onClick={() => setDevices(true)} style={{ background: INK_3, color: PAPER }} className={cell}>
-          <Watch size={17} color={PAPER_DIM} /> Connect Device
+        <button onClick={() => setDevices(true)} style={{ background: INK_3, color: PAPER }} className="rounded-md px-1.5 py-2 flex flex-col items-center justify-center gap-0.5 text-sm font-medium">
+          <span className="flex items-center gap-1.5 whitespace-nowrap"><Watch size={16} color={PAPER_DIM} /> Connect to Garmin</span>
+          <span style={{ color: PAPER_DIM }} className="text-[10px] font-semibold uppercase tracking-wide">Coming soon</span>
         </button>
       </div>
 
