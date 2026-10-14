@@ -117,10 +117,9 @@ Greg is tired and will likely start the next session not remembering. Open with 
 ## START HERE next session (do these first, in order, before payments or anything else)
 Trigger: when Greg says he is "at my computer now", begin with the list below, one step at a time.
 1. Vercel: Greg got "deployment failed" emails (2026-10-12). Locally a clean build passes, so ask him to open the email, tap View Build Logs, and send the red error lines. My guess is the Hobby plan's daily deployment cap (each push goes to `main` and the side branch, which doubles deployments). Confirm whether groove-rho.vercel.app is on the latest version.
-2. Supabase: have him run `alter table public.profiles add column if not exists program jsonb;` in the SQL editor (see below).
+2. (Done 2026-10-14: the `program` and `coach_ack` SQL has been run.)
 3. Then resume the earlier list (sign-up walkthrough, business setup, Stripe live).
 
 ## Reminders for Greg (open items)
-- Run in Supabase SQL editor too: `alter table public.profiles add column if not exists coach_ack jsonb;` so cleared coach notifications also stop the morning push (the in-app list already clears without it, on that device).
-- Run in Supabase SQL editor (he had no access on 2026-10-12): `alter table public.profiles add column if not exists program jsonb;` so training programs save to the account (until then they live in localStorage per device and the coach screen shows "Not following one"). Remind him at the start of the next session.
+- Supabase SQL for programs (`program`) and coach acknowledgments (`coach_ack`) was run on 2026-10-14. Both are live.
 - Greg wants to use programs to prepare for a bodybuilding competition: a Contest Prep program (phases, weekly volume per muscle, cardio ramp, weight trend, peak week, show countdown) was proposed but not built; ask before building.
