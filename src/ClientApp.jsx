@@ -3,6 +3,7 @@ import { useAuth } from './auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, ON_AMBER } from './theme';
 import Wordmark from './Wordmark';
 import AccountMenu from './AccountMenu';
+import { ViewToggle } from './auth/SwitchAccount';
 import SwipeTabs from './SwipeTabs';
 import BirdseyeTab from './features/birdseye/BirdseyeTab';
 import MoveTab from './features/move/MoveTab';
@@ -150,7 +151,10 @@ export default function ClientApp() {
             </button>
           ) : <div />}
           <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
-          <AccountMenu />
+          <div className="justify-self-end flex items-center gap-2">
+            <ViewToggle compact />
+            <AccountMenu />
+          </div>
         </div>
         <div data-tour="tab-bar" className="flex gap-1.5 pb-4">
           {TABS.map((key) => {

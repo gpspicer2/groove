@@ -47,7 +47,7 @@ function LinkPopup({ onClose, onDone }) {
 
 // One-tap flip between the coach and personal accounts. For a coach who
 // hasn't linked yet it opens the link form first.
-export function ViewToggle({ className = '' }) {
+export function ViewToggle({ className = '', compact = false }) {
   const { isTrainer, linkedOthers, switchTo } = useAuth();
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState('');
@@ -62,13 +62,25 @@ export function ViewToggle({ className = '' }) {
 
   return (
     <>
-      <button
-        onClick={go}
-        style={{ background: INK_3, color: PAPER_DIM }}
-        className={`rounded-full px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap ${className}`}
-      >
-        <Repeat size={14} /> {other ? viewName(other.role) : 'Client view'}
-      </button>
+      {compact ? (
+        <button
+          onClick={go}
+          aria-label={`Switch to ${other ? viewName(other.role) : 'Client view'}`}
+          title={`Switch to ${other ? viewName(other.role) : 'Client view'}`}
+          style={{ background: INK_3, color: PLUM }}
+          className={`w-8 h-8 rounded-full inline-flex items-center justify-center shrink-0 ${className}`}
+        >
+          <Repeat size={15} />
+        </button>
+      ) : (
+        <button
+          onClick={go}
+          style={{ background: INK_3, color: PAPER_DIM }}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap ${className}`}
+        >
+          <Repeat size={14} /> {other ? viewName(other.role) : 'Client view'}
+        </button>
+      )}
       {error && <span style={{ color: BRICK }} className="text-sm ml-2">{error}</span>}
       {linking && <LinkPopup onClose={() => setLinking(false)} onDone={() => setLinking(false)} />}
     </>

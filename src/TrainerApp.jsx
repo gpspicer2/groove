@@ -90,10 +90,13 @@ export default function TrainerApp() {
   return (
     <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh]">
       <div className="max-w-md mx-auto px-4 pt-safe">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <ViewToggle />
-          <Wordmark height={28} />
-          <AccountMenu />
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-3">
+          <div />
+          <Wordmark height={28} className="justify-self-center" />
+          <div className="justify-self-end flex items-center gap-2">
+            <ViewToggle compact />
+            <AccountMenu />
+          </div>
         </div>
       </div>
 
