@@ -59,6 +59,7 @@ export default function ClientApp() {
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
+  const [journalRequest, setJournalRequest] = useState(null); // { workoutId } from the post-workout journal prompt
   const [programRequest, setProgramRequest] = useState(null); // { session } from a training program
   const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
   // A local override alongside profile.tour_done: updateProfile()'s
@@ -132,8 +133,8 @@ export default function ClientApp() {
       onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
     />
   );
-  const moveEl = <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} programRequest={programRequest} onConsumeProgramRequest={() => setProgramRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} />;
-  const journalEl = <JournalTab key="journal" />;
+  const moveEl = <MoveTab key="move" deepLinkWorkoutId={deepLinkWorkoutId} onConsumeDeepLink={() => setDeepLinkWorkoutId(null)} logDate={logDate} onConsumeLogDate={() => setLogDate(null)} planRequest={planRequest} onConsumePlanRequest={() => setPlanRequest(null)} programRequest={programRequest} onConsumeProgramRequest={() => setProgramRequest(null)} onPlanSaved={() => setTab('birdseye')} onActiveWorkoutChange={setMoveStatus} onJournalAfterWorkout={(workoutId) => { setJournalRequest({ workoutId }); setTab('journal'); }} />;
+  const journalEl = <JournalTab key="journal" active={tab === 'journal'} request={journalRequest} onConsumeRequest={() => setJournalRequest(null)} />;
 
   return (
     <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex flex-col">

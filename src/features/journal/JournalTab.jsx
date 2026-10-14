@@ -7,6 +7,7 @@ import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
+import { workoutTitle } from '../move/exerciseLibrary';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, AMBER, BRICK , ON_AMBER } from '../../theme';
 import Portal from '../../Portal';
 
@@ -26,33 +27,45 @@ function mapEntry(row) {
   return { id: row.id, prompt: row.prompt, response: row.response, structured: row.structured || null, createdAt: row.created_at };
 }
 
-export default function JournalTab() {
+export default function JournalTab({ active = true, request = null, onConsumeRequest }) {
   const { user } = useAuth();
   const [entries, setEntries] = useState([]);
   const [recentExerciseNames, setRecentExerciseNames] = useState([]);
+  const [recentWorkout, setRecentWorkout] = useState(null); // { id, title } of the activity being reflected on
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState(null); // null | 'checkin' | 'freeform'
 
+  // The latest workout day's activity, so a Post-Movement Reflection always starts from
+  // what you just did (re-read whenever the tab opens, since workouts finish elsewhere).
+  async function loadRecent(preferredId) {
+    if (!user) return;
+    const { data: recent } = await supabase.from('workouts').select('id, started_at, muscle_groups, activities').eq('user_id', user.id).not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }).limit(10);
+    if (!recent?.length) { setRecentExerciseNames([]); setRecentWorkout(null); return; }
+    const anchor = recent.find((w) => w.id === preferredId) || recent[0];
+    const day = new Date(anchor.started_at).toDateString();
+    const dayWorkouts = recent.filter((w) => new Date(w.started_at).toDateString() === day);
+    const { data: recentSets } = await supabase.from('workout_sets').select('exercise_name').in('workout_id', dayWorkouts.map((w) => w.id));
+    setRecentExerciseNames([...new Set((recentSets || []).map((s) => s.exercise_name))]);
+    setRecentWorkout({ id: anchor.id, title: workoutTitle(anchor.muscle_groups || [], anchor.activities || []) });
+  }
+
   useEffect(() => {
     (async () => {
-      const [{ data: journalData }, { data: recentWorkout }] = await Promise.all([
-        supabase.from('journal_entries').select('*').order('created_at', { ascending: false }),
-        user
-          ? supabase.from('workouts').select('id, started_at').eq('user_id', user.id).not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }).limit(10)
-          : Promise.resolve({ data: null }),
-      ]);
+      const { data: journalData } = await supabase.from('journal_entries').select('*').order('created_at', { ascending: false });
       setEntries((journalData || []).map(mapEntry));
-      // Every workout from the most recent workout day, not just the last
-      // one — two sessions in a day should both be choices.
-      const latestDay = recentWorkout?.[0] && new Date(recentWorkout[0].started_at).toDateString();
-      const dayIds = (recentWorkout || []).filter((w) => new Date(w.started_at).toDateString() === latestDay).map((w) => w.id);
-      if (dayIds.length) {
-        const { data: recentSets } = await supabase.from('workout_sets').select('exercise_name').in('workout_id', dayIds);
-        setRecentExerciseNames([...new Set((recentSets || []).map((s) => s.exercise_name))]);
-      }
+      await loadRecent();
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Coming back to the tab (or arriving from the post-workout prompt): refresh, and open the reflection.
+  useEffect(() => { if (active && !loading) loadRecent(request?.workoutId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [active]);
+  useEffect(() => {
+    if (!request || loading) return;
+    loadRecent(request.workoutId).then(() => { setMode('checkin'); onConsumeRequest && onConsumeRequest(); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request, loading]);
 
   const [editingEntry, setEditingEntry] = useState(null);
 
@@ -88,7 +101,7 @@ export default function JournalTab() {
       </div>
 
       {mode === 'checkin' ? (
-        <CheckinFlow recentExerciseNames={recentExerciseNames} onSaved={addEntry} onCancel={() => setMode(null)} />
+        <CheckinFlow recentExerciseNames={recentExerciseNames} recentWorkout={recentWorkout} onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : mode === 'freeform' ? (
         <FreeformEntry onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : (
@@ -203,6 +216,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
               <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               <div style={{ color: PAPER }} className="text-sm text-center mb-5">
                 {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
+                {entry.structured?.workoutTitle && <div style={{ color: TEXT_SOFT }} className="mt-0.5">After {entry.structured.workoutTitle}</div>}
               </div>
               <button
                 onClick={() => { setShowActions(false); onEdit(); }}
@@ -245,7 +259,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
     setSaving(true);
     const updates = { is_private: true };
     if (isStructured) {
-      updates.structured = { mood, favoriteMovement, leastFavoriteMovement, smile, extra };
+      updates.structured = { ...(entry.structured || {}), mood, favoriteMovement, leastFavoriteMovement, smile, extra };
       updates.response = `Mood ${mood}/7`;
     } else {
       updates.response = response.trim();
@@ -412,7 +426,7 @@ function FreeformEntry({ onSaved, onCancel }) {
 
 const STEPS = ['mood', 'favorite', 'least_favorite', 'smile', 'extra'];
 
-function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
+function CheckinFlow({ recentExerciseNames, recentWorkout, onSaved, onCancel }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [mood, setMood] = useState(4);
   const [favoriteMovement, setFavoriteMovement] = useState('');
@@ -427,7 +441,7 @@ function CheckinFlow({ recentExerciseNames, onSaved, onCancel }) {
 
   async function handleFinish() {
     setSaving(true);
-    const structured = { mood, favoriteMovement: favoriteMovement.trim(), leastFavoriteMovement: leastFavoriteMovement.trim(), smile: smile.trim(), extra: extra.trim() };
+    const structured = { mood, favoriteMovement: favoriteMovement.trim(), leastFavoriteMovement: leastFavoriteMovement.trim(), smile: smile.trim(), extra: extra.trim(), ...(recentWorkout ? { workoutId: recentWorkout.id, workoutTitle: recentWorkout.title } : {}) };
     const { data, error } = await supabase
       .from('journal_entries')
       .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: true })

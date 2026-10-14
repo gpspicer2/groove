@@ -15,6 +15,7 @@ import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET , ON_AMBER } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
+import JournalPromptSheet from './JournalPromptSheet';
 import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
 import { recentlyTrained } from './muscles';
@@ -240,7 +241,7 @@ function scrollAppToTop() {
 const HISTORY_FIRST_PAGE = 3;
 const HISTORY_PAGE = 5;
 
-export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, planRequest, onConsumePlanRequest, onPlanSaved, onActiveWorkoutChange, programRequest, onConsumeProgramRequest }) {
+export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onConsumeDeepLink, logDate, onConsumeLogDate, planRequest, onConsumePlanRequest, onPlanSaved, onActiveWorkoutChange, programRequest, onConsumeProgramRequest }) {
   const { user, profile, updateProfile } = useAuth();
   const hrZones = computeHrZones(
     profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null,
@@ -283,6 +284,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
   const [checkInWorkoutId, setCheckInWorkoutId] = useState(null);
+  const [journalPromptId, setJournalPromptId] = useState(null); // the workout just finished, offered a journal reflection
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
   // Self-guided training program (goal + days a week), and the session being started from it.
@@ -1062,6 +1064,7 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
   async function saveCheckIn(fields) {
     const id = checkInWorkoutId;
     setCheckInWorkoutId(null);
+    setJournalPromptId(id);
     await supabase.from('workouts').update(fields).eq('id', id);
     if (fields.felt_off) notifyFeltOff();
   }
@@ -1153,7 +1156,13 @@ export default function MoveTab({ deepLinkWorkoutId, onConsumeDeepLink, logDate,
         </button>
       )}
 
-      {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => setCheckInWorkoutId(null)} />}
+      {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => { setJournalPromptId(checkInWorkoutId); setCheckInWorkoutId(null); }} />}
+      {journalPromptId && !checkInWorkoutId && onJournalAfterWorkout && (
+        <JournalPromptSheet
+          onJournal={() => { const id = journalPromptId; setJournalPromptId(null); onJournalAfterWorkout(id); }}
+          onSkip={() => setJournalPromptId(null)}
+        />
+      )}
       {showProgramSheet && user && (
         <ProgramSheet userId={user.id} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={profile?.week_start_day || 'sunday'} />
       )}
