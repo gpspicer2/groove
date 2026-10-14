@@ -9,8 +9,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Groove', {
       body: data.body || '',
-      icon: '/icon-android-192.png',
-      badge: '/icon-android-192.png',
+      icon: '/icon-android-192-v9.png',
+      badge: '/icon-android-192-v9.png',
       tag: data.tag || 'groove',
       data: { url: data.url || '/' },
     })
