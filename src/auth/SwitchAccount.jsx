@@ -87,21 +87,17 @@ export function ViewToggle({ className = '', compact = false }) {
   );
 }
 
-// The same control inside the Account menu, with the option to unlink.
+// Account menu: the switch itself lives in the top bar now, so this is just one slim line
+// showing the linked login, with the option to unlink.
 export function SwitchAccountSection() {
   const { isTrainer, linkedOthers, unlinkAccount } = useAuth();
   if (!isTrainer && linkedOthers.length === 0) return null;
   const other = linkedOthers[0];
+  if (!other) return null;
   return (
-    <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-2 text-center">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide font-bold mb-2">Switch view</div>
-      <ViewToggle className="mx-auto" />
-      {other && (
-        <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">
-          Linked: {other.email}{' '}
-          <button onClick={() => unlinkAccount(other.id)} className="underline">Unlink</button>
-        </div>
-      )}
+    <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2 truncate">
+      Linked: {other.email}{' '}
+      <button onClick={() => unlinkAccount(other.id)} className="underline">Unlink</button>
     </div>
   );
 }
