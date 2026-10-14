@@ -8,38 +8,68 @@ function viewName(role) {
   return role === 'trainer' ? 'Coach view' : 'Client view';
 }
 
+// What carries over from the other login when someone asks to "load my info" (never roles or billing).
+const COPY_FIELDS = [
+  'full_name', 'avatar_url', 'age', 'gender', 'bodyweight_lb', 'resting_hr_bpm', 'max_hr_bpm', 'max_hr_measured',
+  'resistance_goal', 'aerobic_goal', 'flexibility_goal', 'aerobic_goal_minutes', 'balance_goal',
+  'track_aerobic_goal', 'track_resistance_goal', 'track_flexibility_goal', 'track_balance_goal',
+  'week_start_day', 'custom_activities', 'program', 'screening', 'consented_at', 'consent_version', 'tour_done',
+];
+
 function LinkPopup({ onClose, onDone }) {
-  const { linkAccount } = useAuth();
+  const { linkAccount, updateProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [found, setFound] = useState(null); // { profile, email } once linked, offering to load their info
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError('');
-    const { error: err } = await linkAccount(email, password);
+    const res = await linkAccount(email, password);
+    setBusy(false);
+    if (res.error) { setError(res.error.message); return; }
+    if (res.otherProfile && (res.otherProfile.full_name || res.otherProfile.avatar_url)) setFound({ profile: res.otherProfile, email: res.otherEmail });
+    else onDone();
+  }
+
+  async function loadInfo() {
+    setBusy(true); setError('');
+    const fields = {};
+    COPY_FIELDS.forEach((k) => { if (found.profile[k] !== undefined && found.profile[k] !== null) fields[k] = found.profile[k]; });
+    const { error: err } = await updateProfile(fields);
     setBusy(false);
     if (err) setError(err.message); else onDone();
   }
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[70] flex items-center justify-center px-4" onClick={onClose}>
+      <div className="fixed inset-0 z-[70] flex items-center justify-center px-4" onClick={found ? undefined : onClose}>
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
-        <form onSubmit={submit} onClick={(e) => e.stopPropagation()} style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="relative w-full max-w-xs rounded-2xl px-5 py-5 text-center">
-          <div className="flex items-start justify-between mb-2">
-            <div style={{ color: PAPER }} className="text-base font-medium text-left">Link your other account</div>
-            <button type="button" onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
+        {found ? (
+          <div onClick={(e) => e.stopPropagation()} style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="relative w-full max-w-xs rounded-2xl px-5 py-5 text-center">
+            <div style={{ color: PAPER }} className="text-base font-medium mb-1">Linked!</div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm mb-3">Load your name, photo and settings from {found.email}{found.profile.full_name ? ` (${found.profile.full_name})` : ''} into this account?</p>
+            {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
+            <button onClick={loadInfo} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-1">{busy ? 'Loading…' : 'Load my info'}</button>
+            <button onClick={onDone} disabled={busy} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Skip</button>
           </div>
-          <p style={{ color: TEXT_SOFT }} className="text-sm text-left mb-3">Sign in once, then flip between both accounts with one tap on this device.</p>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoCapitalize="none" autoCorrect="off" style={{ background: INK_3, color: PAPER }} className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" style={{ background: INK_3, color: PAPER }} className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3" />
-          {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
-          <button type="submit" disabled={busy || !email.trim() || !password} style={{ background: email.trim() && password ? PLUM : INK_3, color: email.trim() && password ? INK : TEXT_SOFT }} className="w-full rounded-md py-2.5 text-sm font-medium">
-            {busy ? 'Linking…' : 'Link account'}
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={submit} onClick={(e) => e.stopPropagation()} style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="relative w-full max-w-xs rounded-2xl px-5 py-5 text-center">
+            <div className="flex items-start justify-between mb-2">
+              <div style={{ color: PAPER }} className="text-base font-medium text-left">Link your other account</div>
+              <button type="button" onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
+            </div>
+            <p style={{ color: TEXT_SOFT }} className="text-sm text-left mb-3">Sign in once, then flip between both accounts with one tap on this device.</p>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoCapitalize="none" autoCorrect="off" style={{ background: INK_3, color: PAPER }} className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" style={{ background: INK_3, color: PAPER }} className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-3" />
+            {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
+            <button type="submit" disabled={busy || !email.trim() || !password} style={{ background: email.trim() && password ? PLUM : INK_3, color: email.trim() && password ? INK : TEXT_SOFT }} className="w-full rounded-md py-2.5 text-sm font-medium">
+              {busy ? 'Linking…' : 'Link account'}
+            </button>
+          </form>
+        )}
       </div>
     </Portal>
   );
@@ -87,13 +117,22 @@ export function ViewToggle({ className = '', compact = false }) {
   );
 }
 
-// Account menu: the switch itself lives in the top bar now, so this is just one slim line
-// showing the linked login, with the option to unlink.
+// Account menu: the switch itself lives in the top bar once two logins are linked. Here: one slim
+// line showing the linked login (with Unlink), or a way to link another login if none is yet.
 export function SwitchAccountSection() {
-  const { isTrainer, linkedOthers, unlinkAccount } = useAuth();
-  if (!isTrainer && linkedOthers.length === 0) return null;
+  const { linkedOthers, unlinkAccount } = useAuth();
+  const [linking, setLinking] = useState(false);
   const other = linkedOthers[0];
-  if (!other) return null;
+  if (!other) {
+    return (
+      <>
+        <div className="text-center mb-2">
+          <button onClick={() => setLinking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Link another account</button>
+        </div>
+        {linking && <LinkPopup onClose={() => setLinking(false)} onDone={() => setLinking(false)} />}
+      </>
+    );
+  }
   return (
     <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2 truncate">
       Linked: {other.email}{' '}

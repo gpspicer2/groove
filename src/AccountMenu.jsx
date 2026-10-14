@@ -99,6 +99,7 @@ function AccountModal({ onClose }) {
         </div>
 
         <SwitchAccountSection />
+        <StravaRow />
 
         {!isTrainer && (
           <div className="grid grid-cols-2 gap-2 mb-2 items-stretch">
@@ -756,7 +757,6 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
           {themePref === 'auto' && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Matches your phone's setting.</div>}
 
           <NotificationsRow />
-          <StravaRow />
 
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Rest Timer</div>
           <button

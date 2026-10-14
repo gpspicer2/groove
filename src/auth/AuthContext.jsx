@@ -112,7 +112,7 @@ export function AuthProvider({ children }) {
     }
     const other = res.data.session;
     if (other.user.id === here.user.id) return { error: { message: "That's the account you're already using." } };
-    const { data: otherProfile } = await supabase.from('profiles').select('role, email').eq('id', other.user.id).single();
+    const { data: otherProfile } = await supabase.from('profiles').select('*').eq('id', other.user.id).single();
     const all = readLinked();
     saveLinked({
       ...all,
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
       [other.user.id]: { email: other.user.email, role: otherProfile?.role, access_token: other.access_token, refresh_token: other.refresh_token },
     });
     await supabase.auth.setSession({ access_token: here.access_token, refresh_token: here.refresh_token });
-    return { error: null };
+    return { error: null, otherProfile: otherProfile || null, otherEmail: other.user.email };
   }
 
   async function switchTo(userId) {
