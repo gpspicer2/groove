@@ -123,6 +123,7 @@ Trigger: when Greg says he is "at my computer now", begin with the list below, o
 3. Then resume the earlier list (sign-up walkthrough, business setup, Stripe live).
 
 ## Reminders for Greg (open items)
+- Garmin direct sync: Greg sent a waitlist request through Garmin's Developer Support form on 2026-10-14 (Garmin's Connect Developer Program is paused for new applications; no apply button). Draft answers are in `docs/GARMIN_APPLICATION.md`. The Account button stays "Coming soon"; Garmin and Apple Watch users sync through Strava meanwhile. If Garmin replies (to gpspicer2@gmail.com), help Greg answer, then build the sync. Privacy policy/terms pages were offered but not needed yet (Stripe live may ask).
 - Strava setup (built 2026-10-14, not yet switched on): Greg creates the Strava API app, adds the three Vercel variables, runs the Strava SQL (end of `schema.sql`), then taps Account > Connect Strava. See `docs/STRAVA.md`.
 - Supabase SQL for programs (`program`) and coach acknowledgments (`coach_ack`) was run on 2026-10-14. Both are live.
 - Greg wants to use programs to prepare for a bodybuilding competition: a Contest Prep program (phases, weekly volume per muscle, cardio ramp, weight trend, peak week, show countdown) was proposed but not built; ask before building.
