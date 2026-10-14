@@ -30,7 +30,6 @@ function mapEntry(row) {
 export default function JournalTab({ active = true, request = null, onConsumeRequest }) {
   const { user } = useAuth();
   const [entries, setEntries] = useState([]);
-  const [recentExerciseNames, setRecentExerciseNames] = useState([]);
   const [recentWorkout, setRecentWorkout] = useState(null); // { id, title } of the activity being reflected on
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState(null); // null | 'checkin' | 'freeform'
@@ -40,12 +39,8 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
   async function loadRecent(preferredId) {
     if (!user) return;
     const { data: recent } = await supabase.from('workouts').select('id, started_at, muscle_groups, activities').eq('user_id', user.id).not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }).limit(10);
-    if (!recent?.length) { setRecentExerciseNames([]); setRecentWorkout(null); return; }
+    if (!recent?.length) { setRecentWorkout(null); return; }
     const anchor = recent.find((w) => w.id === preferredId) || recent[0];
-    const day = new Date(anchor.started_at).toDateString();
-    const dayWorkouts = recent.filter((w) => new Date(w.started_at).toDateString() === day);
-    const { data: recentSets } = await supabase.from('workout_sets').select('exercise_name').in('workout_id', dayWorkouts.map((w) => w.id));
-    setRecentExerciseNames([...new Set((recentSets || []).map((s) => s.exercise_name))]);
     setRecentWorkout({ id: anchor.id, title: workoutTitle(anchor.muscle_groups || [], anchor.activities || []) });
   }
 
@@ -101,7 +96,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
       </div>
 
       {mode === 'checkin' ? (
-        <CheckinFlow recentExerciseNames={recentExerciseNames} recentWorkout={recentWorkout} onSaved={addEntry} onCancel={() => setMode(null)} />
+        <CheckinFlow recentWorkout={recentWorkout} onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : mode === 'freeform' ? (
         <FreeformEntry onSaved={addEntry} onCancel={() => setMode(null)} />
       ) : (
@@ -248,6 +243,11 @@ function EditEntryModal({ entry, onClose, onSaved }) {
   const isStructured = Boolean(entry.structured);
   const [response, setResponse] = useState(entry.response);
   const [mood, setMood] = useState(entry.structured?.mood || 4);
+  const isV2 = Boolean(entry.structured && ('nextTime' in entry.structured || 'wentWell' in entry.structured));
+  const [energy, setEnergy] = useState(entry.structured?.energy || '');
+  const [wentWell, setWentWell] = useState(entry.structured?.wentWell || '');
+  const [wasHard, setWasHard] = useState(entry.structured?.wasHard || '');
+  const [nextTime, setNextTime] = useState(entry.structured?.nextTime || '');
   const [favoriteMovement, setFavoriteMovement] = useState(entry.structured?.favoriteMovement || '');
   const [leastFavoriteMovement, setLeastFavoriteMovement] = useState(entry.structured?.leastFavoriteMovement || '');
   const [smile, setSmile] = useState(entry.structured?.smile || '');
@@ -259,7 +259,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
     setSaving(true);
     const updates = { is_private: true };
     if (isStructured) {
-      updates.structured = { ...(entry.structured || {}), mood, favoriteMovement, leastFavoriteMovement, smile, extra };
+      updates.structured = isV2 ? { ...(entry.structured || {}), mood, energy, wentWell, wasHard, nextTime } : { ...(entry.structured || {}), mood, favoriteMovement, leastFavoriteMovement, smile, extra };
       updates.response = `Mood ${mood}/7`;
     } else {
       updates.response = response.trim();
@@ -289,10 +289,21 @@ function EditEntryModal({ entry, onClose, onSaved }) {
                 </div>
                 <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
               </div>
-              <LabeledInput label="Favorite movement" value={favoriteMovement} onChange={setFavoriteMovement} />
-              <LabeledInput label="Least favorite movement" value={leastFavoriteMovement} onChange={setLeastFavoriteMovement} />
-              <LabeledTextarea label="What made you smile" value={smile} onChange={setSmile} />
-              <LabeledTextarea label="Anything else" value={extra} onChange={setExtra} />
+              {isV2 ? (
+                <>
+                  <LabeledInput label="Energy" value={energy} onChange={setEnergy} />
+                  <LabeledTextarea label="What felt good" value={wentWell} onChange={setWentWell} />
+                  <LabeledTextarea label="What was hard" value={wasHard} onChange={setWasHard} />
+                  <LabeledTextarea label="One thing for next time" value={nextTime} onChange={setNextTime} />
+                </>
+              ) : (
+                <>
+                  <LabeledInput label="Favorite movement" value={favoriteMovement} onChange={setFavoriteMovement} />
+                  <LabeledInput label="Least favorite movement" value={leastFavoriteMovement} onChange={setLeastFavoriteMovement} />
+                  <LabeledTextarea label="What made you smile" value={smile} onChange={setSmile} />
+                  <LabeledTextarea label="Anything else" value={extra} onChange={setExtra} />
+                </>
+              )}
             </div>
           ) : (
             <div>
@@ -424,24 +435,29 @@ function FreeformEntry({ onSaved, onCancel }) {
   );
 }
 
-const STEPS = ['mood', 'favorite', 'least_favorite', 'smile', 'extra'];
+const STEPS = ['feel', 'stood', 'next'];
+const ENERGY = ['Drained', 'Low', 'Steady', 'Charged'];
 
-function CheckinFlow({ recentExerciseNames, recentWorkout, onSaved, onCancel }) {
+// Three quick screens: how you feel, what stood out, and one thing to carry forward.
+// The workout you just did is attached automatically.
+function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [mood, setMood] = useState(4);
-  const [favoriteMovement, setFavoriteMovement] = useState('');
-  const [leastFavoriteMovement, setLeastFavoriteMovement] = useState('');
-  const [smile, setSmile] = useState('');
-  const [extra, setExtra] = useState('');
+  const [energy, setEnergy] = useState('');
+  const [wentWell, setWentWell] = useState('');
+  const [wasHard, setWasHard] = useState('');
+  const [nextTime, setNextTime] = useState('');
   const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex === STEPS.length - 1;
-  const hasRecent = recentExerciseNames.length > 0;
 
   async function handleFinish() {
     setSaving(true);
-    const structured = { mood, favoriteMovement: favoriteMovement.trim(), leastFavoriteMovement: leastFavoriteMovement.trim(), smile: smile.trim(), extra: extra.trim(), ...(recentWorkout ? { workoutId: recentWorkout.id, workoutTitle: recentWorkout.title } : {}) };
+    const structured = {
+      mood, energy, wentWell: wentWell.trim(), wasHard: wasHard.trim(), nextTime: nextTime.trim(),
+      ...(recentWorkout ? { workoutId: recentWorkout.id, workoutTitle: recentWorkout.title } : {}),
+    };
     const { data, error } = await supabase
       .from('journal_entries')
       .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: true })
@@ -457,160 +473,60 @@ function CheckinFlow({ recentExerciseNames, recentWorkout, onSaved, onCancel }) 
     setStepIndex((i) => i + 1);
   }
 
+  const box = { background: INK_3, color: PAPER };
+
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }} className="rounded-lg px-5 py-6 mb-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <button onClick={onCancel} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
           <X size={18} />
         </button>
         <span style={{ color: TEXT_SOFT }} className="text-sm">{stepIndex + 1} / {STEPS.length}</span>
       </div>
+      {recentWorkout?.title && (
+        <div style={{ color: AMBER }} className="text-sm font-medium text-center mb-3">After {recentWorkout.title}</div>
+      )}
 
-      {step === 'mood' && (
+      {step === 'feel' && (
         <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">How did you feel today?</div>
-          <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-3 text-center">
-            {MOOD_LABELS[mood - 1]}
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={7}
-            value={mood}
-            onChange={(e) => setMood(Number(e.target.value))}
-            className="w-full"
-            style={{ accentColor: AMBER }}
-          />
-          <div className="flex justify-between mt-1">
+          <div style={{ color: PAPER }} className="text-lg font-medium mb-3 text-center">How do you feel?</div>
+          <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-2 text-center">{MOOD_LABELS[mood - 1]}</div>
+          <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
+          <div className="flex justify-between mt-1 mb-4">
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[0]}</span>
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[6]}</span>
           </div>
-        </div>
-      )}
-
-      {step === 'favorite' && (
-        <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            Which movement was your <strong><em>favorite</em></strong> today?
-          </div>
-          {hasRecent ? (
-            <div className="space-y-2">
-              {recentExerciseNames.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => setFavoriteMovement(name)}
-                  style={{ background: favoriteMovement === name ? AMBER : INK_3, color: favoriteMovement === name ? ON_AMBER : PAPER_DIM }}
-                  className="w-full text-center rounded-md px-4 py-2.5 text-sm"
-                >
-                  {name}
-                </button>
-              ))}
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">And your energy?</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {ENERGY.map((e) => (
               <button
-                onClick={() => setFavoriteMovement('None')}
-                style={{ background: favoriteMovement === 'None' ? AMBER : INK_3, color: favoriteMovement === 'None' ? ON_AMBER : PAPER_DIM }}
-                className="w-full text-center rounded-md px-4 py-2.5 text-sm"
+                key={e}
+                onClick={() => setEnergy(energy === e ? '' : e)}
+                style={{ background: energy === e ? AMBER : INK_3, color: energy === e ? ON_AMBER : PAPER_DIM }}
+                className="rounded-md py-2.5 text-sm"
               >
-                None
+                {e}
               </button>
-              <input
-                type="text"
-                value={recentExerciseNames.includes(favoriteMovement) || favoriteMovement === 'None' ? '' : favoriteMovement}
-                onChange={(e) => setFavoriteMovement(e.target.value)}
-                placeholder="Or type something else…"
-                style={{ background: INK_3, color: PAPER }}
-                className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mt-2"
-              />
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={favoriteMovement}
-              onChange={(e) => setFavoriteMovement(e.target.value)}
-              placeholder="e.g. Barbell Squat"
-              style={{ background: INK_3, color: PAPER }}
-              className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
-            />
-          )}
+            ))}
+          </div>
         </div>
       )}
 
-      {step === 'least_favorite' && (
+      {step === 'stood' && (
         <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            What was your <strong><em>least favorite</em></strong> movement today?
-          </div>
-          {hasRecent ? (
-            <div className="space-y-2">
-              {recentExerciseNames.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => setLeastFavoriteMovement(name)}
-                  style={{ background: leastFavoriteMovement === name ? AMBER : INK_3, color: leastFavoriteMovement === name ? ON_AMBER : PAPER_DIM }}
-                  className="w-full text-center rounded-md px-4 py-2.5 text-sm"
-                >
-                  {name}
-                </button>
-              ))}
-              <button
-                onClick={() => setLeastFavoriteMovement('None')}
-                style={{ background: leastFavoriteMovement === 'None' ? AMBER : INK_3, color: leastFavoriteMovement === 'None' ? ON_AMBER : PAPER_DIM }}
-                className="w-full text-center rounded-md px-4 py-2.5 text-sm"
-              >
-                None
-              </button>
-              <input
-                type="text"
-                value={recentExerciseNames.includes(leastFavoriteMovement) || leastFavoriteMovement === 'None' ? '' : leastFavoriteMovement}
-                onChange={(e) => setLeastFavoriteMovement(e.target.value)}
-                placeholder="Or type something else…"
-                style={{ background: INK_3, color: PAPER }}
-                className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mt-2"
-              />
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={leastFavoriteMovement}
-              onChange={(e) => setLeastFavoriteMovement(e.target.value)}
-              placeholder="e.g. Burpees"
-              style={{ background: INK_3, color: PAPER }}
-              className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
-            />
-          )}
+          <div style={{ color: PAPER }} className="text-lg font-medium mb-3 text-center">What stood out?</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-1">What felt good</div>
+          <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2} placeholder="A lift, a feeling, a win…" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center mb-3" />
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-1">What was hard</div>
+          <textarea value={wasHard} onChange={(e) => setWasHard(e.target.value)} rows={2} placeholder="Optional" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center" />
         </div>
       )}
 
-      {step === 'smile' && (
+      {step === 'next' && (
         <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            What's one thing that made you smile today?
-          </div>
-          <textarea
-            value={smile}
-            onChange={(e) => setSmile(e.target.value)}
-            rows={3}
-            placeholder="Anything, big or small…"
-            style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center"
-          />
-        </div>
-      )}
-
-      {step === 'extra' && (
-        <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-4 text-center">
-            Anything else on your mind?
-          </div>
-          <textarea
-            value={extra}
-            onChange={(e) => setExtra(e.target.value)}
-            rows={3}
-            placeholder="Optional — leave blank to skip"
-            style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center"
-          />
-          <div className="mt-3">
-          </div>
+          <div style={{ color: PAPER }} className="text-lg font-medium mb-1 text-center">One thing for next time?</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">A reminder to your future self.</div>
+          <textarea value={nextTime} onChange={(e) => setNextTime(e.target.value)} rows={3} placeholder="Optional. Leave blank to skip" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center" />
         </div>
       )}
 
@@ -626,8 +542,7 @@ function CheckinFlow({ recentExerciseNames, recentWorkout, onSaved, onCancel }) 
           style={{ background: AMBER, color: ON_AMBER }}
           className="flex-1 rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5"
         >
-          {saving ? 'Saving…' : isLast ? 'Finish' : 'Next'}
-          {!isLast && !saving && <ChevronRight size={16} />}
+          {isLast ? (saving ? 'Saving…' : <><Check size={16} /> Save</>) : <>Next <ChevronRight size={16} /></>}
         </button>
       </div>
     </div>
