@@ -59,7 +59,7 @@ export default function StravaRow() {
         <div style={{ background: INK_3 }} className="rounded-md mt-2 px-4 py-2.5 flex items-center justify-center gap-5">
           <button
             disabled={busy}
-            onClick={() => run(syncStrava, (o) => (o.imported ? `Added ${o.imported} workout${o.imported === 1 ? '' : 's'}.` : 'Up to date.'))}
+            onClick={() => run(syncStrava, (o) => (o.imported || o.removed ? `Added ${o.imported || 0}, tidied ${o.removed || 0} duplicate${o.removed === 1 ? '' : 's'}.` : 'Up to date.'))}
             style={{ color: PAPER_DIM }}
             className="text-sm underline"
           >

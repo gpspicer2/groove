@@ -105,6 +105,36 @@ export function mapActivity(a, userId, maxHr) {
   };
 }
 
+// Which workouts duplicate each other? Strava is trusted for plain cardio and stretching (its timing
+// and heart rate are real), so a hand-logged one of the same kind within ~10 hours is replaced by it.
+// A hand-logged lifting session (or a mixed one) has the sets and reps Strava can't see, so that one
+// stays and the Strava copy is the one that goes. Returns the workout ids to soft-delete.
+export function findDuplicates(workouts) {
+  const kind = (w) => {
+    const m = (w.movement_mode || '').toLowerCase();
+    return m === 'aerobic' ? 'aerobic' : m === 'flexibility' ? 'flexibility' : 'strength';
+  };
+  const WINDOW = 10 * 3600 * 1000;
+  const isStrava = (w) => String(w.external_id || '').startsWith('strava:');
+  const strava = workouts.filter(isStrava).sort((x, y) => new Date(x.started_at) - new Date(y.started_at));
+  const manual = workouts.filter((w) => !isStrava(w) && w.completed_at);
+  const used = new Set();
+  const drop = [];
+  strava.forEach((sw) => {
+    const sk = kind(sw);
+    const t = new Date(sw.started_at).getTime();
+    const match = manual
+      .filter((m) => !used.has(m.id) && Math.abs(new Date(m.started_at).getTime() - t) <= WINDOW
+        && (kind(m) === sk || (m.movement_mode === 'Combined' && (sk === 'aerobic' || sk === 'strength'))))
+      .sort((x, y) => Math.abs(new Date(x.started_at) - t) - Math.abs(new Date(y.started_at) - t))[0];
+    if (!match) return;
+    used.add(match.id);
+    if ((sk === 'aerobic' || sk === 'flexibility') && kind(match) === sk) drop.push(match.id); // Strava wins
+    else drop.push(sw.id); // the detailed hand-logged workout wins
+  });
+  return drop;
+}
+
 // Pulls new activities since the last sync (first time: the last 30 days) and adds the ones
 // Groove doesn't have yet. Anything you already logged by hand around the same time is skipped.
 export async function syncUser(userId) {
@@ -117,28 +147,37 @@ export async function syncUser(userId) {
   const since = conn.last_synced_at ? new Date(conn.last_synced_at).getTime() - 2 * 864e5 : Date.now() - 30 * 864e5;
   const activities = await listActivities(token, Math.floor(since / 1000));
   if (!activities.length) {
+    const removed = await reconcile(userId);
     await supabaseAdmin.from('strava_connections').update({ last_synced_at: new Date().toISOString() }).eq('user_id', userId);
-    return { imported: 0, connected: true };
+    return { imported: 0, removed, connected: true };
   }
 
-  const { data: known } = await supabaseAdmin.from('workouts').select('external_id, started_at, completed_at').eq('user_id', userId).is('deleted_at', null).gte('started_at', new Date(since - 864e5).toISOString());
-  const have = new Set((known || []).map((w) => w.external_id).filter(Boolean));
-  const spans = (known || []).filter((w) => !w.external_id).map((w) => [new Date(w.started_at).getTime(), new Date(w.completed_at || w.started_at).getTime()]);
+  // Includes deleted ones, so a Strava workout you removed is never brought back.
+  const { data: known } = await supabaseAdmin.from('workouts').select('external_id').eq('user_id', userId).not('external_id', 'is', null);
+  const have = new Set((known || []).map((w) => w.external_id));
 
   let imported = 0;
   for (const a of activities) {
     if (have.has(`strava:${a.id}`)) continue;
     const row = mapActivity(a, userId, maxHr);
     if (!row) continue;
-    const s = new Date(row.workout.started_at).getTime();
-    const e = new Date(row.workout.completed_at).getTime();
-    if (spans.some(([ws, we]) => ws <= e && we >= s)) continue; // already logged by hand
     const { data: w, error } = await supabaseAdmin.from('workouts').insert(row.workout).select('id').single();
     if (error) { console.error('strava workout insert', error.message); continue; }
     const { error: setError } = await supabaseAdmin.from('workout_sets').insert({ ...row.set, workout_id: w.id });
     if (setError) console.error('strava set insert', setError.message);
     imported += 1;
   }
+  const removed = await reconcile(userId);
   await supabaseAdmin.from('strava_connections').update({ last_synced_at: new Date().toISOString() }).eq('user_id', userId);
-  return { imported, connected: true };
+  return { imported, removed, connected: true };
+}
+
+// Tidies duplicates between hand-logged and Strava workouts (see findDuplicates). Deleted ones go to
+// Birdseye's "Deleted Workouts", so nothing is lost for good.
+async function reconcile(userId) {
+  const from = new Date(Date.now() - 40 * 864e5).toISOString();
+  const { data } = await supabaseAdmin.from('workouts').select('id, external_id, movement_mode, started_at, completed_at').eq('user_id', userId).is('deleted_at', null).gte('started_at', from);
+  const ids = findDuplicates(data || []);
+  if (ids.length) await supabaseAdmin.from('workouts').update({ deleted_at: new Date().toISOString() }).in('id', ids);
+  return ids.length;
 }

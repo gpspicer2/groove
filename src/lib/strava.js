@@ -24,7 +24,7 @@ export const disconnectStrava = () => call('/api/strava/disconnect');
 export async function syncStrava() {
   const out = await call('/api/strava/sync');
   try { localStorage.setItem('groove:stravaSync', String(Date.now())); } catch { /* storage blocked */ }
-  if (out.imported > 0) window.dispatchEvent(new Event('groove:workoutsChanged'));
+  if (out.imported > 0 || out.removed > 0) window.dispatchEvent(new Event('groove:workoutsChanged'));
   return out;
 }
 export function stravaSyncedRecently(minutes = 10) {
