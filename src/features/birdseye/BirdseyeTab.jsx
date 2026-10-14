@@ -94,6 +94,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [balanceGoal, setBalanceGoal] = useState(2);
   const [balanceWorkoutIds, setBalanceWorkoutIds] = useState(new Set());
 
+  // Strava brought in new workouts: reload.
+  useEffect(() => {
+    const f = () => loadAll();
+    window.addEventListener('groove:workoutsChanged', f);
+    return () => window.removeEventListener('groove:workoutsChanged', f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
       supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),

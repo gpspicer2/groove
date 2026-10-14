@@ -458,3 +458,19 @@ alter table public.profiles add column if not exists program jsonb;
 -- Coach acknowledgments: once Greg opens a member, their current "needs attention" flags
 -- go quiet (also in the morning push) until something new happens.
 alter table public.profiles add column if not exists coach_ack jsonb;
+
+-- Strava sync (workouts from a Garmin or Apple Watch via Strava). Run once in the SQL editor.
+create table if not exists public.strava_connections (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  athlete_id bigint,
+  access_token text not null,
+  refresh_token text not null,
+  expires_at bigint not null,
+  last_synced_at timestamptz,
+  created_at timestamptz default now()
+);
+-- No policies on purpose: only Groove's server (service key) can read these tokens.
+alter table public.strava_connections enable row level security;
+alter table public.profiles add column if not exists strava_connected boolean default false;
+alter table public.workouts add column if not exists external_id text;
+create unique index if not exists workouts_external_id_idx on public.workouts (user_id, external_id) where external_id is not null;

@@ -343,6 +343,13 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       setLoading(false);
     })();
   }, [loadData]);
+  // Strava brought in new workouts: reload (not while a workout is open here).
+  const activeIdRef = useRef(null);
+  useEffect(() => {
+    const f = () => { if (!activeIdRef.current) loadData(); };
+    window.addEventListener('groove:workoutsChanged', f);
+    return () => window.removeEventListener('groove:workoutsChanged', f);
+  }, [loadData]);
 
   // Resume any workout left in progress (completed_at still null) after a
   // reload, app switch, or crash — otherwise its row and logged sets stay
@@ -359,6 +366,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   }, [loading, workouts]);
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
+  activeIdRef.current = activeWorkoutId;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 

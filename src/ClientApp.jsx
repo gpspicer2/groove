@@ -13,6 +13,7 @@ import { GrooveDrawerHost, openGrooveDrawer } from './GrooveSheet';
 import AppTour from './features/onboarding/AppTour';
 import LockedTab from './features/membership/LockedTab';
 import { supabase } from './lib/supabaseClient';
+import { STRAVA_ENABLED, syncStrava, stravaSyncedRecently } from './lib/strava';
 import { MEMBERSHIP_REQUIRED, hasAccess } from './lib/membership';
 
 const TABS = ['birdseye', 'move', 'journal', 'learn'];
@@ -55,6 +56,21 @@ export default function ClientApp() {
       .gte('started_at', since).limit(1)
       .then(({ data }) => { if (data?.length && !touchedTab.current) setTab('move'); });
   }, [user?.id]);
+  // Strava: bring in new Garmin / Apple Watch workouts when the app opens (at most every 10 minutes),
+  // and say so after coming back from Strava's sign-in page.
+  const [stravaNote, setStravaNote] = useState('');
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('strava');
+    if (!p) return;
+    setStravaNote(p === 'connected' ? 'Strava is connected. Your recent workouts are coming in.' : p === 'denied' ? 'Strava wasn’t connected.' : 'Something went wrong connecting Strava. Try again from Account.');
+    window.history.replaceState({}, '', window.location.pathname);
+    const t = setTimeout(() => setStravaNote(''), 6000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (!STRAVA_ENABLED || !profile?.strava_connected || stravaSyncedRecently()) return;
+    syncStrava().catch(() => {});
+  }, [profile?.strava_connected]);
   // Lets swipe-to-reveal rows in any tab close themselves when the tab changes.
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
@@ -211,6 +227,9 @@ export default function ClientApp() {
         />
       </div>
 
+      {stravaNote && (
+        <div style={{ background: INK_2, color: PAPER }} className="fixed top-3 inset-x-4 z-[60] max-w-md mx-auto rounded-md px-4 py-2.5 text-sm text-center shadow-lg" onClick={() => setStravaNote('')}>{stravaNote}</div>
+      )}
       <GrooveDrawerHost />
 
       {showTour && (
