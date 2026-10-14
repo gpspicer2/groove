@@ -5,18 +5,7 @@ import { Watch } from '../../lib/icons';
 import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
 import { useArmed } from '../../lib/useArmed';
 import DeviceSheet from './DeviceSheet';
-
-// Strava's brand orange stays the same in light and dark.
-const STRAVA_ORANGE = '#FC4C02';
-
-// The Strava mark (two chevrons).
-function StravaMark({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path fill={STRAVA_ORANGE} d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-    </svg>
-  );
-}
+import StravaMark from './StravaMark';
 
 // Account: two half-width buttons. Strava (connect / connected) and "Connect Device" (how to link a watch).
 export default function StravaRow() {

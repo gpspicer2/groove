@@ -16,6 +16,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import JournalPromptSheet from './JournalPromptSheet';
+import StravaMark, { STRAVA_ORANGE } from '../strava/StravaMark';
 import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
 import { recentlyTrained } from './muscles';
@@ -47,6 +48,7 @@ function mapWorkout(row) {
     completedAt: row.completed_at,
     deletedAt: row.deleted_at || null,
     plan: row.plan || [],
+    fromStrava: String(row.external_id || '').startsWith('strava:'),
   };
 }
 
@@ -1300,14 +1302,15 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
               const total = totalWeightLifted(workoutSets);
               const kcal = estimateKcal(workoutSets, bodyweight);
               return (
-                <div id={`history-${w.id}`} key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-md px-4 py-3">
+                <div id={`history-${w.id}`} key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${w.fromStrava ? STRAVA_ORANGE : SKY}` }} className="rounded-md px-4 py-3">
                   <button
                     onClick={() => { setExpandedHistoryId(expanded ? null : w.id); if (expanded) setEditingHistoryId(null); }}
                     className="w-full flex items-center justify-between"
                   >
                     <div className="text-left">
-                      <div style={{ color: PAPER }} className="text-sm font-medium">
-                        {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
+                      <div style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5">
+                        {w.fromStrava && <StravaMark size={14} title="From Strava" />}
+                        <span>{workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}</span>
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
                         {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length)}
