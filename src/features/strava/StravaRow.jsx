@@ -50,7 +50,7 @@ export default function StravaRow() {
       ) : (
         <button disabled={busy} onClick={() => run(connectStrava)} style={{ background: INK_3 }} className="w-full rounded-md px-4 py-2.5 flex items-center justify-between text-left">
           <span style={{ color: PAPER }} className="text-sm">{busy ? 'Opening Strava…' : 'Connect Strava'}</span>
-          <span style={{ color: TEXT_SOFT }} className="text-sm">Garmin · Apple Watch</span>
+          <span style={{ color: TEXT_SOFT }} className="text-sm">Import workouts</span>
         </button>
       )}
       {note && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1">{note}</div>}

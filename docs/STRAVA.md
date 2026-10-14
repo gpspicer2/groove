@@ -2,7 +2,7 @@
 
 Garmin and Apple Watch workouts reach Groove through Strava (both sync to Strava on their own).
 
-- Account > Strava > Connect Strava, one tap. Groove then imports new activities when the app opens (at most every 10 minutes) and on "Sync now".
+- Account > Connect Strava, one tap (on a phone it uses Strava's mobile authorize address, which opens the Strava app if installed). Groove then imports new activities when the app opens (at most every 10 minutes) and on "Sync now".
 - `api/strava/auth-url.js` (start), `callback.js` (Strava sends the member back here), `sync.js`, `disconnect.js`; shared logic in `api/_lib/strava.js`.
 - Each activity becomes a finished workout (`workouts.external_id = 'strava:<id>'`, so it is never added twice) with one set: aerobic (intensity from average heart rate as % of max HR, ACSM cutoffs 64% / 77%; without heart rate, runs/swims/rows count as vigorous, walks as light or moderate by pace, everything else moderate), Yoga/Pilates as flexibility, strength/CrossFit/HIIT as a resistance "Strength Session". Anything logged by hand around the same time is skipped, so nothing is double counted.
 - Tokens live in `strava_connections`, which has no client policies (server only). `profiles.strava_connected` tells the app to show "Connected".
