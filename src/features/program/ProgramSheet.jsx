@@ -146,7 +146,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How many days a week can you train?</div>
               <div className="flex justify-center gap-2 mb-1">
                 {[2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays([]); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
+                  <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays((w) => w.slice(0, n)); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
                 ))}
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
@@ -181,6 +181,12 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
           {step === 'weekdays' && goal && (
             <>
               <div style={{ color: SKY }} className="text-sm font-medium mb-1">{programTitle(draft)}</div>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span style={{ color: PAPER_DIM }} className="text-sm whitespace-nowrap">Days a week</span>
+                {[2, 3, 4, 5, 6].map((n) => (
+                  <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays((w) => w.slice(0, n)); }} style={tile(days === n)} className="w-8 h-8 rounded-full text-sm font-medium shrink-0">{n}</button>
+                ))}
+              </div>
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which days will you train?</div>
               <div className="flex justify-center gap-1.5 mb-1">
                 {[1, 2, 3, 4, 5, 6, 0].map((d) => {
