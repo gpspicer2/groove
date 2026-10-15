@@ -76,13 +76,16 @@ function intensity(a, maxHr, type) {
 }
 
 // One Strava activity -> a finished Groove workout plus its single set.
+// The name you gave the activity in Strava rides along in the workout's plan list (no extra column needed).
+export const titlePlan = (name) => (String(name || '').trim() ? [{ kind: 'strava', title: String(name).trim().slice(0, 120) }] : []);
+
 export function mapActivity(a, userId, maxHr) {
   const type = a.sport_type || a.type || 'Workout';
   const seconds = a.moving_time || a.elapsed_time || 0;
   const minutes = Math.max(1, Math.round(seconds / 60));
   if (minutes < 3) return null;
   const start = new Date(a.start_date);
-  const base = { user_id: userId, started_at: start.toISOString(), completed_at: new Date(start.getTime() + seconds * 1000).toISOString(), plan: [], external_id: `strava:${a.id}` };
+  const base = { user_id: userId, started_at: start.toISOString(), completed_at: new Date(start.getTime() + seconds * 1000).toISOString(), plan: titlePlan(a.name), external_id: `strava:${a.id}` };
   const level = intensity(a, maxHr, type);
   const mins = { light_minutes: level === 'light' ? minutes : null, moderate_minutes: level === 'moderate' ? minutes : null, vigorous_minutes: level === 'vigorous' ? minutes : null };
   if (RESISTANCE.has(type)) {
@@ -144,7 +147,8 @@ export async function syncUser(userId) {
   const { data: profile } = await supabaseAdmin.from('profiles').select('age, max_hr_bpm').eq('id', userId).single();
   const maxHr = Number(profile?.max_hr_bpm) || (profile?.age ? 220 - Number(profile.age) : 0);
 
-  const since = conn.last_synced_at ? new Date(conn.last_synced_at).getTime() - 2 * 864e5 : Date.now() - 30 * 864e5;
+  // Always looks back 30 days so renamed activities and older imports pick up their Strava titles.
+  const since = Date.now() - 30 * 864e5;
   const activities = await listActivities(token, Math.floor(since / 1000));
   if (!activities.length) {
     const removed = await reconcile(userId);
@@ -153,12 +157,19 @@ export async function syncUser(userId) {
   }
 
   // Includes deleted ones, so a Strava workout you removed is never brought back.
-  const { data: known } = await supabaseAdmin.from('workouts').select('external_id').eq('user_id', userId).not('external_id', 'is', null);
+  const { data: known } = await supabaseAdmin.from('workouts').select('id, external_id, plan').eq('user_id', userId).not('external_id', 'is', null);
   const have = new Set((known || []).map((w) => w.external_id));
+  const byExternal = new Map((known || []).map((w) => [w.external_id, w]));
 
   let imported = 0;
   for (const a of activities) {
-    if (have.has(`strava:${a.id}`)) continue;
+    if (have.has(`strava:${a.id}`)) {
+      const w = byExternal.get(`strava:${a.id}`);
+      const want = titlePlan(a.name);
+      const hasNow = (w.plan || []).find((e) => e && e.kind === 'strava')?.title || '';
+      if ((want[0]?.title || '') !== hasNow) await supabaseAdmin.from('workouts').update({ plan: want }).eq('id', w.id);
+      continue;
+    }
     const row = mapActivity(a, userId, maxHr);
     if (!row) continue;
     const { data: w, error } = await supabaseAdmin.from('workouts').insert(row.workout).select('id').single();

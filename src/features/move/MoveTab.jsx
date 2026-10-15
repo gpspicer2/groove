@@ -49,6 +49,7 @@ function mapWorkout(row) {
     deletedAt: row.deleted_at || null,
     plan: row.plan || [],
     fromStrava: String(row.external_id || '').startsWith('strava:'),
+    stravaTitle: ((row.plan || []).find((e) => e && e.kind === 'strava') || {}).title || '',
   };
 }
 
@@ -1101,7 +1102,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .single();
     if (error) { setLoadError(error.message); return; }
     const mapped = mapWorkout(data);
-    let plan = mapped.plan || [];
+    let plan = (mapped.plan || []).filter((e) => !(e && e.kind === 'strava'));
     if (plan.length === 0) {
       const seen = new Set();
       const wSets = sets.filter((x) => x.workoutId === w.id);
@@ -1310,7 +1311,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                     <div className="text-left">
                       <div style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5">
                         {w.fromStrava && <StravaMark size={14} title="From Strava" />}
-                        <span>{workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}</span>
+                        <span>
+                          {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
+                          {w.stravaTitle && w.stravaTitle.toLowerCase() !== workoutTitle(w.muscleGroups, w.activities).toLowerCase() && (
+                            <> - <em style={{ color: PAPER_DIM }} className="font-normal">{w.stravaTitle}</em></>
+                          )}
+                        </span>
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-sm">
                         {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length)}
