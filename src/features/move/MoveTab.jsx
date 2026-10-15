@@ -30,6 +30,11 @@ import ProgramSheet from '../program/ProgramSheet';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
 import { programTitle } from '../program/programs';
 
+// Whether a workout was started as a clean slate (remembered on this device).
+function isCleanSlateWorkout(id) {
+  try { return Boolean(id) && localStorage.getItem(`groove:cleanSlate:${id}`) === '1'; } catch { return false; }
+}
+
 function formatMoneyLikeWeight(w) {
   if (w == null || w === '') return null;
   return `${w} lb`;
@@ -152,6 +157,8 @@ function formatDuration(seconds) {
 // vigorous" — falls back to the old total-duration display for sets
 // logged before the light/moderate/vigorous split existed.
 function formatIntensityMinutes(s) {
+  // Stretching is just "how long" (no intensity), so it reads "10m", not "10m light".
+  if (s.movementType === 'flexibility' && s.lightMinutes && !s.moderateMinutes && !s.vigorousMinutes && !/yoga/i.test(s.exerciseName || '')) return `${s.lightMinutes}m`;
   const parts = [];
   if (s.lightMinutes) parts.push(`${s.lightMinutes}m light`);
   if (s.moderateMinutes) parts.push(`${s.moderateMinutes}m moderate`);
@@ -459,7 +466,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     }
     const totalWeight = Math.round(totalWeightLifted(sets.filter((s) => s.workoutId === activeWorkout.id)));
     const kcal = estimateKcal(sets.filter((s) => s.workoutId === activeWorkout.id), bodyweight);
-    onActiveWorkoutChange({ totalWeight, kcal, done: progress.done, total: progress.total });
+    // A clean slate has no plan to measure against (you add movements as you go), so no progress bar.
+    onActiveWorkoutChange({ totalWeight, kcal, done: progress.done, total: isCleanSlateWorkout(activeWorkout?.id) ? 0 : progress.total });
   }, [activeWorkout, sets, onActiveWorkoutChange, bodyweight, progress]);
 
   // Keep the active workout's plan mirrored to the database as it's
@@ -781,6 +789,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
       setStartingPlan(null);
     }
+    if (cleanSlate) { try { localStorage.setItem(`groove:cleanSlate:${data.id}`, '1'); } catch { /* storage blocked */ } }
     if (appliedSession) {
       try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: programTitle(program), name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
     }
@@ -2609,9 +2618,9 @@ function ActiveWorkout({
           <button
             onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
             style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
-            className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
+            className={`${workout.movementMode === 'Flexibility' ? 'order-first ' : ''}flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1`}
           >
-            <Plus size={13} /> Flexibility
+            <Plus size={13} /> Stretch
           </button>
         </div>
       )}
@@ -3944,6 +3953,9 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
   const [distance, setDistance] = useState('');
+  // Stretching and the like is just "how long": no intensity split. (Yoga keeps it, since yoga also counts toward aerobic.)
+  const simpleFlex = movementType === 'flexibility' && !/yoga/i.test(exercise.name);
+  const [flexMinutes, setFlexMinutes] = useState('');
   // A standalone "+ Add Aerobic Activity" row right next to an aerobic
   // card is redundant real estate — this card can just offer its own
   // compact "+" to log another cardio burst right after it.
@@ -3962,7 +3974,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
               <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
             </span>
             <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-              {loggedSets.length > 0 ? `${loggedSets.length} logged` : 'tap to log'}
+              {loggedSets.length > 0 ? `${loggedSets.length} logged` : ''}
             </span>
           </button>
           {onQuickAdd && (
@@ -3988,12 +4000,12 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
     );
   }
 
-  const canLog = (parseInt(light, 10) || 0) + (parseInt(moderate, 10) || 0) + (parseInt(vigorous, 10) || 0) > 0 || distance.trim() !== '';
+  const canLog = simpleFlex ? (parseInt(flexMinutes, 10) || 0) > 0 : (parseInt(light, 10) || 0) + (parseInt(moderate, 10) || 0) + (parseInt(vigorous, 10) || 0) > 0 || distance.trim() !== '';
 
   function handleLog() {
-    const l = parseInt(light, 10) || 0;
-    const m = parseInt(moderate, 10) || 0;
-    const v = parseInt(vigorous, 10) || 0;
+    const l = simpleFlex ? (parseInt(flexMinutes, 10) || 0) : (parseInt(light, 10) || 0);
+    const m = simpleFlex ? 0 : (parseInt(moderate, 10) || 0);
+    const v = simpleFlex ? 0 : (parseInt(vigorous, 10) || 0);
     const durationSeconds = (l + m + v) * 60;
     if (durationSeconds === 0 && !distance.trim()) return;
     onLogSet({
@@ -4013,6 +4025,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
     setModerate('');
     setVigorous('');
     setDistance('');
+    setFlexMinutes('');
   }
 
   return (
@@ -4062,7 +4075,22 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
         </div>
       )}
 
-      <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
+      {simpleFlex ? (
+        <div className="flex justify-center mb-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={flexMinutes}
+            onChange={(e) => setFlexMinutes(e.target.value)}
+            placeholder="min"
+            aria-label="Minutes"
+            style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
+            className="w-20 rounded-md px-2 py-2 text-sm outline-none text-center"
+          />
+        </div>
+      ) : (
+        <IntensityMinutesGroup light={light} setLight={setLight} moderate={moderate} setModerate={setModerate} vigorous={vigorous} setVigorous={setVigorous} hrZones={hrZones} />
+      )}
       <div className="flex gap-2">
         {movementType !== 'flexibility' && (
           <input
