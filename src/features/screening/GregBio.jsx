@@ -35,7 +35,7 @@ export default function GregBio({ onClose }) {
             </p>
             <p>That's why I advertise <b style={{ color: PAPER }}>movement</b>, not exercise.</p>
             <p>
-              Exercise is planned, structured, repetitive movement performed to improve or maintain fitness. That's a lot of rules for something that's supposed to be good for you. Movement is anything that gets you going: a walk, gardening, playing with your kids, a bike ride. It all counts, and it all adds up.
+              Exercise is planned, structured, repetitive movement performed to improve or maintain fitness. That's a lot of rules for something that's supposed to be good for you. <em>Movement</em> is anything that gets you going: a walk, gardening, playing with your kids, a bike ride. It all counts, and it all adds up.
             </p>
             <p>My job is to help you find the kind you'll actually keep doing, starting where you are.</p>
             <p style={{ color: PAPER }} className="font-medium">Together, we'll get you in a groove.</p>
