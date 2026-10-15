@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import RevealPills from '../../lib/RevealPills';
-import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import SwipeHint from '../../SwipeHint';
@@ -92,7 +90,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
     <div className="max-w-md mx-auto px-4 pb-12">
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">
         <div><Lock size={12} className="inline -mt-0.5 mr-1" />Only you can read your journal.</div>
-        <div>Greg never sees it. Something he should know? Message him.</div>
+        <div>Greg never sees it. Something he should know? <a href="sms:+16034754544" style={{ color: AMBER }} className="underline font-medium">Message Greg</a></div>
       </div>
 
       {mode === 'checkin' ? (
@@ -144,63 +142,21 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
 }
 
 function JournalEntryRow({ entry, onEdit, onDelete }) {
-  const [revealed, setRevealed] = useState(false);
-  useSingleOpenRow(revealed, setRevealed);
+  // Tap an entry for Edit / Delete. (It used to reveal buttons on a left swipe, but that is also the swipe
+  // that moves on to Learn, so entries were getting opened for editing by accident.)
   const [showActions, setShowActions] = useState(false);
   const actionSheet = useSwipeDown(() => setShowActions(false));
   const arm = useArmed();
-  const startX = useRef(0);
-  const dragging = useRef(false);
-  useEffect(() => {
-    const close = () => setRevealed(false);
-    window.addEventListener('groove:tabchange', close);
-    return () => window.removeEventListener('groove:tabchange', close);
-  }, []);
-
-  function handleTouchStart(e) {
-    startX.current = e.touches[0].clientX;
-    dragging.current = true;
-  }
-  function handleTouchMove(e) {
-    if (!dragging.current) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (dx < -30) setRevealed(true);
-    if (dx > 30) setRevealed(false);
-  }
-  function handleTouchEnd() {
-    dragging.current = false;
-  }
 
   return (
-    // The entry's own text never moves — swiping slides the Edit/Delete
-    // buttons IN from off-screen over it, instead of sliding the content
-    // away to uncover them underneath.
-    <div
-      data-no-swipe="row"
-      data-revealed={revealed}
-      className="relative rounded-md overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <RevealPills
-        revealed={revealed}
-        actions={[
-          { key: 'edit', label: 'Edit', icon: Pencil, color: AMBER, onClick: () => { onEdit(); setRevealed(false); } },
-          { key: 'del', label: 'Delete', icon: Trash2, color: BRICK, onClick: () => arm.press('row', onDelete), armed: arm.armed === 'row' },
-        ]}
-      />
+    <div className="relative rounded-md overflow-hidden">
       <div
-        onClick={() => { if (!revealed) setShowActions(true); }}
+        onClick={() => setShowActions(true)}
         style={{ background: INK_2 }}
         className="flex items-center justify-between gap-2 px-4 py-3"
       >
         <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">
           {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
-        </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0" style={{ color: TEXT_SOFT }}>
-          <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
-          <span style={{ width: 2, height: 16, background: 'currentColor', borderRadius: 1 }} />
         </div>
       </div>
 
