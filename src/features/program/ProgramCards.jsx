@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
-import { DAY_NAMES, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
+import { GOALS, DAY_NAMES, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
 
 // This week's sessions with done / next flags, from this week's logged workouts.
 export function useProgramWeek(userId, program, active, refreshKey, weekStartDay) {
@@ -38,7 +38,7 @@ export function MoveProgramCard({ program, week, onStart, onManage }) {
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
       <div className="flex items-center justify-between mb-1">
         <span className="w-5" />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{programTitle(program)}</span>
+        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
       {s ? (
@@ -79,10 +79,10 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 text-center">
       <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">Training Program</span>
+        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{programTitle(program)} · {week.doneCount} of {week.sessions.length} done</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : ''}{week.doneCount} of {week.sessions.length} done</div>
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
           Pick your training days
