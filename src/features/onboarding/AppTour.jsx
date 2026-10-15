@@ -56,7 +56,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const elRef = useRef(null);
-  const touchRef = useRef({ x: 0, y: 0, axis: null, lastY: 0 });
+  const touchRef = useRef({ x: 0, y: 0, axis: null, dx: 0, t0: 0 });
   const step = STEPS[index];
   const isFirst = index === 0;
   const isLast = index === STEPS.length - 1;
@@ -164,36 +164,36 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
   // so a vertical drag here does nothing at all now.
   function handleTouchStart(e) {
     if (phase !== 'steps') return;
-    // Any real button (Skip, Back, Next, or a card in the "groove"
-    // step) handles its own tap — don't let the drag-gesture tracking
-    // on the outer container get involved at all, or it can end up
-    // swallowing what should've been a plain click.
-    if (e.target.closest('button')) return;
+    // A swipe may start anywhere, even on a button (the card is mostly buttons). A plain tap never
+    // moves, so it still clicks; only a sideways drag turns into a swipe.
     const t = e.touches[0];
-    touchRef.current = { x: t.clientX, y: t.clientY, axis: null };
+    touchRef.current = { x: t.clientX, y: t.clientY, axis: null, dx: 0, t0: Date.now() };
     setDragging(true);
   }
   function handleTouchMove(e) {
     if (phase !== 'steps') return;
-    if (e.target.closest('button')) return;
     const t = e.touches[0];
     const tr = touchRef.current;
     const dx = t.clientX - tr.x;
     const dy = t.clientY - tr.y;
     if (tr.axis === null) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      tr.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      // Leans toward sideways so a slightly slanted swipe still counts.
+      tr.axis = Math.abs(dx) > Math.abs(dy) * 0.8 ? 'x' : 'y';
     }
-    if (tr.axis === 'x') setDragX(dx);
+    if (tr.axis === 'x') { tr.dx = dx; setDragX(dx); }
   }
   function handleTouchEnd(e) {
     if (phase !== 'steps') return;
-    if (e.target.closest('button')) { touchRef.current.axis = null; return; }
     const tr = touchRef.current;
     if (tr.axis === 'x') {
-      const threshold = 70;
-      if (dragX < -threshold) next();
-      else if (dragX > threshold && !isFirst) back();
+      // A short quick flick counts, as does a slower drag past ~45 px. The distance comes from a
+      // ref, since a fast flick can end before React has drawn the last move.
+      const dx = tr.dx;
+      const fast = Date.now() - tr.t0 < 350;
+      const need = fast ? 22 : 45;
+      if (dx < -need) next();
+      else if (dx > need && !isFirst) back();
     }
     setDragX(0);
     setDragging(false);
