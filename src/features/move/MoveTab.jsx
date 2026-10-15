@@ -117,6 +117,16 @@ function totalWeightLifted(workoutSets) {
     .reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
 }
 
+// A short title for a history row: at most two items, then "+N" (the full title shows when opened).
+// A flexibility session reads as what you did (Yoga), not every muscle stretched.
+function historyTitle(w) {
+  const base = w.movementMode === 'Flexibility' && (w.activities || []).length > 0
+    ? workoutTitle([], w.activities)
+    : workoutTitle(w.muscleGroups, w.activities);
+  const items = base.split(' + ');
+  return items.length > 2 ? `${items[0]} + ${items[1]} +${items.length - 2}` : base;
+}
+
 // Which kinds of movement a history entry holds, for its "bullet" icons (like the Birdseye calendar).
 function historyKinds(w, workoutSets) {
   const t = new Set(workoutSets.map((x) => x.movementType));
@@ -1327,25 +1337,28 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                       {historyKinds(w, workoutSets).map(({ key, Icon, color }) => <Icon key={key} size={16} color={color} />)}
                     </span>
                     <div className="text-left flex-1 min-w-0">
-                      <div style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5">
+                      <div style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5 min-w-0">
                         {w.fromStrava && <StravaMark size={14} title="From Strava" />}
-                        <span>
-                          {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
-                          {w.stravaTitle && w.stravaTitle.toLowerCase() !== workoutTitle(w.muscleGroups, w.activities).toLowerCase() && (
+                        <span className="truncate">
+                          {historyTitle(w)}
+                          {w.stravaTitle && w.stravaTitle.toLowerCase() !== historyTitle(w).toLowerCase() && (
                             <> - <em style={{ color: PAPER_DIM }} className="font-normal">{w.stravaTitle}</em></>
                           )}
                         </span>
                       </div>
-                      <div style={{ color: TEXT_SOFT }} className="text-sm">
-                        {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length)}
-                        {total > 0 && ` · ${Math.round(total).toLocaleString()} lb lifted`}
-                        {kcal > 0 && ` · ~${kcal} kcal`}
+                      <div style={{ color: TEXT_SOFT }} className="text-[13px] truncate">
+                        {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length).replace(/(\d+) exercises?/, '$1 ex')}
+                        {total > 0 && ` · ${Math.round(total).toLocaleString()} lb`}
+                        {kcal > 0 && ` · ${kcal} kcal`}
                       </div>
                     </div>
                     {expanded ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
                   </button>
                   {expanded && (
                     <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-3">
+                      <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
+                        {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
+                      </div>
                       {exerciseNames.map((name) => {
                         const exSets = workoutSets.filter((s) => s.exerciseName === name);
                         const isAerobic = exSets[0]?.movementType === 'aerobic';
@@ -1607,7 +1620,8 @@ function StartWorkout({
               className="rounded-xl px-1.5 py-2 text-sm font-medium flex flex-col items-center justify-center gap-0.5 leading-tight"
             >
               <span className="text-lg leading-none">{left}</span>
-              <span>{loc}</span>
+              {/* Always two lines (last word on the second) so all three tiles match. */}
+              <span>{loc.split(' ').slice(0, -1).join(' ')}<br />{loc.split(' ').slice(-1)[0]}</span>
             </button>
           );
         })}

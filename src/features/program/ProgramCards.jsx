@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Check, Pencil, Play, ListChecks, ChevronDown, ChevronUp } from '../../lib/icons';
+import React, { useMemo } from 'react';
+import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
 import { GOALS, DAY_NAMES, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
@@ -30,45 +30,38 @@ function sessionDetail(s) {
   return `${s.exercises} exercises · ${prescriptionLine(s)}`;
 }
 
-// Move: a compact card. Next session and a one-tap Start; tap the card for the phase, the session's
-// sets and reps, and the pounds lifted since the program began.
+// Move: the program at a glance. Phase and week, the next session with its sets and reps and a one-tap
+// Start, and one line of progress (sessions this week, pounds lifted since the program began).
 export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }) {
-  const [open, setOpen] = useState(false);
   if (!program || !week) return null;
   const s = week.next;
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
   const model = program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : '';
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
+    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-center">
       <div className="flex items-center justify-between">
-        <button onClick={() => setOpen((v) => !v)} className="flex-1 min-w-0 text-left" aria-expanded={open}>
-          <div className="flex items-center gap-1.5">
-            <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</span>
-            {open ? <ChevronUp size={14} color={TEXT_SOFT} /> : <ChevronDown size={14} color={TEXT_SOFT} />}
-          </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm truncate">
-            {week.doneCount} of {week.sessions.length} this week{lifted > 0 ? ` · ${lifted.toLocaleString()} lb lifted` : ''}
-          </div>
-        </button>
-        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1 ml-2" aria-label="Manage program"><Pencil size={14} /></button>
+        <span className="w-5" />
+        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</span>
+        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      {open && (
-        <div className="text-center mt-2">
-          <div style={{ color: TEXT_SOFT }} className="text-sm">{model}{week.label}</div>
-          {s && <div style={{ color: TEXT_SOFT }} className="text-sm">{sessionDetail(s)}</div>}
-          {s && accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(s)}</div>}
-        </div>
-      )}
+      <div style={{ color: TEXT_SOFT }} className="text-sm">{model}{week.label}</div>
       {s ? (
-        <div className="flex items-center justify-between gap-3 mt-1.5">
-          <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
-          <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
-            <Play size={14} /> Start
-          </button>
-        </div>
+        <>
+          <div className="flex items-center justify-between gap-3 mt-1.5 text-left">
+            <div style={{ color: PAPER }} className="min-w-0 text-base font-medium truncate">{s.name}</div>
+            <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
+              <Play size={14} /> Start
+            </button>
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-left mt-0.5">{sessionDetail(s)}</div>
+          {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm text-left">{accessoryLine(s)}</div>}
+        </>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm mt-1">All {week.sessions.length} sessions done this week. Nice work!</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm mt-1.5">All {week.sessions.length} sessions done this week. Nice work!</div>
       )}
+      <div style={{ color: TEXT_SOFT, borderTop: `1px dashed ${INK_3}` }} className="text-sm mt-2 pt-1.5">
+        {week.doneCount} of {week.sessions.length} sessions this week · {lifted.toLocaleString()} lb lifted so far
+      </div>
     </div>
   );
 }
