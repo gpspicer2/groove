@@ -1558,13 +1558,13 @@ function StartWorkout({
   const friendlyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-5 py-6 mb-2">
-      <div className="flex items-center justify-center gap-2 mb-5">
+    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3.5 mb-2">
+      <div className="flex items-center justify-center gap-2 mb-2.5">
         {!planning && (
           <button
             onClick={() => onSelectDate(todayLocalISO())}
             style={{ background: isToday ? SKY : INK_3, color: isToday ? INK : PAPER_DIM }}
-            className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+            className="rounded-full px-3.5 py-1 text-sm font-medium"
           >
             Today
           </button>
@@ -1592,10 +1592,10 @@ function StartWorkout({
           />
         </div>
       </div>
-      <div ref={locationHeadingRef} style={{ color: PAPER }} className="text-base font-medium mb-3 text-center">
+      <div ref={locationHeadingRef} style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">
         {planning ? 'Where will you move?' : isToday ? 'Where are we moving today?' : 'Where did you move?'}
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         {WORKOUT_LOCATIONS.map((loc) => {
           const selected = selectedLocation === loc;
           const [left] = locationEmojis(loc, gender);
@@ -1604,9 +1604,9 @@ function StartWorkout({
               key={loc}
               onClick={() => onSelectLocation(selected ? '' : loc)}
               style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
-              className="rounded-xl px-1.5 py-3 text-sm font-medium flex flex-col items-center justify-center gap-1 leading-tight"
+              className="rounded-xl px-1.5 py-2 text-sm font-medium flex flex-col items-center justify-center gap-0.5 leading-tight"
             >
-              <span className="text-xl leading-none">{left}</span>
+              <span className="text-lg leading-none">{left}</span>
               <span>{loc}</span>
             </button>
           );
@@ -1917,7 +1917,7 @@ function StartWorkout({
         <button
           onClick={handleStartClick}
           style={{ background: canStart ? SKY : INK_3, color: canStart ? INK : TEXT_SOFT }}
-          className="w-full rounded-xl py-3.5 text-base font-medium mt-2"
+          className="w-full rounded-xl py-3 text-base font-medium mt-1"
         >
           {planning ? '📅 Save Plan' : <>🪩 Log Workout{startEmoji}</>}
         </button>
