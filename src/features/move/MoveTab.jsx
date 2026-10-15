@@ -704,7 +704,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       ];
     }
     if (usesFlexibility) {
-      plan = generateFlexibilityPlan(selectedGroups);
+      plan = cleanSlate ? [] : generateFlexibilityPlan(selectedGroups);
       const flexActivityEntries = selectedFlexActivities.map((name) => ({
         name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '',
       }));
@@ -1855,7 +1855,7 @@ function StartWorkout({
         </>
       )}
 
-      {needsStyle && selectedLocation && selectedStyle && !showProgramOffer && (
+      {((needsStyle && selectedLocation && selectedStyle) || (movementMode === 'Flexibility' && selectedGroups.length > 0)) && !showProgramOffer && (
         <div className="flex items-center gap-2 mb-3">
           <button
             onClick={() => onToggleCleanSlate(false)}

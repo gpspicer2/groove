@@ -97,6 +97,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Push notifications (see `docs/PUSH.md`): service worker `public/sw.js`, `push_subscriptions` table, `api/push/daily.js` (Vercel Cron, 13:00 UTC), `api/push/felt-off.js`. The Reminders switch in Account only appears once `VITE_VAPID_PUBLIC_KEY` is set. Files that `api/` imports from `src/` need explicit `.js` extensions in their imports.
 - Coach can delete a member (member screen, bottom: type DELETE) via `api/members/delete.js`; it only works on member accounts, never coaches or himself, and shares `api/_lib/deleteUser.js` with self-delete (which also cancels any Stripe subscription first).
 
+- Flexibility workouts store the muscle groups they stretch in `muscle_groups`, so never treat `muscle_groups.length > 0` as resistance unless the mode isn't Flexibility (Birdseye `hasResistance`, coach `kindsOf`, program progress all do this now). Flexibility starts offer Suggested workout / Clean slate like lifting; suggested = 2 stretches per muscle group (1 each when more than 3 groups).
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

@@ -226,7 +226,8 @@ export const FLEXIBILITY_LIBRARY = {
   ],
 };
 
-export function generateFlexibilityPlan(muscleGroups, perGroup = 2) {
+// Two stretches per muscle group, or one each when many groups are picked (keeps the session short).
+export function generateFlexibilityPlan(muscleGroups, perGroup = muscleGroups.length > 3 ? 1 : 2) {
   const picked = [];
   for (const group of muscleGroups) {
     const pool = FLEXIBILITY_LIBRARY[group] || [];

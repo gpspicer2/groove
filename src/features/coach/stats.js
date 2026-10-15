@@ -20,7 +20,8 @@ const isYoga = (name) => /^yoga$/i.test(String(name || '').trim());
 function kindsOf(w, wSets) {
   const mode = w.movement_mode;
   const k = { resistance: false, aerobic: false, flexibility: false };
-  if (mode === 'Resistance' || mode === 'Combined' || (w.muscle_groups || []).length > 0) k.resistance = true;
+  // (A flexibility workout stores the muscle groups it stretches; that doesn't make it lifting.)
+  if (mode === 'Resistance' || mode === 'Combined' || (mode !== 'Flexibility' && (w.muscle_groups || []).length > 0)) k.resistance = true;
   if (mode === 'Aerobic' || mode === 'Combined' || (mode !== 'Flexibility' && (w.activities || []).length > 0)) k.aerobic = true;
   if (mode === 'Flexibility') k.flexibility = true;
   wSets.forEach((s) => {

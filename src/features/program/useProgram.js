@@ -61,7 +61,7 @@ export function useProgramProgress(userId, program, active, refreshKey, weekStar
       const finished = new Set(w.data.filter((x) => x.completed_at).map((x) => x.id));
       // A workout still being logged shows as "in progress" until it is finished.
       const open = w.data.find((x) => !x.completed_at);
-      const inProgress = open ? (open.movement_mode === 'Aerobic' ? 'aerobic' : 'resistance') : null;
+      const inProgress = open && open.movement_mode !== 'Flexibility' ? (open.movement_mode === 'Aerobic' ? 'aerobic' : 'resistance') : null;
       const ids = w.data.map((x) => x.id);
       const s = await supabase.from('workout_sets').select('workout_id, movement_type, muscle_group').in('workout_id', ids);
       if (cancelled || s.error) return;

@@ -198,7 +198,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   // actually logged rather than trusting movement_mode alone.
   function hasResistance(w) {
     const byMode = w.movement_mode === 'Resistance' || w.movement_mode === 'Combined';
-    return byMode || (w.muscle_groups || []).length > 0 || workoutTypes[w.id]?.has('resistance');
+    // A flexibility workout also stores the muscle groups it stretches, which doesn't make it lifting.
+    return byMode || (w.movement_mode !== 'Flexibility' && (w.muscle_groups || []).length > 0) || workoutTypes[w.id]?.has('resistance');
   }
   function hasAerobic(w) {
     const byMode = w.movement_mode === 'Aerobic' || w.movement_mode === 'Combined';

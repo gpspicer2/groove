@@ -47,7 +47,7 @@ export function MoveProgramCard({ program, week, onStart, onManage }) {
           <div style={{ color: TEXT_SOFT }} className="text-sm">{sessionDetail(s)}</div>
           {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(s)}</div>}
           <div className="flex items-center justify-between gap-3 mt-2">
-            <span style={{ color: TEXT_SOFT }} className="text-sm text-left">{week.label}<br />{week.doneCount} of {week.sessions.length} done</span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm text-left">{program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : ''}{week.label}<br />{week.doneCount} of {week.sessions.length} done</span>
             <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="rounded-md px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start Session
             </button>
@@ -82,7 +82,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
         <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : ''}{week.doneCount} of {week.sessions.length} done</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.doneCount} of {week.sessions.length} done this week</div>
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
           Pick your training days
