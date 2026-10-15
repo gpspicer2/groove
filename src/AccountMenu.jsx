@@ -82,8 +82,8 @@ function AccountModal({ onClose }) {
 
   return (
     <Portal>
-    <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50">
-      <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-4 max-h-[94vh] overflow-y-auto">
+    <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
+      <div ref={sheet.ref} {...sheet.handlers} onClick={(e) => e.stopPropagation()} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-4 max-h-[94vh] overflow-y-auto">
         <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
         <div className="relative flex items-center justify-center mb-3">
           <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg text-center">Account</h2>
