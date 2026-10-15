@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check } from '../../lib/icons';
 import { useAuth } from '../../auth/AuthContext';
 import Wordmark from '../../Wordmark';
+import GregBio from './GregBio';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 
 // Bump the version whenever the wording changes, so the date and text each
@@ -22,6 +23,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showBio, setShowBio] = useState(false);
 
   async function handleAgree() {
     setSaving(true);
@@ -37,9 +39,14 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
       <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="w-full max-w-sm max-h-full flex flex-col rounded-lg px-5 pt-4 pb-4">
         <Wordmark height={32} className="mb-2 mx-auto block shrink-0" />
         <h1 style={{ color: PLUM }} className="text-lg font-medium text-center mb-2 shrink-0">Before You Start</h1>
-        <div className="space-y-2 mb-3 overflow-y-auto min-h-0 flex-1">
+        <div className="space-y-1.5 mb-3 overflow-y-auto min-h-0 flex-1">
           {CONSENT_POINTS.map((p) => (
-            <p key={p} className="text-sm text-center" style={p.startsWith('If you feel chest pain') ? { color: BRICK } : { color: PAPER_DIM }}>{p}</p>
+            <p key={p} className="text-sm text-center" style={p.startsWith('If you feel chest pain') ? { color: BRICK } : { color: PAPER_DIM }}>
+              {p}
+              {p.startsWith('Groove offers movement mentorship') && (
+                <> <button onClick={() => setShowBio(true)} style={{ color: PLUM }} className="underline font-medium">Learn more about Greg</button></>
+              )}
+            </p>
           ))}
         </div>
         <div className="shrink-0">
@@ -64,6 +71,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
           <button onClick={signOut} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center">Sign out</button>
         </div>
       </div>
+      {showBio && <GregBio onClose={() => setShowBio(false)} />}
     </div>
   );
 }
