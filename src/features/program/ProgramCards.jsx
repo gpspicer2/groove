@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
@@ -69,57 +69,52 @@ export function MoveProgramLink({ onOpen }) {
   );
 }
 
-// Birdseye: the week laid out on suggested days, tap a day to see and start it.
+// Birdseye: a slim look at the week (the details live in Move). Days with a check are done; the next
+// one is highlighted, with a one-tap Start.
 export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }) {
-  const [picked, setPicked] = useState(null);
   if (!program || !week) return null;
-  const shown = week.sessions.find((s) => s.id === picked) || week.next || week.sessions[week.sessions.length - 1];
+  const next = week.next;
   const today = new Date().getDay();
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 text-center">
-      <div className="flex items-center justify-between mb-0.5">
+      <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">{programTitle(program)}</span>
+        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">Training Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.label} · {week.doneCount} of {week.sessions.length} done</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{programTitle(program)} · {week.doneCount} of {week.sessions.length} done</div>
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
           Pick your training days
         </button>
       )}
-      <div className="flex gap-1.5 mb-2">
+      <div className="flex gap-1.5">
         {week.sessions.map((s) => {
-          const on = shown?.id === s.id;
+          const isNext = next && next.id === s.id;
           return (
-            <button
+            <div
               key={s.id}
-              onClick={() => setPicked(s.id)}
-              style={{ background: on ? LIME : INK_3, color: on ? INK : PAPER, outline: s.day === today && !on ? `1.5px solid ${LIME}` : 'none' }}
-              className="flex-1 min-w-0 rounded-md py-1.5 px-0.5"
+              style={{ background: isNext ? LIME : INK_3, color: isNext ? INK : s.done ? TEXT_SOFT : PAPER, outline: s.day === today && !isNext ? `1.5px solid ${LIME}` : 'none' }}
+              className="flex-1 min-w-0 rounded-md py-1.5 px-0.5 text-sm font-medium leading-tight flex items-center justify-center gap-1"
             >
-              <div className="text-sm font-medium leading-tight">{DAY_NAMES[s.day]}</div>
-              <div className="text-xs leading-tight truncate opacity-90">{s.done ? <Check size={11} className="inline" /> : (s.kind === 'aerobic' ? 'Cardio' : (s.shortName || s.name).replace('Full Body ', 'Full '))}</div>
-            </button>
+              {DAY_NAMES[s.day]}{s.done && <Check size={12} />}
+            </div>
           );
         })}
       </div>
-      {shown && (
-        <div className="flex items-center justify-between gap-3 text-left">
-          <div className="min-w-0">
-            <div style={{ color: PAPER }} className="text-sm font-medium">{shown.name}{shown.done ? ' · done' : ''}</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm">{sessionDetail(shown)}</div>
-            {accessoryLine(shown) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(shown)}</div>}
-          </div>
-          {!shown.done && shown.inProgress && (
+      {next ? (
+        <div className="flex items-center justify-between gap-3 text-left mt-2">
+          <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? 'Cardio' : next.name}</div>
+          {next.inProgress ? (
             <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In progress</span>
-          )}
-          {!shown.done && !shown.inProgress && (
-            <button onClick={() => onStart(shown)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3.5 py-2 text-sm font-medium inline-flex items-center gap-1.5">
+          ) : (
+            <button onClick={() => onStart(next)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3.5 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start
             </button>
           )}
         </div>
+      ) : (
+        <div style={{ color: PAPER_DIM }} className="text-sm mt-2">All {week.sessions.length} sessions done this week. Nice work!</div>
       )}
     </div>
   );

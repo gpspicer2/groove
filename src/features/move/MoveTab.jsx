@@ -1052,7 +1052,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   async function finishWorkout() {
     // A workout with nothing logged would just clutter History as "0 exercises".
     if (!sets.some((s) => s.workoutId === activeWorkoutId)) {
-      if (window.confirm("Nothing's logged yet. Discard this workout instead?")) discardWorkout(true);
+      if (window.confirm("Nothing's logged yet. Cancel this workout instead?")) discardWorkout(true);
       return;
     }
     const { data, error } = await supabase
@@ -1131,7 +1131,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   }
 
   async function discardWorkout(skipConfirm = false) {
-    if (skipConfirm !== true && !window.confirm('Discard this workout? Any sets you logged will be deleted.')) return;
+    if (skipConfirm !== true && !window.confirm('Cancel this workout? Anything you logged in it will be cleared.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
@@ -2593,12 +2593,12 @@ function ActiveWorkout({
       </button>
 
       <button
-        onClick={() => discardArm.press('d', onDiscard)}
+        onClick={() => (sets.length === 0 ? onDiscard() : discardArm.press('d', onDiscard))}
         data-armed={discardArm.armed === 'd'}
         style={discardArm.armed === 'd' ? { background: BRICK, color: PAPER } : { color: BRICK }}
         className={`w-full text-sm py-2 text-center ${discardArm.armed === 'd' ? 'rounded-md' : 'underline'}`}
       >
-        {discardArm.armed === 'd' ? 'Tap again to discard (logged sets are deleted)' : 'Discard this workout'}
+        {discardArm.armed === 'd' ? 'Tap again to cancel (what you logged here is cleared)' : 'Cancel workout'}
       </button>
 
       {swapIndex !== null && (
