@@ -32,7 +32,7 @@ const STEPS = [
   },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
-    body: "Your private space to reflect. Only you can read it. Greg never sees it.",
+    body: "Your private space to reflect, including a short note after each workout. Only you can read it. Greg never sees it.",
   },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
@@ -40,7 +40,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'top', color: PLUM, noTabs: true, title: 'Your Account',
-    body: "Message Greg, update your health check, or switch to dark mode.",
+    body: "Message Greg, connect Strava to sync your watch workouts, update your health check, or switch to dark mode.",
   },
 ];
 
