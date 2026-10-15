@@ -1,10 +1,7 @@
 import { estimateKcal } from '../../lib/calories';
-import RevealPills from '../../lib/RevealPills';
-import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
-import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, Trash2, X, Info, Check } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -15,7 +12,6 @@ import { startOfWeek, weekDayLabels } from '../../lib/week';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import MetBrowser from '../../MetBrowser';
 import { useRevealOnOpen } from '../../lib/reveal';
-import SwipeHint from '../../SwipeHint';
 import ScreeningStatus from '../screening/ScreeningStatus';
 import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanPopups';
 import { planKinds, planMinutes, planSummary, hasDetails } from '../plan/plan';
@@ -494,9 +490,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             </button>
           </div>
 
-          {trackedGoals.length > 0 ? (
-            <SwipeHint id="goals">Tip: swipe a goal left to edit or stop tracking it.</SwipeHint>
-          ) : (
+          {trackedGoals.length === 0 && (
             <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="text-sm underline py-2">
               No goals on. Tap to choose some.
             </button>
@@ -507,7 +501,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
               active={active}
               extra={g.mode === 'Resistance' && liftsThisWeek.length > 0 ? <MuscleBalance bare sets={liftsThisWeek} /> : null}
               onEdit={() => setEditingGoals(true)}
-              onDelete={() => setGoalTracked(g.mode, false)}
               aerobic={g.mode === 'Aerobic' ? {
                 goalMinutes: aerobicGoalMinutes,
                 moderateEquivMinutes: moderateEquivMinutesThisWeek,
@@ -703,35 +696,12 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, onDelete, aerobic, extra, active }) {
-  const [revealed, setRevealed] = useState(false);
-  useSingleOpenRow(revealed, setRevealed);
-  const arm = useArmed();
+function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, extra }) {
+  // Edit or stop tracking a goal from the pencil in the Weekly Goals header. (Rows used to reveal buttons on
+  // a left swipe, which is also the swipe to Move, so goals were getting edited by accident.)
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
   const [expanded, setExpanded] = useState(false);
   const goalRef = useRevealOnOpen(expanded);
-  const startX = useRef(0);
-  const dragging = useRef(false);
-
-  // Swiping to Move and back left this open indefinitely — close it
-  // whenever this tab isn't the one showing, or once the page itself
-  // has scrolled a meaningful amount (both read as "I'm done with
-  // this row" even without an explicit tap elsewhere).
-  useEffect(() => {
-    if (!active) setRevealed(false);
-  }, [active]);
-  useEffect(() => {
-    if (!revealed) return;
-    const scroller = document.getElementById('app-scroll');
-    if (!scroller) return;
-    const startTop = scroller.scrollTop;
-    function onScroll() {
-      if (Math.abs(scroller.scrollTop - startTop) > 40) setRevealed(false);
-    }
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    return () => scroller.removeEventListener('scroll', onScroll);
-  }, [revealed]);
-
   const showingMinutes = Boolean(aerobic) && view === 'minutes';
   const displayCount = showingMinutes ? aerobic.moderateEquivMinutes : count;
   const displayGoal = showingMinutes ? aerobic.goalMinutes : goal;
@@ -740,44 +710,8 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
   const displayPlanned = showingMinutes ? aerobic.plannedMinutes : planned;
   const plannedPct = Math.max(0, Math.min(100 - pct, (displayPlanned / displayGoal) * 100));
 
-  function handleTouchStart(e) {
-    startX.current = e.touches[0].clientX;
-    dragging.current = true;
-  }
-  function handleTouchMove(e) {
-    if (!dragging.current) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (dx < -30) setRevealed(true);
-    if (dx > 30) setRevealed(false);
-  }
-  function handleTouchEnd() {
-    dragging.current = false;
-  }
-
   return (
-    <div
-      ref={goalRef}
-      data-no-swipe="row"
-      data-revealed={revealed}
-      className="relative mb-2.5 last:mb-0 rounded-md overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Nothing in the row itself ever moves — the buttons slide IN
-          from off-screen to overlay it, instead of the row's own
-          content sliding away to uncover them underneath. Absolutely
-          positioned elements always paint above normal in-flow content
-          in CSS, so once these are on-screen they're guaranteed visible
-          without needing to fight anything for stacking. */}
-      <RevealPills
-        revealed={revealed}
-        place="top-0 h-7"
-        actions={[
-          { key: 'edit', label: 'Edit', icon: Pencil, color: SKY, onClick: onEdit },
-          { key: 'del', label: 'Stop tracking', icon: Trash2, color: BRICK, onClick: () => arm.press('goal', onDelete), armed: arm.armed === 'goal' },
-        ]}
-      />
+    <div ref={goalRef} className="relative mb-2.5 last:mb-0 rounded-md overflow-hidden">
       <button
         onClick={() => (aerobic || extra) && setExpanded((v) => !v)}
         className="w-full flex items-center justify-between mb-1 py-0.5"
@@ -794,10 +728,6 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, onEdit, o
               <span className="groove-plan-pulse" style={{ color, borderBottom: `1.5px dashed ${color}` }}> +{displayPlanned}</span>
             )}
             {' '}/ {displayGoal}{showingMinutes ? ' min' : ''}
-          </span>
-          <span className="flex items-center gap-0.5" style={{ color: TEXT_SOFT }}>
-            <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
-            <span style={{ width: 2, height: 14, background: 'currentColor', borderRadius: 1 }} />
           </span>
         </span>
       </button>
