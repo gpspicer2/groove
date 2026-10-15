@@ -30,31 +30,43 @@ function sessionDetail(s) {
   return `${s.exercises} exercises · ${prescriptionLine(s)}`;
 }
 
-// Move: a slim card with the next session and a one-tap start.
-export function MoveProgramCard({ program, week, onStart, onManage }) {
+// Move: the next session in full, this week's progress, and the pounds lifted since the program began.
+export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }) {
   if (!program || !week) return null;
   const s = week.next;
+  const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
+  const model = program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : '';
+  const tile = (value, label) => (
+    <div style={{ background: INK_3 }} className="flex-1 rounded-md py-1.5 px-2">
+      <div style={{ color: PAPER }} className="text-base font-medium leading-tight">{value}</div>
+      <div style={{ color: TEXT_SOFT }} className="text-xs leading-tight">{label}</div>
+    </div>
+  );
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
+        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{model}{week.label}</div>
       {s ? (
         <>
           <div style={{ color: PAPER }} className="text-base font-medium">{s.name}</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">{sessionDetail(s)}</div>
           {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(s)}</div>}
-          <div className="flex items-center justify-between gap-3 mt-2">
-            <span style={{ color: TEXT_SOFT }} className="text-sm text-left">{program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : ''}{week.label}<br />{week.doneCount} of {week.sessions.length} done</span>
-            <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="rounded-md px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5">
-              <Play size={14} /> Start Session
-            </button>
-          </div>
         </>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm py-1">All {week.sessions.length} sessions done this week. Nice work!<br /><span style={{ color: TEXT_SOFT }}>{week.label}</span></div>
+        <div style={{ color: PAPER_DIM }} className="text-sm py-1">All {week.sessions.length} sessions done this week. Nice work!</div>
+      )}
+      <div className="flex gap-2 mt-2.5">
+        {tile(`${week.doneCount} of ${week.sessions.length}`, 'sessions this week')}
+        {tile(`${lifted.toLocaleString()} lb`, 'lifted so far')}
+      </div>
+      {s && (
+        <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="w-full mt-2.5 rounded-md py-2.5 text-sm font-medium inline-flex items-center justify-center gap-1.5">
+          <Play size={14} /> Start Session
+        </button>
       )}
     </div>
   );

@@ -78,3 +78,26 @@ export function useProgramProgress(userId, program, active, refreshKey, weekStar
   }, [userId, program?.startedAt, program?.goal, active, refreshKey, weekStartDay]); // eslint-disable-line react-hooks/exhaustive-deps
   return done;
 }
+
+// Total pounds lifted (weight x reps, resistance sets) in finished workouts since the program began.
+export function useProgramLifted(userId, program, refreshKey) {
+  const [lb, setLb] = useState(0);
+  useEffect(() => {
+    if (!userId || !program) return undefined;
+    let cancelled = false;
+    (async () => {
+      const w = await supabase.from('workouts').select('id').eq('user_id', userId).is('deleted_at', null).not('completed_at', 'is', null).gte('started_at', new Date(`${program.startedAt}T00:00:00`).toISOString());
+      if (w.error || !w.data?.length) { if (!cancelled) setLb(0); return; }
+      const ids = w.data.map((x) => x.id);
+      let total = 0;
+      for (let i = 0; i < ids.length; i += 25) {
+        const s = await supabase.from('workout_sets').select('weight, reps, movement_type').in('workout_id', ids.slice(i, i + 25)).limit(5000);
+        if (cancelled || s.error) return;
+        (s.data || []).forEach((r) => { if ((r.movement_type || 'resistance') === 'resistance') total += (Number(r.weight) || 0) * (Number(r.reps) || 0); });
+      }
+      if (!cancelled) setLb(Math.round(total));
+    })();
+    return () => { cancelled = true; };
+  }, [userId, program?.startedAt, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  return lb;
+}

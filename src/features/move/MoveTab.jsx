@@ -25,7 +25,7 @@ import { DEFAULT_PLAN_MINUTES, PLAN_MINUTE_OPTIONS } from '../plan/plan';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import { titleCaseLive } from '../../lib/titleCase';
 import { dayLabel } from '../../lib/dayLabel';
-import { useProgram } from '../program/useProgram';
+import { useProgram, useProgramLifted } from '../program/useProgram';
 import ProgramSheet from '../program/ProgramSheet';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
 import { programTitle } from '../program/programs';
@@ -371,6 +371,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   activeIdRef.current = activeWorkoutId;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
+  const programLifted = useProgramLifted(user?.id, program, `${completedWorkouts.length}-${sets.length}`);
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
@@ -1245,7 +1246,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           </div>
         )}
         {!planning && program && (
-          <MoveProgramCard program={program} week={programWeek} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
+          <MoveProgramCard program={program} week={programWeek} lifted={programLifted} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
         )}
         <StartWorkout
           recentTrained={recentTrained}
