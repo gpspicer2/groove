@@ -33,7 +33,7 @@ export default function GregBio({ onClose }) {
               I'm an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College I studied evolutionary biology and animal behavior until a research mentor introduced me to exercise physiology. I went on to earn my master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of working with patients, athletes, and students, one thing keeps coming up:
               <b style={{ color: PAPER }} className="block text-[15px]">most people don't like exercise.</b>
             </p>
-            <p>That's why I advertise <b style={{ color: PAPER }}>movement</b>, not exercise.</p>
+            <p>That's why I advocate for <b style={{ color: PAPER }}>movement</b>.</p>
             <p>
               Exercise is planned, structured, repetitive movement performed to improve or maintain fitness. That's a lot of rules for something that's supposed to be good for you. <em>Movement</em> is anything that gets you going: a walk, gardening, playing with your kids, a bike ride. It all counts.
             </p>
