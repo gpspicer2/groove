@@ -329,19 +329,28 @@ const ANCHOR_EXERCISES = {
   Back: (gender) => (gender === 'Female' ? 'Lat Pulldown' : 'Pull-Ups'),
 };
 
-function ensureAnchors(final, muscleGroups, gender, style, location) {
+// Strength work repeats its main lifts on purpose. For hypertrophy and endurance the anchor lift takes turns:
+// if it was in the last workout, a different lift for that muscle leads this time (it returns the next session).
+function ensureAnchors(final, muscleGroups, gender, style, location, recentNames = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   let result = final;
+  const keep = new Set(muscleGroups.map((g) => ANCHOR_EXERCISES[g]?.(gender)).filter(Boolean));
   for (const group of muscleGroups) {
     const anchorFn = ANCHOR_EXERCISES[group];
     if (!anchorFn) continue;
     const anchorName = anchorFn(gender);
     if (result.some((ex) => ex.name === anchorName)) continue;
+    if (style !== 'Strength' && recentNames.includes(anchorName)) continue;
     const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
     if (!pick) continue; // not available at this location (e.g. no pull-up bar outdoors)
     const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
-    // Bump the lowest-priority pick rather than growing past MAX_EXERCISES.
-    result = [...result.slice(0, -1), added];
+    // Bump the lowest-priority pick rather than growing past MAX_EXERCISES, but never another anchor lift
+    // or the squat variation (otherwise each anchor added would push out the one before it).
+    let drop = -1;
+    for (let i = result.length - 1; i >= 0; i -= 1) {
+      if (!keep.has(result[i].name) && !SQUAT_PATTERN.test(result[i].name)) { drop = i; break; }
+    }
+    result = drop >= 0 ? [...result.slice(0, drop), ...result.slice(drop + 1), added] : [...result, added];
   }
   return result;
 }
@@ -393,7 +402,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // important lifts (already sorted to the front) and trims the rest.
   const capped = ordered.slice(0, MAX_EXERCISES);
   const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames);
-  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location);
+  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames);
   return withAnchors
     .map((ex, i) => ({ ex, i }))
     .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))

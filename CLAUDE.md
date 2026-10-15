@@ -99,6 +99,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Flexibility workouts store the muscle groups they stretch in `muscle_groups`, so never treat `muscle_groups.length > 0` as resistance unless the mode isn't Flexibility (Birdseye `hasResistance`, coach `kindsOf`, program progress all do this now). Flexibility starts offer Suggested workout / Clean slate like lifting; suggested = 2 stretches per muscle group (1 each when more than 3 groups).
 
+- Suggested lifting workouts lead with each muscle group's anchor lift (bench, back squat, pull-ups; `ANCHOR_EXERCISES`). Strength sessions repeat them every time on purpose; hypertrophy and endurance sessions skip an anchor that was in the last workout, so a different lift leads and the anchor returns the session after. Anchors never push each other (or the squat variation) out of the 6-exercise cap.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
