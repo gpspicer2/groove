@@ -6,12 +6,12 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../
 
 // Bump the version whenever the wording changes, so the date and text each
 // person agreed to stay traceable.
-export const CONSENT_VERSION = '2026-10-v4';
+export const CONSENT_VERSION = '2026-10-v5';
 
 export const CONSENT_POINTS = [
   "Groove offers movement mentorship and education from Greg. It isn't medical care and doesn't replace your doctor.",
   'Physical activity carries some risk, including injury and, rarely, heart problems. Start at a level that suits you (a short health check comes next) and build up gradually.',
-  'If you feel chest pain, severe shortness of breath, dizziness, or faintness, stop right away and get help. Call 911 in an emergency.',
+  'If you feel chest pain, severe shortness of breath, dizziness, or faintness during any physical activity or at rest, stop right away and get help. Call 911 in an emergency.',
   'Answer the health check on the next screens honestly, and tell Greg if your health changes.',
   'Greg can see your workouts and health answers. Your journal is private to you.',
   'You take part by choice, accept these risks, and release Greg from liability for injuries from your participation, to the extent the law allows.',
@@ -39,7 +39,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
         <h1 style={{ color: PLUM }} className="text-lg font-medium text-center mb-2 shrink-0">Before You Start</h1>
         <div className="space-y-2 mb-3 overflow-y-auto min-h-0 flex-1">
           {CONSENT_POINTS.map((p) => (
-            <p key={p} className="text-sm text-center" style={p.startsWith('If you feel chest pain') ? { color: BRICK, fontWeight: 700 } : { color: PAPER_DIM }}>{p}</p>
+            <p key={p} className="text-sm text-center" style={p.startsWith('If you feel chest pain') ? { color: BRICK } : { color: PAPER_DIM }}>{p}</p>
           ))}
         </div>
         <div className="shrink-0">
