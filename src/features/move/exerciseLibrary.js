@@ -229,9 +229,11 @@ export const FLEXIBILITY_LIBRARY = {
 // Two stretches per muscle group, or one each when many groups are picked (keeps the session short).
 export function generateFlexibilityPlan(muscleGroups, perGroup = muscleGroups.length > 3 ? 1 : 2) {
   const picked = [];
+  const used = new Set(); // the same stretch can sit under two groups (Legs and Quadriceps); never twice in one workout
   for (const group of muscleGroups) {
-    const pool = FLEXIBILITY_LIBRARY[group] || [];
+    const pool = (FLEXIBILITY_LIBRARY[group] || []).filter((e) => !used.has(e.name));
     for (const ex of shuffle(pool).slice(0, perGroup)) {
+      used.add(ex.name);
       picked.push({ ...ex, muscleGroup: group, type: 'flexibility', supersetId: null });
     }
   }

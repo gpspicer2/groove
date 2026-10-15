@@ -654,7 +654,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (movementMode === 'Aerobic') return selectedActivities.length > 0;
     if (movementMode === 'Resistance') return selectedGroups.length > 0 && Boolean(selectedStyle);
     if (movementMode === 'Combined') return selectedGroups.length > 0 && Boolean(selectedStyle) && Boolean(combinedLayout);
-    if (movementMode === 'Flexibility') return selectedGroups.length > 0 && selectedFlexActivities.length > 0;
+    if (movementMode === 'Flexibility') return selectedGroups.length > 0 || selectedFlexActivities.length > 0; // stretches, a timed activity, or both
     return false;
   }
 
@@ -1385,7 +1385,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                                       </span>
                                     ) : isFlexibility ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
-                                        {s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} drills` : '—'}
+                                        {s.lightMinutes || s.moderateMinutes || s.vigorousMinutes ? formatIntensityMinutes(s) : s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} ${s.muscleGroup === 'Warm-up' ? 'drills' : 'reps'}` : '—'}
                                       </span>
                                     ) : (
                                       <>
@@ -1566,9 +1566,9 @@ function StartWorkout({
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
 
   const styleMissing = attemptedStart && needsStyle && !selectedStyle;
-  const groupsMissing = attemptedStart && needsGroups && selectedGroups.length === 0;
+  const groupsMissing = attemptedStart && needsGroups && selectedGroups.length === 0 && !(movementMode === 'Flexibility' && selectedFlexActivities.length > 0);
   const activitiesMissing = attemptedStart && needsActivities && selectedActivities.length === 0;
-  const flexActivitiesMissing = attemptedStart && needsFlexActivities && selectedFlexActivities.length === 0;
+  const flexActivitiesMissing = attemptedStart && needsFlexActivities && selectedFlexActivities.length === 0 && selectedGroups.length === 0;
   const modeMissing = attemptedStart && selectedLocation && !movementMode;
 
   function handleStartClick() {
@@ -2386,6 +2386,7 @@ function ActiveWorkout({
                   loggedSets={loggedSets}
                   onLogSet={onLogSet}
                   onDeleteSet={onDeleteSet}
+                  onOpenSwap={() => setSwapIndex(ex.index)}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
@@ -2562,11 +2563,12 @@ function ActiveWorkout({
             onCancel={closeAddForm}
           />
         ) : addMode === 'flexibility' ? (
-          <AddAerobicForm
-            activities={FLEXIBILITY_ACTIVITIES}
-            targetPlaceholder="Target, optional (e.g. 10 min)"
-            onAdd={(name, note) => { onAddFlexibility(name, note); setActiveGroupKey(`flexibility-activity-${name.trim()}`); closeAddForm(); }}
-            onCancel={closeAddForm}
+          <AddStretchForm
+            muscleGroups={workout.muscleGroups}
+            usedNames={exercises.map((e) => e.name)}
+            onAddStretch={(name, group, lib) => { onAddStretch(name, group, lib); setActiveGroupKey(`flexibility-${name}`); setPendingScrollKey(`flexibility-${name}`); }}
+            onAddActivity={(name) => { onAddFlexibility(name, ''); setActiveGroupKey(`flexibility-activity-${name}`); setPendingScrollKey(`flexibility-activity-${name}`); }}
+            onDone={closeAddForm}
           />
         ) : (
           <AddAerobicForm
@@ -2849,7 +2851,9 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   const choosing = isAerobic && exercise.name === WARMUP_AEROBIC_PLACEHOLDER;
   const pool = (isAerobic
     ? [...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].map((name) => ({ name }))
-    : filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location)
+    : exercise.type === 'flexibility'
+      ? (FLEXIBILITY_LIBRARY[exercise.muscleGroup] || [])
+      : filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location)
   ).filter((e) => e.name !== exercise.name && !usedNames.includes(e.name));
 
   return (
@@ -3131,6 +3135,97 @@ function AddAerobicToHistoryForm({ onAdd, onCancel, hrZones }) {
           Add
         </button>
       </div>
+    </div>
+  );
+}
+
+// "+ Stretch": pick a muscle, tap the stretches to add (they stay open so several can go in), or log a
+// timed activity like Yoga, or type your own stretch.
+function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, onDone }) {
+  const groups = [...new Set([...muscleGroups.filter((g) => FLEXIBILITY_LIBRARY[g]), ...Object.keys(FLEXIBILITY_LIBRARY)])];
+  const [group, setGroup] = useState(groups[0]);
+  const [custom, setCustom] = useState('');
+  const [added, setAdded] = useState([]);
+  const taken = (name) => usedNames.includes(name) || added.includes(name);
+  const list = (FLEXIBILITY_LIBRARY[group] || []).filter((e) => !taken(e.name));
+  function addLib(e) {
+    onAddStretch(e.name, group, e);
+    setAdded((a) => [...a, e.name]);
+  }
+  function addCustom() {
+    const name = titleCaseWords(custom).trim();
+    if (!name) return;
+    onAddStretch(name, 'Flexibility', { sets: 2, reps: '20-30s' });
+    setAdded((a) => [...a, name]);
+    setCustom('');
+  }
+  return (
+    <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4">
+      <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">Add a stretch</div>
+      <div className="flex flex-wrap justify-center gap-1.5 mb-2.5">
+        {groups.map((g) => (
+          <button
+            key={g}
+            onClick={() => setGroup(g)}
+            style={{ background: group === g ? BRICK : INK_3, color: group === g ? PAPER : PAPER_DIM }}
+            className="px-3 py-1.5 rounded-full text-sm"
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-1.5 mb-3">
+        {list.length === 0 ? (
+          <div style={{ color: TEXT_SOFT }} className="text-sm text-center py-1">All the {group.toLowerCase()} stretches are in your workout.</div>
+        ) : list.map((e) => (
+          <button
+            key={e.name}
+            onClick={() => addLib(e)}
+            style={{ background: INK_3, color: PAPER }}
+            className="w-full rounded-md px-3 py-2.5 text-sm flex items-center justify-between gap-2"
+          >
+            <span className="flex items-center gap-1.5 min-w-0"><Plus size={14} color={BRICK} /> <span className="truncate">{e.name}</span></span>
+            <span style={{ color: TEXT_SOFT }} className="shrink-0">{e.sets}×{e.reps}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-2.5">
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Or log time doing</div>
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2.5">
+          {FLEXIBILITY_ACTIVITIES.filter((a) => !taken(a)).map((a) => (
+            <button
+              key={a}
+              onClick={() => { onAddActivity(a); setAdded((x) => [...x, a]); }}
+              style={{ background: INK_3, color: PAPER_DIM }}
+              className="px-3 py-1.5 rounded-full text-sm"
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={custom}
+            onChange={(e) => setCustom(titleCaseLive(e.target.value))}
+            onKeyDown={(e) => { if (e.key === 'Enter') addCustom(); }}
+            placeholder="Or type your own stretch"
+            style={{ background: INK_3, color: PAPER }}
+            className="flex-1 min-w-0 rounded-md px-3 py-2.5 text-sm outline-none text-center"
+          />
+          <button
+            onClick={addCustom}
+            disabled={!custom.trim()}
+            style={{ background: custom.trim() ? BRICK : INK_3, color: custom.trim() ? PAPER : TEXT_SOFT }}
+            className="shrink-0 rounded-md px-4 py-2.5 text-sm font-medium"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+      <button onClick={onDone} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
+        {added.length > 0 ? `Done (${added.length} added)` : 'Cancel'}
+      </button>
     </div>
   );
 }
@@ -4117,7 +4212,9 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 
 function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone }) {
   // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
-  const targetSeconds = /\ds/.test(String(exercise.reps || '')) ? String(exercise.reps).match(/\d+/)?.[0] || '' : '';
+  // Some stretches (Cat-Cow) are counted in reps, not held for seconds.
+  const isReps = /rep/i.test(String(exercise.reps || ''));
+  const targetSeconds = isReps || /\ds/.test(String(exercise.reps || '')) ? String(exercise.reps).match(/\d+/)?.[0] || '' : '';
   const [seconds, setSeconds] = useState(targetSeconds);
   const { armed, press } = useArmed();
   const nextSetNumber = loggedSets.length + 1;
@@ -4126,15 +4223,15 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   const isDone = loggedSets.length >= (exercise.sets || 1);
 
   function handleLog() {
-    const durationSeconds = seconds === '' ? null : parseInt(seconds, 10) || null;
+    const amount = seconds === '' ? null : parseInt(seconds, 10) || null;
     onLogSet({
       exerciseName: exercise.name,
       muscleGroup: exercise.muscleGroup,
       setNumber: nextSetNumber,
       movementType: 'flexibility',
       weight: null,
-      reps: null,
-      durationSeconds,
+      reps: isReps ? amount : null,
+      durationSeconds: isReps ? null : amount,
     });
     setSeconds(targetSeconds);
   }
@@ -4182,7 +4279,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
                 data-armed={armed === s.id}
               className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
             >
-              {s.durationSeconds ? `${s.durationSeconds}s` : '—'}
+              {s.reps ? `${s.reps} reps` : s.durationSeconds ? `${s.durationSeconds}s` : '—'}
             <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
           ))}
@@ -4198,7 +4295,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           inputMode="numeric"
           value={seconds}
           onChange={(e) => setSeconds(e.target.value)}
-          placeholder="sec"
+          placeholder={isReps ? 'reps' : 'sec'}
           style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
           className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
@@ -4207,7 +4304,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           style={{ background: accent, color: PAPER }}
           className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
-          <Plus size={14} /> Log hold {nextSetNumber}
+          <Plus size={14} /> Log {isReps ? 'set' : 'hold'} {nextSetNumber}
         </button>
         {loggedSets.length > 0 && (
           <button
