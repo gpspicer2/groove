@@ -20,7 +20,7 @@ export default function GregBio({ onClose }) {
           {...sheet.handlers}
           onClick={(e) => e.stopPropagation()}
           style={{ ...sheet.style, background: INK_2, borderTop: `2px solid ${PLUM}`, fontFamily: 'Outfit, sans-serif' }}
-          className="w-full max-w-sm max-h-[92svh] overflow-y-auto relative rounded-t-2xl md:rounded-2xl px-5 pt-4 pb-5"
+          className="w-full max-w-sm max-h-[92svh] overflow-y-auto relative rounded-t-2xl md:rounded-2xl px-5 pt-4 pb-4"
         >
           <div style={{ background: INK_3 }} className={GRAB_BAR_CLASS} />
           <button onClick={onClose} aria-label="Close" className="absolute top-3 right-3 p-1"><X size={20} color={TEXT_SOFT} /></button>
@@ -28,7 +28,7 @@ export default function GregBio({ onClose }) {
             <img src="/greg.jpg" alt="Greg" style={{ objectPosition: '50% 20%' }} className="w-14 h-14 rounded-full object-cover shrink-0" />
             <h2 style={{ color: PLUM }} className="text-xl font-medium">Hi, I'm Greg! 🕺</h2>
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm space-y-2 text-center">
+          <div style={{ color: PAPER_DIM }} className="text-sm space-y-1.5 text-center">
             <p>
               I'm an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. It started at Saint Anselm College, where I studied evolutionary biology and animal behavior until a research mentor introduced me to exercise physiology. I went on to earn my master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. One thing has become very clear: <b style={{ color: PAPER }}>most people don't like exercise.</b>
             </p>
@@ -40,6 +40,7 @@ export default function GregBio({ onClose }) {
             <p style={{ color: PAPER }} className="font-medium">Together, we'll get you in a groove.</p>
             <p style={{ color: TEXT_SOFT }}>Questions? Message me anytime from Account.</p>
           </div>
+          <button onClick={onClose} style={{ background: PLUM, color: INK_2 }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">Close</button>
         </div>
       </div>
     </Portal>
