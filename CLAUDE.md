@@ -122,6 +122,9 @@ Trigger: when Greg says he is "at my computer now", begin with the list below, o
 2. (Done 2026-10-14: the `program` and `coach_ack` SQL has been run.)
 3. Then resume the earlier list (sign-up walkthrough, business setup, Stripe live).
 
+## Where we left off (2026-10-15)
+Greg ran the sign-up test (consent, health check, tour) and it works; consent got clearer wording and a "Learn more about Greg" bio pop-up, Strava titles show in history, tour swipes are easier. Next, in order: (1) delete his test account (coach Members > person > type DELETE); (2) one more throwaway sign-up (`+test3`) to see the Join popup and pay with test card 4242 4242 4242 4242 (check `VITE_REQUIRE_MEMBERSHIP`), then delete it; (3) business setup (Lasell HR email, separate account for Groove money, call MA DOR on sales tax); (4) Stripe live (keys only into Vercel). Offered but not built: a Comp button on each member's own page (comping already works in coach Billing tab). Vercel "deployment failed" emails still unchecked.
+
 ## Reminders for Greg (open items)
 - Garmin direct sync: Greg sent a waitlist request through Garmin's Developer Support form on 2026-10-14 (Garmin's Connect Developer Program is paused for new applications; no apply button). Draft answers are in `docs/GARMIN_APPLICATION.md`. The Account button stays "Coming soon"; Garmin and Apple Watch users sync through Strava meanwhile. If Garmin replies (to gpspicer2@gmail.com), help Greg answer, then build the sync. Privacy policy/terms pages were offered but not needed yet (Stripe live may ask).
 - Strava setup (built 2026-10-14, not yet switched on): Greg creates the Strava API app, adds the three Vercel variables, runs the Strava SQL (end of `schema.sql`), then taps Account > Connect Strava. See `docs/STRAVA.md`.
