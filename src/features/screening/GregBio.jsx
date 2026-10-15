@@ -30,13 +30,13 @@ export default function GregBio({ onClose }) {
           </div>
           <div style={{ color: PAPER_DIM }} className="text-sm space-y-1.5 text-center">
             <p>
-              I'm an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. It started at Saint Anselm College, where I studied evolutionary biology and animal behavior until a research mentor introduced me to exercise physiology. I went on to earn my master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. One thing has become very clear: <b style={{ color: PAPER }}>most people don't like exercise.</b>
+              I'm an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College I studied evolutionary biology and animal behavior until a research mentor introduced me to exercise physiology. I went on to earn my master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of studying, teaching, and working with patients, one thing keeps coming up: <b style={{ color: PAPER }}>most people don't like exercise.</b>
             </p>
-            <p>That's why I'm here to advertise <b style={{ color: PAPER }}>movement</b>, not exercise.</p>
+            <p>That's why I advertise <b style={{ color: PAPER }}>movement</b>, not exercise.</p>
             <p>
               Exercise is planned, structured, repetitive movement performed to improve or maintain fitness. That's a lot of rules for something that's supposed to be good for you. Movement is anything that gets you going: a walk, gardening, playing with your kids, a bike ride. It all counts, and it all adds up.
             </p>
-            <p>My job is to help you find the kind you'll actually keep doing, starting right where you are.</p>
+            <p>My job is to help you find the kind you'll actually keep doing, starting where you are.</p>
             <p style={{ color: PAPER }} className="font-medium">Together, we'll get you in a groove.</p>
             <p style={{ color: TEXT_SOFT }}>Questions? Message me anytime from Account.</p>
           </div>
