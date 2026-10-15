@@ -4,7 +4,7 @@ import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { revealSoon } from '../../lib/reveal';
 import { useArmed } from '../../lib/useArmed';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info } from '../../lib/icons';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';
@@ -12,7 +12,7 @@ import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET , ON_AMBER } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import JournalPromptSheet from './JournalPromptSheet';
@@ -115,6 +115,20 @@ function totalWeightLifted(workoutSets) {
   return workoutSets
     .filter((s) => s.movementType === 'resistance')
     .reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+}
+
+// Which kinds of movement a history entry holds, for its "bullet" icons (like the Birdseye calendar).
+function historyKinds(w, workoutSets) {
+  const t = new Set(workoutSets.map((x) => x.movementType));
+  const mode = w.movementMode;
+  const resistance = mode === 'Resistance' || mode === 'Combined' || t.has('resistance');
+  const aerobic = mode === 'Aerobic' || mode === 'Combined' || t.has('aerobic') || (mode !== 'Flexibility' && mode !== 'Resistance' && (w.activities || []).length > 0);
+  const flexibility = mode === 'Flexibility' || t.has('flexibility');
+  return [
+    aerobic && { key: 'a', Icon: Activity, color: MOSS, label: 'Aerobic' },
+    resistance && { key: 'r', Icon: Dumbbell, color: SKY, label: 'Resistance' },
+    flexibility && { key: 'f', Icon: PersonStanding, color: BRICK, label: 'Flexibility' },
+  ].filter(Boolean);
 }
 
 function formatDuration(seconds) {
@@ -1307,9 +1321,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                 <div id={`history-${w.id}`} key={w.id} style={{ background: INK_2, borderLeft: `3px solid ${w.fromStrava ? STRAVA_ORANGE : SKY}` }} className="rounded-md px-4 py-3">
                   <button
                     onClick={() => { setExpandedHistoryId(expanded ? null : w.id); if (expanded) setEditingHistoryId(null); }}
-                    className="w-full flex items-center justify-between"
+                    className="w-full flex items-center justify-between gap-3"
                   >
-                    <div className="text-left">
+                    <span className="flex flex-col items-center justify-center gap-1 w-5 shrink-0" aria-label={historyKinds(w, workoutSets).map((k) => k.label).join(' and ')}>
+                      {historyKinds(w, workoutSets).map(({ key, Icon, color }) => <Icon key={key} size={16} color={color} />)}
+                    </span>
+                    <div className="text-left flex-1 min-w-0">
                       <div style={{ color: PAPER }} className="text-sm font-medium flex items-center gap-1.5">
                         {w.fromStrava && <StravaMark size={14} title="From Strava" />}
                         <span>
