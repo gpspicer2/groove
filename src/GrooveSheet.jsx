@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X } from './lib/icons';
 import Portal from './Portal';
-import { INK_2, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS } from './theme';
+import { INK_2, INK_3, PAPER_DIM, TEXT_SOFT, LIME, AMBER, SKY, VIOLET, MOSS, PLUM } from './theme';
 import Wordmark from './Wordmark';
+import GregBio from './features/screening/GregBio';
 
 export const GROOVE_DEFINITIONS = [
   { term: 'Feeling good', color: AMBER, text: '"Getting your groove on" — movement as something you enjoy, not a box to check.' },
@@ -40,6 +41,7 @@ export default function GrooveSheet({ open, onClose }) {
   const dragXRef = useRef(0);
   const trackingRef = useRef(false);
   const closingRef = useRef(false);
+  const [showBio, setShowBio] = useState(false);
 
   // Slide in on the graphics chip as soon as it's opened.
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function GrooveSheet({ open, onClose }) {
   }
 
   return (
+    <>
     <Portal>
       {/* No dimming layer: a full-screen tint left a visible block in the
           status-bar area on iPhones. The drawer's shadow separates it instead. */}
@@ -109,7 +112,15 @@ export default function GrooveSheet({ open, onClose }) {
           <button onClick={close} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
             <X size={20} />
           </button>
-          <Wordmark height={45} className="mb-8 mt-4 mx-auto block" />
+          <Wordmark height={45} className="mb-3 mt-4 mx-auto block" />
+          <button
+            onClick={() => setShowBio(true)}
+            style={{ color: PLUM, background: INK_3 }}
+            className="mx-auto mb-7 flex items-center gap-2 rounded-full pl-1 pr-3.5 py-1 text-sm font-medium"
+          >
+            <img src="/greg.jpg" alt="" style={{ objectPosition: '50% 20%' }} className="w-7 h-7 rounded-full object-cover" />
+            Learn more about Greg
+          </button>
           <div className="space-y-6 text-center">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>
@@ -122,5 +133,7 @@ export default function GrooveSheet({ open, onClose }) {
         <div className="flex-1" />
       </div>
     </Portal>
+    {showBio && <GregBio onClose={() => setShowBio(false)} />}
+    </>
   );
 }
