@@ -6,7 +6,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme
 
 // Before a suggested lifting workout: anything sore or off today? The answer shapes the suggestion
 // (movements that load a sore area are left out; "run down" trims the session).
-export default function ReadinessSheet({ onConfirm, onCancel }) {
+export default function ReadinessSheet({ onConfirm, onCancel, injuries = [] }) {
   const [areas, setAreas] = useState([]);
   const [tired, setTired] = useState(false);
   const sheet = useSwipeDown(onCancel);
@@ -27,6 +27,7 @@ export default function ReadinessSheet({ onConfirm, onCancel }) {
             ))}
             <button onClick={() => setTired((v) => !v)} style={chip(tired)} className="rounded-full px-3.5 py-1.5 text-sm">Run down</button>
           </div>
+          {injuries.length > 0 && <div style={{ color: SKY }} className="text-[13px] mb-2">Already working around: {injuries.map((i) => i.label).join(', ')}</div>}
           <div style={{ color: TEXT_SOFT }} className="text-[13px] mb-4">Sharp pain or swelling? Skip that area and check in with a pro.</div>
           <button onClick={() => onConfirm({ areas, tired })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium">
             {any ? 'Build around that' : 'All good, build it'}

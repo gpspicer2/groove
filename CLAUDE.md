@@ -102,6 +102,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Pre-workout body check (`move/ReadinessSheet.jsx`): starting a Suggested Resistance/Mixed workout first asks "How's your body today?" (tap sore areas, or "Run down"). `BODY_AREAS`/`avoidForAreas` in `exerciseLibrary.js` drop exercises by simple name patterns (not medical advice; sheet says to see a pro for sharp pain/swelling); "Run down" trims to 4 exercises with one set fewer. Clean slate skips it. Saved in `groove:readiness:<workoutId>`; the workout guide line says "Adjusted for today".
 
+- Injuries and limits (`src/features/injury/`): Account > "Injuries and limits" (members) lists body area (same `BODY_AREAS` as the body check), a label, the date and a note. Stored in `profiles.injuries` jsonb (SQL at end of `schema.sql`; until run it lives in localStorage `groove:injuries:<id>`, and Greg can't see it). Active injuries are always avoided by suggested lifting workouts (`avoidForAreas`, a hard exclude also applied to the squat/anchor helpers) until marked recovered; the body-check sheet says "Already working around". Shows "week N · stage" with generic healing-phase guidance (`stageFor`: Protect <2 wk, Early loading <6, Rebuilding <12, Return to training); general guidance only, no PT prescription. Coach member Overview lists them under Flags. Not yet done: Greg may want to edit the stage wording.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

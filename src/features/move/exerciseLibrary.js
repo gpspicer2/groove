@@ -304,13 +304,13 @@ const MAX_EXERCISES = 6;
 // rather than left to chance shuffling.
 const LEG_GROUPS = ['Legs', 'Quadriceps']; // a glutes- or hamstrings-only day doesn't need a squat forced in
 const SQUAT_PATTERN = /Squat|Leg Press/i;
-function ensureSquatVariation(final, muscleGroups, style, location, recentNames) {
+function ensureSquatVariation(final, muscleGroups, style, location, recentNames, exclude = []) {
   if (!muscleGroups.some((g) => LEG_GROUPS.includes(g))) return final;
   if (final.some((ex) => SQUAT_PATTERN.test(ex.name))) return final;
   const styleConfig = STYLE_CONFIG[style] || {};
   for (const group of LEG_GROUPS) {
     if (!muscleGroups.includes(group)) continue;
-    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => SQUAT_PATTERN.test(e.name));
+    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => SQUAT_PATTERN.test(e.name) && !exclude.includes(e.name));
     if (pool.length === 0) continue;
     const pick = pool.find((e) => !recentNames.includes(e.name)) || pool[0];
     const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
@@ -333,7 +333,7 @@ const ANCHOR_EXERCISES = {
 
 // Strength work repeats its main lifts on purpose. For hypertrophy and endurance the anchor lift takes turns:
 // if it was in the last workout, a different lift for that muscle leads this time (it returns the next session).
-function ensureAnchors(final, muscleGroups, gender, style, location, recentNames = []) {
+function ensureAnchors(final, muscleGroups, gender, style, location, recentNames = [], exclude = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   let result = final;
   const keep = new Set(muscleGroups.map((g) => ANCHOR_EXERCISES[g]?.(gender)).filter(Boolean));
@@ -341,6 +341,7 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     const anchorFn = ANCHOR_EXERCISES[group];
     if (!anchorFn) continue;
     const anchorName = anchorFn(gender);
+    if (exclude.includes(anchorName)) continue; // sore or injured: never forced in
     if (result.some((ex) => ex.name === anchorName)) continue;
     if (style !== 'Strength' && recentNames.includes(anchorName)) continue;
     const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
@@ -414,8 +415,8 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
   const capped = ordered.slice(0, MAX_EXERCISES);
-  const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, [...recentNames, ...exclude]);
-  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, [...recentNames, ...exclude]);
+  const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames, exclude);
+  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames, exclude);
   return withAnchors
     .map((ex, i) => ({ ex, i }))
     .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))

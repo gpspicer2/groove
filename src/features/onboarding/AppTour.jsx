@@ -40,7 +40,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'top', color: PLUM, noTabs: true, title: 'Your Account',
-    body: "Message Greg, connect Strava to sync your watch workouts, update your health check, or switch to dark mode.",
+    body: "Message Greg, connect Strava to sync your watch workouts, update your health check, list an injury so workouts work around it, or switch to dark mode.",
   },
 ];
 

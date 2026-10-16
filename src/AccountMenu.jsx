@@ -16,6 +16,8 @@ import { logMeasurement } from './lib/measurements';
 import { getThemePref, setThemePref } from './appearance';
 import { SwitchAccountSection } from './auth/SwitchAccount';
 import NotificationsRow from './features/push/NotificationsRow';
+import InjurySheet from './features/injury/InjurySheet';
+import { useInjuries, activeInjuries } from './features/injury/injuries';
 import StravaRow from './features/strava/StravaRow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
@@ -45,6 +47,8 @@ function AccountModal({ onClose }) {
   const { user, profile, updateProfile, isTrainer, signOut } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showMovements, setShowMovements] = useState(false);
+  const [showInjuries, setShowInjuries] = useState(false);
+  const inj = useInjuries(user.id);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const deleteRef = useRevealOnOpen(confirmingDelete);
   const sheet = useSwipeDown(onClose);
@@ -117,6 +121,13 @@ function AccountModal({ onClose }) {
         {!isTrainer && <BaselineDataSection userId={user.id} />}
 
         {!isTrainer && (
+          <LinkRow
+            label={activeInjuries(inj.injuries).length ? `Injuries and limits (${activeInjuries(inj.injuries).length})` : 'Injuries and limits'}
+            onClick={() => setShowInjuries(true)}
+          />
+        )}
+
+        {!isTrainer && (
           <SettingsSection
             userId={user.id}
             onChangePassword={() => setShowPassword(true)}
@@ -126,6 +137,7 @@ function AccountModal({ onClose }) {
         )}
 
         {isTrainer && <NotificationsRow />}
+        {showInjuries && <InjurySheet injuries={inj.injuries} onSave={inj.save} onClose={() => setShowInjuries(false)} />}
 
         <div className="grid grid-cols-2 gap-2 mt-2">
           <button

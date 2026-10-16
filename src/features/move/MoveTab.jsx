@@ -17,6 +17,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
+import { useInjuries, activeInjuries } from '../injury/injuries';
 import StravaMark, { STRAVA_ORANGE } from '../strava/StravaMark';
 import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
@@ -327,6 +328,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [programSession, setProgramSession] = useState(null);
   const [autoStart, setAutoStart] = useState(false);
   // "How's your body today?" asked before a suggested lifting workout; the answer shapes the picks.
+  const { injuries: allInjuries } = useInjuries(user?.id);
+  const injuries = activeInjuries(allInjuries);
   const [readiness, setReadiness] = useState(null); // { areas: [...], tired }
   const [readinessOpen, setReadinessOpen] = useState(false);
 
@@ -751,7 +754,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
       // A one-muscle program day (chest day, arm day) needs more picks per muscle.
       const perGroup = programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...avoidForAreas(readiness?.areas || [])])
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)])])
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       // Run down: a shorter session with one fewer set per exercise.
       if (readiness?.tired) plan = plan.slice(0, 4).map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) }));
@@ -820,7 +823,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
-    if (readiness && (readiness.areas.length > 0 || readiness.tired)) { try { localStorage.setItem(`groove:readiness:${data.id}`, JSON.stringify(readiness)); } catch { /* storage blocked */ } }
+    if ((readiness && (readiness.areas.length > 0 || readiness.tired)) || injuries.length > 0) { try { localStorage.setItem(`groove:readiness:${data.id}`, JSON.stringify({ areas: readiness?.areas || [], tired: Boolean(readiness?.tired), injuries: injuries.map((i) => i.label) })); } catch { /* storage blocked */ } }
     setReadiness(null);
     // Remembered so "Repeat last workout" can start the same kind of session in one tap.
     if (!programSession) {
@@ -1254,7 +1257,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         </button>
       )}
 
-      {readinessOpen && <ReadinessSheet onCancel={() => setReadinessOpen(false)} onConfirm={(r) => { setReadiness(r); setReadinessOpen(false); setQuickStart(true); }} />}
+      {readinessOpen && <ReadinessSheet injuries={injuries} onCancel={() => setReadinessOpen(false)} onConfirm={(r) => { setReadiness(r); setReadinessOpen(false); setQuickStart(true); }} />}
       {checkInWorkoutId && <CheckInSheet onSave={(f) => saveCheckIn(f)} onReflect={onJournalAfterWorkout ? (f) => saveCheckIn(f, true) : null} onSkip={() => setCheckInWorkoutId(null)} />}
       {showProgramSheet && user && (
         <ProgramSheet userId={user.id} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={profile?.week_start_day || 'sunday'} />
@@ -2058,8 +2061,9 @@ function workoutGuide(workout) {
       const r = JSON.parse(localStorage.getItem(`groove:readiness:${workout.id}`) || 'null');
       if (r) {
         const names = (r.areas || []).map((id) => (BODY_AREAS.find((a) => a.id === id) || {}).label).filter(Boolean).map((l) => l.toLowerCase());
-        const bits = [names.length ? `built around ${names.join(', ')}` : '', r.tired ? 'a lighter session' : ''].filter(Boolean);
-        if (bits.length) lines.push(`Adjusted for today: ${bits.join(' · ')}`);
+        const inj = (r.injuries || []).map((l) => l.toLowerCase());
+        const bits = [names.length ? `built around ${names.join(', ')}` : '', inj.length ? `working around ${inj.join(', ')}` : '', r.tired ? 'a lighter session' : ''].filter(Boolean);
+        if (bits.length) lines.push(`Adjusted: ${bits.join(' · ')}`);
       }
     } catch { /* ignore */ }
     return { title: null, lines };

@@ -474,3 +474,7 @@ alter table public.strava_connections enable row level security;
 alter table public.profiles add column if not exists strava_connected boolean default false;
 alter table public.workouts add column if not exists external_id text;
 create unique index if not exists workouts_external_id_idx on public.workouts (user_id, external_id) where external_id is not null;
+
+-- Injuries and limits (area, date, note). Until this runs, each member's list stays on their own device
+-- and Greg can't see it in the coach view.
+alter table public.profiles add column if not exists injuries jsonb;
