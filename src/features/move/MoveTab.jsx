@@ -2123,8 +2123,14 @@ function ActiveWorkout({
   const [restStartedAt, setRestStartedAt] = useState(null);
   const [restGroupIndex, setRestGroupIndex] = useState(null);
   const [restElapsed, setRestElapsed] = useState(0);
+  const [warmupOpen, setWarmupOpen] = useState(false);
+  const finishArm = useArmed();
 
   const groups = groupPlan(exercises);
+  // The warm-up parts (aerobic + dynamic drills) fold into one row; they open on tap, or when one is the active card.
+  const warmupEndGi = groups.findIndex((g) => g[0].type === 'warmup');
+  const warmupKeys = warmupEndGi >= 0 ? groups.slice(0, warmupEndGi + 1).map((g) => `${g[0].type || 'ex'}-${g[0].name}`) : [];
+  const warmupShown = warmupOpen || warmupKeys.some((k) => activeGroupKey && String(activeGroupKey).startsWith(k));
   // An exercise counts as complete once it's ticked, or its target sets are logged
   // (cardio: anything logged). Same key rule as the cards below.
   function isGroupDone(group, groupKey) {
@@ -2293,10 +2299,17 @@ function ActiveWorkout({
             <Plus size={14} /> Add Dynamic Warm-up
           </button>
         )}
-        {exercises.some((e) => e.type === 'warmup') && (
-          <div style={{ color: VIOLET }} className="pl-6 text-[10px] font-medium uppercase tracking-widest select-none">
-            Warm-up
-          </div>
+        {warmupEndGi >= 0 && (
+          <button
+            onClick={() => setWarmupOpen((v) => !(v || warmupShown))}
+            style={{ background: INK_2, borderLeft: `3px solid ${VIOLET}` }}
+            className="w-full rounded-md px-4 py-2.5 flex items-center justify-between text-left"
+          >
+            <span style={{ color: PAPER }} className="text-base font-bold">Warm-up</span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-1.5">
+              {warmupEndGi + 1} {warmupEndGi === 0 ? 'part' : 'parts'} {warmupShown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </span>
+          </button>
         )}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
@@ -2315,7 +2328,8 @@ function ActiveWorkout({
           const dupeCount = groupKeyCounts.get(baseGroupKey) || 0;
           groupKeyCounts.set(baseGroupKey, dupeCount + 1);
           const groupKey = dupeCount === 0 ? baseGroupKey : `${baseGroupKey}#${dupeCount}`;
-          const displayIndex = gi + 1;
+          // Warm-up parts read a, b; the working exercises then count from 1.
+          const displayIndex = warmupEndGi >= 0 ? (gi <= warmupEndGi ? String.fromCharCode(97 + gi) : gi - warmupEndGi) : gi + 1;
           const lead = group[0];
           const isDone = isGroupDone(group, groupKey);
           groupInfoRef.current.push({ key: groupKey, complete: isDone, type: lead.type });
@@ -2448,7 +2462,7 @@ function ActiveWorkout({
           const nextGroup = groups[gi + 1];
           const insertAfter = nextGroup ? nextGroup[0].index : exercises.length;
           return (
-            <Fragment key={groupKey}>
+            <div key={groupKey} className={warmupEndGi >= 0 && gi <= warmupEndGi && !warmupShown ? 'hidden' : 'space-y-3'}>
               <div
                 data-group-key={groupKey}
                 ref={(el) => (groupRefs.current[gi] = el)}
@@ -2501,7 +2515,7 @@ function ActiveWorkout({
                   <div style={{ borderTop: `2px dashed ${VIOLET}`, opacity: 0.4 }} />
                 </div>
               )}
-            </Fragment>
+            </div>
           );
         })}
       </div>
@@ -2639,11 +2653,12 @@ function ActiveWorkout({
       )}
 
       <button
-        onClick={onFinish}
-        style={{ background: SKY, color: INK }}
-        className="w-full rounded-md py-3 text-sm font-medium flex items-center justify-center gap-1.5 mb-3"
+        onClick={() => finishArm.press('f', onFinish)}
+        data-armed={finishArm.armed === 'f'}
+        style={finishArm.armed === 'f' ? { background: INK_2, color: SKY, outline: `2px solid ${SKY}`, outlineOffset: -2 } : { background: SKY, color: INK }}
+        className="w-full rounded-md py-3.5 text-sm font-medium flex items-center justify-center gap-1.5 mt-6 mb-3"
       >
-        <Check size={16} /> Finish Workout
+        <Check size={16} /> {finishArm.armed === 'f' ? 'Tap again to finish' : 'Finish Workout'}
       </button>
 
       <button
@@ -3426,17 +3441,12 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
   ].filter(Boolean);
 
-  const boxClass = 'w-full rounded-md pl-1.5 pr-6 py-1.5 text-sm outline-none text-center';
+  const boxClass = 'w-full rounded-md pl-1.5 pr-7 py-2.5 text-base outline-none text-center';
   const boxStyle = { background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' };
   const unitClass = 'absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none';
 
   return (
     <>
-      {contextBits.length > 0 && (
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 text-center">
-          {contextBits.join(' · ')}
-        </div>
-      )}
       <div className="flex items-center justify-center gap-2">
         <label className="relative w-[4.3rem] shrink-0">
           <input
@@ -3490,15 +3500,15 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           onClick={handleLog}
           disabled={belowBarbell}
           style={{ background: belowBarbell ? INK_3 : SKY, color: belowBarbell ? TEXT_SOFT : INK }}
-          className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
+          className="flex-1 rounded-md py-2.5 text-base font-medium flex items-center justify-center gap-1"
         >
-          <Plus size={14} /> Log
+          <Plus size={16} /> Log
         </button>
         {onFinish && nextSetNumber > 1 && (
           <button
             onClick={onFinish}
             style={{ background: INK_3, color: PAPER }}
-            className="rounded-md py-2 px-2.5"
+            className="rounded-md py-3 px-3"
             title="Finish this exercise"
           >
             <Check size={14} />
@@ -3515,7 +3525,12 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : ref.weight}×{refCount}
         </button>
       )}
-      {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center -mt-1 mb-2">The bar alone is {BARBELL_MIN_LB} lb.</div>}
+      {contextBits.length > 0 && (
+        <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-1.5 text-center">
+          {contextBits.join(' · ')}
+        </div>
+      )}
+      {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1 mb-2">The bar alone is {BARBELL_MIN_LB} lb.</div>}
     </>
   );
 }
@@ -3597,11 +3612,13 @@ function ExerciseCard({
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
           className="w-full rounded-md pl-4 pr-11 py-3 flex items-center justify-between text-left"
         >
-          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
-          </span>
-          <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-            {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+          <span className="min-w-0">
+            <span style={{ color: PAPER }} className="text-base font-bold flex items-baseline gap-2">
+              <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> <span>{exercise.name}{isDone && ' ✅'}</span>
+            </span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm block pl-6">
+              {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+            </span>
           </span>
         </button>
       </SwipeActions>
@@ -4282,11 +4299,13 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }}
           className="w-full rounded-md pl-4 pr-11 py-3 flex items-center justify-between text-left"
         >
-          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
-          </span>
-          <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-            {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+          <span className="min-w-0">
+            <span style={{ color: PAPER }} className="text-base font-bold flex items-baseline gap-2">
+              <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> <span>{exercise.name}{isDone && ' ✅'}</span>
+            </span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm block pl-6">
+              {loggedSets.length > 0 ? `${loggedSets.length} logged` : `${exercise.sets}×${exercise.reps}`}
+            </span>
           </span>
         </button>
       </SwipeActions>
