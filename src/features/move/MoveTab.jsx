@@ -3,8 +3,9 @@ import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { revealSoon } from '../../lib/reveal';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding } from '../../lib/icons';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';
@@ -871,7 +872,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   function replaceExercise(index, next) {
     const ex = planExercises[index];
     setPlanExercises((prev) =>
-      prev.map((e, i) => (i === index ? { ...e, name: next.name, sets: ex.sets, reps: ex.reps } : e))
+      prev.map((e, i) => (i === index
+        ? { ...e, name: next.name, ...(next.muscleGroup ? { muscleGroup: next.muscleGroup } : {}), sets: ex.type === 'flexibility' ? (next.sets ?? ex.sets) : ex.sets, reps: ex.type === 'flexibility' ? (next.reps ?? ex.reps) : ex.reps }
+        : e))
     );
   }
 
@@ -2273,7 +2276,7 @@ function ActiveWorkout({
         </div>
       )}
 
-      <SwipeHint id="exercises">Tip: swipe an exercise left to swap, edit, or delete it — and drag the dots to reorder.</SwipeHint>
+      <SwipeHint id="exercises">Tip: tap the ⋯ on an exercise to swap, move, or remove it — or drag the dots to reorder.</SwipeHint>
       <div className="space-y-3 mb-4">
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
@@ -2382,6 +2385,8 @@ function ActiveWorkout({
               card = (
                 <FlexibilityCard
                   index={displayIndex}
+                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
+                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   exercise={ex}
                   loggedSets={loggedSets}
                   onLogSet={onLogSet}
@@ -2398,6 +2403,8 @@ function ActiveWorkout({
               card = (
                 <ExerciseCard
                   index={displayIndex}
+                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
+                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   exercise={ex}
                   style={workout.style}
                   bodyweight={bodyweight}
@@ -2848,12 +2855,16 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
 function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   const [custom, setCustom] = useState('');
   const isAerobic = exercise.type === 'aerobic';
+  const isFlex = exercise.type === 'flexibility';
   const choosing = isAerobic && exercise.name === WARMUP_AEROBIC_PLACEHOLDER;
+  // Swap within the same muscle, or tap another muscle to pick from its list.
+  const [group, setGroup] = useState(exercise.muscleGroup);
+  const allGroups = Object.keys(isFlex ? FLEXIBILITY_LIBRARY : EXERCISE_LIBRARY);
   const pool = (isAerobic
     ? [...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].map((name) => ({ name }))
-    : exercise.type === 'flexibility'
-      ? (FLEXIBILITY_LIBRARY[exercise.muscleGroup] || [])
-      : filterByLocation(EXERCISE_LIBRARY[exercise.muscleGroup] || [], location)
+    : isFlex
+      ? (FLEXIBILITY_LIBRARY[group] || [])
+      : filterByLocation(EXERCISE_LIBRARY[group] || [], location)
   ).filter((e) => e.name !== exercise.name && !usedNames.includes(e.name));
 
   return (
@@ -2871,16 +2882,23 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
             <X size={18} />
           </button>
         </div>
+        {!isAerobic && allGroups.length > 1 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+            {allGroups.map((g) => (
+              <button key={g} onClick={() => setGroup(g)} style={{ background: group === g ? SKY : INK_3, color: group === g ? INK : PAPER_DIM }} className="px-3 py-1.5 rounded-full text-sm">{g}</button>
+            ))}
+          </div>
+        )}
         {pool.length === 0 ? (
           <div style={{ color: TEXT_SOFT }} className="text-sm py-4 text-center">
-            No other {exercise.muscleGroup.toLowerCase()} {isAerobic ? 'activities' : 'exercises'} left to pick from.
+            No other {group.toLowerCase()} {isAerobic ? 'activities' : 'exercises'} left to pick from.
           </div>
         ) : (
           <div className="space-y-1">
             {pool.map((e) => (
               <button
                 key={e.name}
-                onClick={() => onPick(e)}
+                onClick={() => onPick(isAerobic ? e : { ...e, muscleGroup: group })}
                 style={{ background: INK_3, color: PAPER }}
                 className="w-full text-center rounded-md px-4 py-3 text-sm"
               >
@@ -3480,74 +3498,64 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Swipe left reveals Swap/Edit/Delete — same reveal-a-drawer pattern as
 // Birdseye's goal rows (see GoalRow): the row's own content never moves,
 // three buttons slide in from off-screen to overlay it.
-function SwipeActions({ children, onSwap, onEdit, onRemove }) {
-  const [revealed, setRevealed] = useState(false);
-  useSingleOpenRow(revealed, setRevealed);
+// Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
+// swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
+// `menuSide` is where the button sits: right on a collapsed row, left on an open card.
+function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onMoveUp, onMoveDown, menuSide = 'right' }) {
+  const [open, setOpen] = useState(false);
   const arm = useArmed();
-  useEffect(() => {
-    const close = () => setRevealed(false);
-    window.addEventListener('groove:tabchange', close);
-    return () => window.removeEventListener('groove:tabchange', close);
-  }, []);
-  const startX = useRef(0);
-  const dragging = useRef(false);
-
-  // A drawer left open while scrolling past it (or after a swipe to a
-  // different tab and back) reads as stuck/broken rather than open on
-  // purpose — same fix as GoalRow's.
-  useEffect(() => {
-    if (!revealed) return;
-    const scroller = document.getElementById('app-scroll');
-    if (!scroller) return;
-    const startTop = scroller.scrollTop;
-    function onScroll() {
-      if (Math.abs(scroller.scrollTop - startTop) > 40) setRevealed(false);
-    }
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    return () => scroller.removeEventListener('scroll', onScroll);
-  }, [revealed]);
-
-  function handleTouchStart(e) {
-    startX.current = e.touches[0].clientX;
-    dragging.current = true;
-  }
-  function handleTouchMove(e) {
-    if (!dragging.current) return;
-    const dx = e.touches[0].clientX - startX.current;
-    if (dx < -30) setRevealed(true);
-    if (dx > 30) setRevealed(false);
-  }
-  function handleTouchEnd() {
-    dragging.current = false;
-  }
-
+  const sheet = useSwipeDown(() => setOpen(false));
+  const close = () => setOpen(false);
+  const row = (key, label, Icon, color, onClick) => (
+    <button key={key} onClick={onClick} style={{ background: INK_3, color: PAPER }} className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2">
+      <Icon size={16} color={color} /> {label}
+    </button>
+  );
   return (
-    <div
-      data-no-swipe="row"
-      data-revealed={revealed}
-      style={{ touchAction: 'pan-y' }}
-      className="relative rounded-md overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <RevealPills
-        revealed={revealed}
-        place="top-0 h-14"
-        actions={[
-          ...(onSwap ? [{ key: 'swap', label: 'Swap', icon: Replace, color: LIME, fireOnTouch: true, onClick: () => { onSwap(); setRevealed(false); } }] : []),
-          { key: 'edit', label: 'Edit', icon: SlidersHorizontal, color: SKY, fireOnTouch: true, onClick: () => { onEdit(); setRevealed(false); } },
-          { key: 'del', label: 'Remove', icon: Trash2, color: BRICK, fireOnTouch: true, onClick: () => arm.press('remove', onRemove), armed: arm.armed === 'remove' },
-        ]}
-      />
-      <div className="relative bg-inherit">{children}</div>
+    <div className="relative rounded-md">
+      {children}
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        style={{ color: TEXT_SOFT }}
+        className={`absolute top-1/2 -translate-y-1/2 ${menuSide === 'left' ? 'left-0.5 top-5' : 'right-1'} z-10 w-9 h-9 flex items-center justify-center rounded-full`}
+        aria-label="Exercise options"
+      >
+        <MoreHorizontal size={18} />
+      </button>
+      {open && (
+        <Portal>
+          <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={close}>
+            <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-5" onClick={(e) => e.stopPropagation()}>
+              <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+              {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{title}</div>}
+              {onSwap && row('swap', 'Swap for another', Replace, LIME, () => { close(); onSwap(); })}
+              {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
+              {(onMoveUp || onMoveDown) && (
+                <div className="flex gap-2">
+                  {onMoveUp ? <div className="flex-1">{row('up', 'Move up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}</div> : null}
+                  {onMoveDown ? <div className="flex-1">{row('down', 'Move down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}</div> : null}
+                </div>
+              )}
+              <button
+                onClick={() => arm.press('remove', () => { close(); onRemove(); })}
+                data-armed={arm.armed === 'remove'}
+                style={{ background: BRICK, color: PAPER, outline: arm.armed === 'remove' ? `2px solid ${PAPER}` : 'none', outlineOffset: -4 }}
+                className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
+              >
+                <Trash2 size={16} /> {arm.armed === 'remove' ? 'Tap again to remove' : 'Remove'}
+              </button>
+              <button onClick={close} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 text-center">Cancel</button>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onMoveUp, onMoveDown,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3558,11 +3566,11 @@ function ExerciseCard({
 
   if (!isActive) {
     return (
-      <SwipeActions onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
-          className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+          className="w-full rounded-md pl-4 pr-11 py-3 flex items-center justify-between text-left"
         >
           <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
@@ -3576,10 +3584,10 @@ function ExerciseCard({
   }
 
   return (
-    <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
       <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="w-4 shrink-0" aria-hidden="true" />
+          <span className="w-6 shrink-0" aria-hidden="true" />
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
@@ -3656,9 +3664,9 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   const [byTime, setByTime] = useState(false);
 
   return (
-    <SwipeActions onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div>
-        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1">{exercise.name}</div>
+        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name}</div>
         {showSettings && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <button
@@ -3987,11 +3995,11 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
                 <GripVertical size={12} />
               </button>
               <div className="flex-1 min-w-0">
-                <SwipeActions onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
+                <SwipeActions title={name} editLabel="Rename" onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
                   <button
                     onClick={() => toggle(name)}
                     style={{ background: INK_3, color: done ? TEXT_SOFT : PAPER }}
-                    className="w-full rounded-md px-3 py-2 text-sm flex items-center gap-2 text-left"
+                    className="w-full rounded-md pl-3 pr-10 py-2 text-sm flex items-center gap-2 text-left"
                   >
                     <span
                       style={{ borderColor: done ? VIOLET : TEXT_SOFT, background: done ? VIOLET : 'transparent' }}
@@ -4210,7 +4218,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   );
 }
 
-function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone }) {
+function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone, onMoveUp, onMoveDown }) {
   // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
   // Some stretches (Cat-Cow) are counted in reps, not held for seconds.
   const isReps = /rep/i.test(String(exercise.reps || ''));
@@ -4239,11 +4247,11 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   // Collapsed, like the lifts: one slim row.
   if (!isActive) {
     return (
-      <SwipeActions onSwap={onOpenSwap} onEdit={onActivate} onRemove={onRemove}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }}
-          className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
+          className="w-full rounded-md pl-4 pr-11 py-3 flex items-center justify-between text-left"
         >
           <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
@@ -4257,10 +4265,10 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   }
 
   return (
-    <SwipeActions onSwap={onOpenSwap} onEdit={onCollapse} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
     <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-2.5">
       <div className="flex items-center justify-between mb-1">
-        <span className="w-4 shrink-0" aria-hidden="true" />
+        <span className="w-6 shrink-0" aria-hidden="true" />
         <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
         </span>
