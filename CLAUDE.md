@@ -110,6 +110,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Finishing exercises: the check button inside a card only ever finishes (marks done, opens the next one); it never un-ticks, because a card whose sets were all logged is already auto-done and the old toggle un-ticked it, forcing a second tap. Un-ticking lives in ⋯ > "Not finished yet". Supersets have a "Finish superset" button, a green tint and a ✅ like other cards. `src/main.jsx` marks every text field autocomplete off (except email/password) to reduce the phone's saved-info bar over the keyboard; iOS's own arrows/check bar can't be removed from a web app.
 
+- Program card split: Birdseye keeps the slim glance (`ProgramWeekCard`, days + next + Start). Move's `MoveProgramCard` is the program's home: header shows the exact program (model · split · days a week), phase/week and lb lifted, day strip, next session with its muscles and sets/reps; tapping the header opens the whole week (every session with day, muscles, prescription) and the cycle note (open state in `groove:programOpen`).
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

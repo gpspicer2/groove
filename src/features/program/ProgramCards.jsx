@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { Check, Pencil, Play, ListChecks } from '../../lib/icons';
+import React, { useMemo, useState } from 'react';
+import { Check, Pencil, Play, ListChecks, ChevronDown, ChevronUp } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
-import { GOALS, DAY_NAMES, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
+import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
 
 // This week's sessions with done / next flags, from this week's logged workouts.
 export function useProgramWeek(userId, program, active, refreshKey, weekStartDay) {
@@ -32,22 +32,40 @@ function sessionDetail(s) {
 
 // Move: the program at a glance. Phase and week, the next session with its sets and reps and a one-tap
 // Start, and one line of progress (sessions this week, pounds lifted since the program began).
+// One line about what a session trains: the muscles, plus the day's flavor when it has one (Heavy, Light...).
+function sessionBlurb(x) {
+  if (x.kind === 'aerobic') return 'Cardio · steady, easy pace';
+  const parts = [...new Set(x.groups || [])];
+  return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts.join(', ')}`;
+}
+
+const LS_OPEN = 'groove:programOpen';
+function readOpen() { try { return localStorage.getItem(LS_OPEN) === '1'; } catch { return false; } }
+
+// Move: the program in full. Collapsed it is one tidy card (exact program, week, days, next session + Start).
+// Tap the header to open every session this week with its muscles and sets, and the shape of the cycle.
 export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }) {
+  const [open, setOpen] = useState(readOpen);
   if (!program || !week) return null;
+  const toggle = () => setOpen((v) => { const n = !v; try { localStorage.setItem(LS_OPEN, n ? '1' : '0'); } catch { /* storage blocked */ } return n; });
   const s = week.next;
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
-  const model = program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : '';
+  const split = chosenSplit(program);
+  const model = program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
+  const exact = [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
   const acc = s && s.kind !== 'aerobic' ? accessoryLine(s) : '';
+  const len = cycleLength(program);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
       <div className="flex items-center justify-between text-center">
-        <span className="w-5" />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</span>
+        <button onClick={toggle} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={open ? 'Show less' : 'Show the whole program'}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+        <button onClick={toggle} style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</button>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-0.5">
-        <span className="truncate">{model}{week.label}</span>
+      <button onClick={toggle} style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</button>
+      <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-1">
+        <span className="truncate">{week.label}</span>
         <span className="shrink-0">{lifted.toLocaleString()} lb lifted</span>
       </div>
       <div className="flex gap-1.5 mt-2">
@@ -65,23 +83,43 @@ export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }
         })}
       </div>
       {s ? (
-        <>
-          <div className="flex items-center justify-between gap-3 mt-2">
-            <div className="min-w-0">
-              <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
-              <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s)}{acc ? ` · ${acc}` : ''}</div>
-            </div>
-            {s.inProgress ? (
-              <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In progress</span>
-            ) : (
-              <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
-                <Play size={14} /> Start
-              </button>
-            )}
+        <div className="flex items-center justify-between gap-3 mt-2">
+          <div className="min-w-0">
+            <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(s)}</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s)}{acc ? ` · ${acc}` : ''}</div>
           </div>
-        </>
+          {s.inProgress ? (
+            <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In progress</span>
+          ) : (
+            <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
+              <Play size={14} /> Start
+            </button>
+          )}
+        </div>
       ) : (
         <div style={{ color: PAPER_DIM }} className="text-sm mt-2 text-center">All {week.sessions.length} sessions done this week. Nice work!</div>
+      )}
+      {open && (
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-2.5">
+          <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This week</div>
+          <div className="space-y-1.5">
+            {week.sessions.map((x) => (
+              <div key={x.id} style={{ background: INK_3 }} className="rounded-md px-3 py-2 flex items-start gap-2.5">
+                <span style={{ color: x.done ? TEXT_SOFT : SKY }} className="shrink-0 w-9 text-sm font-medium pt-px">{DAY_NAMES[x.day]}</span>
+                <div className="min-w-0 flex-1">
+                  <div style={{ color: x.done ? TEXT_SOFT : PAPER }} className="text-sm font-medium flex items-center gap-1.5">{x.name}{x.done && <Check size={12} />}</div>
+                  <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(x)}</div>
+                  <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(x)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug mt-2.5">
+            {split ? `${split.freq}. ` : ''}The plan repeats every {len} weeks; the last week of each round is a lighter deload.
+            {program.startedAt ? ` Started ${new Date(`${program.startedAt}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : ''}
+          </div>
+        </div>
       )}
     </div>
   );
