@@ -1552,6 +1552,9 @@ function StartWorkout({
   const activitiesHeadingRef = useRef(null);
   const flexActivitiesHeadingRef = useRef(null);
   const groupsHeadingRef = useRef(null);
+  // Once answered, the location and workout-type steps fold into one line of chips (tap a chip to change it).
+  const [editLoc, setEditLoc] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const styleHeadingRef = useRef(null);
   function scrollHeadingToTop(ref) {
     requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -1617,6 +1620,7 @@ function StartWorkout({
           />
         </div>
       </div>
+      {(!selectedLocation || editLoc) && (<>
       <div ref={locationHeadingRef} style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">
         {planning ? 'Where will you move?' : isToday ? 'Where are we moving today?' : 'Where did you move?'}
       </div>
@@ -1627,7 +1631,7 @@ function StartWorkout({
           return (
             <button
               key={loc}
-              onClick={() => onSelectLocation(selected ? '' : loc)}
+              onClick={() => { onSelectLocation(selected ? '' : loc); setEditLoc(false); }}
               style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
               className="rounded-xl px-1.5 py-2 text-sm font-medium flex flex-col items-center justify-center gap-0.5 leading-tight"
             >
@@ -1638,6 +1642,7 @@ function StartWorkout({
           );
         })}
       </div>
+      </>)}
 
       {showProgramOffer && (
         <div style={{ background: INK_3, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3 mb-5 text-center">
@@ -1658,25 +1663,39 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && (
         <>
-          <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center">
+          {selectedLocation && !editLoc && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+              <button onClick={() => setEditLoc(true)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3.5 py-1.5 text-sm font-medium">
+                {locationEmojis(selectedLocation, gender)[0]} {selectedLocation}
+              </button>
+              {movementMode && !editMode && (
+                <button onClick={() => setEditMode(true)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3.5 py-1.5 text-sm font-medium">
+                  {MODE_EMOJI[movementMode]} {modeLabel(movementMode)}
+                </button>
+              )}
+            </div>
+          )}
+          {(!movementMode || editMode) && (<>
+          <div ref={modeHeadingRef} style={{ color: modeMissing ? BRICK : PAPER }} className="text-base font-medium mb-2 text-center">
             What kind of workout?{modeMissing ? ' Pick one to continue' : ''}
           </div>
-          <div className="grid grid-cols-2 gap-2 mb-5">
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
             {['Aerobic', 'Resistance', 'Flexibility', 'Combined'].map((mode) => {
               const selected = movementMode === mode;
               return (
                 <button
                   key={mode}
-                  onClick={() => onSelectMode(mode)}
+                  onClick={() => { onSelectMode(mode); setEditMode(false); }}
                   style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER }}
-                  className="rounded-xl py-3 flex flex-col items-center gap-0.5"
+                  className="rounded-xl px-0.5 py-2.5 flex flex-col items-center gap-0.5"
                 >
-                  <span className="text-2xl leading-none">{MODE_EMOJI[mode]}</span>
-                  <span className="text-sm font-medium">{modeLabel(mode)}</span>
+                  <span className="text-xl leading-none">{MODE_EMOJI[mode]}</span>
+                  <span className="text-[13px] font-medium">{modeLabel(mode)}</span>
                 </button>
               );
             })}
           </div>
+          </>)}
           {movementMode === 'Combined' && (
             <div className="mb-5">
               <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2 flex items-center justify-center gap-1.5">
@@ -1872,10 +1891,10 @@ function StartWorkout({
 
       {selectedLocation && needsStyle && (
         <>
-          <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER }} className="text-base font-medium text-center mb-3 mt-3">
+          <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER }} className="text-base font-medium text-center mb-2 mt-2">
             What's the goal?{styleMissing ? ' Pick one to continue' : ''}
           </div>
-          <div className="space-y-2 mb-5">
+          <div className="grid grid-cols-3 gap-2 mb-2">
             {TRAINING_STYLES.map((style) => {
               const selected = selectedStyle === style;
               return (
@@ -1886,16 +1905,20 @@ function StartWorkout({
                     background: selected ? SKY : INK_3,
                     outline: styleMissing ? `1.5px solid ${BRICK}` : 'none',
                   }}
-                  className="w-full text-center rounded-xl px-4 py-3"
+                  className="text-center rounded-xl px-1 py-2.5 flex flex-col items-center gap-0.5"
                 >
-                  <div style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{STYLE_EMOJI[style]} {style}</div>
-                  <div style={{ color: selected ? INK : TEXT_SOFT }} className="text-sm">{STYLE_CONFIG[style].blurb}</div>
-                  <div style={{ color: selected ? INK : TEXT_SOFT, opacity: 0.85 }} className="text-sm">{STYLE_CONFIG[style].nsca}</div>
-                  <div style={{ color: selected ? INK : TEXT_SOFT, opacity: 0.85 }} className="text-sm">{STYLE_CONFIG[style].suggest}</div>
+                  <span className="text-lg leading-none">{STYLE_EMOJI[style]}</span>
+                  <span style={{ color: selected ? INK : PAPER }} className="text-sm font-medium">{style}</span>
+                  <span style={{ color: selected ? INK : TEXT_SOFT }} className="text-xs">{STYLE_CONFIG[style].reps.replace('-', '–')} reps</span>
                 </button>
               );
             })}
           </div>
+          {selectedStyle && (
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] text-center mb-3">
+              {STYLE_CONFIG[selectedStyle].blurb} {STYLE_CONFIG[selectedStyle].nsca}.
+            </div>
+          )}
         </>
       )}
 
@@ -2018,7 +2041,22 @@ function ActiveWorkout({
   useEffect(() => {
     try { localStorage.setItem(doneMemoryKey, JSON.stringify([...doneKeys])); } catch { /* storage blocked */ }
   }, [doneKeys, doneMemoryKey]);
-  const markDone = (k) => setDoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  // Un-checked on purpose (even though its sets were all logged): stays not-done until ticked again.
+  const undoneMemoryKey = `groove:undoneGroups:${workout.id}`;
+  const [undoneKeys, setUndoneKeys] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(undoneMemoryKey) || '[]')); } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(undoneMemoryKey, JSON.stringify([...undoneKeys])); } catch { /* storage blocked */ }
+  }, [undoneKeys, undoneMemoryKey]);
+  const markDone = (k) => {
+    setDoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+    setUndoneKeys((prev) => { if (!prev.has(k)) return prev; const n = new Set(prev); n.delete(k); return n; });
+  };
+  const unmarkDone = (k) => {
+    setDoneKeys((prev) => { if (!prev.has(k)) return prev; const n = new Set(prev); n.delete(k); return n; });
+    setUndoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  };
   // Filled in while the cards render: each exercise's key and whether it's complete.
   const groupInfoRef = useRef([]);
   // On reopening a workout already underway with nothing left open, open the
@@ -2134,6 +2172,7 @@ function ActiveWorkout({
   // An exercise counts as complete once it's ticked, or its target sets are logged
   // (cardio: anything logged). Same key rule as the cards below.
   function isGroupDone(group, groupKey) {
+    if (undoneKeys.has(groupKey)) return false;
     if (doneKeys.has(groupKey)) return true;
     return group.every((m) => {
       const n = sets.filter((x) => x.exerciseName === m.name).length;
@@ -2395,7 +2434,8 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => markDone(groupKey)}
+                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   onQuickAdd={canQuickAddAerobic ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
               );
@@ -2414,7 +2454,8 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
-                  onDone={() => markDone(groupKey)}
+                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onUndo={isDone ? () => unmarkDone(groupKey) : null}
                 />
               );
             } else {
@@ -2437,7 +2478,8 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => markDone(groupKey)}
+                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   combinedActivity={combinedActivity}
                   preset={preset}
                   onQuickAerobic={betweenSets ? (name, intensity, minutes) => onLogSet({
@@ -3541,7 +3583,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
+function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onUndo, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
@@ -3568,6 +3610,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
             <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-5" onClick={(e) => e.stopPropagation()}>
               <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{title}</div>}
+              {onUndo && row('undo', 'Not finished yet (un-check)', Check, LIME, () => { close(); onUndo(); })}
               {onSwap && row('swap', 'Swap for another', Replace, LIME, () => { close(); onSwap(); })}
               {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
               {(onMoveUp || onMoveDown) && (
@@ -3595,7 +3638,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onMoveUp, onMoveDown,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onMoveUp, onMoveDown,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3606,7 +3649,7 @@ function ExerciseCard({
 
   if (!isActive) {
     return (
-      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
@@ -3626,7 +3669,7 @@ function ExerciseCard({
   }
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
       <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5">
         <div className="flex items-center justify-between mb-1">
           <span className="w-6 shrink-0" aria-hidden="true" />
@@ -4095,7 +4138,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd, isDone, onDone, onMoveUp, onMoveDown }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd, isDone, onDone, onUndo, onMoveUp, onMoveDown }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -4112,7 +4155,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   if (isActive === false) {
     return (
       <>
-        <SwipeActions title={exercise.name} menuClass={onQuickAdd ? 'right-12' : 'right-1'} onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+        <SwipeActions title={exercise.name} menuClass={onQuickAdd ? 'right-12' : 'right-1'} onSwap={onOpenSwap} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
           <button
             onClick={onActivate}
@@ -4264,7 +4307,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   );
 }
 
-function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone, onMoveUp, onMoveDown }) {
+function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone, onUndo, onMoveUp, onMoveDown }) {
   // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
   // Some stretches (Cat-Cow) are counted in reps, not held for seconds.
   const isReps = /rep/i.test(String(exercise.reps || ''));
@@ -4293,7 +4336,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   // Collapsed, like the lifts: one slim row.
   if (!isActive) {
     return (
-      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }}
@@ -4313,7 +4356,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   }
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
     <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-2.5">
       <div className="flex items-center justify-between mb-1">
         <span className="w-6 shrink-0" aria-hidden="true" />
