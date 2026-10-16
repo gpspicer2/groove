@@ -108,6 +108,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Cardio as a superset partner (integrated concurrent exercise): ⋯ > Make it a superset > "A cardio burst" pairs a lift with an aerobic activity (`SupersetCardio`: minutes, Light/Moderate/Vigorous, logged as aerobic sets; the workout upgrades to Mixed). Splitting turns it back into a normal cardio card. No rest timer after a cardio log.
 
+- Finishing exercises: the check button inside a card only ever finishes (marks done, opens the next one); it never un-ticks, because a card whose sets were all logged is already auto-done and the old toggle un-ticked it, forcing a second tap. Un-ticking lives in ⋯ > "Not finished yet". Supersets have a "Finish superset" button, a green tint and a ✅ like other cards. `src/main.jsx` marks every text field autocomplete off (except email/password) to reduce the phone's saved-info bar over the keyboard; iOS's own arrows/check bar can't be removed from a web app.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

@@ -2536,6 +2536,9 @@ function ActiveWorkout({
                 onOpenSwap={setSwapIndex}
                 onRemove={(index, hasLoggedSets) => onRemoveExercise(index, hasLoggedSets)}
                 onSplit={() => onUnpair(group[0].index)}
+                isDone={isDone}
+                onDone={() => { markDone(groupKey); advanceFrom(gi); }}
+                onUndo={isDone ? () => unmarkDone(groupKey) : null}
                 isActive={activeGroupKey === groupKey}
                 onActivate={() => setActiveGroupKey(groupKey)}
                 onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
@@ -2583,7 +2586,7 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
+                  onDone={() => { markDone(groupKey); advanceFrom(gi); }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   onQuickAdd={canQuickAddAerobic ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
@@ -2603,7 +2606,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
-                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
+                  onDone={() => { markDone(groupKey); advanceFrom(gi); }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                 />
               );
@@ -2629,7 +2632,7 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
+                  onDone={() => { markDone(groupKey); advanceFrom(gi); }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   combinedActivity={combinedActivity}
                   preset={preset}
@@ -3978,14 +3981,14 @@ function ExerciseCard({
 // ExerciseCard, so the gesture is consistent everywhere in a workout
 // rather than supersets being the one place with permanent inline
 // toggles and tap-target icon buttons instead.
-function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, nextSetNumber }) {
+function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, onUndo, nextSetNumber }) {
   const { armed, press } = useArmed();
   const [showSettings, setShowSettings] = useState(false);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name}</div>
         {showSettings && (
@@ -4039,7 +4042,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
 }
 
 // A cardio partner inside a superset (jump rope between squats, say): minutes + effort, logged as aerobic.
-function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit }) {
+function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, onUndo }) {
   const { armed, press } = useArmed();
   const lastMin = loggedSets.length ? Math.round((loggedSets[loggedSets.length - 1].durationSeconds || 120) / 60) : 2;
   const [minutes, setMinutes] = useState(lastMin);
@@ -4053,7 +4056,7 @@ function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwa
     });
   }
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onRemove={onRemove}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name} <span style={{ color: AMBER }} className="text-sm font-medium">cardio</span></div>
         {loggedSets.length > 0 && (
@@ -4089,26 +4092,26 @@ function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwa
   );
 }
 
-function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, isActive, onActivate, onCollapse }) {
+function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, isDone, onDone, onUndo, isActive, onActivate, onCollapse }) {
   if (isActive === false) {
     const logged = members.reduce((n, ex) => n + sets.filter((s) => s.exerciseName === ex.name).length, 0);
     return (
       <button
         onClick={onActivate}
-        style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }}
+        style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${LIME}` }}
         className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
       >
         <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2 min-w-0">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>
           <Link2 size={12} color={LIME} className="shrink-0" />
-          <span className="line-clamp-2 leading-tight">{members.map((m) => m.name).join(" + ")}</span>
+          <span className="line-clamp-2 leading-tight">{members.map((m) => m.name).join(" + ")}{isDone && ' ✅'}</span>
         </span>
         <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">{logged > 0 ? `${logged} logged` : 'superset'}</span>
       </button>
     );
   }
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3">
       <div onClick={onCollapse} className={`flex items-center justify-center gap-1.5 mb-3 ${onCollapse ? 'cursor-pointer' : ''}`}>
         {index != null && <span style={{ color: TEXT_SOFT }} className="text-sm font-medium">{index}.</span>}
         <Link2 size={12} color={LIME} />
@@ -4133,6 +4136,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
                 onOpenSwap={() => onOpenSwap(ex.index)}
                 onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
                 onSplit={onSplit}
+                onUndo={onUndo}
               />
             );
           }
@@ -4149,11 +4153,21 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
               onOpenSwap={() => onOpenSwap(ex.index)}
               onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
               onSplit={onSplit}
+              onUndo={onUndo}
               nextSetNumber={loggedSets.length + 1}
             />
           );
         })}
       </div>
+      {onDone && (
+        <button
+          onClick={() => { onDone(); onCollapse && onCollapse(); }}
+          style={{ background: INK_3, color: PAPER }}
+          className="w-full mt-3 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+        >
+          <Check size={14} /> {isDone ? 'Done' : 'Finish superset'}
+        </button>
+      )}
     </div>
   );
 }
@@ -4615,10 +4629,10 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
         </button>
         {loggedSets.length > 0 && onDone && (
           <button
-            onClick={() => { onDone(); if (!isDone) onCollapse && onCollapse(); }}
+            onClick={() => { onDone(); onCollapse && onCollapse(); }}
             style={{ background: INK_3, color: PAPER }}
             className="shrink-0 rounded-md py-2 px-2.5"
-            title={isDone ? 'Un-check' : 'Finish this activity'}
+            title="Finish this activity"
           >
             <Check size={14} />
           </button>
