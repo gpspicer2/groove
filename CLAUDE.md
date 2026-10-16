@@ -106,6 +106,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Superset after starting: the ⋯ menu on a lifting exercise has "Make it a superset" (pair with the next lift, or add another exercise to go with it); a superset's ⋯ has "Split the superset". Typing a weight ending in 0 or 5 hops to reps after a 0.65 s pause. Exercise names show the same Title Case while typing and after (`titleCaseWords` now uses `titleCaseLive`). SwipeTabs ignores touches on text fields so selecting text never moves the page. Dragging a card near the top/bottom edge auto-scrolls the page. Fixed: logging a set in a superset crashed the app (`SupersetMember` used `armed/press` without `useArmed`).
 
+- Cardio as a superset partner (integrated concurrent exercise): ⋯ > Make it a superset > "A cardio burst" pairs a lift with an aerobic activity (`SupersetCardio`: minutes, Light/Moderate/Vigorous, logged as aerobic sets; the workout upgrades to Mixed). Splitting turns it back into a normal cardio card. No rest timer after a cardio log.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

@@ -975,6 +975,19 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       return n;
     });
   }
+  function pairCardio(i, name) {
+    setPlanExercises((prev) => {
+      const a = prev[i];
+      if (!a || a.supersetId) return prev;
+      const id = uid();
+      const partner = { name, muscleGroup: 'Cardio', type: 'aerobic', supersetId: id, targetNote: '' };
+      const n = [...prev];
+      n[i] = { ...a, supersetId: id };
+      n.splice(i + 1, 0, partner);
+      return n;
+    });
+    upgradeToCombinedIfNeeded('aerobic');
+  }
   function unpair(i) {
     setPlanExercises((prev) => {
       const id = prev[i]?.supersetId;
@@ -1332,6 +1345,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           onReorderGroup={reorderGroup}
           onPairExisting={pairExisting}
           onPairNew={pairNew}
+          onPairCardio={pairCardio}
           onUnpair={unpair}
           onAddExercise={addExercise}
           onAddSuperset={addSuperset}
@@ -2109,7 +2123,7 @@ function ActiveWorkout({
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
-  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup, onPairExisting, onPairNew, onUnpair,
+  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup, onPairExisting, onPairNew, onPairCardio, onUnpair,
   onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddStretch, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard, onProgress,
@@ -2398,7 +2412,7 @@ function ActiveWorkout({
 
   function handleResistanceLog(payload, groupIndex) {
     onLogSet(payload);
-    if (getAutoStartRestTimer()) startRest(groupIndex);
+    if (payload.movementType !== 'aerobic' && getAutoStartRestTimer()) startRest(groupIndex);
   }
 
   const restTarget = STYLE_CONFIG[workout.style]?.restSeconds || 90;
@@ -2867,6 +2881,7 @@ function ActiveWorkout({
           next={exercises[pairIndex + 1] && exercises[pairIndex + 1].type === 'resistance' && !exercises[pairIndex + 1].supersetId ? exercises[pairIndex + 1] : null}
           onNext={() => { onPairExisting(pairIndex); setActiveGroupKey(null); setPairIndex(null); }}
           onOther={() => setPairPicking(true)}
+          onCardio={(name) => { onPairCardio(pairIndex, name); setActiveGroupKey(null); setPairIndex(null); }}
           onClose={() => setPairIndex(null)}
         />
       )}
@@ -3081,8 +3096,10 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
 }
 
 // "Make it a superset": pair this exercise with the next one in the list, or add another to go with it.
-function PairChooser({ exercise, next, onNext, onOther, onClose }) {
+function PairChooser({ exercise, next, onNext, onOther, onCardio, onClose }) {
   const sheet = useSwipeDown(onClose);
+  const [cardio, setCardio] = useState(false);
+  const [custom, setCustom] = useState('');
   const btn = 'w-full rounded-md py-3 text-sm font-medium mb-2';
   return (
     <Portal>
@@ -3091,8 +3108,26 @@ function PairChooser({ exercise, next, onNext, onOther, onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div style={{ color: PAPER }} className="text-base font-bold">Superset {exercise.name} with...</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm mt-1 mb-3">Back to back, no rest between them.</div>
+          {cardio ? (
+            <>
+              <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Which cardio?</div>
+              <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                {[...new Set([...AEROBIC_ACTIVITIES_QUICK, ...LIFESTYLE_ACTIVITIES])].slice(0, 8).map((a) => (
+                  <button key={a} onClick={() => onCardio(a)} style={{ background: INK_3, color: PAPER }} className="px-3 py-1.5 rounded-full text-sm">{a}</button>
+                ))}
+              </div>
+              <div className="flex gap-2 mb-2">
+                <input value={custom} onChange={(e) => setCustom(titleCaseLive(e.target.value))} placeholder="Or type your own" style={{ background: INK_3, color: PAPER }} className="flex-1 min-w-0 rounded-md px-3 py-2.5 text-sm outline-none" />
+                <button disabled={!custom.trim()} onClick={() => onCardio(titleCaseWords(custom))} style={{ background: custom.trim() ? AMBER : INK_3, color: custom.trim() ? ON_AMBER : TEXT_SOFT }} className="shrink-0 rounded-md px-4 py-2.5 text-sm font-medium">Use</button>
+              </div>
+            </>
+          ) : (
+          <>
           {next && <button onClick={onNext} style={{ background: INK_3, color: PAPER }} className={btn}>{next.name} (next in your list)</button>}
           <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>Another exercise</button>
+          <button onClick={() => setCardio(true)} style={{ background: INK_3, color: PAPER }} className={btn}>A cardio burst (jump rope, bike...)</button>
+          </>
+          )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
         </div>
       </div>
@@ -4003,6 +4038,57 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   );
 }
 
+// A cardio partner inside a superset (jump rope between squats, say): minutes + effort, logged as aerobic.
+function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit }) {
+  const { armed, press } = useArmed();
+  const lastMin = loggedSets.length ? Math.round((loggedSets[loggedSets.length - 1].durationSeconds || 120) / 60) : 2;
+  const [minutes, setMinutes] = useState(lastMin);
+  const [intensity, setIntensity] = useState('Moderate');
+  function log() {
+    const m = Number(minutes) || 0;
+    if (m <= 0) return;
+    onLogSet({
+      setNumber: loggedSets.length + 1, movementType: 'aerobic', weight: null, reps: null, durationSeconds: m * 60,
+      lightMinutes: intensity === 'Light' ? m : null, moderateMinutes: intensity === 'Moderate' ? m : null, vigorousMinutes: intensity === 'Vigorous' ? m : null,
+    });
+  }
+  return (
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onRemove={onRemove}>
+      <div>
+        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name} <span style={{ color: AMBER }} className="text-sm font-medium">cardio</span></div>
+        {loggedSets.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+            {loggedSets.map((x) => (
+              <button
+                key={x.id}
+                onClick={() => press(x.id, () => onDeleteSet(x.id))}
+                data-armed={armed === x.id}
+                style={{ background: armed === x.id ? BRICK : INK_3, color: armed === x.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
+              >
+                {Math.round((x.durationSeconds || 0) / 60)} min
+                <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-1.5 mb-2">
+          {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+            <button key={lvl} onClick={() => setIntensity(lvl)} style={{ background: intensity === lvl ? AMBER : INK_3, color: intensity === lvl ? ON_AMBER : PAPER_DIM }} className="flex-1 py-1.5 rounded-md text-sm">{lvl}</button>
+          ))}
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <label className="relative w-[4.3rem] shrink-0">
+            <input type="number" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value === '' ? '' : Number(e.target.value))} onFocus={(e) => e.target.select()} aria-label="Minutes" style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="w-full rounded-md pl-1.5 pr-7 py-2.5 text-base outline-none text-center" />
+            <span style={{ color: TEXT_SOFT }} className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none">min</span>
+          </label>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={log} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2.5 text-base font-medium flex items-center justify-center gap-1"><Plus size={16} /> Log</button>
+        </div>
+      </div>
+    </SwipeActions>
+  );
+}
+
 function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, isActive, onActivate, onCollapse }) {
   if (isActive === false) {
     const logged = members.reduce((n, ex) => n + sets.filter((s) => s.exerciseName === ex.name).length, 0);
@@ -4036,6 +4122,20 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
       <div className="space-y-3">
         {members.map((ex) => {
           const loggedSets = sets.filter((s) => s.exerciseName === ex.name);
+          if (ex.type === 'aerobic') {
+            return (
+              <SupersetCardio
+                key={ex.index}
+                exercise={ex}
+                loggedSets={loggedSets}
+                onLogSet={(payload) => onLogSet({ ...payload, exerciseName: ex.name, muscleGroup: 'Cardio' })}
+                onDeleteSet={onDeleteSet}
+                onOpenSwap={() => onOpenSwap(ex.index)}
+                onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
+                onSplit={onSplit}
+              />
+            );
+          }
           return (
             <SupersetMember
               key={ex.index}
