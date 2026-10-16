@@ -153,3 +153,13 @@ html, body {
   .groove-celebrate-msg { animation: gr-celebrate-fade 4.2s ease both; }
   @keyframes gr-celebrate-fade { 0%, 100% { opacity: 0; } 12%, 80% { opacity: 1; } }
 }
+
+/* Cards and panels ease in (a short fade and rise) instead of popping into place. */
+@keyframes groove-ease-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.groove-ease-in { animation: groove-ease-in 0.2s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .groove-ease-in { animation: none; }
+}

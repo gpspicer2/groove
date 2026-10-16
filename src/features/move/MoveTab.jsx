@@ -2564,27 +2564,37 @@ function ActiveWorkout({
 
       {addMenuOpen ? (
         addMode === null ? (
-          <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
+          <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4 groove-ease-in">
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Add what to your workout?</div>
             <div className="space-y-2">
-              <button onClick={() => setAddMode('resistance')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
+              <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: AMBER }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                Aerobic
+              </button>
+              <button onClick={() => setAddMode('resistance-choice')} style={{ background: INK_3, color: SKY }} className="w-full rounded-md py-2.5 text-sm font-medium">
                 Resistance
               </button>
-              <button onClick={() => setAddMode('superset')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Superset (two paired exercises)
+              <button onClick={() => setAddMode('flexibility')} style={{ background: INK_3, color: BRICK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                Flexibility
               </button>
-              {/* Add Aerobic Activity above already covers cardio — only
-                  offer this extra path when the workout can't reach that
-                  quick button (Aerobic-only or Flexibility workouts). */}
-              {!lifts && (
-                <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                  Aerobic / cardio
-                </button>
-              )}
               <button onClick={closeAddForm} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
                 Cancel
               </button>
             </div>
+          </div>
+        ) : addMode === 'resistance-choice' ? (
+          <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4">
+            <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Resistance</div>
+            <div className="flex gap-2 mb-1">
+              <button onClick={() => setAddMode('resistance')} style={{ background: INK_3, color: SKY }} className="flex-1 rounded-md py-2.5 text-sm font-medium">
+                Single Exercise
+              </button>
+              <button onClick={() => setAddMode('superset')} style={{ background: INK_3, color: LIME }} className="flex-1 rounded-md py-2.5 text-sm font-medium">
+                Superset
+              </button>
+            </div>
+            <button onClick={() => setAddMode(null)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
+              Back
+            </button>
           </div>
         ) : addMode === 'resistance' ? (
           <AddExerciseForm
@@ -2684,6 +2694,7 @@ function ActiveWorkout({
           >
             <Plus size={13} /> {lifts ? 'Resistance' : 'Add to Workout'}
           </button>
+          {(lifts || workout.movementMode === 'Flexibility') && (
           <button
             onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
             style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
@@ -2691,6 +2702,7 @@ function ActiveWorkout({
           >
             <Plus size={13} /> Stretch
           </button>
+          )}
         </div>
       )}
 
@@ -3239,7 +3251,7 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
     setCustom('');
   }
   return (
-    <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4">
+    <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4 groove-ease-in">
       <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">Add a stretch</div>
       <div className="flex flex-wrap justify-center gap-1.5 mb-2.5">
         {groups.map((g) => (
@@ -3670,7 +3682,7 @@ function ExerciseCard({
 
   return (
     <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
-      <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5">
+      <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5 groove-ease-in">
         <div className="flex items-center justify-between mb-1">
           <span className="w-6 shrink-0" aria-hidden="true" />
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
@@ -4221,8 +4233,17 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   }
 
   return (
-    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3">
-      <CardHeader title={`${exercise.name}${isDone ? ' ✅' : ''}`} index={index} onOpenSwap={onOpenSwap} onRemove={onRemove} onTitleClick={onCollapse} onDone={() => { onDone && onDone(); onCollapse(); }} />
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md px-4 py-3 groove-ease-in">
+      <div className="flex items-center justify-between mb-1">
+        <span className="w-6 shrink-0" aria-hidden="true" />
+        <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
+          {index != null && <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>} {exercise.name}{isDone && ' ✅'}
+        </span>
+        <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
+          <ChevronUp size={16} />
+        </button>
+      </div>
       {exercise.targetNote && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Target: {exercise.targetNote}</div>
       )}
@@ -4302,8 +4323,19 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
         >
           <Plus size={14} /> Log
         </button>
+        {loggedSets.length > 0 && onDone && (
+          <button
+            onClick={() => { onDone(); if (!isDone) onCollapse && onCollapse(); }}
+            style={{ background: INK_3, color: PAPER }}
+            className="shrink-0 rounded-md py-2 px-2.5"
+            title={isDone ? 'Un-check' : 'Finish this activity'}
+          >
+            <Check size={14} />
+          </button>
+        )}
       </div>
     </div>
+    </SwipeActions>
   );
 }
 
@@ -4357,7 +4389,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
 
   return (
     <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
-    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-2.5">
+    <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : accent}` }} className="rounded-md px-4 py-2.5 groove-ease-in">
       <div className="flex items-center justify-between mb-1">
         <span className="w-6 shrink-0" aria-hidden="true" />
         <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
