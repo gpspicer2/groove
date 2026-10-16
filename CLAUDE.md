@@ -112,6 +112,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Program card split: Birdseye keeps the slim glance (`ProgramWeekCard`, days + next + Start). Move's `MoveProgramCard` is the program's home: header shows the exact program (model · split · days a week), phase/week and lb lifted, day strip, next session with its muscles and sets/reps; tapping the header opens the whole week (every session with day, muscles, prescription) and the cycle note (open state in `groove:programOpen`).
 
+- Flex day (`program/flex.js`): every program has one. Once the week's sessions are done, the Move program card offers "Flex day" (Start), a Hypertrophy-style session on the muscle areas with the fewest days this week (each wants 2, least recently trained first, at least a day's rest; `flexSuggestion` with `force`). In the muscle step, "Fill in my week: ..." preselects the same kind of suggestion when nothing is picked. Suggested lifting for non-program Strength now also skips exercises from the last 7 days (anchors still lead). The flex session is a program-shaped session with `flex: true`.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

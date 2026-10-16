@@ -44,7 +44,7 @@ function readOpen() { try { return localStorage.getItem(LS_OPEN) === '1'; } catc
 
 // Move: the program in full. Collapsed it is one tidy card (exact program, week, days, next session + Start).
 // Tap the header to open every session this week with its muscles and sets, and the shape of the cycle.
-export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }) {
+export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStart, onManage }) {
   const [open, setOpen] = useState(readOpen);
   if (!program || !week) return null;
   const toggle = () => setOpen((v) => { const n = !v; try { localStorage.setItem(LS_OPEN, n ? '1' : '0'); } catch { /* storage blocked */ } return n; });
@@ -98,7 +98,20 @@ export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }
           )}
         </div>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm mt-2 text-center">All {week.sessions.length} sessions done this week. Nice work!</div>
+        <div className="mt-2">
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center">All {week.sessions.length} sessions done this week. Nice work!</div>
+          {flex && (
+            <div style={{ background: INK_3 }} className="flex items-center justify-between gap-3 rounded-md px-3 py-2 mt-2">
+              <div className="min-w-0">
+                <div style={{ color: PAPER }} className="text-sm font-medium">Flex day</div>
+                <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">Fills in what this week left out: {flex.label}</div>
+              </div>
+              <button onClick={() => onStart(flex.session)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
+                <Play size={14} /> Start
+              </button>
+            </div>
+          )}
+        </div>
       )}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-2.5">

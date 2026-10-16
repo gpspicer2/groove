@@ -29,6 +29,8 @@ import { titleCaseLive } from '../../lib/titleCase';
 import { dayLabel } from '../../lib/dayLabel';
 import { useProgram, useProgramLifted } from '../program/useProgram';
 import ProgramSheet from '../program/ProgramSheet';
+import { flexSuggestion, flexSession } from '../program/flex';
+import { startOfWeek } from '../../lib/week';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
 import { programTitle } from '../program/programs';
 
@@ -743,7 +745,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // so the same movement doesn't come around twice in a week (most recent first).
       const weekAgo = Date.now() - 7 * 864e5;
       const lastWorkout = completedWorkouts[0];
-      const recentWorkouts = selectedStyle === 'Strength'
+      const recentWorkouts = selectedStyle === 'Strength' && programSession && !programSession.flex
         ? (lastWorkout ? [lastWorkout] : [])
         : workouts.filter((w) => !w.deletedAt && new Date(w.startedAt).getTime() >= weekAgo).sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
       const recentNames = recentWorkouts.flatMap((w) => [
@@ -1289,6 +1291,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     .filter((s) => s.movementType !== 'aerobic' && s.movementType !== 'flexibility' && s.muscleGroup && s.muscleGroup !== 'Warm-up' && workoutStart.has(s.workoutId))
     .map((s) => ({ group: s.muscleGroup, at: workoutStart.get(s.workoutId) }));
 
+  // A flex day (after the plan's sessions are done) and a "suggest for me" muscle pick both come from what this week has covered.
+  const weekStart = startOfWeek(new Date(), profile?.week_start_day || 'sunday');
+  const flexSug = flexSuggestion(recentTrained, weekStart, Date.now(), true);
+  const flexForCard = flexSug ? { label: flexSug.label, session: flexSession(flexSug) } : null;
+  const pickSug = flexSuggestion(recentTrained, weekStart);
+
   return (
     <div
       style={activeWorkout ? { border: `2px solid ${SKY}`, borderRadius: 16 } : undefined}
@@ -1377,7 +1385,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           </div>
         )}
         {!planning && program && (
-          <MoveProgramCard program={program} week={programWeek} lifted={programLifted} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
+          <MoveProgramCard program={program} week={programWeek} lifted={programLifted} flex={flexForCard} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
         )}
         {!planning && !startingPlan && !selectedLocation && !movementMode && (() => {
           const l = readLastStart();
@@ -1398,6 +1406,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         })()}
         <StartWorkout
           recentTrained={recentTrained}
+          pickSuggestion={pickSug}
+          onPickGroups={setSelectedGroups}
           planning={planning}
           dataTour="move-start"
           gender={profile?.gender}
@@ -1634,6 +1644,7 @@ function StartWorkout({
   cleanSlate, onToggleCleanSlate,
   planning, planMinutes, onPlanMinutes,
   recentTrained = [],
+  pickSuggestion = null, onPickGroups,
   dataTour,
 }) {
   const recoveryHits = recentlyTrained(selectedGroups, recentTrained);
@@ -1993,6 +2004,11 @@ function StartWorkout({
             Which muscles?{groupsMissing ? ' Pick at least one' : ''}
           </div>
           <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
+          {pickSuggestion && onPickGroups && selectedGroups.length === 0 && (
+            <button onClick={() => onPickGroups(pickSuggestion.groups)} style={{ background: INK_3, color: SKY }} className="w-full rounded-md px-4 py-2.5 mt-3 text-sm text-center">
+              Fill in my week: {pickSuggestion.label}
+            </button>
+          )}
           {recoveryHits.size > 0 && (
             <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-2.5 mt-3 text-sm text-center">
               {[...recoveryHits.entries()].slice(0, 3).map(([g, h]) => `${g} ${h < 24 ? 'today' : 'yesterday'}`).join(', ')}. Muscles recover best with about 48 hours between sessions. Your call!
