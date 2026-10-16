@@ -730,13 +730,22 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
     let plan = [];
     if (usesResistance && !cleanSlate) {
+      // Strength repeats its main lifts on purpose; every other goal avoids anything done in the last 7 days,
+      // so the same movement doesn't come around twice in a week (most recent first).
+      const weekAgo = Date.now() - 7 * 864e5;
       const lastWorkout = completedWorkouts[0];
-      const recentNames = lastWorkout
-        ? sets.filter((s) => s.workoutId === lastWorkout.id).map((s) => s.exerciseName)
-        : [];
+      const recentWorkouts = selectedStyle === 'Strength'
+        ? (lastWorkout ? [lastWorkout] : [])
+        : workouts.filter((w) => !w.deletedAt && new Date(w.startedAt).getTime() >= weekAgo).sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+      const recentNames = recentWorkouts.flatMap((w) => [
+        ...sets.filter((x) => x.workoutId === w.id && x.movementType !== 'aerobic' && x.movementType !== 'flexibility').map((x) => x.exerciseName),
+        ...(w.plan || []).filter((e) => e && e.type === 'resistance').map((e) => e.name),
+      ]);
+      let hidden = [];
+      try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
       // A one-muscle program day (chest day, arm day) needs more picks per muscle.
       const perGroup = programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender)
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, hidden)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     }
     if (usesResistance) {
@@ -2509,6 +2518,7 @@ function ActiveWorkout({
               card = (
                 <ExerciseCard
                   index={displayIndex}
+                  onNever={() => { try { const h = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); if (!h.includes(ex.name)) localStorage.setItem('groove:hiddenExercises', JSON.stringify([...h, ex.name])); } catch { /* */ } setSwapIndex(ex.index); }}
                   onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
                   onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   exercise={ex}
@@ -3642,7 +3652,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onUndo, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
+function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
@@ -3671,6 +3681,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
               {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{title}</div>}
               {onUndo && row('undo', 'Not finished yet (un-check)', Check, LIME, () => { close(); onUndo(); })}
               {onSwap && row('swap', 'Swap for another', Replace, LIME, () => { close(); onSwap(); })}
+              {onNever && row('never', 'Swap, and never suggest this again', Replace, TEXT_SOFT, () => { close(); onNever(); })}
               {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
               {(onMoveUp || onMoveDown) && (
                 <div className="flex gap-2">
@@ -3697,7 +3708,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onMoveUp, onMoveDown,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onMoveUp, onMoveDown,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3708,7 +3719,7 @@ function ExerciseCard({
 
   if (!isActive) {
     return (
-      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
@@ -3728,7 +3739,7 @@ function ExerciseCard({
   }
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
       <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5 groove-ease-in">
         <div className="flex items-center justify-between mb-1">
           <span className="w-6 shrink-0" aria-hidden="true" />

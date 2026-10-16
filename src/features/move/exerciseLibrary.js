@@ -302,7 +302,7 @@ const MAX_EXERCISES = 6;
 // A leg day with no squat/leg-press variation anywhere in it is missing
 // the single most load-bearing lower-body movement — guaranteed below
 // rather than left to chance shuffling.
-const LEG_GROUPS = ['Legs', 'Quadriceps', 'Glutes'];
+const LEG_GROUPS = ['Legs', 'Quadriceps']; // a glutes- or hamstrings-only day doesn't need a squat forced in
 const SQUAT_PATTERN = /Squat|Leg Press/i;
 function ensureSquatVariation(final, muscleGroups, style, location, recentNames) {
   if (!muscleGroups.some((g) => LEG_GROUPS.includes(g))) return final;
@@ -348,10 +348,15 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
     // Bump the lowest-priority pick rather than growing past MAX_EXERCISES, but never another anchor lift
     // or the squat variation (otherwise each anchor added would push out the one before it).
+    // Prefer dropping from a muscle that has two or more picks, so no muscle loses its only exercise.
+    const perMuscle = {};
+    result.forEach((ex) => { perMuscle[ex.muscleGroup] = (perMuscle[ex.muscleGroup] || 0) + 1; });
+    const droppable = (ex) => !keep.has(ex.name) && !SQUAT_PATTERN.test(ex.name);
     let drop = -1;
     for (let i = result.length - 1; i >= 0; i -= 1) {
-      if (!keep.has(result[i].name) && !SQUAT_PATTERN.test(result[i].name)) { drop = i; break; }
+      if (droppable(result[i]) && perMuscle[result[i].muscleGroup] > 1) { drop = i; break; }
     }
+    if (drop < 0) for (let i = result.length - 1; i >= 0; i -= 1) { if (droppable(result[i])) { drop = i; break; } }
     result = drop >= 0 ? [...result.slice(0, drop), ...result.slice(drop + 1), added] : [...result, added];
   }
   return result;
@@ -364,7 +369,7 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
 // training style rather than the library's default. The final list is
 // then stably sorted compound-first (see COMPOUND_PATTERN above),
 // preserving the muscle-group order otherwise.
-export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
@@ -374,19 +379,25 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // active/collapsed exercise cards) downstream. Track what's already
   // picked and skip repeats.
   const usedNames = new Set();
-  for (const group of muscleGroups) {
-    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => !usedNames.has(e.name));
+  const lists = muscleGroups.map((group) => {
+    const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => !exclude.includes(e.name));
     const fresh = pool.filter((e) => !recentNames.includes(e.name));
-    const stale = pool.filter((e) => recentNames.includes(e.name));
-    const ordered = [...shuffle(fresh), ...shuffle(stale)];
-    for (const ex of ordered.slice(0, perGroup)) {
+    // recentNames runs most recent first, so when a muscle runs out of fresh options the one
+    // done longest ago comes back first.
+    const stale = pool.filter((e) => recentNames.includes(e.name)).sort((a, b) => recentNames.indexOf(b.name) - recentNames.indexOf(a.name));
+    return { group, ordered: [...shuffle(fresh), ...stale], at: 0 };
+  });
+  // Round-robin: every muscle gets its first exercise before any muscle gets a second, so a short
+  // session still covers each muscle (arms and core don't get squeezed out by extra chest and back).
+  for (let round = 0; round < perGroup && picked.length < MAX_EXERCISES; round += 1) {
+    for (const l of lists) {
+      if (picked.length >= MAX_EXERCISES) break;
+      while (l.at < l.ordered.length && usedNames.has(l.ordered[l.at].name)) l.at += 1;
+      const ex = l.ordered[l.at];
+      if (!ex) continue;
+      l.at += 1;
       usedNames.add(ex.name);
-      picked.push({
-        ...ex,
-        muscleGroup: group,
-        sets: styleConfig.sets ?? ex.sets,
-        reps: styleConfig.reps ?? ex.reps,
-      });
+      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: styleConfig.reps ?? ex.reps });
     }
   }
   // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks
@@ -403,8 +414,8 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
   const capped = ordered.slice(0, MAX_EXERCISES);
-  const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames);
-  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames);
+  const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, [...recentNames, ...exclude]);
+  const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, [...recentNames, ...exclude]);
   return withAnchors
     .map((ex, i) => ({ ex, i }))
     .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))

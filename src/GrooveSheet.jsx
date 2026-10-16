@@ -112,15 +112,7 @@ export default function GrooveSheet({ open, onClose }) {
           <button onClick={close} style={{ color: TEXT_SOFT }} className="absolute top-4 right-4 p-2 -m-2">
             <X size={20} />
           </button>
-          <Wordmark height={45} className="mb-3 mt-4 mx-auto block" />
-          <button
-            onClick={() => setShowBio(true)}
-            style={{ color: PLUM, background: INK_3 }}
-            className="mx-auto mb-7 flex items-center gap-2 rounded-full pl-1 pr-3.5 py-1 text-sm font-medium"
-          >
-            <img src="/greg.jpg" alt="" style={{ objectPosition: '50% 20%' }} className="w-7 h-7 rounded-full object-cover" />
-            Learn more about Greg
-          </button>
+          <Wordmark height={45} className="mb-8 mt-4 mx-auto block" />
           <div className="space-y-6 text-center">
             {GROOVE_DEFINITIONS.map((d) => (
               <div key={d.term}>
@@ -129,6 +121,9 @@ export default function GrooveSheet({ open, onClose }) {
               </div>
             ))}
           </div>
+          <button onClick={() => setShowBio(true)} style={{ color: TEXT_SOFT }} className="mx-auto mt-10 block text-sm underline underline-offset-2">
+            Learn more about Greg
+          </button>
         </div>
         <div className="flex-1" />
       </div>
