@@ -119,14 +119,14 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
       )}
 
       <div data-tour="journal-entries">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Past entries</div>
+        <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 text-center">Past entries</div>
         {entries.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
             Nothing logged yet — your first entry will show up here.
           </div>
         ) : (
           <div className="space-y-2">
-            <SwipeHint id="journal">Tip: swipe an entry left to edit or delete it.</SwipeHint>
+            <SwipeHint id="journal">Tip: tap an entry to edit or delete it.</SwipeHint>
             {entries.map((e) => (
               <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
             ))}
@@ -141,12 +141,36 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
   );
 }
 
+// A short recap of what was written, built right on the phone (journals never leave it). The row clamps it to two lines.
+function entrySummary(entry) {
+  const st = entry.structured;
+  const clean = (t) => String(t || '').replace(/\s+/g, ' ').trim().replace(/[.!?]+$/, '');
+  if (st) {
+    const bits = [];
+    if (st.mood) bits.push(`Mood ${st.mood}/7`);
+    if (st.energy) bits.push(`${String(st.energy).toLowerCase()} energy`);
+    const lead = bits.join(', ');
+    const parts = [
+      st.wentWell && `Good: ${clean(st.wentWell)}`,
+      st.wasHard && `Hard: ${clean(st.wasHard)}`,
+      st.nextTime && `Next: ${clean(st.nextTime)}`,
+      st.favoriteMovement && `Loved: ${clean(st.favoriteMovement)}`,
+      st.leastFavoriteMovement && `Least: ${clean(st.leastFavoriteMovement)}`,
+      st.smile && `Smiled: ${clean(st.smile)}`,
+      st.extra && clean(st.extra),
+    ].filter(Boolean);
+    return [lead, parts.join('. ')].filter(Boolean).join(' · ');
+  }
+  return clean(entry.response);
+}
+
 function JournalEntryRow({ entry, onEdit, onDelete }) {
   // Tap an entry for Edit / Delete. (It used to reveal buttons on a left swipe, but that is also the swipe
   // that moves on to Learn, so entries were getting opened for editing by accident.)
   const [showActions, setShowActions] = useState(false);
   const actionSheet = useSwipeDown(() => setShowActions(false));
   const arm = useArmed();
+  const summary = entrySummary(entry);
 
   return (
     <div className="relative rounded-md overflow-hidden">
@@ -155,8 +179,11 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         style={{ background: INK_2 }}
         className="flex items-center justify-between gap-2 px-4 py-3"
       >
-        <div style={{ color: PAPER }} className="text-sm flex-1 text-center flex items-center justify-center gap-1.5">
-          {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.prompt}
+        <div className="flex-1 min-w-0 text-center">
+          <div style={{ color: PAPER }} className="text-sm">
+            {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.structured?.workoutTitle ? `After ${entry.structured.workoutTitle}` : entry.prompt}
+          </div>
+          {summary && <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug line-clamp-2 mt-0.5">{summary}</div>}
         </div>
       </div>
 

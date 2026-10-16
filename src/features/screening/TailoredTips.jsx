@@ -11,7 +11,7 @@ export default function TailoredTips() {
   if (tips.length === 0) return null;
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="rounded-lg px-5 py-4">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2">Tailored to you</div>
+      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2">Tailored to you</div>
       <div className="space-y-2">
         {tips.map((t) => <p key={t} style={{ color: PAPER }} className="text-sm">{t}</p>)}
       </div>

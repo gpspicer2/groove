@@ -114,6 +114,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Flex day (`program/flex.js`): every program has one. Once the week's sessions are done, the Move program card offers "Flex day" (Start), a Hypertrophy-style session on the muscle areas with the fewest days this week (each wants 2, least recently trained first, at least a day's rest; `flexSuggestion` with `force`). In the muscle step, "Fill in my week: ..." preselects the same kind of suggestion when nothing is picked. Suggested lifting for non-program Strength now also skips exercises from the last 7 days (anchors still lead). The flex session is a program-shaped session with `flex: true`.
 
+- Journal rows show a two-line recap of what was written (`entrySummary` in JournalTab, built on the phone, never sent anywhere): mood/energy, then Good / Hard / Next, or the first lines of a plain entry; reflections read "After <workout>". Card and section titles got a font bump (program cards `text-lg`, section headers like Weekly Goals, History, Past entries, Your Fitness `text-base`); small field labels stay small.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

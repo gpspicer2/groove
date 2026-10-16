@@ -30,7 +30,7 @@ export default function MuscleBalance({ sets, bare = false }) {
 
   return (
     <div style={bare ? undefined : { background: INK_2, borderTop: `2px solid ${SKY}` }} className={bare ? '' : 'rounded-lg px-5 py-4'}>
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 flex items-center justify-center gap-1.5">
+      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 flex items-center justify-center gap-1.5">
         Muscles This Week
         <button onClick={() => setShowInfo(true)} aria-label="About muscle goals" style={{ color: TEXT_SOFT }} className="p-1 -m-1"><Info size={14} /></button>
       </div>

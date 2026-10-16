@@ -154,7 +154,7 @@ export default function FitnessTrends({ userId, profile, active }) {
 
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4">
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Your Fitness</div>
+      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-1">Your Fitness</div>
       {rows.map(({ key, ...r }) => <Row key={key} {...r} />)}
       {rows.some((r) => r.due) && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Baseline Data.</div>

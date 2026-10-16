@@ -591,7 +591,7 @@ function BaselineDataSection({ userId }) {
     <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
-        <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Baseline Data</span>
+        <span style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Baseline Data</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (loading ? (
@@ -724,7 +724,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
     <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
-        <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide font-bold">Settings</span>
+        <span style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide font-bold">Settings</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (

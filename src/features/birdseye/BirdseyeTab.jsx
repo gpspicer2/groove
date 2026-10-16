@@ -485,7 +485,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
           <div className="flex items-center justify-between mb-2">
             <span />
-            <span style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide">Weekly Goals</span>
+            <span style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide">Weekly Goals</span>
             <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
               <Pencil size={14} />
             </button>
@@ -1075,7 +1075,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
     <div ref={revealRef} data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
       <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
         <span />
-        <span style={{ color: MOSS }} className="text-sm uppercase tracking-wide font-bold">
+        <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">
           Science Supported Strategy{' '}
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
@@ -1158,7 +1158,7 @@ export function MovementLibrary({ hrZones }) {
     <div ref={revealRef} data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
-        <span style={{ color: AMBER }} className="text-sm uppercase tracking-wide font-bold">Movement Library</span>
+        <span style={{ color: AMBER }} className="text-base uppercase tracking-wide font-bold">Movement Library</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (

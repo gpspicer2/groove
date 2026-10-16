@@ -60,7 +60,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
       <div className="flex items-center justify-between text-center">
         <button onClick={toggle} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={open ? 'Show less' : 'Show the whole program'}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-        <button onClick={toggle} style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</button>
+        <button onClick={toggle} style={{ color: SKY }} className="text-lg uppercase tracking-wide font-bold">{goal} Program</button>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
       <button onClick={toggle} style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</button>
@@ -157,7 +157,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 text-center">
       <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
+        <span style={{ color: LIME }} className="text-lg uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
       <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.doneCount} of {week.sessions.length} done this week</div>

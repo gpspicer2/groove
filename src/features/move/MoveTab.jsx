@@ -1373,13 +1373,13 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         <>
         {planning && (
           <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
-            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">Planning a workout</div>
+            <div style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Planning a workout</div>
             <button onClick={cancelPlanning} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Cancel</button>
           </div>
         )}
         {startingPlan && !planning && (
           <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
-            <div style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{selectedDate < todayLocalISO() ? 'Missed plan' : "Today's plan"}</div>
+            <div style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">{selectedDate < todayLocalISO() ? 'Missed plan' : "Today's plan"}</div>
             <div style={{ color: PAPER }} className="text-sm font-medium">{startingPlan.title}</div>
             <button onClick={() => { setStartingPlan(null); resetStartChoices(); }} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Dismiss</button>
           </div>
@@ -1446,7 +1446,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       )}
 
       <div data-tour="move-history" className="mt-8">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">History</div>
+        <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 text-center">History</div>
         {completedWorkouts.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
             No workouts logged yet — finish one and it'll show up here.

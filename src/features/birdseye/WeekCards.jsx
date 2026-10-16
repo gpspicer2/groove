@@ -47,7 +47,7 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
       <button onClick={dismiss} aria-label="Dismiss" style={{ color: TEXT_SOFT }} className="absolute top-3 right-3 p-1">
         <X size={14} />
       </button>
-      <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1">Last week</div>
+      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-1">Last week</div>
       <div style={{ color: PAPER }} className="text-sm font-medium mb-2">{bits.join(' · ')}</div>
       {rows.length > 0 && (
         <div className="flex justify-center flex-wrap gap-2 mb-1">
@@ -90,7 +90,7 @@ export function TodayPlanCard({ plan, onStart, label = 'Planned for today', acti
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 flex items-center justify-between gap-3 text-left">
       <div className="min-w-0">
-        <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide inline-flex items-center gap-1.5">
+        <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide inline-flex items-center gap-1.5">
           <Calendar size={13} /> {label}
         </div>
         <div style={{ color: PAPER }} className="text-sm font-medium truncate">{plan.title}{detail ? <span style={{ color: TEXT_SOFT }} className="font-normal"> · {detail}</span> : null}</div>

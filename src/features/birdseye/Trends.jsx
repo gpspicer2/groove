@@ -297,7 +297,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
     <div ref={revealRef} data-tour="birdseye-trends" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
       <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
         <span />
-        <span style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold">Trends</span>
+        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">Trends</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
 

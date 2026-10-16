@@ -125,7 +125,7 @@ function FeatureCard({ color, icon: Icon, title, children }) {
     <div style={{ background: INK_2, border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`, borderTop: `3px solid ${color}` }} className="rounded-lg px-4 py-4 mb-3">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Icon size={16} color={color} />
-        <span style={{ color, fontFamily: 'Outfit, sans-serif' }} className="text-sm uppercase tracking-wide font-bold">{title}</span>
+        <span style={{ color, fontFamily: 'Outfit, sans-serif' }} className="text-base uppercase tracking-wide font-bold">{title}</span>
       </div>
       {children}
     </div>
