@@ -5,7 +5,7 @@ import SwipeHint from '../../SwipeHint';
 import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
-import { workoutTitle } from '../move/exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle } from '../move/exerciseLibrary';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, AMBER, BRICK , ON_AMBER } from '../../theme';
 import Portal from '../../Portal';
 
@@ -147,7 +147,8 @@ function entrySummary(entry) {
   const clean = (t) => String(t || '').replace(/\s+/g, ' ').trim().replace(/[.!?]+$/, '');
   if (st) {
     const bits = [];
-    if (st.mood) bits.push(`Mood ${st.mood}/7`);
+    if (st.mood) bits.push(`${MOOD_LABELS[st.mood - 1] || 'OK'} mood`);
+    if (st.effort) bits.push(`effort ${st.effort}/10`);
     if (st.energy) bits.push(`${String(st.energy).toLowerCase()} energy`);
     const lead = bits.join(', ');
     const parts = [
@@ -181,7 +182,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
       >
         <div className="flex-1 min-w-0 text-center">
           <div style={{ color: PAPER }} className="text-sm">
-            {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.structured?.workoutTitle ? `After ${entry.structured.workoutTitle}` : entry.prompt}
+            {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.structured?.workoutTitle ? `After ${shortWorkoutTitle(entry.structured.workoutTitle)}` : entry.prompt}
           </div>
           {summary && <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug line-clamp-2 mt-0.5">{summary}</div>}
         </div>
@@ -228,6 +229,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
   const [mood, setMood] = useState(entry.structured?.mood || 4);
   const isV2 = Boolean(entry.structured && ('nextTime' in entry.structured || 'wentWell' in entry.structured));
   const [energy, setEnergy] = useState(entry.structured?.energy || '');
+  const [effort, setEffort] = useState(entry.structured?.effort || null);
   const [wentWell, setWentWell] = useState(entry.structured?.wentWell || '');
   const [wasHard, setWasHard] = useState(entry.structured?.wasHard || '');
   const [nextTime, setNextTime] = useState(entry.structured?.nextTime || '');
@@ -242,8 +244,8 @@ function EditEntryModal({ entry, onClose, onSaved }) {
     setSaving(true);
     const updates = { is_private: true };
     if (isStructured) {
-      updates.structured = isV2 ? { ...(entry.structured || {}), mood, energy, wentWell, wasHard, nextTime } : { ...(entry.structured || {}), mood, favoriteMovement, leastFavoriteMovement, smile, extra };
-      updates.response = `Mood ${mood}/7`;
+      updates.structured = isV2 ? { ...(entry.structured || {}), mood, energy, ...(effort ? { effort } : {}), wentWell, wasHard, nextTime } : { ...(entry.structured || {}), mood, favoriteMovement, leastFavoriteMovement, smile, extra };
+      updates.response = `${MOOD_LABELS[mood - 1]} mood${isV2 && effort ? `, effort ${effort}/10` : ''}`;
     } else {
       updates.response = response.trim();
     }
@@ -274,7 +276,11 @@ function EditEntryModal({ entry, onClose, onSaved }) {
               </div>
               {isV2 ? (
                 <>
-                  <LabeledInput label="Energy" value={energy} onChange={setEnergy} />
+                  <div>
+                    <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">How hard was it?</div>
+                    <EffortRow value={effort} onChange={setEffort} />
+                  </div>
+                  {entry.structured?.energy ? <LabeledInput label="Energy" value={energy} onChange={setEnergy} /> : null}
                   <LabeledTextarea label="What felt good" value={wentWell} onChange={setWentWell} />
                   <LabeledTextarea label="What was hard" value={wasHard} onChange={setWasHard} />
                   <LabeledTextarea label="One thing for next time" value={nextTime} onChange={setNextTime} />
@@ -418,15 +424,38 @@ function FreeformEntry({ onSaved, onCancel }) {
   );
 }
 
+// "How hard was it?" 1 to 10 (the same scale as the effort question after a workout).
+function EffortRow({ value, onChange }) {
+  return (
+    <div>
+      <div className="grid grid-cols-10 gap-1">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            onClick={() => onChange(value === n ? null : n)}
+            style={{ background: value === n ? AMBER : INK_3, color: value === n ? ON_AMBER : PAPER_DIM }}
+            className="rounded-md py-2.5 text-sm tabular-nums"
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1">
+        <span style={{ color: TEXT_SOFT }} className="text-[13px]">Easy</span>
+        <span style={{ color: TEXT_SOFT }} className="text-[13px]">All out</span>
+      </div>
+    </div>
+  );
+}
+
 const STEPS = ['feel', 'stood', 'next'];
-const ENERGY = ['Drained', 'Low', 'Steady', 'Charged'];
 
 // Three quick screens: how you feel, what stood out, and one thing to carry forward.
 // The workout you just did is attached automatically.
 function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [mood, setMood] = useState(4);
-  const [energy, setEnergy] = useState('');
+  const [effort, setEffort] = useState(null);
   const [wentWell, setWentWell] = useState('');
   const [wasHard, setWasHard] = useState('');
   const [nextTime, setNextTime] = useState('');
@@ -438,12 +467,12 @@ function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
   async function handleFinish() {
     setSaving(true);
     const structured = {
-      mood, energy, wentWell: wentWell.trim(), wasHard: wasHard.trim(), nextTime: nextTime.trim(),
+      mood, ...(effort ? { effort } : {}), wentWell: wentWell.trim(), wasHard: wasHard.trim(), nextTime: nextTime.trim(),
       ...(recentWorkout ? { workoutId: recentWorkout.id, workoutTitle: recentWorkout.title } : {}),
     };
     const { data, error } = await supabase
       .from('journal_entries')
-      .insert({ prompt: 'Post-movement reflection', response: `Mood ${mood}/7`, structured, is_private: true })
+      .insert({ prompt: 'Post-movement reflection', response: `${MOOD_LABELS[mood - 1]} mood${effort ? `, effort ${effort}/10` : ''}`, structured, is_private: true })
       .select()
       .single();
     setSaving(false);
@@ -472,26 +501,15 @@ function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
 
       {step === 'feel' && (
         <div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-3 text-center">How do you feel?</div>
+          <div style={{ color: PAPER }} className="text-lg font-medium mb-2 text-center">How's your mood?</div>
           <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-2 text-center">{MOOD_LABELS[mood - 1]}</div>
           <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
-          <div className="flex justify-between mt-1 mb-4">
+          <div className="flex justify-between mt-1 mb-5">
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[0]}</span>
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[6]}</span>
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-2">And your energy?</div>
-          <div className="grid grid-cols-4 gap-1.5">
-            {ENERGY.map((e) => (
-              <button
-                key={e}
-                onClick={() => setEnergy(energy === e ? '' : e)}
-                style={{ background: energy === e ? AMBER : INK_3, color: energy === e ? ON_AMBER : PAPER_DIM }}
-                className="rounded-md py-2.5 text-sm"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
+          <div style={{ color: PAPER }} className="text-lg font-medium mb-2 text-center">How hard was it?</div>
+          <EffortRow value={effort} onChange={setEffort} />
         </div>
       )}
 

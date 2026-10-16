@@ -561,3 +561,10 @@ export function avoidForAreas(areaIds = []) {
   Object.values(EXERCISE_LIBRARY).forEach((list) => list.forEach((e) => { if (res.some((re) => re.test(e.name))) names.add(e.name); }));
   return [...names];
 }
+
+// Shorten a long workout title ("Chest + Back + Legs + Core") to its first two items and a +N, keeping the order the
+// muscles were chosen in (the ones that were prioritized come first).
+export function shortWorkoutTitle(title) {
+  const items = String(title || '').split(' + ');
+  return items.length > 2 ? `${items[0]} + ${items[1]} +${items.length - 2}` : String(title || '');
+}
