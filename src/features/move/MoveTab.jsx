@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw } from '../../lib/icons';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';
@@ -16,7 +16,6 @@ import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
 import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
-import JournalPromptSheet from './JournalPromptSheet';
 import StravaMark, { STRAVA_ORANGE } from '../strava/StravaMark';
 import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
@@ -319,7 +318,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [addingAerobicToId, setAddingAerobicToId] = useState(null);
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
   const [checkInWorkoutId, setCheckInWorkoutId] = useState(null);
-  const [journalPromptId, setJournalPromptId] = useState(null); // the workout just finished, offered a journal reflection
   const [bodyweight, setBodyweight] = useState(null);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
   // Self-guided training program (goal + days a week), and the session being started from it.
@@ -659,6 +657,26 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     return false;
   }
 
+  // "Repeat last workout": fills every start choice from the last session and starts it.
+  const [quickStart, setQuickStart] = useState(false);
+  useEffect(() => { if (quickStart) { setQuickStart(false); startWorkout(); } }); // eslint-disable-line react-hooks/exhaustive-deps
+  function readLastStart() {
+    try { return JSON.parse(localStorage.getItem('groove:lastStart') || 'null'); } catch { return null; }
+  }
+  function repeatLastWorkout(l) {
+    setSelectedLocation(l.location || '');
+    setMovementMode(l.mode || '');
+    setSelectedGroups(l.groups || []);
+    setSelectedActivities(l.activities || []);
+    setSelectedFlexActivities(l.flexActivities || []);
+    setSelectedStyle(l.style || '');
+    setCleanSlate(Boolean(l.cleanSlate));
+    setCombinedLayout(l.combinedLayout || '');
+    setCombinedActivity(l.combinedActivity || '');
+    setSelectedDate(todayLocalISO());
+    setQuickStart(true);
+  }
+
   function resetStartChoices() {
     setSelectedGroups([]);
     setSelectedActivities([]);
@@ -785,6 +803,16 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
+    // Remembered so "Repeat last workout" can start the same kind of session in one tap.
+    if (!programSession) {
+      try {
+        localStorage.setItem('groove:lastStart', JSON.stringify({
+          title: workoutTitle(selectedGroups, usesAerobic ? selectedActivities : usesFlexibility ? selectedFlexActivities : []),
+          location: selectedLocation, mode: movementMode, groups: selectedGroups, activities: selectedActivities,
+          flexActivities: selectedFlexActivities, style: selectedStyle, cleanSlate, combinedLayout, combinedActivity,
+        }));
+      } catch { /* storage blocked */ }
+    }
     // Carrying out a planned workout uses it up.
     if (startingPlan) {
       await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
@@ -1109,12 +1137,15 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   // Effort + "anything hurt?" after a workout. If those columns haven't been
   // added in Supabase yet the save quietly does nothing.
-  async function saveCheckIn(fields) {
+  async function saveCheckIn(fields, reflect = false) {
     const id = checkInWorkoutId;
     setCheckInWorkoutId(null);
-    setJournalPromptId(id);
-    await supabase.from('workouts').update(fields).eq('id', id);
-    if (fields.felt_off) notifyFeltOff();
+    // One sheet now: the reflection is offered inside it, so there's no second pop-up after.
+    if (reflect && onJournalAfterWorkout) onJournalAfterWorkout(id);
+    if (fields) {
+      await supabase.from('workouts').update(fields).eq('id', id);
+      if (fields.felt_off) notifyFeltOff();
+    }
   }
 
   // Reopens a finished workout as the live one, so a session that was
@@ -1204,13 +1235,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         </button>
       )}
 
-      {checkInWorkoutId && <CheckInSheet onSave={saveCheckIn} onSkip={() => { setJournalPromptId(checkInWorkoutId); setCheckInWorkoutId(null); }} />}
-      {journalPromptId && !checkInWorkoutId && onJournalAfterWorkout && (
-        <JournalPromptSheet
-          onJournal={() => { const id = journalPromptId; setJournalPromptId(null); onJournalAfterWorkout(id); }}
-          onSkip={() => setJournalPromptId(null)}
-        />
-      )}
+      {checkInWorkoutId && <CheckInSheet onSave={(f) => saveCheckIn(f)} onReflect={onJournalAfterWorkout ? (f) => saveCheckIn(f, true) : null} onSkip={() => setCheckInWorkoutId(null)} />}
       {showProgramSheet && user && (
         <ProgramSheet userId={user.id} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={profile?.week_start_day || 'sunday'} />
       )}
@@ -1284,6 +1309,23 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         {!planning && program && (
           <MoveProgramCard program={program} week={programWeek} lifted={programLifted} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
         )}
+        {!planning && !startingPlan && !selectedLocation && !movementMode && (() => {
+          const l = readLastStart();
+          if (!l || !l.mode || !l.location) return null;
+          return (
+            <button
+              onClick={() => repeatLastWorkout(l)}
+              style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }}
+              className="w-full rounded-lg px-4 py-2.5 mb-2 flex items-center justify-between gap-3 text-left"
+            >
+              <span className="min-w-0">
+                <span style={{ color: PAPER }} className="text-sm font-medium block truncate">Repeat last workout</span>
+                <span style={{ color: TEXT_SOFT }} className="text-sm block truncate">{[l.title, l.style, l.location].filter(Boolean).join(' · ')}</span>
+              </span>
+              <span style={{ color: SKY }} className="shrink-0"><Play size={16} /></span>
+            </button>
+          );
+        })()}
         <StartWorkout
           recentTrained={recentTrained}
           planning={planning}
@@ -2053,6 +2095,11 @@ function ActiveWorkout({
     setDoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
     setUndoneKeys((prev) => { if (!prev.has(k)) return prev; const n = new Set(prev); n.delete(k); return n; });
   };
+  // After ticking an exercise off, the next unfinished one opens and scrolls into view.
+  const advanceFrom = (gi) => {
+    const next = groupInfoRef.current.slice(gi + 1).find((g) => !g.complete && g.type !== 'warmup' && g.key !== undefined);
+    if (next) { setActiveGroupKey(next.key); setPendingScrollKey(next.key); }
+  };
   const unmarkDone = (k) => {
     setDoneKeys((prev) => { if (!prev.has(k)) return prev; const n = new Set(prev); n.delete(k); return n; });
     setUndoneKeys((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
@@ -2287,9 +2334,9 @@ function ActiveWorkout({
 
   return (
     <div className="mb-8">
-      <div style={{ background: INK, zIndex: 5 }} className="sticky top-0 py-1.5 -mt-1.5 mb-2 text-center">
+      <div style={{ background: INK, zIndex: 5 }} className="sticky top-0 py-1 -mt-1.5 mb-2 text-center">
        <div>
-        <div style={{ color: PAPER }} className="text-xl font-extrabold leading-tight">
+        <div style={{ color: PAPER }} className="text-xl font-extrabold leading-tight truncate px-2">
           {workoutTitle(workout.muscleGroups, workout.activities)}
         </div>
         <div style={{ color: SKY }} className="text-sm">
@@ -2434,7 +2481,7 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   onQuickAdd={canQuickAddAerobic ? (name, intensity, minutes) => submitQuickAerobic(name, intensity, minutes, (groups[gi + 1]?.[0].index) ?? exercises.length) : null}
                 />
@@ -2454,7 +2501,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
-                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                 />
               );
@@ -2478,7 +2525,7 @@ function ActiveWorkout({
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
                   isDone={isDone}
-                  onDone={() => (isDone ? unmarkDone(groupKey) : markDone(groupKey))}
+                  onDone={() => { if (isDone) unmarkDone(groupKey); else { markDone(groupKey); advanceFrom(gi); } }}
                   onUndo={isDone ? () => unmarkDone(groupKey) : null}
                   combinedActivity={combinedActivity}
                   preset={preset}
@@ -3611,7 +3658,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
         style={{ color: TEXT_SOFT }}
-        className={`absolute top-1/2 -translate-y-1/2 ${menuClass || (menuSide === 'left' ? 'left-0.5 top-5' : 'right-1')} z-10 w-9 h-9 flex items-center justify-center rounded-full`}
+        className={`absolute top-1/2 -translate-y-1/2 ${menuClass || (menuSide === 'left' ? 'left-0.5 top-5' : 'right-1')} z-[1] w-9 h-9 flex items-center justify-center rounded-full`}
         aria-label="Exercise options"
       >
         <MoreHorizontal size={18} />

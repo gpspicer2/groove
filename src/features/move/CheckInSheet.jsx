@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Portal from '../../Portal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK, AMBER, ON_AMBER } from '../../theme';
 
 // Borg CR10-style effort scale, in plain words.
 export const RPE_LABELS = {
@@ -12,7 +12,7 @@ export const RPE_LABELS = {
 const ITEM_W = 64; // px per number in the scroller
 
 // Quick, skippable check-in right after finishing a workout.
-export default function CheckInSheet({ onSave, onSkip }) {
+export default function CheckInSheet({ onSave, onReflect, onSkip }) {
   const [rpe, setRpe] = useState(null);
   const [feltOff, setFeltOff] = useState(null); // null | false | true
   const [note, setNote] = useState('');
@@ -111,14 +111,25 @@ export default function CheckInSheet({ onSave, onSkip }) {
             )}
           </div>
 
-          <button
-            onClick={() => onSave({ rpe, felt_off: feltOff, felt_off_note: feltOff && note.trim() ? note.trim() : null })}
-            disabled={!canSave}
-            style={{ background: canSave ? SKY : INK_3, color: canSave ? INK : TEXT_SOFT }}
-            className="w-full rounded-md py-3 text-sm font-medium"
-          >
-            Save
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => onSave({ rpe, felt_off: feltOff, felt_off_note: feltOff && note.trim() ? note.trim() : null })}
+              disabled={!canSave}
+              style={{ background: canSave ? SKY : INK_3, color: canSave ? INK : TEXT_SOFT }}
+              className="w-full rounded-md py-3 text-sm font-medium"
+            >
+              Save
+            </button>
+            {onReflect && (
+              <button
+                onClick={() => onReflect(canSave ? { rpe, felt_off: feltOff, felt_off_note: feltOff && note.trim() ? note.trim() : null } : null)}
+                style={{ background: AMBER, color: ON_AMBER }}
+                className="w-full rounded-md py-3 text-sm font-medium"
+              >
+                {canSave ? 'Save & write a reflection' : 'Write a reflection'}
+              </button>
+            )}
+          </div>
           <button onClick={onSkip} style={{ color: TEXT_SOFT }} className="w-full text-sm">Skip</button>
         </div>
       </div>
