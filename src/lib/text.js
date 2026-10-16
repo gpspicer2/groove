@@ -1,6 +1,7 @@
-// "bulgarian split squat" -> "Bulgarian Split Squat"; only touches the
-// first letter of each space-separated word, so hyphenated and
-// parenthetical names stay intact.
+import { titleCaseLive } from './titleCase';
+
+// "bulgarian split squat" -> "Bulgarian Split Squat". Uses the same rule as typing (titleCaseLive),
+// so a name looks identical while it is typed and after it is saved.
 export function titleCaseWords(name) {
-  return name.trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return titleCaseLive(name.trim().replace(/\s+/g, ' '));
 }

@@ -37,31 +37,52 @@ export function MoveProgramCard({ program, week, lifted = 0, onStart, onManage }
   const s = week.next;
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
   const model = program.goal === 'hypertrophy' ? `${program.model === 'linear' ? 'Linear' : 'Undulating'} · ` : '';
+  const today = new Date().getDay();
+  const acc = s && s.kind !== 'aerobic' ? accessoryLine(s) : '';
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-center">
-      <div className="flex items-center justify-between">
+    <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
+      <div className="flex items-center justify-between text-center">
         <span className="w-5" />
         <span style={{ color: SKY }} className="text-sm uppercase tracking-wide font-bold">{goal} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm">{model}{week.label}</div>
+      <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-0.5">
+        <span className="truncate">{model}{week.label}</span>
+        <span className="shrink-0">{lifted.toLocaleString()} lb lifted</span>
+      </div>
+      <div className="flex gap-1.5 mt-2">
+        {week.sessions.map((x) => {
+          const isNext = s && s.id === x.id;
+          return (
+            <div
+              key={x.id}
+              style={{ background: isNext ? SKY : INK_3, color: isNext ? INK : x.done ? TEXT_SOFT : PAPER, outline: x.day === today && !isNext ? `1.5px solid ${SKY}` : 'none' }}
+              className="flex-1 min-w-0 rounded-md py-1 px-0.5 text-[13px] font-medium leading-tight flex items-center justify-center gap-1"
+            >
+              {DAY_NAMES[x.day]}{x.done && <Check size={12} />}
+            </div>
+          );
+        })}
+      </div>
       {s ? (
         <>
-          <div className="flex items-center justify-between gap-3 mt-1.5 text-left">
-            <div style={{ color: PAPER }} className="min-w-0 text-base font-medium truncate">{s.name}</div>
-            <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
-              <Play size={14} /> Start
-            </button>
+          <div className="flex items-center justify-between gap-3 mt-2">
+            <div className="min-w-0">
+              <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
+              <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s)}{acc ? ` · ${acc}` : ''}</div>
+            </div>
+            {s.inProgress ? (
+              <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In progress</span>
+            ) : (
+              <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
+                <Play size={14} /> Start
+              </button>
+            )}
           </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-left mt-0.5">{sessionDetail(s)}</div>
-          {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm text-left">{accessoryLine(s)}</div>}
         </>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm mt-1.5">All {week.sessions.length} sessions done this week. Nice work!</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm mt-2 text-center">All {week.sessions.length} sessions done this week. Nice work!</div>
       )}
-      <div style={{ color: TEXT_SOFT, borderTop: `1px dashed ${INK_3}` }} className="text-sm mt-2 pt-1.5">
-        {week.doneCount} of {week.sessions.length} sessions this week · {lifted.toLocaleString()} lb lifted so far
-      </div>
     </div>
   );
 }

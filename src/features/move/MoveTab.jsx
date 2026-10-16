@@ -952,6 +952,36 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     });
   }
 
+  // Turn a standing exercise into a superset after the workout has started.
+  function pairExisting(i) {
+    setPlanExercises((prev) => {
+      const a = prev[i]; const b = prev[i + 1];
+      if (!a || !b || a.supersetId || b.supersetId || a.type !== 'resistance' || b.type !== 'resistance') return prev;
+      const id = uid();
+      const n = [...prev];
+      n[i] = { ...a, supersetId: id }; n[i + 1] = { ...b, supersetId: id };
+      return n;
+    });
+  }
+  function pairNew(i, pick) {
+    setPlanExercises((prev) => {
+      const a = prev[i];
+      if (!a || a.supersetId) return prev;
+      const id = uid();
+      const partner = { name: pick.name, muscleGroup: pick.muscleGroup || a.muscleGroup, type: 'resistance', supersetId: id, sets: a.sets, reps: a.reps };
+      const n = [...prev];
+      n[i] = { ...a, supersetId: id };
+      n.splice(i + 1, 0, partner);
+      return n;
+    });
+  }
+  function unpair(i) {
+    setPlanExercises((prev) => {
+      const id = prev[i]?.supersetId;
+      return id ? prev.map((e) => (e.supersetId === id ? { ...e, supersetId: null } : e)) : prev;
+    });
+  }
+
   // A workout started as one mode can pick up a different kind of
   // movement mid-session (aerobic work added into a resistance day,
   // say) — bump its stored mode to Combined so goal counts and the
@@ -1300,6 +1330,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           onReplace={replaceExercise}
           onMoveGroup={moveGroup}
           onReorderGroup={reorderGroup}
+          onPairExisting={pairExisting}
+          onPairNew={pairNew}
+          onUnpair={unpair}
           onAddExercise={addExercise}
           onAddSuperset={addSuperset}
           onAddAerobic={addAerobic}
@@ -2076,7 +2109,7 @@ function ActiveWorkout({
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
-  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup,
+  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup, onPairExisting, onPairNew, onUnpair,
   onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddStretch, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard, onProgress,
@@ -2099,6 +2132,8 @@ function ActiveWorkout({
     return () => document.removeEventListener('pointerdown', onDocPointerDown);
   }, [splitAddOpen]);
   const [swapIndex, setSwapIndex] = useState(null);
+  const [pairIndex, setPairIndex] = useState(null); // an exercise being turned into a superset
+  const [pairPicking, setPairPicking] = useState(false);
   // The one exercise currently expanded for logging — the rest stay
   // collapsed to a single numbered row. Starts on the first exercise so
   // there's an obvious place to begin instead of an all-collapsed list.
@@ -2182,7 +2217,8 @@ function ActiveWorkout({
   // the drag working only "some of the time."
   function handleDragStart(e, gi) {
     const t = e.touches[0];
-    const state = { fromIndex: gi, startY: t.clientY, touchId: t.identifier };
+    const scroller = document.getElementById('app-scroll');
+    const state = { fromIndex: gi, startY: t.clientY, startScroll: scroller ? scroller.scrollTop : 0, lastY: t.clientY, touchId: t.identifier };
     dragStateRef.current = state;
     setDraggingIndex(gi);
     setDragOffsetY(0);
@@ -2190,13 +2226,30 @@ function ActiveWorkout({
     function findTouch(ev, list) {
       return [...list].find((x) => x.identifier === state.touchId) || list[0];
     }
+    const offset = () => state.lastY - state.startY + (scroller ? scroller.scrollTop - state.startScroll : 0);
+
+    // Holding the item near the top or bottom of the screen scrolls the page, so it can be dragged anywhere
+    // (the card keeps following the finger because the scroll distance is added to its offset).
+    let raf = 0;
+    function autoScroll() {
+      if (dragStateRef.current !== state || !scroller) return;
+      const box = scroller.getBoundingClientRect();
+      const zone = 110;
+      let v = 0;
+      if (state.lastY < box.top + zone + 90) v = -Math.ceil(((box.top + zone + 90 - state.lastY) / zone) * 14);
+      else if (state.lastY > box.bottom - zone) v = Math.ceil(((state.lastY - (box.bottom - zone)) / zone) * 14);
+      if (v) { scroller.scrollTop += v; setDragOffsetY(offset()); }
+      raf = requestAnimationFrame(autoScroll);
+    }
+    raf = requestAnimationFrame(autoScroll);
 
     function onMove(ev) {
       if (dragStateRef.current !== state) return;
       if (ev.touches.length === 0) return;
       ev.preventDefault();
       const touch = findTouch(ev, ev.touches);
-      setDragOffsetY(touch.clientY - state.startY);
+      state.lastY = touch.clientY;
+      setDragOffsetY(offset());
     }
 
     function onEnd(ev) {
@@ -2224,6 +2277,7 @@ function ActiveWorkout({
         setDraggingIndex(null);
         setDragOffsetY(0);
       }
+      cancelAnimationFrame(raf);
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', onEnd);
       window.removeEventListener('touchcancel', onEnd);
@@ -2467,6 +2521,7 @@ function ActiveWorkout({
                 onDeleteSet={onDeleteSet}
                 onOpenSwap={setSwapIndex}
                 onRemove={(index, hasLoggedSets) => onRemoveExercise(index, hasLoggedSets)}
+                onSplit={() => onUnpair(group[0].index)}
                 isActive={activeGroupKey === groupKey}
                 onActivate={() => setActiveGroupKey(groupKey)}
                 onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
@@ -2554,6 +2609,7 @@ function ActiveWorkout({
                   onDeleteSet={onDeleteSet}
                   onUpdateSet={onUpdateSet}
                   onOpenSwap={() => setSwapIndex(ex.index)}
+                  onSuperset={() => setPairIndex(ex.index)}
                   onRemove={() => onRemoveExercise(ex.index, loggedSets.length > 0)}
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
@@ -2805,6 +2861,24 @@ function ActiveWorkout({
         {discardArm.armed === 'd' ? 'Tap again to cancel (what you logged here is cleared)' : 'Cancel workout'}
       </button>
 
+      {pairIndex !== null && !pairPicking && (
+        <PairChooser
+          exercise={exercises[pairIndex]}
+          next={exercises[pairIndex + 1] && exercises[pairIndex + 1].type === 'resistance' && !exercises[pairIndex + 1].supersetId ? exercises[pairIndex + 1] : null}
+          onNext={() => { onPairExisting(pairIndex); setActiveGroupKey(null); setPairIndex(null); }}
+          onOther={() => setPairPicking(true)}
+          onClose={() => setPairIndex(null)}
+        />
+      )}
+      {pairIndex !== null && pairPicking && (
+        <SwapPicker
+          exercise={exercises[pairIndex]}
+          usedNames={exercises.map((e) => e.name)}
+          location={workout.location}
+          onPick={(next) => { onPairNew(pairIndex, next); setActiveGroupKey(null); setPairIndex(null); setPairPicking(false); }}
+          onClose={() => { setPairIndex(null); setPairPicking(false); }}
+        />
+      )}
       {swapIndex !== null && (
         <SwapPicker
           exercise={exercises[swapIndex]}
@@ -3006,6 +3080,26 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
   );
 }
 
+// "Make it a superset": pair this exercise with the next one in the list, or add another to go with it.
+function PairChooser({ exercise, next, onNext, onOther, onClose }) {
+  const sheet = useSwipeDown(onClose);
+  const btn = 'w-full rounded-md py-3 text-sm font-medium mb-2';
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end justify-center z-50" onClick={onClose}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl px-5 py-5 text-center" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+          <div style={{ color: PAPER }} className="text-base font-bold">Superset {exercise.name} with...</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mt-1 mb-3">Back to back, no rest between them.</div>
+          {next && <button onClick={onNext} style={{ background: INK_3, color: PAPER }} className={btn}>{next.name} (next in your list)</button>}
+          <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>Another exercise</button>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   const [custom, setCustom] = useState('');
   const isAerobic = exercise.type === 'aerobic';
@@ -3064,7 +3158,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
         <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: `1px dashed ${INK_3}` }}>
           <input
             value={custom}
-            onChange={(e) => setCustom(e.target.value)}
+            onChange={(e) => setCustom(titleCaseLive(e.target.value))}
             placeholder="Or type your own"
             style={{ background: INK_3, color: PAPER }}
             className="flex-1 min-w-0 rounded-md px-3 py-2.5 text-sm outline-none"
@@ -3543,6 +3637,16 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
+  const repsRef = useRef(null);
+  const jumpTimer = useRef(null);
+  useEffect(() => () => clearTimeout(jumpTimer.current), []);
+  // A weight ending in 0 or 5 is usually finished (135, 45, 22.5), so hop to reps after a short pause
+  // (the pause lets 10 become 105 for anyone still typing).
+  function weightTyped(v) {
+    setWeight(v === '' ? '' : Number(v));
+    clearTimeout(jumpTimer.current);
+    if (!byTime && /[05]$/.test(String(v)) && Number(v) > 0) jumpTimer.current = setTimeout(() => { repsRef.current?.focus(); }, 650);
+  }
   const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? 30);
 
   function handleLog() {
@@ -3588,7 +3692,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             type="number"
             inputMode="decimal"
             value={weight}
-            onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => weightTyped(e.target.value)}
             onFocus={(e) => e.target.select()}
             style={boxStyle}
             className={boxClass}
@@ -3615,6 +3719,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             <input
               type="number"
               inputMode="numeric"
+              ref={repsRef}
               value={reps}
               onChange={(e) => setReps(e.target.value === '' ? '' : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
@@ -3676,7 +3781,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
+function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Make it a superset', onEdit, editLabel = 'Edit settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
@@ -3705,6 +3810,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
               {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{title}</div>}
               {onUndo && row('undo', 'Not finished yet (un-check)', Check, LIME, () => { close(); onUndo(); })}
               {onSwap && row('swap', 'Swap for another', Replace, LIME, () => { close(); onSwap(); })}
+              {onSuperset && row('superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); })}
               {onNever && row('never', 'Swap, and never suggest this again', Replace, TEXT_SOFT, () => { close(); onNever(); })}
               {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
               {(onMoveUp || onMoveDown) && (
@@ -3732,7 +3838,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onMoveUp, onMoveDown,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3743,7 +3849,7 @@ function ExerciseCard({
 
   if (!isActive) {
     return (
-      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+      <SwipeActions title={exercise.name} onSwap={onOpenSwap} onSuperset={onSuperset} onEdit={() => { onActivate(); setShowSettings(true); }} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <button
           onClick={onActivate}
           style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }}
@@ -3763,7 +3869,7 @@ function ExerciseCard({
   }
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSuperset} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
       <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5 groove-ease-in">
         <div className="flex items-center justify-between mb-1">
           <span className="w-6 shrink-0" aria-hidden="true" />
@@ -3837,13 +3943,14 @@ function ExerciseCard({
 // ExerciseCard, so the gesture is consistent everywhere in a workout
 // rather than supersets being the one place with permanent inline
 // toggles and tap-target icon buttons instead.
-function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, nextSetNumber }) {
+function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, nextSetNumber }) {
+  const { armed, press } = useArmed();
   const [showSettings, setShowSettings] = useState(false);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name}</div>
         {showSettings && (
@@ -3896,7 +4003,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   );
 }
 
-function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive, onActivate, onCollapse }) {
+function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, isActive, onActivate, onCollapse }) {
   if (isActive === false) {
     const logged = members.reduce((n, ex) => n + sets.filter((s) => s.exerciseName === ex.name).length, 0);
     return (
@@ -3908,7 +4015,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
         <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2 min-w-0">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span>
           <Link2 size={12} color={LIME} className="shrink-0" />
-          <span className="truncate">{members.map((m) => m.name).join(' + ')}</span>
+          <span className="line-clamp-2 leading-tight">{members.map((m) => m.name).join(" + ")}</span>
         </span>
         <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">{logged > 0 ? `${logged} logged` : 'superset'}</span>
       </button>
@@ -3941,6 +4048,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
               onDeleteSet={onDeleteSet}
               onOpenSwap={() => onOpenSwap(ex.index)}
               onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
+              onSplit={onSplit}
               nextSetNumber={loggedSets.length + 1}
             />
           );
@@ -4131,7 +4239,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
                   <input
                     autoFocus
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => setEditValue(titleCaseLive(e.target.value))}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingIndex(null); }}
                     style={{ background: INK_3, color: PAPER }}
                     className="flex-1 min-w-0 rounded-md px-3 py-2 text-sm outline-none"

@@ -104,6 +104,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Injuries and limits (`src/features/injury/`): Account > "Injuries and limits" (members) lists body area (same `BODY_AREAS` as the body check), a label, the date and a note. Stored in `profiles.injuries` jsonb (SQL at end of `schema.sql`; until run it lives in localStorage `groove:injuries:<id>`, and Greg can't see it). Active injuries are always avoided by suggested lifting workouts (`avoidForAreas`, a hard exclude also applied to the squat/anchor helpers) until marked recovered; the body-check sheet says "Already working around". Shows "week N · stage" with generic healing-phase guidance (`stageFor`: Protect <2 wk, Early loading <6, Rebuilding <12, Return to training); general guidance only, no PT prescription. Coach member Overview lists them under Flags. Not yet done: Greg may want to edit the stage wording.
 
+- Superset after starting: the ⋯ menu on a lifting exercise has "Make it a superset" (pair with the next lift, or add another exercise to go with it); a superset's ⋯ has "Split the superset". Typing a weight ending in 0 or 5 hops to reps after a 0.65 s pause. Exercise names show the same Title Case while typing and after (`titleCaseWords` now uses `titleCaseLive`). SwipeTabs ignores touches on text fields so selecting text never moves the page. Dragging a card near the top/bottom edge auto-scrolls the page. Fixed: logging a set in a superset crashed the app (`SupersetMember` used `armed/press` without `useArmed`).
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

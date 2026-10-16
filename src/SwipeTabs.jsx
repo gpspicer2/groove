@@ -54,7 +54,7 @@ export default function SwipeTabs({ index, onChangeIndex, pages, onEdgeSwipeRigh
   function isSwipeExempt(target) {
     // Swipe-to-reveal rows (data-no-swipe="row") only keep LEFT swipes (and
     // any swipe while open); a right swipe on them still changes tabs.
-    return Boolean(target.closest && target.closest('input[type="range"], [data-no-swipe]:not([data-no-swipe="row"])'));
+    return Boolean(target.closest && target.closest('input[type="range"], input[type="text"], input:not([type]), textarea, [data-no-swipe]:not([data-no-swipe="row"])'));
   }
 
   function handleTouchStart(e) {
