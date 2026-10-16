@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal } from '../../lib/icons';
+import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';
@@ -2346,6 +2346,8 @@ function ActiveWorkout({
               card = (
                 <WarmupCard
                   index={displayIndex}
+                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
+                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   exercise={ex}
                   loggedSets={loggedSets}
                   onLogSet={(payload) => onLogSet(payload)}
@@ -2364,6 +2366,8 @@ function ActiveWorkout({
               card = (
                 <AerobicCard
                   index={displayIndex}
+                  onMoveUp={gi > 0 ? () => onMoveGroup(gi, -1) : null}
+                  onMoveDown={gi < groups.length - 1 ? () => onMoveGroup(gi, 1) : null}
                   exercise={ex}
                   movementType={ex.type === 'flexibility-activity' ? 'flexibility' : 'aerobic'}
                   loggedSets={loggedSets}
@@ -3401,6 +3405,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     }
   }
 
+  // One-tap "Repeat": logs exactly the previous set again (this workout's last set, or last time's for the
+  // first set), even after the boxes were changed. Hidden when Log would do the very same thing.
+  const ref = mostRecentLogged || (last && last.weight != null ? last : null);
+  const refCount = ref ? (ref.durationSeconds ? `${ref.durationSeconds}s` : ref.reps != null ? `${ref.reps}` : null) : null;
+  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight);
+  const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
+  const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < BARBELL_MIN_LB);
+  function handleRepeat() {
+    onLog({ setNumber: nextSetNumber, weight: ref.weight, isBodyweight: Boolean(ref.isBodyweight), reps: ref.reps ?? null, durationSeconds: ref.durationSeconds ?? null });
+  }
+
   // One short line for target/last/suggested; units sit inside the boxes so
   // there is no label row above them.
   const rmTarget = targetLoad(style, oneRmFor(exercise.name));
@@ -3490,6 +3505,16 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           </button>
         )}
       </div>
+      {showRepeat && (
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleRepeat}
+          style={{ background: INK_3, color: PAPER_DIM }}
+          className="w-full mt-1.5 rounded-md py-1.5 text-sm flex items-center justify-center gap-1.5"
+        >
+          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : ref.weight}×{refCount}
+        </button>
+      )}
       {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center -mt-1 mb-2">The bar alone is {BARBELL_MIN_LB} lb.</div>}
     </>
   );
@@ -3501,7 +3526,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onMoveUp, onMoveDown, menuSide = 'right' }) {
+function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit settings', onRemove, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
@@ -3517,7 +3542,7 @@ function SwipeActions({ children, title, onSwap, onEdit, editLabel = 'Edit setti
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
         style={{ color: TEXT_SOFT }}
-        className={`absolute top-1/2 -translate-y-1/2 ${menuSide === 'left' ? 'left-0.5 top-5' : 'right-1'} z-10 w-9 h-9 flex items-center justify-center rounded-full`}
+        className={`absolute top-1/2 -translate-y-1/2 ${menuClass || (menuSide === 'left' ? 'left-0.5 top-5' : 'right-1')} z-10 w-9 h-9 flex items-center justify-center rounded-full`}
         aria-label="Exercise options"
       >
         <MoreHorizontal size={18} />
@@ -3799,7 +3824,7 @@ function WarmupInfoModal({ onClose }) {
 // exercise (edit here just means retyping the name) plus the same
 // touch-drag reordering as the main exercise list — its own small-scale
 // copy of that gesture, scoped to this card's drill rows.
-function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse }) {
+function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse, onMoveUp, onMoveDown }) {
   const isDone = loggedSets.length > 0; // the set is logged only once every drill is checked
   // Finishing every drill logs the warm-up as a flexibility set, so it
   // counts toward the weekly flexibility goal; unchecking one takes it back.
@@ -3823,18 +3848,20 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   if (isActive === false) {
     const doneCount = exercise.drills.filter((d) => checked.has(d)).length;
     return (
-      <button
-        onClick={onActivate}
-        style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : VIOLET}` }}
-        className="w-full rounded-md px-4 py-3 flex items-center justify-between text-left"
-      >
-        <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
-          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
-        </span>
-        <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
-          {doneCount > 0 ? `${doneCount}/${exercise.drills.length} done` : `${exercise.drills.length} drills`}
-        </span>
-      </button>
+      <SwipeActions title={exercise.name} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+        <button
+          onClick={onActivate}
+          style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : VIOLET}` }}
+          className="w-full rounded-md pl-4 pr-11 py-3 flex items-center justify-between text-left"
+        >
+          <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
+            <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
+          </span>
+          <span style={{ color: TEXT_SOFT }} className="text-sm shrink-0 ml-2">
+            {doneCount > 0 ? `${doneCount}/${exercise.drills.length} done` : `${exercise.drills.length} drills`}
+          </span>
+        </button>
+      </SwipeActions>
     );
   }
 
@@ -4051,7 +4078,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   );
 }
 
-function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd, isDone, onDone }) {
+function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, onChooseActivity, hrZones, isActive, onActivate, onCollapse, onQuickAdd, isDone, onDone, onMoveUp, onMoveDown }) {
   const [light, setLight] = useState('');
   const [moderate, setModerate] = useState('');
   const [vigorous, setVigorous] = useState('');
@@ -4068,10 +4095,11 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   if (isActive === false) {
     return (
       <>
+        <SwipeActions title={exercise.name} menuClass={onQuickAdd ? 'right-12' : 'right-1'} onSwap={onOpenSwap} onRemove={onRemove} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
         <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : movementType === 'flexibility' ? BRICK : AMBER}` }} className="rounded-md flex items-stretch overflow-hidden">
           <button
             onClick={onActivate}
-            className="flex-1 min-w-0 px-4 py-3 flex items-center justify-between text-left"
+            className={`flex-1 min-w-0 pl-4 ${onQuickAdd ? 'pr-11' : 'pr-11'} py-3 flex items-center justify-between text-left`}
           >
             <span style={{ color: PAPER }} className="text-base font-bold flex items-center gap-2">
               <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
@@ -4091,6 +4119,7 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
             </button>
           )}
         </div>
+        </SwipeActions>
         {showQuickAdd && (
           <div className="mt-3">
             <QuickAerobicForm
