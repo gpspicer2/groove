@@ -548,10 +548,10 @@ const AREA_AVOID = {
   shoulders: /Overhead|Shoulder Press|Military|Arnold|Incline.*Press|Decline.*Press|Landmine|Dips|Pike|Handstand|Raise|Upright|Pull-Ups|Chin-Ups|Pullover|Fly/i,
   elbows: /(Barbell|Dumbbell|Hammer|Cable|Preacher|Concentration|EZ) Curl|Pushdown|Tricep|Skull|Dips|Push-Up|Close-Grip|Kickback|Pull-Ups|Chin-Ups/i,
   upper_back: /Row|Pull-Ups|Chin-Ups|Pulldown|Pullover|Shrug|Face Pull|Rear Delt|Reverse Fly/i,
-  lower_back: /Deadlift|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Back Extension|Hyperextension|Romanian/i,
+  lower_back: /Deadlift|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Goblet Squat|Back Extension|Hyperextension|Romanian|Overhead Press|Arnold|Seated Cable Row|Hanging Leg|Russian Twist|Ab Wheel|Bulgarian|Walking Lunges/i,
   hips: /Squat|Lunge|Step-Up|Hip Thrust|Deadlift|Abduction|Glute/i,
   knees: /Squat|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
-  ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box/i,
+  ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box|Bulgarian|Handstand/i,
 };
 export function avoidForAreas(areaIds = []) {
   const res = areaIds.map((id) => AREA_AVOID[id]).filter(Boolean);
