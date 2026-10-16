@@ -530,3 +530,33 @@ export function workoutTitle(muscleGroups = [], activities = []) {
 export function plural(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
+
+// "Anything sore or not feeling right?" before a suggested lifting workout. Each area lists the kinds of
+// movement that load it hardest; those exercises are left out of the suggestion for that day.
+export const BODY_AREAS = [
+  { id: 'neck', label: 'Neck' },
+  { id: 'shoulders', label: 'Shoulders' },
+  { id: 'elbows', label: 'Elbows / wrists' },
+  { id: 'upper_back', label: 'Upper back' },
+  { id: 'lower_back', label: 'Lower back' },
+  { id: 'hips', label: 'Hips' },
+  { id: 'knees', label: 'Knees' },
+  { id: 'ankles', label: 'Ankles / feet' },
+];
+const AREA_AVOID = {
+  neck: /Shrug|Overhead|Pull-Ups|Chin-Ups|Upright|Face Pull/i,
+  shoulders: /Overhead|Shoulder Press|Military|Arnold|Incline.*Press|Decline.*Press|Landmine|Dips|Pike|Handstand|Raise|Upright|Pull-Ups|Chin-Ups|Pullover|Fly/i,
+  elbows: /(Barbell|Dumbbell|Hammer|Cable|Preacher|Concentration|EZ) Curl|Pushdown|Tricep|Skull|Dips|Push-Up|Close-Grip|Kickback|Pull-Ups|Chin-Ups/i,
+  upper_back: /Row|Pull-Ups|Chin-Ups|Pulldown|Pullover|Shrug|Face Pull|Rear Delt|Reverse Fly/i,
+  lower_back: /Deadlift|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Back Extension|Hyperextension|Romanian/i,
+  hips: /Squat|Lunge|Step-Up|Hip Thrust|Deadlift|Abduction|Glute/i,
+  knees: /Squat|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
+  ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box/i,
+};
+export function avoidForAreas(areaIds = []) {
+  const res = areaIds.map((id) => AREA_AVOID[id]).filter(Boolean);
+  if (res.length === 0) return [];
+  const names = new Set();
+  Object.values(EXERCISE_LIBRARY).forEach((list) => list.forEach((e) => { if (res.some((re) => re.test(e.name))) names.add(e.name); }));
+  return [...names];
+}

@@ -14,8 +14,9 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight } from './exerciseLibrary';
+import { workoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
+import ReadinessSheet from './ReadinessSheet';
 import StravaMark, { STRAVA_ORANGE } from '../strava/StravaMark';
 import { notifyFeltOff } from '../../lib/push';
 import { setOneRms, oneRmFor, targetLoad } from './oneRm';
@@ -325,6 +326,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [showProgramSheet, setShowProgramSheet] = useState(false);
   const [programSession, setProgramSession] = useState(null);
   const [autoStart, setAutoStart] = useState(false);
+  // "How's your body today?" asked before a suggested lifting workout; the answer shapes the picks.
+  const [readiness, setReadiness] = useState(null); // { areas: [...], tired }
+  const [readinessOpen, setReadinessOpen] = useState(false);
 
   const customActivities = profile?.custom_activities || [];
 
@@ -724,6 +728,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   async function startWorkout() {
     if (!canStartMode()) return;
+    // A suggested lifting workout first asks how the body feels (then comes straight back here).
+    if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !readiness) { setReadinessOpen(true); return; }
     const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
     const usesAerobic = movementMode === 'Aerobic' || movementMode === 'Combined';
     const usesFlexibility = movementMode === 'Flexibility';
@@ -745,8 +751,10 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
       // A one-muscle program day (chest day, arm day) needs more picks per muscle.
       const perGroup = programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, hidden)
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...avoidForAreas(readiness?.areas || [])])
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+      // Run down: a shorter session with one fewer set per exercise.
+      if (readiness?.tired) plan = plan.slice(0, 4).map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) }));
     }
     if (usesResistance) {
       // Every resistance session opens with an easy aerobic piece (the
@@ -812,6 +820,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .select()
       .single();
     if (error) { setLoadError(error.message); return; }
+    if (readiness && (readiness.areas.length > 0 || readiness.tired)) { try { localStorage.setItem(`groove:readiness:${data.id}`, JSON.stringify(readiness)); } catch { /* storage blocked */ } }
+    setReadiness(null);
     // Remembered so "Repeat last workout" can start the same kind of session in one tap.
     if (!programSession) {
       try {
@@ -1244,6 +1254,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         </button>
       )}
 
+      {readinessOpen && <ReadinessSheet onCancel={() => setReadinessOpen(false)} onConfirm={(r) => { setReadiness(r); setReadinessOpen(false); setQuickStart(true); }} />}
       {checkInWorkoutId && <CheckInSheet onSave={(f) => saveCheckIn(f)} onReflect={onJournalAfterWorkout ? (f) => saveCheckIn(f, true) : null} onSkip={() => setCheckInWorkoutId(null)} />}
       {showProgramSheet && user && (
         <ProgramSheet userId={user.id} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={profile?.week_start_day || 'sunday'} />
@@ -2042,7 +2053,16 @@ function workoutGuide(workout) {
   } catch { /* ignore */ }
   const cfg = STYLE_CONFIG[workout.style];
   if ((workout.movementMode === 'Resistance' || workout.movementMode === 'Combined') && cfg?.suggest) {
-    return { title: null, lines: [`Suggested: ${cfg.suggest}`] };
+    const lines = [`Suggested: ${cfg.suggest}`];
+    try {
+      const r = JSON.parse(localStorage.getItem(`groove:readiness:${workout.id}`) || 'null');
+      if (r) {
+        const names = (r.areas || []).map((id) => (BODY_AREAS.find((a) => a.id === id) || {}).label).filter(Boolean).map((l) => l.toLowerCase());
+        const bits = [names.length ? `built around ${names.join(', ')}` : '', r.tired ? 'a lighter session' : ''].filter(Boolean);
+        if (bits.length) lines.push(`Adjusted for today: ${bits.join(' · ')}`);
+      }
+    } catch { /* ignore */ }
+    return { title: null, lines };
   }
   return null;
 }

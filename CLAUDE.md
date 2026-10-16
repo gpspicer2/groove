@@ -100,6 +100,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Suggested lifting workouts lead with each muscle group's anchor lift (bench, back squat, pull-ups; `ANCHOR_EXERCISES`). Strength sessions repeat them every time on purpose; hypertrophy and endurance sessions skip an anchor that was in the last workout, so a different lift leads and the anchor returns the session after. Anchors never push each other (or the squat variation) out of the 6-exercise cap. Exercise picks are round-robin across the chosen muscles (every muscle gets one before any gets a second, so arms and core aren't squeezed out), and for every goal except Strength nothing done in the last 7 days is suggested again (least-recently-used returns first when a muscle runs out). "Swap, and never suggest this again" in the ⋯ menu keeps a per-device hidden list (`groove:hiddenExercises`; no screen to undo it yet).
 
+- Pre-workout body check (`move/ReadinessSheet.jsx`): starting a Suggested Resistance/Mixed workout first asks "How's your body today?" (tap sore areas, or "Run down"). `BODY_AREAS`/`avoidForAreas` in `exerciseLibrary.js` drop exercises by simple name patterns (not medical advice; sheet says to see a pro for sharp pain/swelling); "Run down" trims to 4 exercises with one set fewer. Clean slate skips it. Saved in `groove:readiness:<workoutId>`; the workout guide line says "Adjusted for today".
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
