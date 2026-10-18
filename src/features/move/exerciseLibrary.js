@@ -108,6 +108,8 @@ export const EXERCISE_LIBRARY = {
     { name: 'Dumbbell Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
     { name: 'Deficit Push-Ups', sets: 3, reps: '12-15', equipment: 'bodyweight' }, // hands elevated on blocks/plates for extra stretch — big ROM
     { name: 'Dips', sets: 3, reps: '10-15', equipment: 'bodyweight' },
+    { name: 'Push-Ups', sets: 3, reps: '10-15', equipment: 'bodyweight' },
+    { name: 'Machine Chest Press', sets: 3, reps: '10-12', equipment: 'machine' },
   ],
   Back: [
     { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
@@ -117,6 +119,10 @@ export const EXERCISE_LIBRARY = {
     { name: 'Straight-Arm Pulldown', sets: 3, reps: '12-15', equipment: 'cable' }, // long lat stretch overhead
     { name: 'Dumbbell Pullover', sets: 3, reps: '10-12', equipment: 'dumbbell' },     // big overhead ROM
     { name: 'Single-Arm Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Inverted Row', sets: 3, reps: '8-12', equipment: 'bodyweight' }, // under a sturdy table or low bar
+    { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Back Extension', sets: 3, reps: '10-15', equipment: 'bodyweight' },
+    { name: 'Dumbbell Shrug', sets: 3, reps: '12-15', equipment: 'dumbbell' },
   ],
   Legs: [
     { name: 'Barbell Back Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
@@ -125,24 +131,32 @@ export const EXERCISE_LIBRARY = {
     { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' }, // deep single-leg stretch
     { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
+    { name: 'Reverse Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
+    { name: 'Calf Raises', sets: 3, reps: '12-20', equipment: 'bodyweight' },
   ],
   Quadriceps: [
     { name: 'Front Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
     { name: 'Leg Extension', sets: 3, reps: '12-15', equipment: 'machine' },
     { name: 'Goblet Squat', sets: 3, reps: '10-15', equipment: 'dumbbell' },
     { name: 'Step-Ups', sets: 3, reps: '10-12', equipment: 'bodyweight' },
+    { name: 'Wall Sit', sets: 3, reps: '30-45s', equipment: 'bodyweight' },
   ],
   Hamstrings: [
     { name: 'Leg Curl', sets: 3, reps: '10-15', equipment: 'machine' },
     { name: 'Romanian Deadlift', sets: 3, reps: '10-12', equipment: 'barbell' },
     { name: 'Nordic Curl (assisted)', sets: 3, reps: '6-10', equipment: 'bodyweight' },
     { name: 'Seated Hamstring Curl', sets: 3, reps: '10-15', equipment: 'machine' },
+    { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: '8-12', equipment: 'dumbbell' },
+    { name: 'Hamstring Walkout', sets: 3, reps: '6-10', equipment: 'bodyweight' },
+    { name: 'Bodyweight Good Morning', sets: 3, reps: '12-15', equipment: 'bodyweight' },
   ],
   Glutes: [
     { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'barbell' },
     { name: 'Single-Leg Glute Bridge', sets: 3, reps: '12-15', equipment: 'bodyweight' },
     { name: 'Cable Kickback', sets: 3, reps: '12-15', equipment: 'cable' },
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' },
+    { name: 'Dumbbell Hip Thrust', sets: 3, reps: '10-15', equipment: 'dumbbell' },
+    { name: 'Donkey Kicks', sets: 3, reps: '12-15', equipment: 'bodyweight' },
   ],
   Shoulders: [
     { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
@@ -153,6 +167,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Rear Delt Fly', sets: 3, reps: '12-15', equipment: 'dumbbell' },
     { name: 'Pike Push-Up', sets: 3, reps: '8-12', equipment: 'bodyweight' },
     { name: 'Handstand Hold (wall)', sets: 3, reps: '20-30s', equipment: 'bodyweight' },
+    { name: 'Plank Shoulder Taps', sets: 3, reps: '10-16', equipment: 'bodyweight' },
   ],
   Biceps: [
     { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
@@ -171,6 +186,8 @@ export const EXERCISE_LIBRARY = {
     { name: 'Dips', sets: 3, reps: '8-12', equipment: 'bodyweight' },
     { name: 'Cable Kickback', sets: 3, reps: '12-15', equipment: 'cable' },
     { name: 'Diamond Push-Ups', sets: 3, reps: '10-15', equipment: 'bodyweight' },
+    { name: 'Bench Dips', sets: 3, reps: '10-15', equipment: 'bodyweight' },
+    { name: 'Dumbbell Kickback', sets: 3, reps: '12-15', equipment: 'dumbbell' },
   ],
   Core: [
     { name: 'Plank', sets: 3, reps: '30-60s', equipment: 'bodyweight' },
@@ -391,9 +408,12 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   });
   // Round-robin: every muscle gets its first exercise before any muscle gets a second, so a short
   // session still covers each muscle (arms and core don't get squeezed out by extra chest and back).
-  for (let round = 0; round < perGroup && picked.length < MAX_EXERCISES; round += 1) {
+  // A single-muscle day needs about five exercises and a two-muscle day six (ACSM/NSCA: several exercises and 2-4 sets
+  // per major muscle group), so keep going round after round until that many are picked or the lists run dry.
+  const target = Math.min(MAX_EXERCISES, Math.max(perGroup * muscleGroups.length, muscleGroups.length === 1 ? 5 : muscleGroups.length === 2 ? 6 : 0));
+  for (let round = 0; round < 8 && picked.length < target; round += 1) {
     for (const l of lists) {
-      if (picked.length >= MAX_EXERCISES) break;
+      if (picked.length >= target) break;
       while (l.at < l.ordered.length && usedNames.has(l.ordered[l.at].name)) l.at += 1;
       const ex = l.ordered[l.at];
       if (!ex) continue;
@@ -552,7 +572,7 @@ const AREA_AVOID = {
   upper_back: /Row|Pull-Ups|Chin-Ups|Pulldown|Pullover|Shrug|Face Pull|Rear Delt|Reverse Fly/i,
   lower_back: /Deadlift|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Goblet Squat|Back Extension|Hyperextension|Romanian|Overhead Press|Arnold|Seated Cable Row|Hanging Leg|Russian Twist|Ab Wheel|Bulgarian|Walking Lunges/i,
   hips: /Squat|Lunge|Step-Up|Hip Thrust|Deadlift|Abduction|Glute/i,
-  knees: /Squat|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
+  knees: /Squat|Wall Sit|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
   ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box|Bulgarian|Handstand/i,
 };
 export function avoidForAreas(areaIds = []) {

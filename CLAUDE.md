@@ -132,6 +132,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Flexibility start: "Which muscles?" is a fold-down row (chevron, shows the chosen muscles or "optional"). It opens by itself only while nothing is picked yet; once an activity (or muscle) is chosen it folds, and a tap opens it. Lifting and Mixed keep it always open because muscles are required there.
 
+- Suggested lifting sizes: a one-muscle day gets 5 exercises, a two-muscle day 6, three or more muscles at least one each up to the 6-exercise cap (`generateWorkout` keeps picking round after round until it reaches that target or the lists run dry; ACSM/NSCA: several exercises and 2-4 sets per major muscle group). The library was widened (87+ exercises incl. bodyweight and dumbbell options like Inverted Row, Push-Ups, Reverse Lunges, Wall Sit, Single-Leg RDL) so home and outdoor days still reach 4-5; the outdoor-only pools for biceps, hamstrings and shoulders stay small because those moves need equipment. Every new library exercise needs a guide in `exerciseGuides.js`.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
