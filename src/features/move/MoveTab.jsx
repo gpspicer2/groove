@@ -1241,6 +1241,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
     try { localStorage.removeItem(LIVE_BACKUP_KEY); localStorage.setItem('groove:finishedAt', String(Date.now())); } catch { /* */ }
+    window.dispatchEvent(new Event('groove:workoutsChanged')); // Birdseye re-counts goals so the confetti shows right here
     setCheckInWorkoutId(activeWorkoutId);
     setActiveWorkoutId(null);
     setPlanExercises([]);

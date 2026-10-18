@@ -430,7 +430,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       <GoalCelebration
         userId={userId}
         weekKey={dayKey(weekStart)}
-        active={active}
+        active
         latestAt={workoutsThisWeek.reduce((m, w) => { const t = w.completed_at || w.started_at; return !m || t > m ? t : m; }, null)}
         goals={trackedGoals.map((g) => ({
           mode: g.mode, label: g.label,
