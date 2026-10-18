@@ -64,7 +64,7 @@ export const LIFESTYLE_ACTIVITIES = [
 // in addition to the muscle-group-driven stretch plan.
 export const FLEXIBILITY_ACTIVITIES = [
   'Static Stretching', 'Dynamic Stretching', 'Yoga', 'Pilates', 'Mobility Work',
-  'Foam Roll: Upper Body', 'Foam Roll: Lower Body', 'Foam Roll: Full Body',
+  'Foam Rolling',
   'Tai Chi', 'Balance Training',
 ];
 

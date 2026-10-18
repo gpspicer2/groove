@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -298,6 +298,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [selectedFlexActivities, setSelectedFlexActivities] = useState([]);
+  const [foamRegion, setFoamRegion] = useState('Full Body'); // asked once Foam Rolling is picked
   const [selectedStyle, setSelectedStyle] = useState('');
   // Skips generateWorkout()'s suggested exercise picks in favor of an
   // empty plan the client builds themselves via "Add to Workout".
@@ -503,6 +504,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setSelectedGroups(d?.groups || []);
     setSelectedActivities(d?.activities || []);
     setSelectedFlexActivities(d?.flexActivities || []);
+    setFoamRegion(d?.foamRegion || 'Full Body');
     setSelectedStyle(d?.style || '');
     setCombinedLayout(d?.combinedLayout || '');
     setCombinedActivity(d?.combinedActivity || '');
@@ -702,6 +704,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setSelectedGroups(l.groups || []);
     setSelectedActivities(l.activities || []);
     setSelectedFlexActivities(l.flexActivities || []);
+    setFoamRegion(l.foamRegion || 'Full Body');
     setSelectedStyle(l.style || '');
     setCleanSlate(Boolean(l.cleanSlate));
     setCombinedLayout(l.combinedLayout || '');
@@ -726,19 +729,21 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   async function savePlan() {
     if (!canStartMode() || !planning) return;
+    const flexNamesOut = selectedFlexActivities.map((a) => (a === 'Foam Rolling' && !cleanSlate ? `Foam Rolling (${foamRegion})` : a));
     const details = {
       location: selectedLocation,
       mode: movementMode,
       groups: movementMode === 'Aerobic' ? [] : selectedGroups,
       activities: selectedActivities,
       flexActivities: selectedFlexActivities,
+      ...(selectedFlexActivities.includes('Foam Rolling') ? { foamRegion } : {}),
       style: movementMode === 'Resistance' || movementMode === 'Combined' ? selectedStyle : '',
       combinedLayout,
       combinedActivity,
       // Aerobic minutes (assumed moderate) count tentatively toward the weekly goal.
       ...(movementMode === 'Aerobic' || movementMode === 'Combined' ? { minutes: planMinutes } : {}),
     };
-    const title = workoutTitle(details.groups, movementMode === 'Aerobic' || movementMode === 'Combined' ? selectedActivities : movementMode === 'Flexibility' ? selectedFlexActivities : []);
+    const title = workoutTitle(details.groups, movementMode === 'Aerobic' || movementMode === 'Combined' ? selectedActivities : movementMode === 'Flexibility' ? flexNamesOut : []);
     // Editing keeps whatever title/notes were written; a new plan gets an auto title.
     const { error } = planning.id
       ? await supabase.from('planned_workouts').update({ planned_for: planning.date, details }).eq('id', planning.id)
@@ -762,6 +767,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
     const usesAerobic = movementMode === 'Aerobic' || movementMode === 'Combined';
     const usesFlexibility = movementMode === 'Flexibility';
+    const flexNamesOut = selectedFlexActivities.map((a) => (a === 'Foam Rolling' && !cleanSlate ? `Foam Rolling (${foamRegion})` : a));
 
     let plan = [];
     if (usesResistance && !cleanSlate) {
@@ -804,9 +810,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (usesFlexibility) {
       // Foam rolling goes first (roll, then stretch). With Clean slate it stays a plain timed activity.
       const usedRolls = new Set();
-      const rolls = cleanSlate ? [] : selectedFlexActivities.filter(isFoamRegion).flatMap((n) => generateFoamRollPlan(n, usedRolls));
+      const rolls = cleanSlate || !selectedFlexActivities.includes('Foam Rolling') ? [] : generateFoamRollPlan(`Foam Roll: ${foamRegion}`, usedRolls);
       plan = cleanSlate ? [] : [...rolls, ...generateFlexibilityPlan(selectedGroups)];
-      const flexActivityEntries = selectedFlexActivities.filter((n) => cleanSlate || !isFoamRegion(n)).map((name) => ({
+      const flexActivityEntries = selectedFlexActivities.filter((n) => cleanSlate || n !== 'Foam Rolling').map((name) => ({
         name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '',
       }));
       plan = [...plan, ...flexActivityEntries];
@@ -842,7 +848,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .from('workouts')
       .insert({
         muscle_groups: usesResistance || usesFlexibility ? selectedGroups : [],
-        activities: usesAerobic ? selectedActivities : usesFlexibility ? selectedFlexActivities : [],
+        activities: usesAerobic ? selectedActivities : usesFlexibility ? flexNamesOut : [],
         movement_mode: movementMode,
         style: usesResistance ? selectedStyle : null,
         location: selectedLocation,
@@ -858,7 +864,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (!programSession) {
       try {
         localStorage.setItem('groove:lastStart', JSON.stringify({
-          title: workoutTitle(selectedGroups, usesAerobic ? selectedActivities : usesFlexibility ? selectedFlexActivities : []),
+          title: workoutTitle(selectedGroups, usesAerobic ? selectedActivities : usesFlexibility ? flexNamesOut : []),
+          foamRegion,
           location: selectedLocation, mode: movementMode, groups: selectedGroups, activities: selectedActivities,
           flexActivities: selectedFlexActivities, style: selectedStyle, cleanSlate, combinedLayout, combinedActivity,
         }));
@@ -1462,6 +1469,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           selectedActivities={selectedActivities}
           onToggleActivity={toggleActivity}
           selectedFlexActivities={selectedFlexActivities}
+          foamRegion={foamRegion}
+          onFoamRegion={setFoamRegion}
           onToggleFlexActivity={toggleFlexActivity}
           customActivities={customActivities}
           onAddCustomActivity={addCustomActivity}
@@ -1673,7 +1682,7 @@ function StartWorkout({
   movementMode, onSelectMode, combinedLayout, onSelectCombinedLayout, combinedActivity, onSelectCombinedActivity,
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity,
-  selectedFlexActivities, onToggleFlexActivity,
+  selectedFlexActivities, onToggleFlexActivity, foamRegion, onFoamRegion,
   customActivities, onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
@@ -2031,6 +2040,23 @@ function StartWorkout({
             onAddCustomActivity={onAddCustomActivity}
             onRemoveCustomActivity={onRemoveCustomActivity}
           />
+          {selectedFlexActivities.includes('Foam Rolling') && (
+            <div className="mt-3">
+              <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">What are we rolling?</div>
+              <div className="grid grid-cols-3 gap-2">
+                {['Upper Body', 'Lower Body', 'Full Body'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => onFoamRegion(r)}
+                    style={{ background: foamRegion === r ? SKY : INK_3, color: foamRegion === r ? INK : PAPER }}
+                    className="rounded-xl py-2.5 text-sm font-medium"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -2086,7 +2112,7 @@ function StartWorkout({
         </>
       )}
 
-      {((needsStyle && selectedLocation && selectedStyle) || (movementMode === 'Flexibility' && (selectedGroups.length > 0 || selectedFlexActivities.some(isFoamRegion)))) && !showProgramOffer && (
+      {((needsStyle && selectedLocation && selectedStyle) || (movementMode === 'Flexibility' && (selectedGroups.length > 0 || selectedFlexActivities.includes('Foam Rolling')))) && !showProgramOffer && (
         <div className="flex items-center gap-2 mb-3">
           <button
             onClick={() => onToggleCleanSlate(false)}
