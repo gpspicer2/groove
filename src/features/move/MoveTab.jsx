@@ -1240,7 +1240,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .single();
     if (error) { setLoadError(error.message); return; }
     setWorkouts((prev) => prev.map((w) => (w.id === activeWorkoutId ? mapWorkout(data) : w)));
-    try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
+    try { localStorage.removeItem(LIVE_BACKUP_KEY); localStorage.setItem('groove:finishedAt', String(Date.now())); } catch { /* */ }
     setCheckInWorkoutId(activeWorkoutId);
     setActiveWorkoutId(null);
     setPlanExercises([]);

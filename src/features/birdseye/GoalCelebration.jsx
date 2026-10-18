@@ -21,7 +21,10 @@ export default function GoalCelebration({ userId, weekKey, goals, latestAt, acti
     const fresh = goals.filter((g) => g.met && !done.includes(g.mode));
     if (fresh.length === 0) return;
     try { localStorage.setItem(key, JSON.stringify([...new Set([...done, ...fresh.map((g) => g.mode)])])); } catch { /* storage blocked */ }
-    const justNow = latestAt && Date.now() - new Date(latestAt).getTime() < FRESH_MS;
+    // A workout finished here just now counts even if it was logged for an earlier time today.
+    let finishedAt = 0;
+    try { finishedAt = Number(localStorage.getItem('groove:finishedAt')) || 0; } catch { /* storage blocked */ }
+    const justNow = (latestAt && Date.now() - new Date(latestAt).getTime() < FRESH_MS) || Date.now() - finishedAt < FRESH_MS;
     if (!justNow) return;
     const allMet = goals.length > 0 && goals.every((g) => g.met);
     setShow({ title: allMet ? 'All your weekly goals reached!' : fresh.length > 1 ? 'Weekly goals reached!' : 'Weekly goal reached!', names: fresh.map((g) => g.label).join(' · ') });
