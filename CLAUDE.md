@@ -118,7 +118,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Journal row titles use `shortWorkoutTitle` (first two muscles in the order chosen, then +N), same as Move history.
 
-- Loading screen (`GrooveLoader.jsx`): just the GROOVE logo (neon version in dark mode) fading in softly; used on app open and in the Birdseye, Journal and Move tabs. Tried a per-letter hop and a smooth wave first; Greg found them choppy / too quick to enjoy and asked for the plain logo. If animating it again, move every letter or none.
+- Loading screen (`GrooveLoader.jsx`): just the GROOVE logo (neon version in dark mode) fading in softly; shown only on the full-screen app-open load; the tabs load blank beneath the header logo (a second logo there looked like a duplicate, off to the left). Tried a per-letter hop and a smooth wave first; Greg found them choppy / too quick to enjoy and asked for the plain logo. If animating it again, move every letter or none.
 
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.

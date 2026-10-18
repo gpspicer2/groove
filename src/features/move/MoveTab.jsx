@@ -1,4 +1,3 @@
-import GrooveLoader from '../../GrooveLoader';
 import { estimateKcal } from '../../lib/calories';
 import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
@@ -1279,9 +1278,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <GrooveLoader width={150} />
-      </div>
+      <div className="max-w-md mx-auto px-4 py-32" aria-busy="true" />
     );
   }
 
