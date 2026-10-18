@@ -1,7 +1,7 @@
 import React from 'react';
 import useDarkMode from './useDarkMode';
 
-// The logo as a loading screen: every letter hops in turn, left to right, like a beat rolling through
+// The logo as a loading screen: a smooth wave rolls through every letter, left to right, like a beat rolling through
 // GROOVE. The artwork is cut at the six gaps between letters (columns where the letters barely touch).
 const W = 1135;
 const H = 231;
@@ -26,7 +26,7 @@ export default function GrooveLoader({ width = 200, label = 'Loading' }) {
             backgroundSize: `${width}px ${h}px`,
             backgroundPosition: `${-x0 * scale}px 0`,
             backgroundRepeat: 'no-repeat',
-            animationDelay: `${i * 0.11}s`,
+            animationDelay: `${i * 0.14}s`,
           }}
         />
       ))}

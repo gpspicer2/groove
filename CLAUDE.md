@@ -118,7 +118,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Journal row titles use `shortWorkoutTitle` (first two muscles in the order chosen, then +N), same as Move history.
 
-- Loading screen (`GrooveLoader.jsx`): the whole GROOVE logo with every letter hopping in turn, left to right (the artwork is cut at the six letter gaps, x = 0/204/387/587/777/1000/1135 of `wordmark.png`; dark mode uses `wordmark-dark.png`; reduced motion shows it still). Used on app open and in the Birdseye, Journal and Move tabs. Greg wants all letters doing something or none, never just one.
+- Loading screen (`GrooveLoader.jsx`): the whole GROOVE logo with a smooth continuous wave rolling through every letter, left to right (the artwork is cut at the six letter gaps, x = 0/204/387/587/777/1000/1135 of `wordmark.png`; dark mode uses `wordmark-dark.png`; reduced motion shows it still). Used on app open and in the Birdseye, Journal and Move tabs. Greg wants all letters doing something or none, never just one.
 
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
