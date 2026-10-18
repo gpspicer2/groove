@@ -2,17 +2,33 @@
 
 The link: https://groove-rho.vercel.app
 
-## The text (short, friendly, copy and paste)
+## The text (copy and paste)
 
-Hey! I built a movement app called Groove and I'd love your help testing it. It tracks workouts, walks you through exercises, and has short tips on moving well. It's free for you while I'm testing.
+Hey! Most people don't like exercise, but almost everyone likes to move. That's the idea behind Groove, a movement app I built as an exercise physiologist and professor.
+
+It's more than a workout log. It follows the same ACSM science I teach, adjusts to how your body feels that day (sore knee? tired?), shows you how to do every exercise, and keeps your journal completely private. And you get me: movement mentorship and education, to help you find movement you'll actually keep doing.
+
+I'd love your help testing it. It's free for you while I do.
 
 1. Open https://groove-rho.vercel.app on your phone
-2. Tap Sign up, make an account, and answer the short health questions
+2. Tap Sign up and answer the short health questions
 3. Tap Move, then "New to lifting? Start here" or Log Workout
 
 Tip: tap Share, then Add to Home Screen so it opens like an app.
 
-If anything is confusing, broken, or annoying, text me. That's exactly what I need to know. Thank you!
+If anything is confusing, broken, or annoying, text me. That's exactly what I need to hear. Thank you!
+
+## A shorter version (if the one above feels long for a text)
+
+Hey! I built an app called Groove for people who don't love "exercise" but do love to move. It's built on the science I teach as an exercise physiologist, it adapts to how your body feels each day, and it comes with me for movement mentorship. Want to try it? It's free while I test: https://groove-rho.vercel.app (Sign up, then tap Move.)
+
+## What makes it different (for conversations, not the text)
+
+- Movement, not exercise: the goal is finding movement you'll keep doing, not punishing workouts.
+- Built by an exercise scientist on ACSM guidelines, not a generic fitness template.
+- It listens: a quick body check before lifting, injuries it works around, and a gentle starter workout for beginners.
+- It teaches: a how-to on every exercise, so you learn as you go.
+- It is personal: a private journal only the member can read, and Greg offering mentorship and education, not just an app.
 
 ## Before you send it
 
