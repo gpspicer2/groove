@@ -102,7 +102,7 @@ export default function TrainerApp() {
 
       <div className="max-w-md mx-auto px-4 pb-28 pt-2">
         {loading ? (
-          <div style={{ color: TEXT_SOFT }} className="text-sm text-center py-16">Loading…</div>
+          <div className="py-32" aria-busy="true" />
         ) : selected ? (
           <ClientScreen
             client={selected}
