@@ -2077,8 +2077,8 @@ function StartWorkout({
         <>
           {(() => {
             const foldable = movementMode === 'Flexibility';
-            const open = !foldable || (flexMusclesToggle ?? (selectedFlexActivities.length === 0 && selectedGroups.length === 0));
-            const summary = selectedGroups.length ? selectedGroups.join(', ') : 'optional';
+            const open = !foldable || (flexMusclesToggle ?? groupsMissing);
+            const summary = selectedGroups.length ? selectedGroups.join(', ') : selectedFlexActivities.length ? 'optional' : 'tap to choose';
             return (
               <>
                 {foldable ? (
