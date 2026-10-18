@@ -614,3 +614,24 @@ export const ROLL_RULES = [
   'Mild to moderate discomfort is normal. Sharp pain, numbness or tingling means stop.',
   'Skip joints, your low back, your neck and any bruised or injured area.',
 ];
+
+// Grip / handle / bar choices for exercises where it matters. Stored on each logged set (its `distance` column,
+// which resistance sets don't otherwise use), so the weights and "Last" still follow the exercise as a whole.
+// `perSet` exercises (Pull-Ups) pick a variation for every set; the others pick once and keep it for the workout.
+const GRIPS = ['Wide', 'Neutral', 'Close'];
+export const VARIATIONS = {
+  'Lat Pulldown': { label: 'Grip', options: [...GRIPS, 'Underhand'] },
+  'Pull-Ups': { label: 'Grip', options: GRIPS, perSet: true },
+  'Chin-Up (underhand)': { label: 'Grip', options: GRIPS },
+  'Barbell Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
+  'Seated Cable Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
+  'Single-Arm Dumbbell Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
+  'Barbell Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
+  'Cable Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
+  'Preacher Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
+  'Tricep Pushdown': { label: 'Handle', options: ['Straight Bar', 'Rope', 'V-Bar', 'Single Arm'] },
+  'Overhead Tricep Extension': { label: 'Handle', options: ['Dumbbell', 'Rope', 'Straight Bar', 'Single Arm'] },
+  'Skull Crusher': { label: 'Bar', options: ['EZ Bar', 'Straight Bar', 'Dumbbells'] },
+  'Barbell Back Squat': { label: 'Bar', options: ['High Bar', 'Low Bar'] },
+};
+export const variationFor = (name) => VARIATIONS[name] || null;

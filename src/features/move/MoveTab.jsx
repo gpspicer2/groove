@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, variationFor, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -1545,7 +1545,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                                     ? `${formatIntensityMinutes(s)}${s.distance ? ` · ${s.distance}` : ''}`
                                     : s.movementType === 'flexibility'
                                     ? (s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} drills` : '—')
-                                    : `${s.weight ?? '—'}×${s.reps ?? '—'}`
+                                    : `${s.distance ? `${s.distance} ` : ''}${s.weight ?? '—'}×${s.reps ?? '—'}`
                                 )).join(', ')}
                               </div>
                             )}
@@ -3726,7 +3726,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
   const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < BARBELL_MIN_LB);
   function handleRepeat() {
-    onLog({ setNumber: nextSetNumber, weight: ref.weight, isBodyweight: Boolean(ref.isBodyweight), reps: ref.reps ?? null, durationSeconds: ref.durationSeconds ?? null });
+    onLog({ setNumber: nextSetNumber, weight: ref.weight, isBodyweight: Boolean(ref.isBodyweight), reps: ref.reps ?? null, durationSeconds: ref.durationSeconds ?? null, ...(mostRecentLogged ? { distance: mostRecentLogged.distance || null } : {}) });
   }
 
   // One short line for target/last/suggested; units sit inside the boxes so
@@ -3903,6 +3903,11 @@ function ExerciseCard({
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const guide = guideFor(exercise.name);
+  // Grip / handle / bar: chosen per set for Pull-Ups, otherwise once and kept for this workout (never carried to the next one).
+  const variation = variationFor(exercise.name);
+  const lastLabel = [...loggedSets].reverse().find((x) => x.movementType !== 'aerobic' && x.distance)?.distance || null;
+  const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
   const [editingBurst, setEditingBurst] = useState(null);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
@@ -3972,16 +3977,17 @@ function ExerciseCard({
               >
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
-                  : <>{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
+                  : <>{s.distance ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
           </div>
         )}
 
+        {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={last}
-          onLog={onLogSet} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
+          onLog={logWithVariant} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
         {onQuickAerobic && nextSetNumber > 1 && (
@@ -4000,6 +4006,27 @@ function ExerciseCard({
   );
 }
 
+// Grip / handle / bar choice for an exercise (tap again to clear).
+function VariationChips({ variation, value, onChange }) {
+  return (
+    <div className="mb-2">
+      <div style={{ color: TEXT_SOFT }} className="text-[13px] text-center mb-1">{variation.label}{variation.perSet ? ' for this set' : ''}</div>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {variation.options.map((o) => (
+          <button
+            key={o}
+            onClick={() => onChange(value === o ? null : o)}
+            style={{ background: value === o ? SKY : INK_3, color: value === o ? INK : PAPER_DIM }}
+            className="rounded-full px-3 py-1 text-sm"
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Each superset member owns its own reps/seconds + bodyweight toggle —
 // supersets are rare enough that these stay inline rather than behind
 // a swipe-to-edit panel like the main list gets.
@@ -4013,6 +4040,10 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const guide = guideFor(exercise.name);
+  const variation = variationFor(exercise.name);
+  const lastLabel = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
+  const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
@@ -4052,18 +4083,19 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
                 data-armed={armed === s.id}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
-                {s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                {s.distance ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
           </div>
         )}
+        {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         <WeightRepsInput
           exercise={exercise}
           style={style}
           bodyweight={bodyweight}
           last={last}
-          onLog={onLogSet}
+          onLog={logWithVariant}
           nextSetNumber={nextSetNumber}
           byTime={byTime}
           useBodyweight={useBodyweight}
