@@ -594,9 +594,13 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   // shown as "last time" so you can judge whether to push weight up.
   // Also reports days since that session, so the suggestion can account
   // for how much time has passed.
-  function lastPerformance(exerciseName) {
-    const matches = sets
-      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance')
+  // The last time this exercise was done (before this workout). With a variation (grip, bar...) it prefers the
+  // last set done that same way; `matchedVariant` says whether it found one (otherwise it is the overall last).
+  function lastPerformance(exerciseName, variant = null) {
+    const all = sets
+      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance');
+    const same = variant ? all.filter((s) => s.distance === variant) : [];
+    const matches = (same.length ? same : all)
       .map((s) => {
         const w = workouts.find((wk) => wk.id === s.workoutId);
         return { ...s, startedAt: w?.startedAt || null };
@@ -605,7 +609,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
     const last = matches[0];
     if (!last) return null;
-    return { ...last, daysSince: daysBetween(new Date(), new Date(last.startedAt)) };
+    return { ...last, daysSince: daysBetween(new Date(), new Date(last.startedAt)), matchedVariant: Boolean(variant && same.length) };
   }
 
   function toggleGroup(group) {
@@ -2643,6 +2647,7 @@ function ActiveWorkout({
                   bodyweight={bodyweight}
                   loggedSets={loggedSets}
                   last={lastPerformance(ex.name)}
+                  lastFor={(v) => lastPerformance(ex.name, v)}
                   onLogSet={(payload) => handleResistanceLog({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup }, gi)}
                   onDeleteSet={onDeleteSet}
                   onUpdateSet={onUpdateSet}
@@ -3664,7 +3669,7 @@ function isBodyweightEligible(name) {
 // to-edit settings panel) so those toggles live in one place instead of
 // cluttering every card — callers that don't need that (SupersetCard)
 // just own the same two bits of state locally and pass them through.
-function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight, loggedSets }) {
+function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight, loggedSets, variantKey = null, variantHasHistory = false }) {
   const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
   // Reopening the app mid-workout remounts this component, wiping the
   // weight/reps the user had typed in for the next set — but any set
@@ -3695,6 +3700,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     setWeight(useBodyweight ? 0 : Math.max(isBarbell ? BARBELL_MIN_LB : 0, roundToFive(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
+  // Choosing a grip / bar that has its own history moves the weight box to what that variation last used.
+  const firstVariant = useRef(true);
+  useEffect(() => {
+    if (firstVariant.current) { firstVariant.current = false; return; }
+    if (!variantHasHistory || !last) return;
+    const w = suggestNextWeight(exercise, last, style, last?.daysSince)?.weight ?? last.weight;
+    if (w == null) return;
+    const base = useBodyweight ? (last.isBodyweight ? Math.max(0, last.weight - (bodyweight || 0)) : 0) : roundToFive(w);
+    setWeight(Math.max(isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0, base));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantKey]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
   const repsRef = useRef(null);
   const jumpTimer = useRef(null);
@@ -3897,7 +3913,7 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
 
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
-  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown,
+  isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown, lastFor,
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
@@ -3908,6 +3924,9 @@ function ExerciseCard({
   const lastLabel = [...loggedSets].reverse().find((x) => x.movementType !== 'aerobic' && x.distance)?.distance || null;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
+  // Last / Try follow the chosen variation once there is history for it.
+  const lastV = variant && lastFor ? lastFor(variant) : null;
+  const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [editingBurst, setEditingBurst] = useState(null);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
@@ -3986,7 +4005,7 @@ function ExerciseCard({
 
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         <WeightRepsInput
-          exercise={exercise} style={style} bodyweight={bodyweight} last={last}
+          exercise={exercise} style={style} bodyweight={bodyweight} last={lastShown} variantKey={variant} variantHasHistory={Boolean(lastV && lastV.matchedVariant)}
           onLog={logWithVariant} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
           byTime={byTime} useBodyweight={useBodyweight} loggedSets={loggedSets}
         />
@@ -4035,7 +4054,7 @@ function VariationChips({ variation, value, onChange }) {
 // ExerciseCard, so the gesture is consistent everywhere in a workout
 // rather than supersets being the one place with permanent inline
 // toggles and tap-target icon buttons instead.
-function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, onUndo, nextSetNumber }) {
+function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, onUndo, nextSetNumber }) {
   const { armed, press } = useArmed();
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -4044,6 +4063,8 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
   const lastLabel = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
+  const lastV = variant && lastFor ? lastFor(variant) : null;
+  const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
@@ -4094,7 +4115,9 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSe
           exercise={exercise}
           style={style}
           bodyweight={bodyweight}
-          last={last}
+          last={lastShown}
+          variantKey={variant}
+          variantHasHistory={Boolean(lastV && lastV.matchedVariant)}
           onLog={logWithVariant}
           nextSetNumber={nextSetNumber}
           byTime={byTime}
@@ -4213,6 +4236,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
               bodyweight={bodyweight}
               loggedSets={loggedSets}
               last={lastPerformance(ex.name)}
+              lastFor={(v) => lastPerformance(ex.name, v)}
               onLogSet={(payload) => onLogSet({ ...payload, exerciseName: ex.name, muscleGroup: ex.muscleGroup })}
               onDeleteSet={onDeleteSet}
               onOpenSwap={() => onOpenSwap(ex.index)}
