@@ -337,7 +337,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [readiness, setReadiness] = useState(null); // { areas: [...], tired }
   const [readinessOpen, setReadinessOpen] = useState(false);
 
-  const customActivities = profile?.custom_activities || [];
+  // Custom activities live in one list; flexibility ones carry a "flex:" prefix so they only show in the flexibility picker
+  // (and everyday ones never show up there).
+  const allCustom = profile?.custom_activities || [];
+  const customActivities = allCustom.filter((a) => !a.startsWith('flex:'));
+  const customFlexActivities = allCustom.filter((a) => a.startsWith('flex:')).map((a) => a.slice(5));
 
   const loadData = useCallback(async () => {
     const [workoutRes, setRes, profileRes, programRes] = await Promise.all([
@@ -654,16 +658,18 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   async function addCustomActivity(name) {
     const trimmed = titleCaseWords(name);
-    if (!trimmed || customActivities.includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed) || FLEXIBILITY_ACTIVITIES.includes(trimmed)) return;
-    await updateProfile({ custom_activities: [...customActivities, trimmed] });
-    if (movementMode === 'Flexibility') setSelectedFlexActivities((prev) => [...prev, trimmed]);
+    const flex = movementMode === 'Flexibility';
+    if (!trimmed || (flex ? customFlexActivities : customActivities).includes(trimmed) || LIFESTYLE_ACTIVITIES.includes(trimmed) || FLEXIBILITY_ACTIVITIES.includes(trimmed)) return;
+    await updateProfile({ custom_activities: [...allCustom, flex ? `flex:${trimmed}` : trimmed] });
+    if (flex) setSelectedFlexActivities((prev) => [...prev, trimmed]);
     else setSelectedActivities((prev) => [...prev, trimmed]);
   }
 
   async function removeCustomActivity(name) {
-    await updateProfile({ custom_activities: customActivities.filter((a) => a !== name) });
-    setSelectedActivities((prev) => prev.filter((a) => a !== name));
-    setSelectedFlexActivities((prev) => prev.filter((a) => a !== name));
+    const flex = movementMode === 'Flexibility';
+    await updateProfile({ custom_activities: allCustom.filter((a) => a !== (flex ? `flex:${name}` : name)) });
+    if (flex) setSelectedFlexActivities((prev) => prev.filter((a) => a !== name));
+    else setSelectedActivities((prev) => prev.filter((a) => a !== name));
   }
 
   function selectMode(mode) {
@@ -1473,6 +1479,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           onFoamRegion={setFoamRegion}
           onToggleFlexActivity={toggleFlexActivity}
           customActivities={customActivities}
+          customFlexActivities={customFlexActivities}
           onAddCustomActivity={addCustomActivity}
           onRemoveCustomActivity={removeCustomActivity}
           selectedStyle={selectedStyle}
@@ -1683,7 +1690,7 @@ function StartWorkout({
   selectedGroups, onToggleGroup,
   selectedActivities, onToggleActivity,
   selectedFlexActivities, onToggleFlexActivity, foamRegion, onFoamRegion,
-  customActivities, onAddCustomActivity, onRemoveCustomActivity,
+  customActivities, customFlexActivities = [], onAddCustomActivity, onRemoveCustomActivity,
   selectedStyle, onSelectStyle, onStart, canStart,
   assignedProgram, onStartAssignedProgram,
   cleanSlate, onToggleCleanSlate,
@@ -2036,7 +2043,7 @@ function StartWorkout({
             baseActivities={FLEXIBILITY_ACTIVITIES}
             selectedActivities={selectedFlexActivities}
             onToggleActivity={onToggleFlexActivity}
-            customActivities={customActivities}
+            customActivities={customFlexActivities}
             onAddCustomActivity={onAddCustomActivity}
             onRemoveCustomActivity={onRemoveCustomActivity}
           />

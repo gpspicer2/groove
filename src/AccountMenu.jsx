@@ -468,13 +468,13 @@ function MovementsModal({ onClose }) {
 
   function startEdit(i) {
     setEditingIndex(i);
-    setEditValue(movements[i]);
+    setEditValue(movements[i].replace(/^flex:/, ''));
   }
 
   async function saveEdit(i) {
     const trimmed = editValue.trim();
     if (!trimmed) { setEditingIndex(null); return; }
-    const next = movements.map((m, idx) => (idx === i ? trimmed : m));
+    const next = movements.map((m, idx) => (idx === i ? (m.startsWith('flex:') ? `flex:${trimmed}` : trimmed) : m));
     await updateProfile({ custom_activities: next });
     setEditingIndex(null);
   }
@@ -482,7 +482,7 @@ function MovementsModal({ onClose }) {
   return (
     <Popup title="Your movements" onClose={onClose}>
       <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">
-        Custom activities you've added show up as options in Move's "everyday movement" picker.
+        Custom activities you've added show up in Move's pickers: everyday movement, or flexibility if you added them there.
       </div>
       {movements.length === 0 ? (
         <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">You haven't added any yet.</div>
@@ -501,7 +501,7 @@ function MovementsModal({ onClose }) {
                   className="flex-1 rounded-md px-2 py-1.5 text-sm outline-none"
                 />
               ) : (
-                <span style={{ color: PAPER }} className="flex-1 text-sm">{m}</span>
+                <span style={{ color: PAPER }} className="flex-1 text-sm">{m.replace(/^flex:/, '')}{m.startsWith('flex:') && <span style={{ color: TEXT_SOFT }}> · flexibility</span>}</span>
               )}
               <button onClick={() => startEdit(i)} style={{ color: TEXT_SOFT }} className="p-1.5 -m-1"><Pencil size={14} /></button>
               <button onClick={() => removeMovement(m)} style={{ color: TEXT_SOFT }} className="p-1.5 -m-1"><X size={14} /></button>

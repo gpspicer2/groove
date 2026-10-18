@@ -128,6 +128,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - "New to lifting? Start here" (Move, above the start flow): shown while the member has no program, no logged lifting (Resistance / Mixed) workouts and hasn't tapped "No thanks" (`groove:starterDismissed`). Two buttons, At the gym / At home, build a gentle full-body session in one tap: 5 moves (one each for chest, back, legs, shoulders, core), 2 sets of 10-12, RPE 6, no barbell, dips, pull-ups or other technical lifts (`STARTER_SESSION`, `beginnerAvoid` in exerciseLibrary; `beginStarter` in MoveTab; it runs as a program-shaped session with `starter: true`, banner reads "Starter · Full Body"). `docs/INVITE_TEXT.md` has the invite text for the first few testers.
 
+- Custom activities (`profiles.custom_activities`, one list): everyday ones are plain names and show only in the aerobic / everyday picker; flexibility ones carry a `flex:` prefix and show only in the flexibility picker (a stray "Demolition" used to appear under Flexibility because every picker showed the whole list). Account > Manage Your Movements shows both (flexibility ones tagged " · flexibility"). Any flexibility custom added before this change now sits under everyday movement and needs re-adding.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
