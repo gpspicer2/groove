@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play } from '../../lib/icons';
+import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import SwipeHint from '../../SwipeHint';
@@ -4921,7 +4921,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
       <div className="flex items-center justify-between mb-1">
         <span className="w-6 shrink-0" aria-hidden="true" />
         <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
-          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
+          <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}
         </span>
         <span className="flex items-center shrink-0">
           {guide && <button onClick={() => setGuideOpen(true)} style={{ color: accent }} className="p-2 -m-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
@@ -4931,25 +4931,23 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         </span>
       </div>
 
-      {loggedSets.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1 mb-1">
-          {loggedSets.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => press(s.id, () => onDeleteSet(s.id))}
-              style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
-                data-armed={armed === s.id}
-              className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
-            >
-              {s.reps ? `${s.reps} reps` : s.durationSeconds ? `${s.durationSeconds}s` : '—'}
-            <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
-              </button>
-          ))}
-        </div>
-      )}
-
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">
-        Target {exercise.sets}×{exercise.reps} <span style={{ color: accent }}>· {isBalance ? 'Balance' : 'Flexibility'}</span>
+      {/* Target and the holds already logged share one row, so logging a hold does not make the card taller. */}
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-1.5">
+        <span style={{ color: TEXT_SOFT }} className="text-sm">
+          Target {exercise.sets}×{exercise.reps}
+        </span>
+        {loggedSets.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => press(s.id, () => onDeleteSet(s.id))}
+            style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+            data-armed={armed === s.id}
+            className="rounded-full px-2 py-0.5 text-[13px] tabular-nums flex items-center gap-1"
+          >
+            {s.reps ? `${s.reps} reps` : s.durationSeconds ? `${s.durationSeconds}s` : '—'}
+            <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1 ml-0.5 flex items-center"><X size={11} strokeWidth={3} /></span>
+          </button>
+        ))}
       </div>
       <div className="flex items-center justify-center gap-2">
         <input
@@ -4968,13 +4966,13 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
             className="shrink-0 rounded-md px-2.5 py-2 text-sm tabular-nums"
             aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
           >
-            {timeLeft != null ? `${timeLeft}s` : 'Timer'}
+            {timeLeft != null ? `${timeLeft}s` : <Timer size={16} />}
           </button>
         )}
         <button
           onClick={handleLog}
           style={{ background: accent, color: PAPER }}
-          className="flex-1 rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
+          className="flex-1 whitespace-nowrap rounded-md py-2 text-sm font-medium flex items-center justify-center gap-1"
         >
           <Plus size={14} /> Log {isReps ? 'set' : 'hold'} {nextSetNumber}
         </button>

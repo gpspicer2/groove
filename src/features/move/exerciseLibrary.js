@@ -601,13 +601,14 @@ const ROLLS = {
   hamstrings: { name: 'Foam Roll: Hamstrings', muscleGroup: 'Hamstrings', sets: 1, reps: '30-60s per side' },
   quads: { name: 'Foam Roll: Quads', muscleGroup: 'Quadriceps', sets: 1, reps: '30-60s per side' },
   glutes: { name: 'Foam Roll: Glutes', muscleGroup: 'Glutes', sets: 1, reps: '30-60s per side' },
+  lowerBack: { name: 'Foam Roll: Lower Back', muscleGroup: 'Back', sets: 1, reps: '30-45s' },
   itBand: { name: 'Foam Roll: Outer Thigh', muscleGroup: 'Legs', sets: 1, reps: '30-45s per side' },
   adductors: { name: 'Foam Roll: Inner Thigh', muscleGroup: 'Legs', sets: 1, reps: '30-45s per side' },
 };
 const FOAM_PLANS = {
   'Foam Roll: Upper Body': ['upperBack', 'lats', 'pecs', 'rearShoulder'],
-  'Foam Roll: Lower Body': ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes'],
-  'Foam Roll: Full Body': ['calves', 'hamstrings', 'quads', 'glutes', 'upperBack', 'lats', 'pecs'],
+  'Foam Roll: Lower Body': ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes', 'lowerBack'],
+  'Foam Roll: Full Body': ['calves', 'hamstrings', 'quads', 'glutes', 'lowerBack', 'upperBack', 'lats', 'pecs'],
 };
 export const isFoamRegion = (name) => Object.prototype.hasOwnProperty.call(FOAM_PLANS, name);
 // Rolls in a sensible order (feet up the body), skipping any already in the list.
@@ -626,6 +627,7 @@ export const ROLL_GUIDES = {
   'Foam Roll: Quads': { setup: 'Lie face down on your forearms with the roller under your thighs, like a plank.', move: 'Roll from just above your knee up to the top of your thigh. Turn slightly in and out to catch the sides.', watch: 'Stay off the kneecap and the hip bone. Ease up if the area near your knee is sore.' },
   'Foam Roll: Outer Thigh': { setup: 'Lie on your side with the roller under the side of your thigh. Put your top foot on the floor in front for support.', move: 'Roll from your hip down to just above your knee, using your arms and top foot to control pressure.', watch: 'This one is tender. Use light pressure and stay off the knee.' },
   'Foam Roll: Inner Thigh': { setup: 'Lie face down with one leg bent out to the side and the roller along your inner thigh.', move: 'Roll gently from just above the knee toward the groin and back.', watch: 'Stay off the groin and knee. Keep pressure light.' },
+  'Foam Roll: Lower Back': { setup: 'Lie on your back with the roller across your lower back, just above your hips, knees bent and hands crossed on your chest.', move: 'Lift your hips slightly and rock a few inches up and down, using your feet to control the pressure.', watch: 'Keep the pressure light and your core braced. Stop if you feel pinching or nerve-like pain. Rolling your glutes and hips often eases low back tightness more safely.' },
   'Foam Roll: Glutes': { setup: 'Sit on the roller with one ankle crossed over the opposite knee. Lean toward the crossed-leg side.', move: 'Roll in small lengths across the glute, from the top of the hip to the sit bone.', watch: 'Keep your low back relaxed and skip the tailbone.' },
 };
 export const ROLL_RULES = [
@@ -670,16 +672,16 @@ export const STARTER_SESSION = {
 };
 
 // Rolls for the muscles someone picked (Legs means the whole lower body), in a sensible feet-to-head order, at most 8.
-const FOAM_ORDER = ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes', 'upperBack', 'lats', 'pecs', 'rearShoulder'];
+const FOAM_ORDER = ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes', 'lowerBack', 'upperBack', 'lats', 'pecs', 'rearShoulder'];
 const FOAM_GROUPS = {
   calves: ['Legs'], hamstrings: ['Hamstrings', 'Legs'], quads: ['Quadriceps', 'Legs'], itBand: ['Quadriceps', 'Legs'], adductors: ['Quadriceps', 'Legs'],
-  glutes: ['Glutes', 'Legs'], upperBack: ['Back'], lats: ['Back'], pecs: ['Chest'], rearShoulder: ['Shoulders'],
+  glutes: ['Glutes', 'Legs'], lowerBack: ['Back'], upperBack: ['Back'], lats: ['Back'], pecs: ['Chest'], rearShoulder: ['Shoulders'],
 };
 export function generateFoamRollsForGroups(groups, used = new Set()) {
   const wanted = new Set(groups);
   return FOAM_ORDER.filter((k) => FOAM_GROUPS[k].some((g) => wanted.has(g)))
     .map((k) => ROLLS[k])
     .filter((r) => !used.has(r.name))
-    .slice(0, 8)
+    .slice(0, 9)
     .map((r) => { used.add(r.name); return { ...r, type: 'flexibility', supersetId: null }; });
 }
