@@ -39,15 +39,19 @@ function sessionBlurb(x) {
   return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts.join(', ')}`;
 }
 
-const LS_OPEN = 'groove:programOpen';
-function readOpen() { try { return localStorage.getItem(LS_OPEN) === '1'; } catch { return false; } }
+const LS_OPEN = 'groove:programOpen'; // the whole-week list
+const LS_CARD = 'groove:programCard'; // the card's details (closed until tapped)
+const readFlag = (k) => { try { return localStorage.getItem(k) === '1'; } catch { return false; } };
+const writeFlag = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* storage blocked */ } };
 
 // Move: the program in full. Collapsed it is one tidy card (exact program, week, days, next session + Start).
 // Tap the header to open every session this week with its muscles and sets, and the shape of the cycle.
 export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStart, onManage }) {
-  const [open, setOpen] = useState(readOpen);
+  const [card, setCard] = useState(() => readFlag(LS_CARD));
+  const [open, setOpen] = useState(() => readFlag(LS_OPEN));
   if (!program || !week) return null;
-  const toggle = () => setOpen((v) => { const n = !v; try { localStorage.setItem(LS_OPEN, n ? '1' : '0'); } catch { /* storage blocked */ } return n; });
+  const toggleCard = () => setCard((v) => { writeFlag(LS_CARD, !v); return !v; });
+  const toggle = () => setOpen((v) => { writeFlag(LS_OPEN, !v); return !v; });
   const s = week.next;
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
   const split = chosenSplit(program);
@@ -59,11 +63,12 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
       <div className="flex items-center justify-between text-center">
-        <button onClick={toggle} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={open ? 'Show less' : 'Show the whole program'}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-        <button onClick={toggle} style={{ color: SKY }} className="text-lg uppercase tracking-wide font-bold">{goal} Program</button>
+        <button onClick={toggleCard} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={card ? 'Hide program details' : 'Show program details'}>{card ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+        <button onClick={toggleCard} style={{ color: SKY }} className="text-lg uppercase tracking-wide font-bold">{goal} Program</button>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <button onClick={toggle} style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</button>
+      {card && (<>
+      <div style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</div>
       <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-1">
         <span className="truncate">{week.label}</span>
         <span className="shrink-0">{lifted.toLocaleString()} lb lifted</span>
@@ -113,8 +118,9 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
           )}
         </div>
       )}
+      <button onClick={toggle} style={{ color: SKY }} className="w-full text-center text-sm mt-2.5 py-0.5">{open ? 'Hide the whole week' : 'See the whole week'}</button>
       {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-2.5">
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">
           <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This week</div>
           <div className="space-y-1.5">
             {week.sessions.map((x) => (
@@ -134,6 +140,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }
