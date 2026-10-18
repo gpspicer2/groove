@@ -1,3 +1,4 @@
+import GrooveLoader from './GrooveLoader';
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import AuthScreen from './auth/AuthScreen';
@@ -17,7 +18,7 @@ function Shell() {
   if (loading || switching || (user && !profile)) {
     return (
       <div style={{ background: INK }} className="min-h-[100svh] flex items-center justify-center">
-        <span style={{ color: TEXT_SOFT, fontFamily: 'Outfit, sans-serif' }} className="text-sm">Loading…</span>
+        <GrooveLoader width={220} />
       </div>
     );
   }

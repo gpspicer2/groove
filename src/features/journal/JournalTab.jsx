@@ -1,3 +1,4 @@
+import GrooveLoader from '../../GrooveLoader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
@@ -81,7 +82,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading…</span>
+        <GrooveLoader width={150} />
       </div>
     );
   }

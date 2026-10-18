@@ -1,3 +1,4 @@
+import GrooveLoader from '../../GrooveLoader';
 import { estimateKcal } from '../../lib/calories';
 import RevealPills from '../../lib/RevealPills';
 import { useSingleOpenRow } from '../../lib/useSingleOpenRow';
@@ -1279,7 +1280,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading your workout…</span>
+        <GrooveLoader width={150} />
       </div>
     );
   }

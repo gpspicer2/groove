@@ -163,3 +163,14 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .groove-ease-in { animation: none; }
 }
+
+/* Loading logo: each letter hops in turn. */
+@keyframes groove-hop {
+  0%, 55%, 100% { transform: translateY(0); }
+  22% { transform: translateY(-16%); }
+  38% { transform: translateY(2%); }
+}
+.groove-hop { animation: groove-hop 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .groove-hop { animation: none; }
+}

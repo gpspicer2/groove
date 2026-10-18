@@ -1,3 +1,4 @@
+import GrooveLoader from '../../GrooveLoader';
 import { estimateKcal } from '../../lib/calories';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
@@ -306,7 +307,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Loading…</span>
+        <GrooveLoader width={150} />
       </div>
     );
   }
