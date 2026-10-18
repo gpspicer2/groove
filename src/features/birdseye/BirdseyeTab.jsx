@@ -380,7 +380,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const kcalThisWeek = workoutsThisWeek.reduce((sum, w) => sum + (kcalByWorkout[w.id] || 0), 0);
   const moderateEquivMinutesThisWeek = moderateMinutesThisWeek + vigorousMinutesThisWeek * 2;
 
-  // Streak: consecutive weeks (including this one) hitting BOTH goals.
+  // Streak: consecutive weeks (including this one) hitting every goal being tracked.
   let streak = 0;
   for (let i = 0; ; i++) {
     const ws = new Date(weekStart);
@@ -396,7 +396,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       const b = aerobicMinutesByWorkout[w.id];
       return sum + (b ? b.moderate + b.vigorous * 2 : 0);
     }, 0);
-    if (rCount >= resistanceGoal && aMinutes >= aerobicGoalMinutes) streak++;
+    const fCount = weekWorkouts.filter(hasFlexibility).length;
+    const bCount = weekWorkouts.filter(hasBalance).length;
+    const metAll = (!trackAerobicGoal || aMinutes >= aerobicGoalMinutes)
+      && (!trackResistanceGoal || rCount >= resistanceGoal)
+      && (!trackFlexibilityGoal || fCount >= flexibilityGoal)
+      && (!trackBalanceGoal || bCount >= balanceGoal);
+    if (metAll) streak++;
     else break;
     if (i > 52) break;
   }
@@ -413,6 +419,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const restNudge = runDays >= 6 ? `${runDays} days in a row. A rest day helps your body recover and adapt.` : null;
   const insight = needsClearance(profile?.screening) ? null : restNudge || (todayPlan ? null : buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek: moderateEquivMinutesThisWeek, resistanceGoal, aerobicGoalMinutes, daysSinceLast }));
 
+  const trackedCount = [trackAerobicGoal, trackResistanceGoal, trackFlexibilityGoal, trackBalanceGoal].filter(Boolean).length;
   const trackedGoals = [
     trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
     trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
@@ -514,7 +521,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           {(kcalThisWeek > 0 || streak > 0) && (
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-2 flex flex-wrap items-center justify-center gap-x-3">
               {kcalThisWeek > 0 && <span>~{kcalThisWeek.toLocaleString()} kcal this week</span>}
-              {streak > 0 && <span style={{ color: LIME }}>🔥 {streak} week{streak === 1 ? '' : 's'} hitting both goals</span>}
+              {streak > 0 && <span style={{ color: LIME }}>🔥 {streak} week{streak === 1 ? '' : 's'} hitting {trackedCount > 2 ? 'all' : trackedCount === 2 ? 'both' : 'your'} {trackedCount === 1 ? 'goal' : 'goals'}</span>}
             </div>
           )}
         </div>
