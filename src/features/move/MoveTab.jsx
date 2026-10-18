@@ -30,6 +30,7 @@ import { dayLabel } from '../../lib/dayLabel';
 import { useProgram, useProgramLifted } from '../program/useProgram';
 import ProgramSheet from '../program/ProgramSheet';
 import { guideFor } from './exerciseGuides';
+import { unlockAudio, doubleBeep, keepAwake } from '../../lib/beep';
 import { flexSuggestion, flexSession } from '../program/flex';
 import { startOfWeek } from '../../lib/week';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
@@ -4869,7 +4870,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   const [timeLeft, setTimeLeft] = useState(null);
   useEffect(() => {
     if (timeLeft == null) return undefined;
-    if (timeLeft <= 0) { try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch { /* not supported */ } setTimeLeft(null); return undefined; }
+    if (timeLeft <= 0) { doubleBeep(); keepAwake(false); setTimeLeft(null); return undefined; }
     const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
     return () => clearTimeout(t);
   }, [timeLeft]);
@@ -4961,7 +4962,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         />
         {!isReps && Number(seconds) > 0 && (
           <button
-            onClick={() => setTimeLeft((n) => (n == null ? Number(seconds) : null))}
+            onClick={() => { unlockAudio(); keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
             style={{ background: timeLeft != null ? accent : INK_3, color: timeLeft != null ? PAPER : PAPER_DIM }}
             className="shrink-0 rounded-md px-2.5 py-2 text-sm tabular-nums"
             aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
