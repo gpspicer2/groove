@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, ROLL_GUIDES, ROLL_RULES, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -29,6 +29,7 @@ import { titleCaseLive } from '../../lib/titleCase';
 import { dayLabel } from '../../lib/dayLabel';
 import { useProgram, useProgramLifted } from '../program/useProgram';
 import ProgramSheet from '../program/ProgramSheet';
+import { guideFor } from './exerciseGuides';
 import { flexSuggestion, flexSession } from '../program/flex';
 import { startOfWeek } from '../../lib/week';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
@@ -3900,6 +3901,8 @@ function ExerciseCard({
 }) {
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guide = guideFor(exercise.name);
   const [editingBurst, setEditingBurst] = useState(null);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
@@ -3934,10 +3937,14 @@ function ExerciseCard({
           <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
-          <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
-            <ChevronUp size={16} />
-          </button>
+          <span className="flex items-center shrink-0">
+            {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="p-2 -m-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
+            <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 ml-1" title="Collapse">
+              <ChevronUp size={16} />
+            </button>
+          </span>
         </div>
+        {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={SKY} onClose={() => setGuideOpen(false)} />}
 
         {showSettings && (
           <div style={{ background: INK_3 }} className="rounded-md px-3 py-2.5 mb-2.5 flex items-center justify-center gap-4">
@@ -4004,13 +4011,19 @@ function ExerciseCard({
 function SupersetMember({ exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove, onSplit, onUndo, nextSetNumber }) {
   const { armed, press } = useArmed();
   const [showSettings, setShowSettings] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guide = guideFor(exercise.name);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
   const [byTime, setByTime] = useState(false);
 
   return (
     <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div>
-        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name}</div>
+        <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">
+          {exercise.name}
+          {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1 ml-0.5" aria-label={`How to: ${exercise.name}`}><Info size={15} /></button>}
+        </div>
+        {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={SKY} onClose={() => setGuideOpen(false)} />}
         {showSettings && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <button
@@ -4663,8 +4676,8 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   );
 }
 
-// How to do a foam roll: set up, move, what to watch, plus the four basic rules.
-function RollGuideSheet({ name, guide, accent, onClose }) {
+// How to do an exercise: set up, move, what to watch, plus a few basics for its kind (lift, stretch or roll).
+function ExerciseGuideSheet({ name, guide, accent, onClose }) {
   const sheet = useSwipeDown(onClose);
   const row = (label, text) => (
     <div className="mb-3 text-left">
@@ -4683,7 +4696,7 @@ function RollGuideSheet({ name, guide, accent, onClose }) {
           {row('Watch for', guide.watch)}
           <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3 mb-3 text-left">
             <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide font-bold mb-1">The basics</div>
-            {ROLL_RULES.map((t) => <div key={t} style={{ color: PAPER_DIM }} className="text-[13px] leading-snug mb-1">{t}</div>)}
+            {(guide.rules || []).map((t) => <div key={t} style={{ color: PAPER_DIM }} className="text-[13px] leading-snug mb-1">{t}</div>)}
           </div>
           <button onClick={onClose} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-3 text-sm font-medium">Got it</button>
         </div>
@@ -4708,7 +4721,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
     const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
     return () => clearTimeout(t);
   }, [timeLeft]);
-  const guide = ROLL_GUIDES[exercise.name] || null;
+  const guide = guideFor(exercise.name);
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
   const accent = isBalance ? VIOLET : BRICK;
@@ -4824,7 +4837,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           </button>
         )}
       </div>
-      {guideOpen && guide && <RollGuideSheet name={exercise.name} guide={guide} accent={accent} onClose={() => setGuideOpen(false)} />}
+      {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={accent} onClose={() => setGuideOpen(false)} />}
     </div>
     </SwipeActions>
   );
