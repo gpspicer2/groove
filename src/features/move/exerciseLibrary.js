@@ -63,7 +63,8 @@ export const LIFESTYLE_ACTIVITIES = [
 // to target — logged as its own timed entry (like an aerobic activity)
 // in addition to the muscle-group-driven stretch plan.
 export const FLEXIBILITY_ACTIVITIES = [
-  'Static Stretching', 'Dynamic Stretching', 'Yoga', 'Pilates', 'Mobility Work', 'Foam Rolling',
+  'Static Stretching', 'Dynamic Stretching', 'Yoga', 'Pilates', 'Mobility Work',
+  'Foam Roll: Upper Body', 'Foam Roll: Lower Body', 'Foam Roll: Full Body',
   'Tai Chi', 'Balance Training',
 ];
 
@@ -567,4 +568,29 @@ export function avoidForAreas(areaIds = []) {
 export function shortWorkoutTitle(title) {
   const items = String(title || '').split(' + ');
   return items.length > 2 ? `${items[0]} + ${items[1]} +${items.length - 2}` : String(title || '');
+}
+
+// Foam rolling lives under Flexibility. Picking one of the three regions builds a short roll-through (slow passes,
+// pausing on tender spots); with Clean slate it is just a timed Foam Rolling entry.
+const ROLLS = {
+  upperBack: { name: 'Foam Roll: Upper Back', muscleGroup: 'Back', sets: 1, reps: '30-60s' },
+  lats: { name: 'Foam Roll: Lats', muscleGroup: 'Back', sets: 1, reps: '30-60s per side' },
+  pecs: { name: 'Foam Roll: Chest', muscleGroup: 'Chest', sets: 1, reps: '30-60s per side' },
+  rearShoulder: { name: 'Foam Roll: Rear Shoulder', muscleGroup: 'Shoulders', sets: 1, reps: '30-45s per side' },
+  calves: { name: 'Foam Roll: Calves', muscleGroup: 'Legs', sets: 1, reps: '30-60s per side' },
+  hamstrings: { name: 'Foam Roll: Hamstrings', muscleGroup: 'Hamstrings', sets: 1, reps: '30-60s per side' },
+  quads: { name: 'Foam Roll: Quads', muscleGroup: 'Quadriceps', sets: 1, reps: '30-60s per side' },
+  glutes: { name: 'Foam Roll: Glutes', muscleGroup: 'Glutes', sets: 1, reps: '30-60s per side' },
+  itBand: { name: 'Foam Roll: Outer Thigh', muscleGroup: 'Legs', sets: 1, reps: '30-45s per side' },
+  adductors: { name: 'Foam Roll: Inner Thigh', muscleGroup: 'Legs', sets: 1, reps: '30-45s per side' },
+};
+const FOAM_PLANS = {
+  'Foam Roll: Upper Body': ['upperBack', 'lats', 'pecs', 'rearShoulder'],
+  'Foam Roll: Lower Body': ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes'],
+  'Foam Roll: Full Body': ['calves', 'hamstrings', 'quads', 'glutes', 'upperBack', 'lats', 'pecs'],
+};
+export const isFoamRegion = (name) => Object.prototype.hasOwnProperty.call(FOAM_PLANS, name);
+// Rolls in a sensible order (feet up the body), skipping any already in the list.
+export function generateFoamRollPlan(regionName, used = new Set()) {
+  return (FOAM_PLANS[regionName] || []).map((k) => ROLLS[k]).filter((r) => !used.has(r.name)).map((r) => { used.add(r.name); return { ...r, type: 'flexibility', supersetId: null }; });
 }

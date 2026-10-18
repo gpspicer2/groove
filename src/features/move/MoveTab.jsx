@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -777,8 +777,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       ];
     }
     if (usesFlexibility) {
-      plan = cleanSlate ? [] : generateFlexibilityPlan(selectedGroups);
-      const flexActivityEntries = selectedFlexActivities.map((name) => ({
+      // Foam rolling goes first (roll, then stretch). With Clean slate it stays a plain timed activity.
+      const usedRolls = new Set();
+      const rolls = cleanSlate ? [] : selectedFlexActivities.filter(isFoamRegion).flatMap((n) => generateFoamRollPlan(n, usedRolls));
+      plan = cleanSlate ? [] : [...rolls, ...generateFlexibilityPlan(selectedGroups)];
+      const flexActivityEntries = selectedFlexActivities.filter((n) => cleanSlate || !isFoamRegion(n)).map((name) => ({
         name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '',
       }));
       plan = [...plan, ...flexActivityEntries];
@@ -2047,7 +2050,7 @@ function StartWorkout({
         </>
       )}
 
-      {((needsStyle && selectedLocation && selectedStyle) || (movementMode === 'Flexibility' && selectedGroups.length > 0)) && !showProgramOffer && (
+      {((needsStyle && selectedLocation && selectedStyle) || (movementMode === 'Flexibility' && (selectedGroups.length > 0 || selectedFlexActivities.some(isFoamRegion)))) && !showProgramOffer && (
         <div className="flex items-center gap-2 mb-3">
           <button
             onClick={() => onToggleCleanSlate(false)}

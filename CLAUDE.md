@@ -120,6 +120,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Loading screen (`GrooveLoader.jsx`): just the GROOVE logo (neon version in dark mode) fading in softly; shown only on the full-screen app-open load; the tabs load blank beneath the header logo (a second logo there looked like a duplicate, off to the left). Tried a per-letter hop and a smooth wave first; Greg found them choppy / too quick to enjoy and asked for the plain logo. If animating it again, move every letter or none.
 
+- Foam rolling lives under Flexibility: the activity list has "Foam Roll: Upper Body / Lower Body / Full Body" (replacing the single "Foam Rolling"). With Suggested workout each builds a short roll-through of flexibility cards (`generateFoamRollPlan` in exerciseLibrary: upper = upper back, lats, chest, rear shoulder; lower = calves, hamstrings, quads, outer thigh, inner thigh, glutes; full = calves, hamstrings, quads, glutes, upper back, lats, chest), rolls first, then any stretches for chosen muscles; Clean slate keeps a plain timed entry. Counts toward the weekly flexibility goal.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
