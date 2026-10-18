@@ -130,6 +130,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Custom activities (`profiles.custom_activities`, one list): everyday ones are plain names and show only in the aerobic / everyday picker; flexibility ones carry a `flex:` prefix and show only in the flexibility picker (a stray "Demolition" used to appear under Flexibility because every picker showed the whole list). Account > Manage Your Movements shows both (flexibility ones tagged " · flexibility"). Any flexibility custom added before this change now sits under everyday movement and needs re-adding.
 
+- Flexibility start: "Which muscles?" is a fold-down row (chevron, shows the chosen muscles or "optional"). It opens by itself only while nothing is picked yet; once an activity (or muscle) is chosen it folds, and a tap opens it. Lifting and Mixed keep it always open because muscles are required there.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

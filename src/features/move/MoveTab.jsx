@@ -1727,6 +1727,8 @@ function StartWorkout({
   const activitiesHeadingRef = useRef(null);
   const flexActivitiesHeadingRef = useRef(null);
   const groupsHeadingRef = useRef(null);
+  // Flexibility: muscles are optional once an activity is picked, so the list stays folded until it is needed or tapped.
+  const [flexMusclesToggle, setFlexMusclesToggle] = useState(null);
   // Once answered, the location and workout-type steps fold into one line of chips (tap a chip to change it).
   const [editLoc, setEditLoc] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -2069,20 +2071,46 @@ function StartWorkout({
 
       {selectedLocation && !showProgramOffer && needsGroups && (
         <>
-          <div ref={groupsHeadingRef} style={{ color: groupsMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center mt-2">
-            Which muscles?{groupsMissing ? ' Pick at least one' : ''}
-          </div>
-          <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
-          {pickSuggestion && onPickGroups && selectedGroups.length === 0 && (
-            <button onClick={() => onPickGroups(pickSuggestion.groups)} style={{ background: INK_3, color: SKY }} className="w-full rounded-md px-4 py-2.5 mt-3 text-sm text-center">
-              Fill in my week: {pickSuggestion.label}
-            </button>
-          )}
-          {recoveryHits.size > 0 && (
-            <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-2.5 mt-3 text-sm text-center">
-              {[...recoveryHits.entries()].slice(0, 3).map(([g, h]) => `${g} ${h < 24 ? 'today' : 'yesterday'}`).join(', ')}. Muscles recover best with about 48 hours between sessions. Your call!
-            </div>
-          )}
+          {(() => {
+            const foldable = movementMode === 'Flexibility';
+            const open = !foldable || (flexMusclesToggle ?? (selectedFlexActivities.length === 0 && selectedGroups.length === 0));
+            const summary = selectedGroups.length ? selectedGroups.join(', ') : 'optional';
+            return (
+              <>
+                {foldable ? (
+                  <button
+                    ref={groupsHeadingRef}
+                    onClick={() => setFlexMusclesToggle(!open)}
+                    style={{ color: groupsMissing ? BRICK : PAPER }}
+                    className="w-full flex items-center justify-center gap-2 text-base font-medium mt-2 mb-3 min-w-0"
+                  >
+                    <span className="shrink-0">Which muscles?{groupsMissing ? ' Pick at least one' : ''}</span>
+                    {!open && <span style={{ color: TEXT_SOFT }} className="text-sm font-normal truncate">{summary}</span>}
+                    {open ? <ChevronUp size={16} color={TEXT_SOFT} className="shrink-0" /> : <ChevronDown size={16} color={TEXT_SOFT} className="shrink-0" />}
+                  </button>
+                ) : (
+                  <div ref={groupsHeadingRef} style={{ color: groupsMissing ? BRICK : PAPER }} className="text-base font-medium mb-3 text-center mt-2">
+                    Which muscles?{groupsMissing ? ' Pick at least one' : ''}
+                  </div>
+                )}
+                {open && (
+                  <>
+                    <MuscleGroupPicker selectedGroups={selectedGroups} onToggleGroup={onToggleGroup} />
+                    {pickSuggestion && onPickGroups && selectedGroups.length === 0 && (
+                      <button onClick={() => onPickGroups(pickSuggestion.groups)} style={{ background: INK_3, color: SKY }} className="w-full rounded-md px-4 py-2.5 mt-3 text-sm text-center">
+                        Fill in my week: {pickSuggestion.label}
+                      </button>
+                    )}
+                  </>
+                )}
+                {recoveryHits.size > 0 && (open || selectedGroups.length > 0) && (
+                  <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-4 py-2.5 mt-3 text-sm text-center">
+                    {[...recoveryHits.entries()].slice(0, 3).map(([g, h]) => `${g} ${h < 24 ? 'today' : 'yesterday'}`).join(', ')}. Muscles recover best with about 48 hours between sessions. Your call!
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
 
