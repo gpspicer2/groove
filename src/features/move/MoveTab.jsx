@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, ROLL_GUIDES, ROLL_RULES, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -2117,6 +2117,10 @@ function workoutGuide(workout) {
       return { title: `${m.program} · ${m.name}`, lines };
     }
   } catch { /* ignore */ }
+  // Foam rolling sessions: one line on how to roll, and where the how-to lives.
+  if (workout.movementMode === 'Flexibility' && (workout.plan || []).some((e) => e && /^Foam Roll:/.test(e.name || '') && e.type === 'flexibility')) {
+    return { title: null, lines: ['Roll slowly and pause 20–30 sec on tender spots. Open a roll and tap ⓘ for how.'] };
+  }
   const cfg = STYLE_CONFIG[workout.style];
   if ((workout.movementMode === 'Resistance' || workout.movementMode === 'Combined') && cfg?.suggest) {
     const lines = [`Suggested: ${cfg.suggest}`];
@@ -4659,6 +4663,35 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
   );
 }
 
+// How to do a foam roll: set up, move, what to watch, plus the four basic rules.
+function RollGuideSheet({ name, guide, accent, onClose }) {
+  const sheet = useSwipeDown(onClose);
+  const row = (label, text) => (
+    <div className="mb-3 text-left">
+      <div style={{ color: accent }} className="text-[13px] uppercase tracking-wide font-bold mb-0.5">{label}</div>
+      <div style={{ color: PAPER }} className="text-sm leading-snug">{text}</div>
+    </div>
+  );
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+          <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{name.replace('Foam Roll: ', '')}</div>
+          {row('Set up', guide.setup)}
+          {row('Move', guide.move)}
+          {row('Watch for', guide.watch)}
+          <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3 mb-3 text-left">
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide font-bold mb-1">The basics</div>
+            {ROLL_RULES.map((t) => <div key={t} style={{ color: PAPER_DIM }} className="text-[13px] leading-snug mb-1">{t}</div>)}
+          </div>
+          <button onClick={onClose} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-3 text-sm font-medium">Got it</button>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwap, onRemove, isActive = true, onActivate, onCollapse, onDone, onUndo, onMoveUp, onMoveDown }) {
   // Prefill the hold time from the target ("20-30s per side" -> 20), so one tap logs a hold.
   // Some stretches (Cat-Cow) are counted in reps, not held for seconds.
@@ -4666,6 +4699,16 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
   const targetSeconds = isReps || /\ds/.test(String(exercise.reps || '')) ? String(exercise.reps).match(/\d+/)?.[0] || '' : '';
   const [seconds, setSeconds] = useState(targetSeconds);
   const { armed, press } = useArmed();
+  const [guideOpen, setGuideOpen] = useState(false);
+  // A simple hold timer: counts down the target seconds and buzzes at zero.
+  const [timeLeft, setTimeLeft] = useState(null);
+  useEffect(() => {
+    if (timeLeft == null) return undefined;
+    if (timeLeft <= 0) { try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch { /* not supported */ } setTimeLeft(null); return undefined; }
+    const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft]);
+  const guide = ROLL_GUIDES[exercise.name] || null;
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
   const accent = isBalance ? VIOLET : BRICK;
@@ -4715,9 +4758,12 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         <span onClick={onCollapse} style={{ color: PAPER }} className="flex-1 min-w-0 cursor-pointer text-base font-bold flex items-center justify-center gap-2 text-center">
           <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
         </span>
-        <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 shrink-0" title="Collapse">
-          <ChevronUp size={16} />
-        </button>
+        <span className="flex items-center shrink-0">
+          {guide && <button onClick={() => setGuideOpen(true)} style={{ color: accent }} className="p-2 -m-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
+          <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 ml-1" title="Collapse">
+            <ChevronUp size={16} />
+          </button>
+        </span>
       </div>
 
       {loggedSets.length > 0 && (
@@ -4750,6 +4796,16 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
           className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
+        {!isReps && Number(seconds) > 0 && (
+          <button
+            onClick={() => setTimeLeft((n) => (n == null ? Number(seconds) : null))}
+            style={{ background: timeLeft != null ? accent : INK_3, color: timeLeft != null ? PAPER : PAPER_DIM }}
+            className="shrink-0 rounded-md px-2.5 py-2 text-sm tabular-nums"
+            aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
+          >
+            {timeLeft != null ? `${timeLeft}s` : 'Timer'}
+          </button>
+        )}
         <button
           onClick={handleLog}
           style={{ background: accent, color: PAPER }}
@@ -4768,6 +4824,7 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           </button>
         )}
       </div>
+      {guideOpen && guide && <RollGuideSheet name={exercise.name} guide={guide} accent={accent} onClose={() => setGuideOpen(false)} />}
     </div>
     </SwipeActions>
   );

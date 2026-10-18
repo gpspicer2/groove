@@ -594,3 +594,23 @@ export const isFoamRegion = (name) => Object.prototype.hasOwnProperty.call(FOAM_
 export function generateFoamRollPlan(regionName, used = new Set()) {
   return (FOAM_PLANS[regionName] || []).map((k) => ROLLS[k]).filter((r) => !used.has(r.name)).map((r) => { used.add(r.name); return { ...r, type: 'flexibility', supersetId: null }; });
 }
+
+// How-to for each roll, shown from the (i) on a roll's card. Short on purpose: set up, move, what to watch.
+export const ROLL_GUIDES = {
+  'Foam Roll: Upper Back': { setup: 'Lie on your back with the roller across your upper back, just under your shoulder blades. Cross your arms over your chest or hold your head, and lift your hips.', move: 'Use your feet to roll slowly up toward your shoulders, a few inches at a time.', watch: 'Stay above your low back and keep your chin tucked. Skip your neck.' },
+  'Foam Roll: Lats': { setup: 'Lie on your side with the roller under your armpit area and your bottom arm reaching overhead.', move: 'Roll slowly between your armpit and the middle of your ribs, turning a little toward your chest and back.', watch: 'Keep it moderate. This spot is often tender.' },
+  'Foam Roll: Chest': { setup: 'Lie face down with the roller under the front of one shoulder and that arm out to the side, palm down.', move: 'Roll very slightly up and down, and turn your body a little to find tight spots.', watch: 'Stay on the muscle, not the collarbone or shoulder joint.' },
+  'Foam Roll: Rear Shoulder': { setup: 'Lie on your side with the roller behind your shoulder, arm hugged across your chest.', move: 'Make small rolls along the back of the shoulder and shoulder blade edge.', watch: 'Small, gentle movements. Avoid pressing on the joint itself.' },
+  'Foam Roll: Calves': { setup: 'Sit with the roller under your calves, hands behind you, and lift your hips. Cross the other leg on top for more pressure.', move: 'Roll from just above your ankle to just below your knee. Turn your toes in and out to reach every side.', watch: 'Skip the back of the knee and the Achilles tendon.' },
+  'Foam Roll: Hamstrings': { setup: 'Sit with the roller under your thighs, hands behind you, and lift your hips. Cross legs for more pressure.', move: 'Roll from just above your knee up toward your sit bones.', watch: 'Stay off the back of the knee and the bony part under your butt.' },
+  'Foam Roll: Quads': { setup: 'Lie face down on your forearms with the roller under your thighs, like a plank.', move: 'Roll from just above your knee up to the top of your thigh. Turn slightly in and out to catch the sides.', watch: 'Stay off the kneecap and the hip bone. Ease up if the area near your knee is sore.' },
+  'Foam Roll: Outer Thigh': { setup: 'Lie on your side with the roller under the side of your thigh. Put your top foot on the floor in front for support.', move: 'Roll from your hip down to just above your knee, using your arms and top foot to control pressure.', watch: 'This one is tender. Use light pressure and stay off the knee.' },
+  'Foam Roll: Inner Thigh': { setup: 'Lie face down with one leg bent out to the side and the roller along your inner thigh.', move: 'Roll gently from just above the knee toward the groin and back.', watch: 'Stay off the groin and knee. Keep pressure light.' },
+  'Foam Roll: Glutes': { setup: 'Sit on the roller with one ankle crossed over the opposite knee. Lean toward the crossed-leg side.', move: 'Roll in small lengths across the glute, from the top of the hip to the sit bone.', watch: 'Keep your low back relaxed and skip the tailbone.' },
+};
+export const ROLL_RULES = [
+  'Roll slowly, about an inch per second, and breathe.',
+  'When you find a tender spot, pause on it for 20 to 30 seconds.',
+  'Mild to moderate discomfort is normal. Sharp pain, numbness or tingling means stop.',
+  'Skip joints, your low back, your neck and any bruised or injured area.',
+];
