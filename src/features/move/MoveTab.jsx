@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, variationFor, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, isFoamRegion, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -332,6 +332,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   // "How's your body today?" asked before a suggested lifting workout; the answer shapes the picks.
   const { injuries: allInjuries } = useInjuries(user?.id);
   const injuries = activeInjuries(allInjuries);
+  const [starterGone, setStarterGone] = useState(() => { try { return localStorage.getItem('groove:starterDismissed') === '1'; } catch { return false; } });
   const [readiness, setReadiness] = useState(null); // { areas: [...], tired }
   const [readinessOpen, setReadinessOpen] = useState(false);
 
@@ -524,6 +525,25 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   // Starting a session from a program (here in Move or from Birdseye): fill in
   // the choices, and for a lifting session begin right away.
+  // "New to lifting? Start here": a gentle full-body session (simple moves, 2 light sets of 10-12), built in one tap.
+  function beginStarter(location) {
+    setPlanning(null);
+    setStartingPlan(null);
+    setSelectedDate(todayLocalISO());
+    setCleanSlate(false);
+    setSelectedLocation(location);
+    setMovementMode('Resistance');
+    setSelectedGroups(STARTER_SESSION.groups);
+    setSelectedStyle(STARTER_SESSION.style);
+    setProgramSession({ ...STARTER_SESSION });
+    setAutoStart(true);
+    scrollAppToTop();
+  }
+  function dismissStarter() {
+    try { localStorage.setItem('groove:starterDismissed', '1'); } catch { /* storage blocked */ }
+    setStarterGone(true);
+  }
+
   function beginProgramSession(sess) {
     setPlanning(null);
     setStartingPlan(null);
@@ -759,8 +779,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       let hidden = [];
       try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
       // A one-muscle program day (chest day, arm day) needs more picks per muscle.
-      const perGroup = programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)])])
+      const perGroup = programSession?.starter ? 1 : programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)])])
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       // Run down: a shorter session with one fewer set per exercise.
       if (readiness?.tired) plan = plan.slice(0, 4).map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) }));
@@ -851,7 +871,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     }
     if (cleanSlate) { try { localStorage.setItem(`groove:cleanSlate:${data.id}`, '1'); } catch { /* storage blocked */ } }
     if (appliedSession) {
-      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: programTitle(program), name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
+      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Starter', name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
     }
     setProgramSession(null);
     if (movementMode === 'Combined' && combinedLayout) {
@@ -1391,6 +1411,17 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         )}
         {!planning && program && (
           <MoveProgramCard program={program} week={programWeek} lifted={programLifted} flex={flexForCard} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
+        )}
+        {!planning && !program && !starterGone && !startingPlan && !selectedLocation && !movementMode && !completedWorkouts.some((w) => w.movementMode === 'Resistance' || w.movementMode === 'Combined') && (
+          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
+            <div style={{ color: PAPER }} className="text-base font-medium">New to lifting? Start here</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5 mb-2.5">A gentle full-body workout: 5 simple moves, 2 light sets each. About 25 minutes.</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2.5 text-sm font-medium">At the gym</button>
+              <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At home</button>
+            </div>
+            <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-sm mt-2 py-1">No thanks, I know my way around</button>
+          </div>
         )}
         {!planning && !startingPlan && !selectedLocation && !movementMode && (() => {
           const l = readLastStart();

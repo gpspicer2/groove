@@ -635,3 +635,16 @@ export const VARIATIONS = {
   'Barbell Back Squat': { label: 'Bar', options: ['High Bar', 'Low Bar'] },
 };
 export const variationFor = (name) => VARIATIONS[name] || null;
+
+// A first lifting session keeps to simple, forgiving moves: no barbell lifts, dips, hangs or other technical exercises.
+const BEGINNER_AVOID = /Barbell|Deadlift|Front Squat|Dips|Pull-Ups|Chin-Up|Handstand|Pike|Nordic|Skull|Bulgarian|Arnold|Ab Wheel|Hanging|Walking Lunges|Step-Up|Pullover|Overhead Press|Close-Grip|Diamond|Deficit|Fly|Incline/i;
+export function beginnerAvoid() {
+  const names = new Set();
+  Object.values(EXERCISE_LIBRARY).forEach((list) => list.forEach((e) => { if (BEGINNER_AVOID.test(e.name)) names.add(e.name); }));
+  return [...names];
+}
+// The "New to lifting? Start here" session, shaped like a program session so Move builds it the same way.
+export const STARTER_SESSION = {
+  id: 'starter', kind: 'resistance', name: 'Full Body', shortName: 'Full Body', groups: ['Chest', 'Back', 'Legs', 'Shoulders', 'Core'], style: 'Hypertrophy', label: '',
+  presc: { sets: 2, reps: '10-12', rpe: '6', rest: '60-90 sec' }, acc: null, exercises: 5, mainCount: 0, phase: 'Build', starter: true,
+};
