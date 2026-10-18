@@ -14,7 +14,7 @@ export default function GrooveLoader({ width = 200, label = 'Loading' }) {
       width={width}
       height={Math.round((H * width) / W)}
       className="groove-loader"
-      style={{ display: 'block' }}
+      style={{ display: 'block', height: 'auto' }}
     />
   );
 }

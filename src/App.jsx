@@ -17,8 +17,8 @@ function Shell() {
 
   if (loading || switching || (user && !profile)) {
     return (
-      <div style={{ background: INK }} className="min-h-[100svh] flex items-center justify-center">
-        <GrooveLoader width={220} />
+      <div style={{ background: INK }} className="min-h-[100svh] flex justify-center items-start px-6 pt-[22svh]">
+        <GrooveLoader width={Math.min(340, Math.round(window.innerWidth - 48))} />
       </div>
     );
   }
