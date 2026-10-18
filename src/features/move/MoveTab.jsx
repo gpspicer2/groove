@@ -699,27 +699,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     return false;
   }
 
-  // "Repeat last workout": fills every start choice from the last session and starts it.
-  const [quickStart, setQuickStart] = useState(false);
-  useEffect(() => { if (quickStart) { setQuickStart(false); startWorkout(); } }); // eslint-disable-line react-hooks/exhaustive-deps
-  function readLastStart() {
-    try { return JSON.parse(localStorage.getItem('groove:lastStart') || 'null'); } catch { return null; }
-  }
-  function repeatLastWorkout(l) {
-    setSelectedLocation(l.location || '');
-    setMovementMode(l.mode || '');
-    setSelectedGroups(l.groups || []);
-    setSelectedActivities(l.activities || []);
-    setSelectedFlexActivities(l.flexActivities || []);
-    setFoamRegion(l.foamRegion || 'Full Body');
-    setSelectedStyle(l.style || '');
-    setCleanSlate(Boolean(l.cleanSlate));
-    setCombinedLayout(l.combinedLayout || '');
-    setCombinedActivity(l.combinedActivity || '');
-    setSelectedDate(todayLocalISO());
-    setQuickStart(true);
-  }
-
   function resetStartChoices() {
     setSelectedGroups([]);
     setSelectedActivities([]);
@@ -871,17 +850,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (error) { setLoadError(error.message); return; }
     if ((readiness && (readiness.areas.length > 0 || readiness.tired)) || injuries.length > 0) { try { localStorage.setItem(`groove:readiness:${data.id}`, JSON.stringify({ areas: readiness?.areas || [], tired: Boolean(readiness?.tired), injuries: injuries.map((i) => i.label) })); } catch { /* storage blocked */ } }
     setReadiness(null);
-    // Remembered so "Repeat last workout" can start the same kind of session in one tap.
-    if (!programSession) {
-      try {
-        localStorage.setItem('groove:lastStart', JSON.stringify({
-          title: workoutTitle(selectedGroups, usesAerobic ? selectedActivities : usesFlexibility ? flexNamesOut : []),
-          foamRegion,
-          location: selectedLocation, mode: movementMode, groups: selectedGroups, activities: selectedActivities,
-          flexActivities: selectedFlexActivities, style: selectedStyle, cleanSlate, combinedLayout, combinedActivity,
-        }));
-      } catch { /* storage blocked */ }
-    }
     // Carrying out a planned workout uses it up.
     if (startingPlan) {
       await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
@@ -1442,23 +1410,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
             <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-sm mt-2 py-1">No thanks, I know my way around</button>
           </div>
         )}
-        {!planning && !startingPlan && !selectedLocation && !movementMode && (() => {
-          const l = readLastStart();
-          if (!l || !l.mode || !l.location) return null;
-          return (
-            <button
-              onClick={() => repeatLastWorkout(l)}
-              style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }}
-              className="w-full rounded-lg px-4 py-2.5 mb-2 flex items-center justify-between gap-3 text-left"
-            >
-              <span className="min-w-0">
-                <span style={{ color: PAPER }} className="text-sm font-medium block truncate">Repeat last workout</span>
-                <span style={{ color: TEXT_SOFT }} className="text-sm block truncate">{[l.title, l.style, l.location].filter(Boolean).join(' · ')}</span>
-              </span>
-              <span style={{ color: SKY }} className="shrink-0"><Play size={16} /></span>
-            </button>
-          );
-        })()}
         <StartWorkout
           recentTrained={recentTrained}
           pickSuggestion={pickSug}
