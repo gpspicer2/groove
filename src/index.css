@@ -164,12 +164,9 @@ html, body {
   .groove-ease-in { animation: none; }
 }
 
-/* Loading logo: a smooth wave rolls through the letters (one continuous ease, no stops). */
-@keyframes groove-hop {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -12%, 0); }
-}
-.groove-hop { animation: groove-hop 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite; will-change: transform; backface-visibility: hidden; }
+/* Loading logo: the logo, fading in softly. */
+@keyframes groove-fade { from { opacity: 0; } to { opacity: 1; } }
+.groove-loader { animation: groove-fade 0.4s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
-  .groove-hop { animation: none; will-change: auto; }
+  .groove-loader { animation: none; }
 }
