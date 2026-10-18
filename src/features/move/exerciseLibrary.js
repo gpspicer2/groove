@@ -668,3 +668,18 @@ export const STARTER_SESSION = {
   id: 'starter', kind: 'resistance', name: 'Full Body', shortName: 'Full Body', groups: ['Chest', 'Back', 'Legs', 'Shoulders', 'Core'], style: 'Hypertrophy', label: '',
   presc: { sets: 2, reps: '10-12', rpe: '6', rest: '60-90 sec' }, acc: null, exercises: 5, mainCount: 0, phase: 'Build', starter: true,
 };
+
+// Rolls for the muscles someone picked (Legs means the whole lower body), in a sensible feet-to-head order, at most 8.
+const FOAM_ORDER = ['calves', 'hamstrings', 'quads', 'itBand', 'adductors', 'glutes', 'upperBack', 'lats', 'pecs', 'rearShoulder'];
+const FOAM_GROUPS = {
+  calves: ['Legs'], hamstrings: ['Hamstrings', 'Legs'], quads: ['Quadriceps', 'Legs'], itBand: ['Quadriceps', 'Legs'], adductors: ['Quadriceps', 'Legs'],
+  glutes: ['Glutes', 'Legs'], upperBack: ['Back'], lats: ['Back'], pecs: ['Chest'], rearShoulder: ['Shoulders'],
+};
+export function generateFoamRollsForGroups(groups, used = new Set()) {
+  const wanted = new Set(groups);
+  return FOAM_ORDER.filter((k) => FOAM_GROUPS[k].some((g) => wanted.has(g)))
+    .map((k) => ROLLS[k])
+    .filter((r) => !used.has(r.name))
+    .slice(0, 8)
+    .map((r) => { used.add(r.name); return { ...r, type: 'flexibility', supersetId: null }; });
+}

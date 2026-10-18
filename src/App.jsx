@@ -1,5 +1,5 @@
 import GrooveLoader from './GrooveLoader';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import AuthScreen from './auth/AuthScreen';
 import ClientApp from './ClientApp';
@@ -10,15 +10,21 @@ import { INK, TEXT_SOFT } from './theme';
 
 function Shell() {
   const { user, profile, isTrainer, loading, switching, recovering, finishRecovery } = useAuth();
+  // The opening logo stays up for at least a second and a half after the page starts loading, so it can be seen.
+  const [minShown, setMinShown] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMinShown(true), Math.max(0, 1500 - performance.now()));
+    return () => clearTimeout(t);
+  }, []);
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);
   // Lets someone step back from the first health question to re-read the consent.
   const [rereadConsent, setRereadConsent] = useState(false);
 
-  if (loading || switching || (user && !profile)) {
+  if (!minShown || loading || switching || (user && !profile)) {
     return (
-      <div style={{ background: INK }} className="min-h-[100svh] flex justify-center items-start px-6 pt-[22svh]">
-        <GrooveLoader width={Math.min(340, Math.round(window.innerWidth - 48))} />
+      <div style={{ background: INK }} className="min-h-[100svh] flex justify-center items-start px-6 pt-[30svh]">
+        <GrooveLoader width={Math.min(300, Math.round(window.innerWidth - 72))} />
       </div>
     );
   }
