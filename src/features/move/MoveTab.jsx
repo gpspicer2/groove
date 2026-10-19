@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -699,6 +699,10 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     return false;
   }
 
+  // Starts the workout on the next render (after the body check sheet has saved its answers).
+  const [quickStart, setQuickStart] = useState(false);
+  useEffect(() => { if (quickStart) { setQuickStart(false); startWorkout(); } }); // eslint-disable-line react-hooks/exhaustive-deps
+
   function resetStartChoices() {
     setSelectedGroups([]);
     setSelectedActivities([]);
@@ -834,10 +838,21 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     // crosses a UTC day boundary near midnight in the client's time zone.
     const startedAt = isToday ? new Date().toISOString() : new Date(`${selectedDate}T12:00:00`).toISOString();
 
+    // A suggested lifting session is named (and counted) by the muscles it actually trains, biggest share first,
+    // so a day that is mostly chest and back isn't titled "Legs + Back + Chest" because legs were ticked.
+    let savedGroups = selectedGroups;
+    if (usesResistance && !cleanSlate && !programSession) {
+      // Legs and Arms are bundles of several muscles; count them as one area so the title stays "Legs", not four names.
+      const areaOf = (g) => (LEGS_BUNDLE.includes(g) ? 'Legs' : ARMS_BUNDLE.includes(g) ? 'Arms' : g);
+      const counts = {};
+      plan.filter((e) => e.type === 'resistance').forEach((e) => { const a = areaOf(e.muscleGroup); counts[a] = (counts[a] || 0) + 1; });
+      const present = selectedGroups.filter((g) => counts[areaOf(g)]);
+      if (present.length > 0) savedGroups = [...present].sort((x, y) => counts[areaOf(y)] - counts[areaOf(x)] || selectedGroups.indexOf(x) - selectedGroups.indexOf(y));
+    }
     const { data, error } = await supabase
       .from('workouts')
       .insert({
-        muscle_groups: usesResistance || usesFlexibility ? selectedGroups : [],
+        muscle_groups: usesResistance || usesFlexibility ? savedGroups : [],
         activities: usesAerobic ? selectedActivities : usesFlexibility ? flexNamesOut : [],
         movement_mode: movementMode,
         style: usesResistance ? selectedStyle : null,
@@ -1041,7 +1056,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         type: 'resistance',
         supersetId: null,
         sets: styleConfig.sets ?? fromLibrary?.sets ?? 3,
-        reps: styleConfig.reps ?? fromLibrary?.reps ?? '10-12',
+        reps: holdReps(fromLibrary) ?? styleConfig.reps ?? fromLibrary?.reps ?? '10-12',
       },
     ]);
     upgradeToCombinedIfNeeded('resistance');
@@ -3771,7 +3786,16 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     clearTimeout(jumpTimer.current);
     if (!byTime && /[05]$/.test(String(v)) && Number(v) > 0) jumpTimer.current = setTimeout(() => { repsRef.current?.focus(); }, 650);
   }
-  const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? 30);
+  const [seconds, setSeconds] = useState(mostRecentLogged?.durationSeconds ?? (isHoldExercise(exercise) ? Number(String(exercise.reps).match(/\d+/)?.[0]) || 30 : 30));
+  // Hold timer: counts the seconds box down, double beep at zero.
+  const [timeLeft, setTimeLeft] = useState(null);
+  useEffect(() => {
+    if (timeLeft == null) return undefined;
+    if (timeLeft <= 0) { doubleBeep(); keepAwake(false); setTimeLeft(null); return undefined; }
+    const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft]);
+  useEffect(() => () => keepAwake(false), []);
 
   function handleLog() {
     if (belowBarbell) return;
@@ -3811,7 +3835,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   return (
     <>
       <div className="flex items-center justify-center gap-2">
-        <label className="relative w-[4.3rem] shrink-0">
+        <label className={`relative ${byTime ? 'w-[3.7rem]' : 'w-[4.3rem]'} shrink-0`}>
           <input
             type="number"
             inputMode="decimal"
@@ -3825,7 +3849,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           <span style={{ color: TEXT_SOFT }} className={unitClass}>{useBodyweight ? '+lb' : 'lb'}</span>
         </label>
         {byTime ? (
-          <label className="relative w-[4.3rem] shrink-0">
+          <>
+          <label className="relative w-[3.7rem] shrink-0">
             <input
               type="number"
               inputMode="numeric"
@@ -3838,6 +3863,18 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             />
             <span style={{ color: TEXT_SOFT }} className={unitClass}>sec</span>
           </label>
+          {Number(seconds) > 0 && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { unlockAudio(); keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
+              style={{ background: timeLeft != null ? SKY : INK_3, color: timeLeft != null ? INK : PAPER }}
+              className="rounded-md py-2.5 px-2 min-w-[2.5rem] text-base font-medium tabular-nums flex items-center justify-center"
+              aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
+            >
+              {timeLeft != null ? `${timeLeft}s` : <Timer size={18} />}
+            </button>
+          )}
+          </>
         ) : (
           <label className="relative w-[4.3rem] shrink-0">
             <input
@@ -3960,6 +3997,9 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
   );
 }
 
+// Holds (Plank, Wall Sit) are counted in seconds, not reps: their target reads like "30-60s".
+const isHoldExercise = (ex) => /\d\s*s\b/i.test(String(ex?.reps || ''));
+
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
   isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown, lastFor,
@@ -3978,7 +4018,7 @@ function ExerciseCard({
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [editingBurst, setEditingBurst] = useState(null);
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
-  const [byTime, setByTime] = useState(false);
+  const [byTime, setByTime] = useState(isHoldExercise(exercise));
   const { armed, press } = useArmed();
 
   if (!isActive) {
@@ -4115,7 +4155,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const lastV = variant && lastFor ? lastFor(variant) : null;
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
-  const [byTime, setByTime] = useState(false);
+  const [byTime, setByTime] = useState(isHoldExercise(exercise));
 
   return (
     <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>

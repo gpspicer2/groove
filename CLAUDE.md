@@ -136,6 +136,9 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Open stretch / roll cards keep a steady height when a hold is logged: the Target text and the logged holds share one row, the name has no ✅ (the green tint says done), the Log button never wraps, and the hold timer is an icon button. When a hold timer ends it plays a quick double beep (Web Audio, `lib/beep.js`; also through headphones) and a double buzz where the phone allows it; iPhones can't vibrate from a web app, so the beep is what they get. The screen is kept awake while it runs. Foam rolling now includes a gentle "Foam Roll: Lower Back" (in Lower Body and Full Body, and for a Back selection; cap 9 rolls) whose guide says to keep pressure light and that rolling glutes and hips often eases low-back tightness more safely.
 
+- Holds in the lifting list (Plank, Side Plank, Wall Sit: library reps like "30-60s", `isHoldExercise` / `holdReps`) log by seconds by default and have a hold timer button beside the seconds box (double beep at zero, same as stretches); a training style's rep range never overrides a hold's target. Single-Arm Dumbbell Row has no grip chips (grip choices stay on barbell / cable rows, pulldowns, curls, etc.).
+- A suggested lifting workout (not a program session) saves and is titled by the muscles it actually trains, biggest share first (Legs and Arms count as one area each), not just the ones ticked; muscles that got no exercise drop out of the title.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.

@@ -331,7 +331,7 @@ function ensureSquatVariation(final, muscleGroups, style, location, recentNames,
     const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => SQUAT_PATTERN.test(e.name) && !exclude.includes(e.name));
     if (pool.length === 0) continue;
     const pick = pool.find((e) => !recentNames.includes(e.name)) || pool[0];
-    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
+    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: holdReps(pick) ?? styleConfig.reps ?? pick.reps };
     // Bump the lowest-priority pick (the list is already sorted
     // barbell-compound-first) rather than growing past MAX_EXERCISES.
     return [...final.slice(0, -1), added];
@@ -364,7 +364,7 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     if (style !== 'Strength' && recentNames.includes(anchorName)) continue;
     const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
     if (!pick) continue; // not available at this location (e.g. no pull-up bar outdoors)
-    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: styleConfig.reps ?? pick.reps };
+    const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: holdReps(pick) ?? styleConfig.reps ?? pick.reps };
     // Bump the lowest-priority pick rather than growing past MAX_EXERCISES, but never another anchor lift
     // or the squat variation (otherwise each anchor added would push out the one before it).
     // Prefer dropping from a muscle that has two or more picks, so no muscle loses its only exercise.
@@ -388,6 +388,9 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
 // training style rather than the library's default. The final list is
 // then stably sorted compound-first (see COMPOUND_PATTERN above),
 // preserving the muscle-group order otherwise.
+// Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
+export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
+
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
@@ -419,7 +422,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       if (!ex) continue;
       l.at += 1;
       usedNames.add(ex.name);
-      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: styleConfig.reps ?? ex.reps });
+      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? styleConfig.reps ?? ex.reps });
     }
   }
   // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks
@@ -647,7 +650,6 @@ export const VARIATIONS = {
   'Chin-Up (underhand)': { label: 'Grip', options: GRIPS },
   'Barbell Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
   'Seated Cable Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
-  'Single-Arm Dumbbell Row': { label: 'Grip', options: ['Overhand', 'Underhand', 'Neutral'] },
   'Barbell Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
   'Cable Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
   'Preacher Curl': { label: 'Grip', options: ['Standard', 'Wide', 'Close', 'Reverse'] },
