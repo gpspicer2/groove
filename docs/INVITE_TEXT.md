@@ -2,6 +2,15 @@
 
 The link: https://groove-rho.vercel.app
 
+## Quick share (the link makes a preview card)
+
+Paste this into a text. The link turns into a card with the GROOVE picture and a one-line description, like an Amazon or Strava share (`index.html` has the preview tags, the picture is `public/og-image.png`):
+
+> I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!
+> https://groove-rho.vercel.app
+
+Put the link on its own line, last, so the card appears under your message. Texts and apps sometimes keep an old preview for a while, so if the card looks wrong, send the link to yourself first to check it.
+
 ## The text (copy and paste)
 
 Hey! Most people don't like exercise, but almost everyone likes to move. That's the idea behind Groove, a movement app I built as an exercise physiologist and professor.
