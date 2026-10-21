@@ -115,13 +115,14 @@ export default function ExperienceForm({ answers, onChange }) {
   const [openMore, setOpenMore] = useState({});
   const topRef = useRef(null);
   const swipe = useRef(null);
+  const dir = useRef(1); // 1 = moving forward (the new page comes in from the right)
   const g = EXPERIENCE_GROUPS[page];
   const last = EXPERIENCE_GROUPS.length - 1;
   const answeredMore = g.more.filter((it) => answers[it.id]).length;
   const moreOpen = openMore[g.title] ?? answeredMore > 0;
   // A new page starts at its top (the sheet is the scroller).
   useEffect(() => { topRef.current?.closest('.overflow-y-auto')?.scrollTo({ top: 0 }); }, [page]);
-  const go = (n) => setPage(Math.min(last, Math.max(0, n)));
+  const go = (n) => { const to = Math.min(last, Math.max(0, n)); if (to !== page) { dir.current = to > page ? 1 : -1; setPage(to); } };
   const nav = (
     <div className="flex items-center justify-between my-2">
       <button onClick={() => go(page - 1)} disabled={page === 0} style={{ color: page === 0 ? TEXT_SOFT : SKY, opacity: page === 0 ? 0.4 : 1 }} className="text-base font-medium px-1 py-1.5 flex items-center gap-0.5"><ChevronLeft size={18} /> Back</button>
@@ -146,7 +147,7 @@ export default function ExperienceForm({ answers, onChange }) {
       <div style={{ background: INK_2 }} className="sticky top-0 z-10 -mx-5 px-5 pt-1 pb-0.5">
       <div ref={topRef} className="flex items-center justify-between">
         <button onClick={() => go(page - 1)} disabled={page === 0} aria-label="Previous muscle group" style={{ color: TEXT_SOFT, opacity: page === 0 ? 0.3 : 1 }} className="p-2 -m-2"><ChevronLeft size={22} /></button>
-        <div className="text-center">
+        <div key={page} className={`text-center ${dir.current > 0 ? 'groove-slide-from-right' : 'groove-slide-from-left'}`}>
           <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium uppercase tracking-wide">{g.title}</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">{page + 1} of {EXPERIENCE_GROUPS.length}</div>
         </div>
@@ -159,7 +160,7 @@ export default function ExperienceForm({ answers, onChange }) {
       </div>
       </div>
 
-      <div key={page} className="groove-ease-in">
+      <div key={page} className={dir.current > 0 ? 'groove-slide-from-right' : 'groove-slide-from-left'}>
       <div className="space-y-1">
         {g.items.map((it) => <Row key={it.id} it={it} answers={answers} onChange={onChange} onInfo={setInfo} />)}
       </div>

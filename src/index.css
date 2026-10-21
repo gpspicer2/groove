@@ -170,3 +170,12 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .groove-loader { animation: none; }
 }
+
+/* Lifting Preferences: the next page slides in from the side you swiped toward. */
+@keyframes groove-slide-from-right { from { transform: translateX(44px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes groove-slide-from-left { from { transform: translateX(-44px); opacity: 0; } to { transform: none; opacity: 1; } }
+.groove-slide-from-right { animation: groove-slide-from-right 0.25s ease-out both; }
+.groove-slide-from-left { animation: groove-slide-from-left 0.25s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .groove-slide-from-right, .groove-slide-from-left { animation: none; }
+}
