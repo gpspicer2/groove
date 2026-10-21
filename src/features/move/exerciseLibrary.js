@@ -479,6 +479,18 @@ export function suggestNextWeight(exercise, lastSet, style, daysSince = null) {
   const increment = Math.max(5, roundToFive(baseIncrement * styleMultiplier * (longLayoff ? 0.5 : 1)));
   const lastWeight = roundToFive(lastSet.weight);
 
+  // Today's rep target is far from what last time's set was (a heavy day after a light one, or the reverse):
+  // work out about what weight fits the new reps from last time's set (Epley estimate of a one-rep max).
+  const fixed = Number(String(exercise.reps).match(/^\s*(\d+)\s*$/)?.[1]) || null; // a fixed target like "5"
+  const tLo = lo ?? fixed;
+  const tHi = hi ?? fixed;
+  const far = tHi != null && lastSet.reps > 0 && lastSet.reps <= 20 && (lastSet.reps > tHi + 2 || lastSet.reps < tLo - 1);
+  if (far && !longLayoff && lastSet.weight > 0 && !lastSet.isBodyweight) {
+    const oneRm = lastSet.weight * (1 + lastSet.reps / 30);
+    const fit = Math.max(0, roundToFive(oneRm / (1 + (tLo + tHi) / 2 / 30)));
+    if (fit > 0 && fit !== lastWeight) return { weight: fit, note: `Fits ${tLo === tHi ? tLo : `${tLo}-${tHi}`} reps (from ${lastSet.weight}×${lastSet.reps} last time)` };
+  }
+
   if (hi == null) return { weight: lastWeight, note: 'Match last time' };
 
   if (longLayoff) {

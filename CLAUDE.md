@@ -139,6 +139,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Holds in the lifting list (Plank, Side Plank, Wall Sit: library reps like "30-60s", `isHoldExercise` / `holdReps`) log by seconds by default and have a hold timer button beside the seconds box (double beep at zero, same as stretches); a training style's rep range never overrides a hold's target. Single-Arm Dumbbell Row has no grip chips (grip choices stay on barbell / cable rows, pulldowns, curls, etc.).
 - A suggested lifting workout (not a program session) saves and is titled by the muscles it actually trains, biggest share first (Legs and Arms count as one area each), not just the ones ticked; muscles that got no exercise drop out of the title.
 
+- Program variation (checked 2026-10-21): only Hypertrophy Undulating varies sets and reps session to session (Heavy 4x5-8, Moderate 3x8-12, Light 3x12-20, rotating each week, 4th week deload). Linear, Strength and Fat Loss vary week to week only, so the 3 sessions in one week are identical by design. `suggestNextWeight` now scales the suggested weight when today's rep target is far from last time's set (Epley estimate, "Fits 5-8 reps"), so a heavy day is heavier and a light day lighter instead of reusing the same weight.
+
 ## Known problems and ideas
 - Two of Greg's workouts were lost; cause never found. `groove:liveBackup` + a restore banner is a safety net, not a fix.
 - Learn long-press highlight fix is iOS-specific and unverified outside iOS.
