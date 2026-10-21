@@ -6,12 +6,18 @@ import { karvonenBpm } from '../../lib/heartRate.js';
 // Everything here is plain data and math, so Move and Birdseye share it.
 
 export const GOALS = [
-  { id: 'strength', label: 'Strength', emoji: '💥', blurb: 'Powerlifting-style: squat, bench and deadlift.' },
-  { id: 'hypertrophy', label: 'Hypertrophy', emoji: '📈', blurb: 'Bodybuilding-style: muscle size and shape.' },
-  { id: 'fat_loss', label: 'Weight Loss', emoji: '🔥', blurb: 'Heart-rate cardio you choose, plus 2 short strength days.' },
-  { id: 'fitness', label: 'Improve Fitness', emoji: '⚡', blurb: 'Stay in shape or get fitter: steady cardio plus 2 full-body strength days.' },
+  { id: 'strength', label: 'Strength', emoji: '🏋️', blurb: 'Powerlifting-style: squat, bench and deadlift.' },
+  { id: 'hypertrophy', label: 'Hypertrophy', emoji: '💪', blurb: 'Bodybuilding-style: muscle size and shape.' },
+  { id: 'fat_loss', label: 'Fat Loss', emoji: '📉', blurb: 'Heart-rate cardio you choose, plus 2 short strength days.' },
+  { id: 'fitness', label: 'Improve Fitness', emoji: '😃', blurb: 'Stay in shape or get fitter: steady cardio plus 2 full-body strength days.' },
 ];
 // Cardio-plus-strength programs share one engine: cardio days you fill with any activity, and two full-body strength days.
+// The strength emoji follows the member's gender setting, like the location tiles in Move.
+export const goalEmoji = (goal, gender) => {
+  const g = GOALS.find((x) => x.id === goal);
+  if (goal === 'strength') return gender === 'Female' ? '🏋️‍♀️' : gender === 'Male' ? '🏋️‍♂️' : '🏋️';
+  return g ? g.emoji : '';
+};
 export const isHybridGoal = (goal) => goal === 'fat_loss' || goal === 'fitness';
 
 export const MODELS = [
@@ -22,7 +28,7 @@ export const MODELS = [
 export const GOAL_INFO = {
   strength: 'Prepares you for powerlifting, with no meet needed. The squat, bench press and deadlift get heavy work in low reps (6 or fewer, about 85%+ of your max) with long rests, then a second lift and smaller supporting lifts. Effort climbs over three weeks, then a lighter deload week.',
   hypertrophy: 'Prepares you for bodybuilding, with no show needed. Muscle size comes from enough hard sets per muscle each week (about 10-20), mostly 6-12 reps taken close to failure, with a good mix of big lifts and isolation work. Pick how the weeks progress below.',
-  fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Cardio minutes build gradually and you pick activities you enjoy, guided by heart rate or effort. Two short strength days help you keep muscle. We do not push the scale: it swings daily and can stay flat while you gain muscle and lose fat. You will see cardio minutes, resting heart rate, strength and fitness tests instead.',
+  fat_loss: 'Fat loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Cardio minutes build gradually and you pick activities you enjoy, guided by heart rate or effort. Two short strength days help you keep muscle. We do not push the scale: it swings daily and can stay flat while you gain muscle and lose fat. You will see cardio minutes, resting heart rate, strength and fitness tests instead.',
   fitness: 'ACSM\'s general guidance for healthy adults: 150-300 minutes of moderate cardio a week plus strength work on 2 days. Cardio starts from what you already do and builds gently, with a lighter week every fourth week, and you pick activities you enjoy. The two full-body strength days use moderate weights and 8-12 reps.',
 };
 export const MODEL_INFO = {

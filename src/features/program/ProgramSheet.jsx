@@ -4,9 +4,10 @@ import Portal from '../../Portal';
 import { X, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
+import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
-  GOALS, MODELS, GOAL_INFO, MODEL_INFO, isHybridGoal, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
+  GOALS, MODELS, GOAL_INFO, MODEL_INFO, isHybridGoal, goalEmoji, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
   sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine, leadText, secondaryLine,
 } from './programs';
 import { useHr } from './ProgramCards';
@@ -57,6 +58,7 @@ async function recentWeeklyMinutes(userId) {
 
 // Pick a program (goal, method, days a week) or manage the one in progress.
 export default function ProgramSheet({ userId, program, onSave, onClose, weekStartDay, initialStep }) {
+  const { profile } = useAuth(); // for the gender-specific strength emoji
   const arm = useArmed();
   const sheet = useSwipeDown(onClose);
   const exp = useExperience(userId);
@@ -153,7 +155,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div className="space-y-2">
                 {GOALS.map((g) => (
                   <button key={g.id} onClick={() => { setGoal(g.id); if (g.id !== 'hypertrophy') setModel(null); if (isHybridGoal(g.id) && days < 4) { setDays(4); setWeekdays((w) => w.slice(0, 4)); } }} style={tile(goal === g.id)} className="w-full rounded-xl px-4 py-3">
-                    <div className="text-base font-medium">{g.emoji} {g.label}</div>
+                    <div className="text-base font-medium">{goalEmoji(g.id, profile?.gender)} {g.label}</div>
                     <div style={{ opacity: 0.85 }} className="text-sm">{g.blurb}</div>
                   </button>
                 ))}
