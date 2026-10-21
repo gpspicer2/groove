@@ -917,7 +917,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
                 else onLogOnDate && onLogOnDate(day);
               }}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
-              className="aspect-[5/4] rounded-md flex flex-col items-center justify-center gap-0.5 group"
+              className="aspect-[7/5] rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
               <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
               {hasAny || dayPlans.length > 0 ? (

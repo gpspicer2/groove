@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X } from '../../lib/icons';
+import { X, ChevronDown, ChevronUp } from '../../lib/icons';
+import { useRevealOnOpen } from '../../lib/reveal';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -89,6 +90,8 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
   const [estimating, setEstimating] = useState(false);
   const [logging, setLogging] = useState(false);
   const [reload, setReload] = useState(0);
+  const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
   const { updateProfile } = useAuth();
 
   useEffect(() => {
@@ -152,13 +155,21 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
   });
 
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4">
-      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-1">Your Fitness</div>
-      {rows.map(({ key, ...r }) => <Row key={key} {...r} />)}
-      {rows.some((r) => r.due) && (
-        <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Baseline Data.</div>
+    <div ref={revealRef} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4">
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center text-center">
+        <span />
+        <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">Your Fitness</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+      </button>
+      {open && (
+        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
+          {rows.map(({ key, ...r }) => <Row key={key} {...r} />)}
+          {rows.some((r) => r.due) && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Personal Data → Body and Fitness.</div>
+          )}
+          <button onClick={() => setLogging(true)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-2">Log a Strength or Mobility Test</button>
+        </div>
       )}
-      <button onClick={() => setLogging(true)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-2">Log a Strength or Mobility Test</button>
       {logging && <LogTestSheet userId={userId} onClose={() => setLogging(false)} onSaved={() => { setLogging(false); setReload((n) => n + 1); }} />}
       {estimating && (
         <Portal>

@@ -1462,14 +1462,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           <MoveProgramCard program={program} week={programWeek} lifted={programLifted} flex={flexForCard} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
         )}
         {!planning && !program && !starterGone && !startingPlan && !selectedLocation && !movementMode && !completedWorkouts.some((w) => w.movementMode === 'Resistance' || w.movementMode === 'Combined') && (
-          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-center">
+          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2 mb-2 text-center">
             <div style={{ color: PAPER }} className="text-base font-medium">New to lifting? Start here</div>
-            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug mt-0.5 mb-2">A gentle full-body workout: 5 simple moves, about 25 minutes.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug mb-1.5">A gentle full-body workout, about 25 minutes.</div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2.5 text-sm font-medium">At the Gym</button>
-              <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At Home</button>
+              <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2 text-sm font-medium">At the Gym</button>
+              <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2 text-sm font-medium">At Home</button>
             </div>
-            <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-[13px] mt-1 py-0.5">No thanks, I know my way around</button>
+            <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-[13px] mt-0.5 py-0.5">No thanks, I know my way around</button>
           </div>
         )}
         {aerobicSession && movementMode === 'Aerobic' && !planning && (
@@ -1790,8 +1790,8 @@ function StartWorkout({
   const friendlyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3.5 mb-2">
-      <div className="flex items-center justify-center gap-2 mb-2.5">
+    <div data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2">
+      <div className="flex items-center justify-center gap-2 mb-2">
         {!planning && (
           <button
             onClick={() => onSelectDate(todayLocalISO())}
@@ -1806,7 +1806,7 @@ function StartWorkout({
             type="button"
             tabIndex={-1}
             style={{ background: !isToday || planning ? SKY : INK_3, color: !isToday || planning ? INK : PAPER_DIM }}
-            className="rounded-full px-3.5 py-1.5 text-sm font-medium"
+            className="rounded-full px-3.5 py-1 text-sm font-medium"
           >
             {planning ? friendlyDate : isToday ? 'Past Date' : friendlyDate}
           </button>
