@@ -114,13 +114,15 @@ export const EXERCISE_LIBRARY = {
     { name: 'Plate-Loaded Chest Press', sets: 3, reps: '8-12', equipment: 'machine' },
     { name: 'Pec Deck Fly', sets: 3, reps: '10-15', equipment: 'machine' },
     { name: 'Cable Fly', sets: 3, reps: '10-15', equipment: 'cable' },
-    { name: 'Smith Machine Bench Press', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Smith Machine Bench Press', sets: 3, reps: '8-12', equipment: 'smith' },
+    { name: 'Smith Machine Incline Press', sets: 3, reps: '8-12', equipment: 'smith' },
   ],
   Back: [
     { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
     { name: 'Lat Pulldown', sets: 3, reps: '10-12', equipment: 'machine' },
     { name: 'Barbell Row', sets: 4, reps: '8-10', equipment: 'barbell' },
     { name: 'Seated Cable Row', sets: 4, reps: '10-12', equipment: 'cable' },
+    { name: 'Smith Machine Row', sets: 3, reps: '8-12', equipment: 'smith' },
     { name: 'Straight-Arm Pulldown', sets: 3, reps: '12-15', equipment: 'cable' }, // long lat stretch overhead
     { name: 'Dumbbell Pullover', sets: 3, reps: '10-12', equipment: 'dumbbell' },     // big overhead ROM
     { name: 'Single-Arm Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
@@ -150,11 +152,13 @@ export const EXERCISE_LIBRARY = {
     { name: 'Calf Raises', sets: 3, reps: '12-20', equipment: 'bodyweight' },
     { name: 'Pause Back Squat', sets: 3, reps: '4-6', equipment: 'barbell' },
     { name: 'Hack Squat', sets: 3, reps: '8-12', equipment: 'machine' },
-    { name: 'Smith Machine Squat', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Smith Machine Squat', sets: 3, reps: '8-12', equipment: 'smith' },
+    { name: 'Smith Machine Calf Raise', sets: 3, reps: '12-20', equipment: 'smith' },
     { name: 'Seated Calf Raise', sets: 3, reps: '12-20', equipment: 'machine' },
   ],
   Quadriceps: [
     { name: 'Front Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
+    { name: 'Smith Machine Split Squat', sets: 3, reps: '8-12', equipment: 'smith' },
     { name: 'Leg Extension', sets: 3, reps: '12-15', equipment: 'machine' },
     { name: 'Goblet Squat', sets: 3, reps: '10-15', equipment: 'dumbbell' },
     { name: 'Step-Ups', sets: 3, reps: '10-12', equipment: 'bodyweight' },
@@ -169,6 +173,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Hamstring Walkout', sets: 3, reps: '6-10', equipment: 'bodyweight' },
     { name: 'Bodyweight Good Morning', sets: 3, reps: '12-15', equipment: 'bodyweight' },
     { name: 'Barbell Good Morning', sets: 3, reps: '6-10', equipment: 'barbell' },
+    { name: 'Smith Machine Romanian Deadlift', sets: 3, reps: '8-12', equipment: 'smith' },
   ],
   Glutes: [
     { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'machine' },
@@ -179,6 +184,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Donkey Kicks', sets: 3, reps: '12-15', equipment: 'bodyweight' },
     { name: 'Kettlebell Swing', sets: 3, reps: '10-15', equipment: 'dumbbell' },
     { name: 'Hip Abduction Machine', sets: 3, reps: '12-15', equipment: 'machine' },
+    { name: 'Smith Machine Hip Thrust', sets: 3, reps: '8-12', equipment: 'smith' },
   ],
   Shoulders: [
     { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
@@ -192,6 +198,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Plank Shoulder Taps', sets: 3, reps: '10-16', equipment: 'bodyweight' },
     { name: 'Push Press', sets: 4, reps: '4-6', equipment: 'barbell', advanced: true },
     { name: 'Machine Shoulder Press', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Smith Machine Shoulder Press', sets: 3, reps: '8-12', equipment: 'smith' },
   ],
   Biceps: [
     { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
@@ -313,7 +320,7 @@ export function locationEmojis(location, gender) {
 export const LOCATION_EQUIPMENT = {
   'The Great Outdoors': ['bodyweight'],
   'In the Home': ['bodyweight', 'dumbbell'],
-  'At the Gym': ['bodyweight', 'dumbbell', 'barbell', 'machine', 'cable'],
+  'At the Gym': ['bodyweight', 'dumbbell', 'barbell', 'machine', 'cable', 'smith'],
 };
 
 export function filterByLocation(pool, location) {

@@ -96,15 +96,17 @@ function Row({ it, answers, onChange, onInfo }) {
 
 // The survey itself: one page per muscle group (arrows, dots, or Next). Each page starts with a short list of the common lifts
 // and a "More Lifts" fold-down for the rest. Every lift is a slider from Love It to Skip It; the (i) explains it.
-export default function ExperienceForm({ answers, onChange }) {
+export default function ExperienceForm({ answers, onChange, gym = {}, onGym = null }) {
   const [info, setInfo] = useState(null);
   const [page, setPage] = useState(0);
   const [openMore, setOpenMore] = useState({});
   const topRef = useRef(null);
   const swipe = useRef(null);
   const dir = useRef(1); // 1 = moving forward (the new page comes in from the right)
-  const g = EXPERIENCE_GROUPS[page];
-  const last = EXPERIENCE_GROUPS.length - 1;
+  // Muscle-group pages, plus a last "Your Gym" page (equipment questions) when the form can save it.
+  const pages = onGym ? [...EXPERIENCE_GROUPS, { title: 'Your Gym', gym: true, items: [], more: [] }] : EXPERIENCE_GROUPS;
+  const g = pages[page];
+  const last = pages.length - 1;
   const answeredMore = g.more.filter((it) => answers[it.id]).length;
   const moreOpen = openMore[g.title] ?? answeredMore > 0;
   // A new page starts at its top (the sheet is the scroller).
@@ -136,21 +138,42 @@ export default function ExperienceForm({ answers, onChange }) {
         <button onClick={() => go(page - 1)} disabled={page === 0} aria-label="Previous muscle group" style={{ color: TEXT_SOFT, opacity: page === 0 ? 0.3 : 1 }} className="p-2 -m-2"><ChevronLeft size={22} /></button>
         <div key={page} className={`text-center ${dir.current > 0 ? 'groove-slide-from-right' : 'groove-slide-from-left'}`}>
           <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium uppercase tracking-wide">{g.title}</div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm">{page + 1} of {EXPERIENCE_GROUPS.length}</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm">{page + 1} of {pages.length}</div>
         </div>
         <button onClick={() => go(page + 1)} disabled={page === last} aria-label="Next muscle group" style={{ color: TEXT_SOFT, opacity: page === last ? 0.3 : 1 }} className="p-2 -m-2"><ChevronRight size={22} /></button>
       </div>
       <div className="flex justify-center gap-1.5 my-2">
-        {EXPERIENCE_GROUPS.map((x, i) => (
+        {pages.map((x, i) => (
           <button key={x.title} onClick={() => go(i)} aria-label={x.title} style={{ background: i === page ? SKY : TEXT_SOFT, opacity: i === page ? 1 : 0.35 }} className="w-2 h-2 rounded-full" />
         ))}
       </div>
       </div>
 
       <div key={page} className={dir.current > 0 ? 'groove-slide-from-right' : 'groove-slide-from-left'}>
+      {g.gym ? (
+        <div style={{ background: INK_3 }} className="rounded-md px-3 py-3 text-center">
+          <div style={{ color: PAPER }} className="text-base font-medium flex items-center justify-center gap-1.5">
+            Does your gym have a Smith machine?
+            <button onClick={() => setInfo({ label: 'Smith Machine', info: 'A barbell fixed on vertical rails, so it only moves up and down, with hooks to rack it anywhere. Smith machine lifts are only suggested if you say yes.' })} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="About the Smith machine"><Info size={16} /></button>
+          </div>
+          <div className="flex justify-center gap-2 mt-2.5">
+            {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map((o) => (
+              <button
+                key={o.label}
+                onClick={() => onGym({ ...gym, smith: gym.smith === o.v ? undefined : o.v })}
+                style={{ background: gym.smith === o.v ? SKY : INK_2, color: gym.smith === o.v ? INK : PAPER }}
+                className="rounded-full px-6 py-2 text-base font-medium"
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="space-y-1">
         {g.items.map((it) => <Row key={it.id} it={it} answers={answers} onChange={onChange} onInfo={setInfo} />)}
       </div>
+      )}
 
       {g.more.length > 0 && (
         <>

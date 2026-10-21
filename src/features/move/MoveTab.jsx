@@ -787,7 +787,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       const perGroup = programSession?.starter ? 1 : programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
-      const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers)];
+      const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
       plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers))
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
@@ -3830,7 +3830,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const barbellFloor = isBarbell && !useBodyweight ? barLb : 0;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
-  const plateName = /plate.?loaded|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
+  const plateName = /plate.?loaded|smith|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
   const perSideEligible = !useBodyweight && (plateName || isBarbell); // barbells too: plates per side + the bar
   const perSideKey = `groove:perSide:${(exercise.name || '').toLowerCase()}`;
   const [perSideOn, setPerSideOn] = useState(() => {

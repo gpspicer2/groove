@@ -199,8 +199,8 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div className="flex items-center justify-between mt-1">
                 {back(goal === 'hypertrophy' ? 'model' : 'goal')}
                 <div className="flex items-center gap-3">
-                  <button onClick={async () => { await exp.save({ answers: {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for Now</button>
-                  <button onClick={async () => { await exp.save({ answers: Object.fromEntries(Object.entries(expDraft || {}).filter(([, v]) => v)) }); setStep('days'); }} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
+                  <button onClick={async () => { await exp.save({ answers: {}, gym: exp.experience?.gym || {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for Now</button>
+                  <button onClick={async () => { await exp.save({ answers: Object.fromEntries(Object.entries(expDraft || {}).filter(([, v]) => v)), gym: exp.experience?.gym || {} }); setStep('days'); }} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
                 </div>
               </div>
             </>

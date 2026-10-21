@@ -1,4 +1,4 @@
-import { ADVANCED_LIFTS } from '../move/exerciseLibrary';
+import { ADVANCED_LIFTS, EXERCISE_LIBRARY } from '../move/exerciseLibrary';
 
 // The lifting experience survey: which movements a member knows, wants to learn, or wants left out.
 // `names` are the library exercises each answer covers. Answers: 'know' | 'learn' | 'skip' (blank = no answer; 'love' counts as knowing it and is also favored).
@@ -87,6 +87,7 @@ export const EXPERIENCE_GROUPS = [
     more: [
       { id: 'front_squat', label: 'Front Squat', info: 'The barbell rests on the front of your shoulders while you squat. It keeps your chest upright and works the front of your thighs.', names: ['Front Squat'] },
       { id: 'goblet', label: 'Goblet Squat', info: 'Hold one dumbbell or kettlebell at your chest and squat. A friendly way to learn squatting.', names: ['Goblet Squat'] },
+      { id: 'smith_squat', label: 'Smith Machine Squat', info: 'A squat with the bar fixed on vertical rails, so it only moves up and down. Easier to balance, but it holds you in one path.', names: ['Smith Machine Squat'] },
       { id: 'hack_squat', label: 'Hack Squat', info: 'Squat on an angled machine with your back against a pad and shoulders under pads. Loads your quads with less strain on your back.', names: ['Hack Squat'] },
       { id: 'split_squat', label: 'Bulgarian Split Squat', info: 'Rest your back foot on a bench and squat on your front leg. Tough on your thighs and balance.', names: ['Bulgarian Split Squat'] },
       { id: 'leg_ext', label: 'Leg Extension', info: 'Sit in a machine and straighten your knees against a pad. Isolates your quads.', names: ['Leg Extension'] },
@@ -126,8 +127,11 @@ const ALL_ITEMS = EXPERIENCE_GROUPS.flatMap((g) => [...g.items, ...g.more]);
 
 // Library exercises to leave out of suggested workouts and programs: anything the member marked "Skip it", and the Olympic
 // and other technical lifts unless they said they know them.
-export function blockedByExperience(answers = {}) {
+// Every Smith machine lift in the library; they are only suggested when the member says their gym has one (Lifting Preferences > Your Gym).
+export const SMITH_LIFTS = Object.values(EXERCISE_LIBRARY).flat().filter((e) => e.equipment === 'smith').map((e) => e.name);
+export function blockedByExperience(answers = {}, gym = null) {
   const blocked = new Set();
+  if (!gym || gym.smith !== true) SMITH_LIFTS.forEach((n) => blocked.add(n));
   ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'skip') it.names.forEach((n) => blocked.add(n)); });
   const known = new Set();
   ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'know' || answers[it.id] === 'love') it.names.forEach((n) => known.add(n)); });

@@ -137,7 +137,7 @@ function AccountModal({ onClose }) {
         )}
 
         {isTrainer && <NotificationsRow />}
-        {showExperience && <ExperienceSheet answers={exp.answers} onSave={exp.save} onClose={() => setShowExperience(false)} />}
+        {showExperience && <ExperienceSheet answers={exp.answers} gym={exp.experience?.gym} onSave={exp.save} onClose={() => setShowExperience(false)} />}
         {showInjuries && <InjurySheet injuries={inj.injuries} onSave={inj.save} onClose={() => setShowInjuries(false)} />}
 
         <div className="grid grid-cols-2 gap-2 mt-2">
