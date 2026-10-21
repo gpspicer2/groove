@@ -133,7 +133,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 {program.goal === 'fat_loss' && (
                   <div className="mt-3 text-left">
                     {guideToggle(program.guide || (hrOn ? 'hr' : 'rpe'), (g) => { setGuide(g); onSave({ ...program, guide: g }); })}
-                    <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Why no scale?</button>
+                    <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">About weighing in</button>
                   </div>
                 )}
                 <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">

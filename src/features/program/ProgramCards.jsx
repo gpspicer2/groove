@@ -138,7 +138,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
         </div>
       )}
       <button onClick={toggle} style={{ color: SKY }} className="w-full text-center text-sm mt-2.5 py-0.5">{open ? 'Hide the whole week' : 'See the whole week'}</button>
-      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">Why no scale?</button>}
+      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">About weighing in</button>}
       {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">

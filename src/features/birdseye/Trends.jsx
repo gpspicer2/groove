@@ -121,9 +121,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
   const [data, setData] = useState(null); // { workouts, sets, measures }
   const [error, setError] = useState('');
   const [metric, setMetric] = useState(hideScale ? 'aerobic' : 'volume');
-  // The Weight Loss program leaves scale weight out on purpose.
-  const metrics = hideScale ? METRICS.filter((m) => m.id !== 'bodyweight') : METRICS;
-  useEffect(() => { if (hideScale && metric === 'bodyweight') setMetric('aerobic'); }, [hideScale, metric]);
+  const metrics = METRICS; // Weight Loss members still see bodyweight, just not as the headline (see the note under the chart)
   const [rangeId, setRangeId] = useState('8w');
   const [muscle, setMuscle] = useState('');
   const [muscleBy, setMuscleBy] = useState('weight'); // 'weight' | 'sets'
@@ -306,7 +304,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
 
       {open && (
         <div className="mt-2.5 space-y-2">
-          {hideScale && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Scale weight is left out on purpose while you follow the Weight Loss program. These show your progress better.</div>}
+          {hideScale && metric === 'bodyweight' && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Once a month is plenty. Day to day, the scale mostly shows water. Cardio minutes and strength tell you more.</div>}
           <div className="flex items-center gap-2">
             <select value={metric} onChange={(e) => { setMetric(e.target.value); setPicked(null); }} style={selectStyle} className={`${selectClass} flex-1`} aria-label="What to track">
               {metrics.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}

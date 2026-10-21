@@ -11,13 +11,12 @@ const RETEST_DAYS = 56; // ~8 weeks
 
 // Field tests clients can log themselves. Norm labels are only included
 // where the published cutoffs are well established (CDC STEADI chair stand,
-// ACSM/NIH waist risk thresholds); the rest show the trend only.
+// the rest show the trend only.
 const TESTS = [
   { kind: 'pushups', label: 'Push-ups', unit: ' reps', color: SKY, upIsGood: true, how: 'As many as you can with good form, no time limit.', step: 1 },
   { kind: 'plank', label: 'Plank hold', unit: ' sec', color: SKY, upIsGood: true, how: 'Hold a forearm plank in a straight line until your form breaks.', step: 1 },
   { kind: 'chair_stand', label: '30-sec chair stand', unit: '', color: SKY, upIsGood: true, how: 'Arms crossed on your chest, stand fully up and sit back down as many times as you can in 30 seconds.', step: 1 },
   { kind: 'sit_reach', label: 'Sit-and-reach', unit: ' in', color: SKY, upIsGood: true, allowNegative: true, how: 'Sit with legs straight and reach forward. Measure how far past your toes you get. Use a negative number if you stop short.', step: 0.5 },
-  { kind: 'waist', label: 'Waist', unit: ' in', color: PAPER_DIM, upIsGood: false, how: 'Measure around your bare waist at the belly button, after breathing out normally.', step: 0.5 },
 ];
 
 // CDC STEADI "below average" 30-second chair stand scores: [min age, men, women]
@@ -29,9 +28,6 @@ function testNote(kind, value, profile) {
     const row = [...CHAIR_BELOW].reverse().find((r) => age >= r[0]);
     const cut = g === 'Male' ? row[1] : row[2];
     return value < cut ? 'Below average for your age' : 'Average or better for your age';
-  }
-  if (kind === 'waist' && (g === 'Male' || g === 'Female')) {
-    return value > (g === 'Male' ? 40 : 35) ? 'Above the ACSM risk threshold' : 'In the healthy range';
   }
   return null;
 }
@@ -106,7 +102,7 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
   }, [userId, active, reload]);
 
   const rows = [];
-  KINDS.filter((k) => !(hideScale && k.kind === 'bodyweight')).forEach((k) => {
+  KINDS.forEach((k) => {
     const pts = measurements.filter((m) => m.kind === k.kind).map((m) => ({ value: Number(m.value), at: m.measured_at }));
     if (pts.length === 0) {
       // Nothing logged yet: fall back to the single value on file.
@@ -115,6 +111,9 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
       const at = k.kind === 'vo2max' ? profile?.vo2max_tested_at : null;
       pts.push({ value: Number(fallback), at });
     }
+    // On the Weight Loss program bodyweight shows only the latest number, with no trend, so it is not the thing to chase.
+    const calm = hideScale && k.kind === 'bodyweight';
+    if (calm) pts.splice(0, pts.length - 1);
     const first = pts[0].value, last = pts[pts.length - 1];
     const delta = pts.length > 1 ? last.value - first : null;
     rows.push({
