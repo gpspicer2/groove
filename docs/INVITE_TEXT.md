@@ -4,12 +4,13 @@ The link: https://groove-rho.vercel.app
 
 ## Quick share (the link makes a preview card)
 
-Paste this into a text. The link turns into a card with the GROOVE picture and a one-line description, like an Amazon or Strava share (`index.html` has the preview tags, the picture is `public/og-image-v2.png`):
+The link turns into a card with the GROOVE picture, the title "Groove: Movement Mentorship & Education" and the little message underneath ("I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!"). Those live in the preview tags in `index.html` (the picture is `public/og-image-v2.png`). So the whole share is just this, on its own:
 
-> I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!
 > https://groove-rho.vercel.app/?invite
 
-Put the link on its own line, last, and type or paste it as plain text so it appears only once (copying from a chat can add a second copy in parentheses, and Messages then skips the card). The `?invite` on the end is on purpose: phones remember the preview for each exact link, so a link they saw before the picture existed keeps showing no picture. The new ending is a link they have never seen, and it opens the same app. The picture file has a version in its name (`og-image-v2.png`) for the same reason; if the picture is ever redrawn, bump the name to `-v3` in `index.html`, the script and here.
+Type or paste it as plain text so it appears only once (copying from a chat can add a second copy in parentheses, and Messages then skips the card). The `?invite` on the end is on purpose: phones remember the preview for each exact link, so a link they saw before the picture existed keeps showing no picture. The new ending is a link they have never seen, and it opens the same app. The picture file has a version in its name (`og-image-v2.png`) for the same reason; if the picture is ever redrawn, bump the name to `-v3` in `index.html`, the script and here.
+
+If you'd rather write your own words above the card, a text that works: "I made an app to help with movement mentorship and education. Would love your thoughts!" then the link on the next line.
 
 ## The text (copy and paste)
 

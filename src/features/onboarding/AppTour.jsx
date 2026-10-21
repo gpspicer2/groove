@@ -16,7 +16,7 @@ import { INK, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRIC
 const STEPS = [
   {
     tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: "Welcome!\nLet's Groove",
-    body: "Move more, feel better, and stick with it.\n\n\"Getting your groove on\" — movement as something you enjoy, not a box to check.",
+    body: "Log workouts, track weekly goals, follow a training program, and learn the science as you go.\n\nGreg adds the mentorship: helping you find movement you'll actually keep doing.",
   },
   {
     tab: 'birdseye', selector: null, pos: 'top', color: PLUM, allTabs: true, title: 'Four Tabs, Swipe or Tap',
