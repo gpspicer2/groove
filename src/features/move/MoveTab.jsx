@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -35,6 +35,8 @@ import { flexSuggestion, flexSession } from '../program/flex';
 import { startOfWeek } from '../../lib/week';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek, useHr } from '../program/ProgramCards';
 import { programTitle, zoneText, intervalLine } from '../program/programs';
+import { useExperience } from '../experience/useExperience';
+import { blockedByExperience, knowsLift } from '../experience/movements';
 
 // Whether a workout was started as a clean slate (remembered on this device).
 function isCleanSlateWorkout(id) {
@@ -420,6 +422,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
   const programLifted = useProgramLifted(user?.id, program, `${completedWorkouts.length}-${sets.length}`);
   const hrNow = useHr();
+  const experience = useExperience(user?.id);
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
@@ -781,8 +784,30 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
       // A one-muscle program day (chest day, arm day) needs more picks per muscle.
       const perGroup = programSession?.starter ? 1 : programSession ? Math.max(2, Math.ceil(programSession.exercises / Math.max(1, selectedGroups.length))) : 2;
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)])])
+      // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
+      // marked "Skip it", and Olympic lifts they haven't said they know.
+      const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers)];
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession && programSession.exercises > 6 ? programSession.exercises : undefined)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+      // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
+      // first choice is skipped, blocked or not available where the member is training).
+      if (programSession?.leads) {
+        const leadEntries = [];
+        programSession.leads.forEach((lead, i) => {
+          const options = lead.names
+            .filter((n) => !blocked.includes(n) && !leadEntries.some((e) => e.name === n))
+            .sort((a, b) => Number(knowsLift(experience.answers, b)) - Number(knowsLift(experience.answers, a)));
+          for (const n of options) {
+            const group = Object.keys(EXERCISE_LIBRARY).find((g) => EXERCISE_LIBRARY[g].some((e) => e.name === n));
+            const lib = group ? EXERCISE_LIBRARY[group].find((e) => e.name === n) : null;
+            if (!lib || (LOCATION_EQUIPMENT[selectedLocation] && !LOCATION_EQUIPMENT[selectedLocation].includes(lib.equipment))) continue;
+            leadEntries.push({ ...lib, muscleGroup: group, type: 'resistance', supersetId: null, lead: i });
+            break;
+          }
+        });
+        const names = new Set(leadEntries.map((e) => e.name));
+        plan = [...leadEntries, ...plan.filter((ex) => !names.has(ex.name))];
+      }
       // Run down: a shorter session with one fewer set per exercise.
       if (readiness?.tired) plan = plan.slice(0, 4).map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) }));
     }
@@ -835,6 +860,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         if (idx >= appliedSession.exercises) return [];
         // In a strength session only the first few big (compound) lifts get the heavy prescription;
         // single-joint lifts always get the lighter accessory one, wherever they fall in the list.
+        // Powerlifting days: first lift main, second lift secondary, everything else accessory.
+        if (appliedSession.leads) {
+          const rl = ex.lead === 0 ? appliedSession.presc : ex.lead === 1 ? (appliedSession.sec || appliedSession.acc) : appliedSession.acc;
+          return [{ ...ex, sets: rl.sets, reps: holdReps(ex) ?? rl.reps }];
+        }
         const isMain = !appliedSession.acc || (isCompound(ex.name) && mains++ < appliedSession.mainCount);
         const rxn = isMain ? appliedSession.presc : appliedSession.acc;
         // Holds keep their own timed target; a deload and a strength session (main lifts + accessories) stay as prescribed; otherwise isolation lifts run a couple of reps higher.
@@ -882,7 +912,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     }
     if (cleanSlate) { try { localStorage.setItem(`groove:cleanSlate:${data.id}`, '1'); } catch { /* storage blocked */ } }
     if (appliedSession) {
-      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Starter', name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
+      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Starter', name: appliedSession.name, main: appliedSession.presc, sec: appliedSession.sec, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
     }
     setProgramSession(null);
     if (aerobicSession && usesAerobic) {
@@ -2212,6 +2242,7 @@ function workoutGuide(workout) {
         return { title: `${m.program} · ${m.name}`, lines };
       }
       const lines = [`${m.exercises} exercises · ${m.main.sets} × ${dash(m.main.reps)} · RPE ${dash(m.main.rpe)} · rest ${dash(m.main.rest)}`];
+      if (m.sec) lines.push(`Second lift ${m.sec.sets} × ${dash(m.sec.reps)} · RPE ${dash(m.sec.rpe)} · rest ${dash(m.sec.rest)}`);
       if (m.acc) lines.push(`Accessories ${m.acc.sets} × ${dash(m.acc.reps)} · RPE ${dash(m.acc.rpe)}`);
       return { title: `${m.program} · ${m.name}`, lines };
     }

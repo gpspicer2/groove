@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { STRAVA_ENABLED, connectStrava, disconnectStrava, syncStrava } from '../../lib/strava';
-import { Watch } from '../../lib/icons';
-import { INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, BRICK } from '../../theme';
+import { TEXT_SOFT, LIME, BRICK, INK_2, PAPER } from '../../theme';
 import { useArmed } from '../../lib/useArmed';
-import DeviceSheet from './DeviceSheet';
 import StravaMark from './StravaMark';
 
-// Account: two half-width buttons. Strava (connect / connected) and "Connect Device" (how to link a watch).
+// Account > Settings: a quiet line for Strava (it brings in workouts from watches). Connect, or sync / disconnect.
 export default function StravaRow() {
   const { profile, reloadProfile } = useAuth();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [menu, setMenu] = useState(false);
-  const [devices, setDevices] = useState(false);
   const arm = useArmed();
   if (!STRAVA_ENABLED) return null;
   const connected = Boolean(profile?.strava_connected);
@@ -25,32 +22,23 @@ export default function StravaRow() {
     setBusy(false);
   }
 
-  const cell = 'rounded-md px-3 py-2.5 flex items-center justify-center gap-2 text-sm font-medium';
-
   return (
-    <div className="mb-2">
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          disabled={busy}
-          onClick={() => (connected ? setMenu((v) => !v) : run(connectStrava))}
-          style={{ background: INK_3, color: PAPER }}
-          className={cell}
-        >
-          <StravaMark />
-          {busy ? 'Opening…' : connected ? (<><span style={{ background: LIME }} className="w-2 h-2 rounded-full" /> Connected</>) : 'Connect Strava'}
-        </button>
-        <button onClick={() => setDevices(true)} style={{ background: INK_3, color: PAPER }} className="rounded-md px-1.5 py-2 flex flex-col items-center justify-center gap-0.5 text-sm font-medium">
-          <span className="flex items-center gap-1.5 whitespace-nowrap"><Watch size={16} color={PAPER_DIM} /> Connect to Garmin</span>
-          <span style={{ color: PAPER_DIM }} className="text-[10px] font-semibold uppercase tracking-wide">Coming soon</span>
-        </button>
-      </div>
-
+    <div className="mt-3 text-center">
+      <button
+        disabled={busy}
+        onClick={() => (connected ? setMenu((v) => !v) : run(connectStrava))}
+        style={{ color: TEXT_SOFT }}
+        className="text-sm inline-flex items-center justify-center gap-2 py-1.5"
+      >
+        <StravaMark size={14} />
+        {busy ? 'Opening…' : connected ? (<><span style={{ background: LIME }} className="w-1.5 h-1.5 rounded-full" /> Strava connected</>) : 'Connect Strava (optional)'}
+      </button>
       {connected && menu && (
-        <div style={{ background: INK_3 }} className="rounded-md mt-2 px-4 py-2.5 flex items-center justify-center gap-5">
+        <div style={{ background: INK_2 }} className="rounded-md mt-1 px-4 py-2 flex items-center justify-center gap-5">
           <button
             disabled={busy}
             onClick={() => run(syncStrava, (o) => (o.imported || o.removed ? `Added ${o.imported || 0}, tidied ${o.removed || 0} duplicate${o.removed === 1 ? '' : 's'}.` : 'Up to date.'))}
-            style={{ color: PAPER_DIM }}
+            style={{ color: TEXT_SOFT }}
             className="text-sm underline"
           >
             {busy ? 'Syncing…' : 'Sync now'}
@@ -62,13 +50,12 @@ export default function StravaRow() {
             style={arm.armed === 'strava' ? { background: BRICK, color: PAPER } : { color: TEXT_SOFT }}
             className={`text-sm ${arm.armed === 'strava' ? 'rounded-md px-2 py-0.5' : 'underline'}`}
           >
-            {arm.armed === 'strava' ? 'Tap again to disconnect' : 'Disconnect Strava'}
+            {arm.armed === 'strava' ? 'Tap again to disconnect' : 'Disconnect'}
           </button>
         </div>
       )}
-      {note && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1">{note}</div>}
-      {error && <div style={{ color: BRICK }} className="text-sm text-center mt-1">{error}</div>}
-      {devices && <DeviceSheet onClose={() => setDevices(false)} />}
+      {note && <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">{note}</div>}
+      {error && <div style={{ color: BRICK }} className="text-sm mt-1">{error}</div>}
     </div>
   );
 }

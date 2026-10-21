@@ -110,6 +110,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Dips', sets: 3, reps: '10-15', equipment: 'bodyweight' },
     { name: 'Push-Ups', sets: 3, reps: '10-15', equipment: 'bodyweight' },
     { name: 'Machine Chest Press', sets: 3, reps: '10-12', equipment: 'machine' },
+    { name: 'Pause Bench Press', sets: 3, reps: '4-6', equipment: 'barbell' }, // a 1-2 second stop on the chest: builds strength off the chest
   ],
   Back: [
     { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
@@ -123,6 +124,13 @@ export const EXERCISE_LIBRARY = {
     { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: '10-12', equipment: 'dumbbell' },
     { name: 'Back Extension', sets: 3, reps: '10-15', equipment: 'bodyweight' },
     { name: 'Dumbbell Shrug', sets: 3, reps: '12-15', equipment: 'dumbbell' },
+    { name: 'Conventional Deadlift', sets: 3, reps: '4-6', equipment: 'barbell' },
+    { name: 'Sumo Deadlift', sets: 3, reps: '4-6', equipment: 'barbell' },
+    { name: 'Trap Bar Deadlift', sets: 3, reps: '5-8', equipment: 'barbell' },
+    { name: 'Pendlay Row', sets: 3, reps: '5-8', equipment: 'barbell' },
+    { name: 'Power Clean', sets: 4, reps: '3-5', equipment: 'barbell', advanced: true }, // Olympic lift: only with experience
+    { name: 'Hang Power Clean', sets: 4, reps: '3-5', equipment: 'barbell', advanced: true },
+    { name: 'Power Snatch', sets: 4, reps: '2-4', equipment: 'barbell', advanced: true },
   ],
   Legs: [
     { name: 'Barbell Back Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
@@ -133,6 +141,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Bodyweight Squat', sets: 4, reps: '15-20', equipment: 'bodyweight' },
     { name: 'Reverse Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
     { name: 'Calf Raises', sets: 3, reps: '12-20', equipment: 'bodyweight' },
+    { name: 'Pause Back Squat', sets: 3, reps: '4-6', equipment: 'barbell' },
   ],
   Quadriceps: [
     { name: 'Front Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
@@ -149,6 +158,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: '8-12', equipment: 'dumbbell' },
     { name: 'Hamstring Walkout', sets: 3, reps: '6-10', equipment: 'bodyweight' },
     { name: 'Bodyweight Good Morning', sets: 3, reps: '12-15', equipment: 'bodyweight' },
+    { name: 'Barbell Good Morning', sets: 3, reps: '6-10', equipment: 'barbell' },
   ],
   Glutes: [
     { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'barbell' },
@@ -157,6 +167,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' },
     { name: 'Dumbbell Hip Thrust', sets: 3, reps: '10-15', equipment: 'dumbbell' },
     { name: 'Donkey Kicks', sets: 3, reps: '12-15', equipment: 'bodyweight' },
+    { name: 'Kettlebell Swing', sets: 3, reps: '10-15', equipment: 'dumbbell' },
   ],
   Shoulders: [
     { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
@@ -168,6 +179,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Pike Push-Up', sets: 3, reps: '8-12', equipment: 'bodyweight' },
     { name: 'Handstand Hold (wall)', sets: 3, reps: '20-30s', equipment: 'bodyweight' },
     { name: 'Plank Shoulder Taps', sets: 3, reps: '10-16', equipment: 'bodyweight' },
+    { name: 'Push Press', sets: 4, reps: '4-6', equipment: 'barbell', advanced: true },
   ],
   Biceps: [
     { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
@@ -198,6 +210,10 @@ export const EXERCISE_LIBRARY = {
     { name: 'Side Plank', sets: 3, reps: '30-45s', equipment: 'bodyweight' },
   ],
 };
+
+// Olympic lifts and other technical lifts: only suggested to members who say they are comfortable with them
+// (Account > Lifting experience).
+export const ADVANCED_LIFTS = Object.values(EXERCISE_LIBRARY).flat().filter((e) => e.advanced).map((e) => e.name);
 
 // Stretches for a Flexibility session, keyed by the same muscle groups as
 // the resistance library. "sets"/"reps" here mean hold-time reps (e.g. 3
@@ -310,7 +326,7 @@ export const STYLE_CONFIG = {
 // accessory/isolation work (curls, extensions, flys, raises...), since
 // they demand the most technique and energy and should be done while
 // fresh.
-const COMPOUND_PATTERN = /Squat|Deadlift|Press|Push-Up|Row|Pulldown|Pull-Up|Chin-Up|Dip|Hip Thrust|Lunge|Step-Up|Good Morning/i;
+const COMPOUND_PATTERN = /Squat|Deadlift|Press|Push-Up|Row|Pulldown|Pull-Up|Chin-Up|Dip|Hip Thrust|Lunge|Step-Up|Good Morning|Clean|Snatch/i;
 export function isCompound(name) {
   return COMPOUND_PATTERN.test(name);
 }
@@ -407,7 +423,7 @@ export function repsFor(name, reps) {
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
 export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
 
-export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = []) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
@@ -429,7 +445,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // session still covers each muscle (arms and core don't get squeezed out by extra chest and back).
   // A single-muscle day needs about five exercises and a two-muscle day six (ACSM/NSCA: several exercises and 2-4 sets
   // per major muscle group), so keep going round after round until that many are picked or the lists run dry.
-  const target = Math.min(MAX_EXERCISES, Math.max(perGroup * muscleGroups.length, muscleGroups.length === 1 ? 5 : muscleGroups.length === 2 ? 6 : 0));
+  const target = Math.min(maxCount, Math.max(perGroup * muscleGroups.length, muscleGroups.length === 1 ? 5 : muscleGroups.length === 2 ? 6 : 0));
   for (let round = 0; round < 8 && picked.length < target; round += 1) {
     for (const l of lists) {
       if (picked.length >= target) break;
@@ -454,7 +470,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     .map(({ ex }) => ex);
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
-  const capped = ordered.slice(0, MAX_EXERCISES);
+  const capped = ordered.slice(0, maxCount);
   const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames, exclude);
   const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames, exclude);
   return withAnchors
@@ -598,10 +614,10 @@ export const BODY_AREAS = [
 ];
 const AREA_AVOID = {
   neck: /Shrug|Overhead|Pull-Ups|Chin-Ups|Upright|Face Pull/i,
-  shoulders: /Overhead|Shoulder Press|Military|Arnold|Incline.*Press|Decline.*Press|Landmine|Dips|Pike|Handstand|Raise|Upright|Pull-Ups|Chin-Ups|Pullover|Fly/i,
+  shoulders: /Overhead|Push Press|Snatch|Shoulder Press|Military|Arnold|Incline.*Press|Decline.*Press|Landmine|Dips|Pike|Handstand|Raise|Upright|Pull-Ups|Chin-Ups|Pullover|Fly/i,
   elbows: /(Barbell|Dumbbell|Hammer|Cable|Preacher|Concentration|EZ) Curl|Pushdown|Tricep|Skull|Dips|Push-Up|Close-Grip|Kickback|Pull-Ups|Chin-Ups/i,
   upper_back: /Row|Pull-Ups|Chin-Ups|Pulldown|Pullover|Shrug|Face Pull|Rear Delt|Reverse Fly/i,
-  lower_back: /Deadlift|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Goblet Squat|Back Extension|Hyperextension|Romanian|Overhead Press|Arnold|Seated Cable Row|Hanging Leg|Russian Twist|Ab Wheel|Bulgarian|Walking Lunges/i,
+  lower_back: /Deadlift|Clean|Snatch|Good Morning|Barbell Row|Bent|Back Squat|Front Squat|Goblet Squat|Back Extension|Hyperextension|Romanian|Overhead Press|Arnold|Seated Cable Row|Hanging Leg|Russian Twist|Ab Wheel|Bulgarian|Walking Lunges/i,
   hips: /Squat|Lunge|Step-Up|Hip Thrust|Deadlift|Abduction|Glute/i,
   knees: /Squat|Wall Sit|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
   ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box|Bulgarian|Handstand/i,

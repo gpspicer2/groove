@@ -4,7 +4,7 @@ import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
 import { useAuth } from '../../auth/AuthContext';
 import { predictedMaxHR } from '../../lib/heartRate';
-import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays } from './programs';
+import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
 export function useHr() {
@@ -48,8 +48,8 @@ function sessionDetail(s, hr) {
 // One line about what a session trains: the muscles, plus the day's flavor when it has one (Heavy, Light...).
 function sessionBlurb(x) {
   if (x.kind === 'aerobic') return x.zone ? (x.intervals ? intervalLine(x) : 'Any activity you enjoy that keeps you in this range') : 'Cardio · steady, easy pace';
-  const parts = [...new Set(x.groups || [])];
-  return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts.join(', ')}`;
+  const parts = leadText(x) || [...new Set(x.groups || [])].join(', ');
+  return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts}`;
 }
 
 const LS_OPEN = 'groove:programOpen'; // the whole-week list
@@ -74,7 +74,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
     ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} strength days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
-  const acc = s && s.kind !== 'aerobic' ? accessoryLine(s) : '';
+  const acc = s && s.kind !== 'aerobic' ? [secondaryLine(s), accessoryLine(s)].filter(Boolean).join(' · ') : '';
   const len = cycleLength(program);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">

@@ -17,6 +17,8 @@ import { getThemePref, setThemePref } from './appearance';
 import { SwitchAccountSection } from './auth/SwitchAccount';
 import NotificationsRow from './features/push/NotificationsRow';
 import InjurySheet from './features/injury/InjurySheet';
+import ExperienceSheet from './features/experience/ExperienceSheet';
+import { useExperience } from './features/experience/useExperience';
 import { useInjuries, activeInjuries } from './features/injury/injuries';
 import StravaRow from './features/strava/StravaRow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
@@ -49,6 +51,8 @@ function AccountModal({ onClose }) {
   const [showMovements, setShowMovements] = useState(false);
   const [showInjuries, setShowInjuries] = useState(false);
   const inj = useInjuries(user.id);
+  const exp = useExperience(user.id);
+  const [showExperience, setShowExperience] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const deleteRef = useRevealOnOpen(confirmingDelete);
   const sheet = useSwipeDown(onClose);
@@ -103,7 +107,6 @@ function AccountModal({ onClose }) {
         </div>
 
         <SwitchAccountSection />
-        <StravaRow />
 
         {!isTrainer && (
           <div className="grid grid-cols-2 gap-2 mb-2 items-stretch">
@@ -126,6 +129,7 @@ function AccountModal({ onClose }) {
             onClick={() => setShowInjuries(true)}
           />
         )}
+        {!isTrainer && <LinkRow label="Lifting experience" onClick={() => setShowExperience(true)} />}
 
         {!isTrainer && (
           <SettingsSection
@@ -137,6 +141,7 @@ function AccountModal({ onClose }) {
         )}
 
         {isTrainer && <NotificationsRow />}
+        {showExperience && <ExperienceSheet answers={exp.answers} onSave={exp.save} onClose={() => setShowExperience(false)} />}
         {showInjuries && <InjurySheet injuries={inj.injuries} onSave={inj.save} onClose={() => setShowInjuries(false)} />}
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -732,6 +737,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
           <LinkRow label="Change Password" onClick={onChangePassword} />
           <LinkRow label="Membership" onClick={onPaymentInfo} />
           <LinkRow label="Manage Your Movements" onClick={onManageMovements} />
+          <StravaRow />
 
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Week Starts On</div>
           <div className="flex items-center gap-2 mb-2">

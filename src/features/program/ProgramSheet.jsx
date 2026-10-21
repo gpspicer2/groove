@@ -7,9 +7,11 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
   GOALS, MODELS, GOAL_INFO, MODEL_INFO, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
-  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine,
+  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine, leadText, secondaryLine,
 } from './programs';
 import { useHr } from './ProgramCards';
+import ExperienceForm from '../experience/ExperienceForm';
+import { useExperience } from '../experience/useExperience';
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -27,6 +29,8 @@ function WeekList({ program, week }) {
           <div style={{ color: TEXT_SOFT }} className="text-sm">
             {s.kind === 'aerobic' ? prescriptionLine(s, hr) : `${s.exercises} exercises · ${prescriptionLine(s)}`}
           </div>
+          {leadText(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{leadText(s)}</div>}
+          {secondaryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{secondaryLine(s)}</div>}
           {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(s)}</div>}
           {s.intervals && <div style={{ color: TEXT_SOFT }} className="text-sm">{intervalLine(s)}</div>}
         </div>
@@ -54,6 +58,8 @@ async function recentWeeklyMinutes(userId) {
 export default function ProgramSheet({ userId, program, onSave, onClose, weekStartDay, initialStep }) {
   const arm = useArmed();
   const sheet = useSwipeDown(onClose);
+  const exp = useExperience(userId);
+  const [expDraft, setExpDraft] = useState(null);
   const [step, setStep] = useState(initialStep || (program ? 'manage' : 'goal'));
   const [goal, setGoal] = useState(program?.goal || null);
   const [model, setModel] = useState(program?.model || null);
@@ -61,6 +67,8 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const [split, setSplit] = useState(program?.split || null);
   const [weekdays, setWeekdays] = useState(hasChosenDays(program) ? program.weekdays : []);
 
+  // Lifting programs ask once which lifts the member knows (Account > Lifting experience changes it later).
+  const nextAfterGoal = () => ((goal === 'strength' || goal === 'hypertrophy') && !exp.answered ? 'experience' : 'days');
   const dayChoices = goal === 'fat_loss' ? [4, 5, 6] : [2, 3, 4, 5, 6];
   const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
   const options = goal ? splitOptions(draftBase) : [];
@@ -132,7 +140,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 {program ? back('manage') : <span />}
                 <button
                   disabled={!goal}
-                  onClick={() => setStep(goal === 'hypertrophy' ? 'model' : 'days')}
+                  onClick={() => setStep(goal === 'hypertrophy' ? 'model' : nextAfterGoal())}
                   style={{ background: goal ? SKY : INK_3, color: goal ? INK : TEXT_SOFT }}
                   className="rounded-md px-6 py-2.5 text-sm font-medium"
                 >
@@ -156,7 +164,21 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               {model && <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-3">{MODEL_INFO[model]}</div>}
               <div className="flex items-center justify-between mt-3">
                 {back('goal')}
-                <button disabled={!model} onClick={() => setStep('days')} style={{ background: model ? SKY : INK_3, color: model ? INK : TEXT_SOFT }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
+                <button disabled={!model} onClick={() => setStep(nextAfterGoal())} style={{ background: model ? SKY : INK_3, color: model ? INK : TEXT_SOFT }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
+              </div>
+            </>
+          )}
+
+          {step === 'experience' && goal && (
+            <>
+              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which lifts do you know? Your program leans on these. Olympic lifts only appear if you say you know them.</div>
+              <ExperienceForm answers={(expDraft || exp.answers)} onChange={setExpDraft} />
+              <div className="flex items-center justify-between mt-1">
+                {back(goal === 'hypertrophy' ? 'model' : 'goal')}
+                <div className="flex items-center gap-3">
+                  <button onClick={async () => { await exp.save({ answers: {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for now</button>
+                  <button onClick={async () => { await exp.save({ answers: Object.fromEntries(Object.entries(expDraft || {}).filter(([, v]) => v)) }); setStep('days'); }} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
+                </div>
               </div>
             </>
           )}

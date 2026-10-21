@@ -6,8 +6,8 @@ import { karvonenBpm } from '../../lib/heartRate.js';
 // Everything here is plain data and math, so Move and Birdseye share it.
 
 export const GOALS = [
-  { id: 'strength', label: 'Strength', emoji: '💥', blurb: 'Heavier lifts, fewer reps, longer rests.' },
-  { id: 'hypertrophy', label: 'Hypertrophy', emoji: '📈', blurb: 'Build muscle size with moderate reps.' },
+  { id: 'strength', label: 'Strength', emoji: '💥', blurb: 'Powerlifting-style: squat, bench and deadlift.' },
+  { id: 'hypertrophy', label: 'Hypertrophy', emoji: '📈', blurb: 'Bodybuilding-style: muscle size and shape.' },
   { id: 'fat_loss', label: 'Weight Loss', emoji: '🔥', blurb: 'Heart-rate cardio you choose, plus 2 short strength days.' },
 ];
 
@@ -17,8 +17,8 @@ export const MODELS = [
 ];
 
 export const GOAL_INFO = {
-  strength: 'Strength work uses heavier loads for fewer reps with long rests. Each week the main lifts get a little harder, and every 4th week is a lighter deload so you recover and come back stronger.',
-  hypertrophy: 'Hypertrophy is muscle growth. Moderate loads, 8-15 reps, hard sets close to failure, and enough weekly volume per muscle. Pick how the weeks progress below.',
+  strength: 'Prepares you for powerlifting, with no meet needed. The squat, bench press and deadlift get heavy work in low reps (6 or fewer, about 85%+ of your max) with long rests, then a second lift and smaller supporting lifts. Effort climbs over three weeks, then a lighter deload week.',
+  hypertrophy: 'Prepares you for bodybuilding, with no show needed. Muscle size comes from enough hard sets per muscle each week (about 10-20), mostly 6-12 reps taken close to failure, with a good mix of big lifts and isolation work. Pick how the weeks progress below.',
   fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Your weekly cardio minutes start where you are and build about 10% a week (a lighter week every 4th), in heart-rate zones. You pick any activity you enjoy to fill them. Two short strength days help you keep muscle while you lose fat.',
 };
 export const MODEL_INFO = {
@@ -60,6 +60,41 @@ const T = {
   legsB: { name: 'Legs B', groups: ['Legs', 'Hamstrings', 'Glutes'] },
 };
 
+// Powerlifting templates for the Strength goal. `leads` are the day's lifts in order (the first gets the heavy
+// prescription, the second a lighter "secondary" one); each lists the exercise to use first and fallbacks if the
+// member skips it or lacks the equipment. `volume` days (lighter variations) run at a lighter effort.
+const LEAD = {
+  squat: { label: 'Squat', names: ['Barbell Back Squat', 'Front Squat', 'Leg Press'] },
+  bench: { label: 'Bench', names: ['Barbell Bench Press', 'Dumbbell Chest Press', 'Machine Chest Press'] },
+  deadlift: { label: 'Deadlift', names: ['Conventional Deadlift', 'Trap Bar Deadlift', 'Sumo Deadlift', 'Romanian Deadlift'] },
+  press: { label: 'Press', names: ['Overhead Press', 'Arnold Press'] },
+  rdl: { label: 'RDL', names: ['Romanian Deadlift', 'Barbell Good Morning', 'Single-Leg Romanian Deadlift'] },
+  row: { label: 'Row', names: ['Barbell Row', 'Pendlay Row', 'Seated Cable Row'] },
+  pullups: { label: 'Pull-ups', names: ['Pull-Ups', 'Lat Pulldown'] },
+  pauseSquat: { label: 'Pause squat', names: ['Pause Back Squat', 'Barbell Back Squat', 'Front Squat'] },
+  frontSquat: { label: 'Front squat', names: ['Front Squat', 'Goblet Squat', 'Leg Press'] },
+  pauseBench: { label: 'Pause bench', names: ['Pause Bench Press', 'Close-Grip Bench Press', 'Barbell Bench Press'] },
+  closeGrip: { label: 'Close-grip bench', names: ['Close-Grip Bench Press', 'Barbell Bench Press'] },
+};
+const PL = {
+  squat: { name: 'Squat Day', groups: ['Legs', 'Hamstrings', 'Core'], leads: [LEAD.squat, LEAD.rdl] },
+  bench: { name: 'Bench Day', groups: ['Chest', 'Shoulders', 'Triceps'], leads: [LEAD.bench, LEAD.press] },
+  deadlift: { name: 'Deadlift Day', groups: ['Back', 'Glutes', 'Biceps', 'Core'], leads: [LEAD.deadlift, LEAD.row] },
+  squatBench: { name: 'Squat + Bench', groups: ['Legs', 'Chest', 'Core'], leads: [LEAD.squat, LEAD.bench] },
+  deadPress: { name: 'Deadlift + Press', groups: ['Back', 'Shoulders', 'Hamstrings'], leads: [LEAD.deadlift, LEAD.press] },
+  pressPull: { name: 'Press + Pull', groups: ['Shoulders', 'Back', 'Triceps', 'Biceps'], leads: [LEAD.press, LEAD.pullups], volume: true },
+  squatB: { name: 'Squat Variation', groups: ['Legs', 'Quadriceps', 'Glutes', 'Core'], leads: [LEAD.pauseSquat, LEAD.frontSquat], volume: true },
+  benchB: { name: 'Bench Variation', groups: ['Chest', 'Triceps', 'Back'], leads: [LEAD.pauseBench, LEAD.row], volume: true },
+  deadliftB: { name: 'Deadlift Variation', groups: ['Hamstrings', 'Back', 'Glutes', 'Core'], leads: [LEAD.rdl, LEAD.pullups], volume: true },
+};
+const POWER_SPLITS = {
+  2: { label: 'Powerlifting ×2', freq: 'Each big lift 1× a week', sessions: [PL.squatBench, PL.deadPress] },
+  3: { label: 'Squat / Bench / Deadlift', freq: 'Each big lift 1× a week', sessions: [PL.squat, PL.bench, PL.deadlift] },
+  4: { label: 'Big Three + Press', freq: 'Each big lift 1× a week, plus a press and pull day', sessions: [PL.squat, PL.bench, PL.deadlift, PL.pressPull] },
+  5: { label: 'Big Three + Variations', freq: 'Squat and bench twice a week', sessions: [PL.squat, PL.bench, PL.deadlift, PL.benchB, PL.squatB] },
+  6: { label: 'Big Three ×2', freq: 'Each big lift twice a week (the second day is lighter)', sessions: [PL.squat, PL.bench, PL.deadlift, PL.squatB, PL.benchB, PL.deadliftB] },
+};
+
 const SPLITS = {
   2: [T.fullA, T.fullB],
   3: [T.fullA, T.fullB, T.fullC],
@@ -96,7 +131,12 @@ export const SPLIT_OPTIONS = {
   ],
 };
 export function splitOptions(program) {
-  return program.goal === 'fat_loss' ? [] : SPLIT_OPTIONS[program.days] || [];
+  if (program.goal === 'fat_loss') return [];
+  if (program.goal === 'strength') {
+    const p = POWER_SPLITS[program.days];
+    return p ? [{ id: `pl${program.days}`, label: p.label, freq: p.freq, tag: 'Powerlifting', sessions: p.sessions, info: 'The squat, bench press and deadlift each get a heavy day, with a second lift and supporting work after. Days that train a lift a second time are lighter variations.' }] : [];
+  }
+  return SPLIT_OPTIONS[program.days] || [];
 }
 export function chosenSplit(program) {
   const opts = splitOptions(program);
@@ -124,13 +164,14 @@ const rx = (sets, reps, rpe, rest) => ({ sets, reps, rpe, rest });
 
 // Weeks repeat in a wave; the last week of each wave is a lighter deload.
 const CYCLES = {
+  // Powerlifting: low reps at 85%+ of max on the day's first lift, a lighter second lift, then accessories.
   strength: {
-    len: 4, exercises: 5, mainCount: 2,
+    len: 4, exercises: 5, mainCount: 1,
     weeks: [
-      { phase: 'Build', main: rx(4, '5', '8', '3 min'), acc: rx(3, '8-10', '8', '90 sec') },
-      { phase: 'Build', main: rx(4, '5', '8-9', '3 min'), acc: rx(3, '8-10', '8', '90 sec') },
-      { phase: 'Build', main: rx(5, '3-5', '9', '3-4 min'), acc: rx(3, '8-10', '8', '90 sec') },
-      { phase: 'Deload', main: rx(3, '5', '6', '2-3 min'), acc: rx(2, '8-10', '6', '60 sec') },
+      { phase: 'Build', main: rx(4, '5', '8', '3 min'), sec: rx(3, '6-8', '7', '2 min'), acc: rx(3, '8-12', '8', '90 sec') },
+      { phase: 'Build', main: rx(4, '4', '8-9', '3-4 min'), sec: rx(3, '6', '7-8', '2 min'), acc: rx(3, '8-12', '8', '90 sec') },
+      { phase: 'Build', main: rx(5, '2-3', '9', '4-5 min'), sec: rx(3, '5', '8', '2-3 min'), acc: rx(3, '8-12', '8', '90 sec') },
+      { phase: 'Deload', main: rx(3, '5', '6', '2-3 min'), sec: rx(2, '6', '6', '2 min'), acc: rx(2, '8-10', '6', '60 sec') },
     ],
   },
   linear: {
@@ -300,14 +341,23 @@ export function sessionsForWeek(program, week) {
       label = d.label;
     } else {
       const w = cyc.weeks[pos - 1];
-      label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + flavorSkew + week - 1) % 3];
-      presc = { main: flavored(w.main, label, program.goal), acc: w.acc || null };
+      if (program.goal === 'strength') {
+        // Powerlifting days: the first lift is the week's top work; variation (volume) days run lighter.
+        label = w.phase === 'Deload' ? 'Deload' : t.volume ? 'Volume' : '';
+        let top = t.volume && !deload ? flavored(w.main, 'Light', 'strength') : w.main;
+        if (t.leads && t.leads[0] === LEAD.deadlift && top.sets > 3) top = { ...top, sets: top.sets - 2 }; // deadlifts are taxing: fewer heavy sets
+        presc = { main: top, sec: w.sec || null, acc: w.acc || null };
+      } else {
+        label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + flavorSkew + week - 1) % 3];
+        presc = { main: flavored(w.main, label, program.goal), acc: w.acc || null };
+      }
     }
     const style = program.goal === 'strength' ? 'Strength' : 'Hypertrophy';
     out.push({
       id: `w${week}-r${li}`, kind: 'resistance', name: t.name + (label && key === 'undulating' ? ` · ${label}` : ''),
       shortName: t.name, groups: t.groups, style, day, label,
-      presc: presc.main, acc: presc.acc, exercises: cyc.exercises, mainCount: cyc.mainCount,
+      presc: presc.main, sec: presc.sec || null, acc: presc.acc, leads: t.leads || null,
+      exercises: program.goal === 'hypertrophy' && (t.groups || []).length <= 3 ? 7 : cyc.exercises, mainCount: cyc.mainCount,
       phase: deload ? 'Deload' : 'Build',
     });
     li += 1;
@@ -329,6 +379,13 @@ export function prescriptionLine(s, hr) {
   const p = s.presc;
   const main = `${p.sets} × ${dash(p.reps)} · RPE ${dash(p.rpe)} · rest ${dash(p.rest)}`;
   return main;
+}
+export function leadText(s) {
+  return s.leads && s.leads.length ? s.leads.map((l) => l.label).join(' + ') : null;
+}
+export function secondaryLine(s) {
+  if (!s.sec) return null;
+  return `Second lift ${s.sec.sets} × ${dash(s.sec.reps)} · RPE ${dash(s.sec.rpe)}`;
 }
 export function accessoryLine(s) {
   if (!s.acc) return null;

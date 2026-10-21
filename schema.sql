@@ -478,3 +478,6 @@ create unique index if not exists workouts_external_id_idx on public.workouts (u
 -- Injuries and limits (area, date, note). Until this runs, each member's list stays on their own device
 -- and Greg can't see it in the coach view.
 alter table public.profiles add column if not exists injuries jsonb;
+
+-- Lifting experience survey (Account > Lifting experience): which lifts a member knows, wants to learn or wants skipped.
+alter table public.profiles add column if not exists movement_experience jsonb;
