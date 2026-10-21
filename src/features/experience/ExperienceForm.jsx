@@ -114,11 +114,13 @@ export default function ExperienceForm({ answers, onChange }) {
   const [page, setPage] = useState(0);
   const [openMore, setOpenMore] = useState({});
   const topRef = useRef(null);
+  const swipe = useRef(null);
   const g = EXPERIENCE_GROUPS[page];
   const last = EXPERIENCE_GROUPS.length - 1;
   const answeredMore = g.more.filter((it) => answers[it.id]).length;
   const moreOpen = openMore[g.title] ?? answeredMore > 0;
-  useEffect(() => { topRef.current?.scrollIntoView({ block: 'nearest' }); }, [page]);
+  // A new page starts at its top (the sheet is the scroller).
+  useEffect(() => { topRef.current?.closest('.overflow-y-auto')?.scrollTo({ top: 0 }); }, [page]);
   const go = (n) => setPage(Math.min(last, Math.max(0, n)));
   const nav = (
     <div className="flex items-center justify-between my-2">
@@ -126,8 +128,22 @@ export default function ExperienceForm({ answers, onChange }) {
       <button onClick={() => go(page + 1)} disabled={page === last} style={{ color: page === last ? TEXT_SOFT : SKY, opacity: page === last ? 0.4 : 1 }} className="text-base font-medium px-1 py-1.5 flex items-center gap-0.5">Next <ChevronRight size={18} /></button>
     </div>
   );
+  // Swipe sideways anywhere except on a slider (which has its own sideways drag) to change muscle group.
+  const swipeStart = (e) => {
+    const t = e.touches[0];
+    swipe.current = e.target.closest && e.target.closest('[role="slider"]') ? null : { x: t.clientX, y: t.clientY };
+  };
+  const swipeEnd = (e) => {
+    const s0 = swipe.current; swipe.current = null;
+    if (!s0) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s0.x; const dy = t.clientY - s0.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(page + (dx < 0 ? 1 : -1));
+  };
   return (
-    <div className="text-left">
+    <div className="text-left" onTouchStart={swipeStart} onTouchEnd={swipeEnd} style={{ touchAction: 'pan-y' }}>
+      {/* The muscle group stays pinned while the lifts scroll. */}
+      <div style={{ background: INK_2 }} className="sticky top-0 z-10 -mx-5 px-5 pt-1 pb-0.5">
       <div ref={topRef} className="flex items-center justify-between">
         <button onClick={() => go(page - 1)} disabled={page === 0} aria-label="Previous muscle group" style={{ color: TEXT_SOFT, opacity: page === 0 ? 0.3 : 1 }} className="p-2 -m-2"><ChevronLeft size={22} /></button>
         <div className="text-center">
@@ -141,7 +157,9 @@ export default function ExperienceForm({ answers, onChange }) {
           <button key={x.title} onClick={() => go(i)} aria-label={x.title} style={{ background: i === page ? SKY : TEXT_SOFT, opacity: i === page ? 1 : 0.35 }} className="w-2 h-2 rounded-full" />
         ))}
       </div>
+      </div>
 
+      <div key={page} className="groove-ease-in">
       <div className="space-y-1">
         {g.items.map((it) => <Row key={it.id} it={it} answers={answers} onChange={onChange} onInfo={setInfo} />)}
       </div>
@@ -154,6 +172,8 @@ export default function ExperienceForm({ answers, onChange }) {
           </button>
         </>
       )}
+
+      </div>
 
       {nav}
       {info && <InfoPopup item={info} onClose={() => setInfo(null)} />}
