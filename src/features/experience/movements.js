@@ -39,11 +39,12 @@ export const EXPERIENCE_GROUPS = [
   ] },
 ];
 
+// Love It to Skip It, left to right, colored green / yellow / blue / red (`tone` is a theme color name used by the form).
 export const EXPERIENCE_STATES = [
-  { id: 'know', label: 'Know It' },
-  { id: 'love', label: 'Love It' },
-  { id: 'learn', label: 'Learn It' },
-  { id: 'skip', label: 'Skip It' },
+  { id: 'love', label: 'Love It', tone: 'LIME' },
+  { id: 'know', label: 'Know It', tone: 'AMBER' },
+  { id: 'learn', label: 'Learn It', tone: 'SKY' },
+  { id: 'skip', label: 'Skip It', tone: 'BRICK' },
 ];
 
 const ALL_ITEMS = EXPERIENCE_GROUPS.flatMap((g) => g.items);

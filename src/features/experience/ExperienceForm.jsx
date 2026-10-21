@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import Portal from '../../Portal';
 import { Info } from '../../lib/icons';
 import { EXPERIENCE_GROUPS, EXPERIENCE_STATES } from './movements';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, AMBER, ON_AMBER, BRICK } from '../../theme';
+
+const TONES = { LIME: [LIME, INK], AMBER: [AMBER, ON_AMBER], SKY: [SKY, INK], BRICK: [BRICK, PAPER] }; // [color, text on that color]
 
 // A short "what is this lift?" popup.
 function InfoPopup({ item, onClose }) {
@@ -37,11 +39,12 @@ export default function ExperienceForm({ answers, onChange }) {
                 <div className="grid grid-cols-4 gap-1">
                   {EXPERIENCE_STATES.map((s) => {
                     const on = answers[it.id] === s.id;
+                    const [tone, onTone] = TONES[s.tone];
                     return (
                       <button
                         key={s.id}
                         onClick={() => onChange({ ...answers, [it.id]: on ? undefined : s.id })}
-                        style={{ background: on ? SKY : 'transparent', color: on ? INK : PAPER_DIM, border: `1px solid ${on ? SKY : TEXT_SOFT}` }}
+                        style={{ background: on ? tone : 'transparent', color: on ? onTone : tone, border: `1.5px solid ${tone}` }}
                         className="rounded-md py-1 text-[15px] leading-tight font-medium whitespace-nowrap"
                       >
                         {s.label}
