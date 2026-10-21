@@ -4220,6 +4220,8 @@ function ExerciseCard({
   // Grip / handle / bar: chosen per set for Pull-Ups, otherwise once and kept for this workout (never carried to the next one).
   const variation = variationFor(exercise.name);
   const lastLabel = [...loggedSets].reverse().find((x) => x.movementType !== 'aerobic' && x.distance)?.distance || null;
+  // Show the grip/bar on each logged set only when the sets differ (or it changes every set); the chip above already says it.
+  const mixedVariants = Boolean(variation?.perSet) || new Set(loggedSets.map((x) => x.distance).filter(Boolean)).size > 1;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
   // Last / Try follow the chosen variation once there is history for it.
@@ -4294,7 +4296,7 @@ function ExerciseCard({
               >
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
-                  : <>{s.distance ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
+                  : <>{s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
@@ -4371,6 +4373,8 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const guide = guideFor(exercise.name);
   const variation = variationFor(exercise.name);
   const lastLabel = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
+  // Show the grip/bar on each logged set only when the sets differ (or it changes every set); the chip above already says it.
+  const mixedVariants = Boolean(variation?.perSet) || new Set(loggedSets.map((x) => x.distance).filter(Boolean)).size > 1;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
   const lastV = variant && lastFor ? lastFor(variant) : null;
@@ -4414,7 +4418,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
                 data-armed={armed === s.id}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
-                {s.distance ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                {s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
