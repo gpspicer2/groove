@@ -2717,6 +2717,7 @@ function ActiveWorkout({
                   isActive={activeGroupKey === groupKey}
                   onActivate={() => setActiveGroupKey(groupKey)}
                   onCollapse={() => setActiveGroupKey((k) => (k === groupKey ? null : k))}
+                  onDone={() => { markDone(groupKey); advanceFrom(gi); }}
                 />
               );
             } else if (ex.type === 'aerobic' || ex.type === 'flexibility-activity') {
@@ -4574,7 +4575,7 @@ function WarmupInfoModal({ onClose }) {
 // exercise (edit here just means retyping the name) plus the same
 // touch-drag reordering as the main exercise list — its own small-scale
 // copy of that gesture, scoped to this card's drill rows.
-function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse, onMoveUp, onMoveDown }) {
+function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, onRemove, onAddDrill, onRenameDrill, onRemoveDrill, onReorderDrill, isActive, onActivate, onCollapse, onDone, onMoveUp, onMoveDown }) {
   const isDone = loggedSets.length > 0; // the set is logged only once every drill is checked
   // Finishing every drill logs the warm-up as a flexibility set, so it
   // counts toward the weekly flexibility goal; unchecking one takes it back.
@@ -4634,6 +4635,25 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
     } else if (!allDone && completedSet && onDeleteSet) {
       onDeleteSet(completedSet.id);
     }
+  }
+
+  // "Finish Warm-up": ticks any drills left (so it counts toward flexibility like a full warm-up), closes the card and
+  // opens the first exercise.
+  function finishWarmup() {
+    if (exercise.drills.length > 0 && !completedSet && onLogSet) {
+      setChecked(new Set(exercise.drills));
+      onLogSet({
+        exerciseName: exercise.name,
+        muscleGroup: 'Warm-up',
+        setNumber: 1,
+        movementType: 'flexibility',
+        weight: null,
+        reps: exercise.drills.length,
+        durationSeconds: null,
+      });
+    }
+    onDone && onDone();
+    onCollapse && onCollapse();
   }
 
   function startEdit(i) {
@@ -4823,6 +4843,13 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
           <Plus size={12} /> Other
         </button>
       )}
+      <button
+        onClick={finishWarmup}
+        style={{ background: INK_3, color: PAPER }}
+        className="w-full mt-1.5 rounded-md py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+      >
+        <Check size={14} /> {isDone ? 'Done' : 'Finish Warm-up'}
+      </button>
       {showInfo && <WarmupInfoModal onClose={() => setShowInfo(false)} />}
     </div>
   );
