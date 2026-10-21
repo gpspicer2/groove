@@ -3822,15 +3822,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
-  const perSideEligible = !useBodyweight && /plate.?loaded|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
+  const plateName = /plate.?loaded|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
+  const perSideEligible = !useBodyweight && (plateName || isBarbell); // barbells too: plates per side + the bar
   const perSideKey = `groove:perSide:${(exercise.name || '').toLowerCase()}`;
   const [perSideOn, setPerSideOn] = useState(() => {
-    try { const v = localStorage.getItem(perSideKey); return v == null ? true : v === '1'; } catch { return true; }
+    try { const v = localStorage.getItem(perSideKey); return v == null ? plateName : v === '1'; } catch { return plateName; }
   });
   const f = perSideEligible && perSideOn ? 2 : 1; // total pounds = typed number x f + what the machine itself adds
   // Some machines have a sled or carriage that weighs something; set it once per exercise (0 = ignore it).
   const sledKey = `groove:machineAdds:${(exercise.name || '').toLowerCase()}`;
-  const [sled, setSled] = useState(() => { try { return Number(localStorage.getItem(sledKey)) || 0; } catch { return 0; } });
+  const sledDefault = isBarbell ? BARBELL_MIN_LB : 0;
+  const [sled, setSled] = useState(() => { try { const v = localStorage.getItem(sledKey); return v == null ? sledDefault : Number(v) || 0; } catch { return sledDefault; } });
   const [sledOpen, setSledOpen] = useState(false);
   const extra = f === 2 ? sled : 0;
   function changeSled(v) {
@@ -3846,14 +3848,14 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     try { localStorage.setItem(perSideKey, next ? '1' : '0'); } catch { /* storage unavailable */ }
     setWeight((w) => (w === '' ? '' : next ? Math.max(0, Math.round(((Number(w) - sled) / 2) * 10) / 10) : Number(w) * 2 + sled));
   }
-  const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? fromTotal(startWeight) : 0));
-  const belowBarbell = barbellFloor > 0 && Number(weight) < barbellFloor;
+  const [weight, setWeight] = useState(Math.max(f === 1 ? barbellFloor : 0, startWeight != null ? fromTotal(startWeight) : 0));
+  const belowBarbell = barbellFloor > 0 && Number(weight) * f + extra < barbellFloor;
   // Switching to/from bodyweight changes what the number means (added
   // load vs. total), so start the field over instead of carrying it across.
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    setWeight(useBodyweight ? 0 : Math.max(isBarbell ? BARBELL_MIN_LB : 0, fromTotal(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
+    setWeight(useBodyweight ? 0 : Math.max(isBarbell && f === 1 ? BARBELL_MIN_LB : 0, fromTotal(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
   // Choosing a grip / bar that has its own history moves the weight box to what that variation last used.
@@ -3864,7 +3866,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     const w = suggestNextWeight(exercise, last, style, last?.daysSince)?.weight ?? last.weight;
     if (w == null) return;
     const base = useBodyweight ? (last.isBodyweight ? Math.max(0, last.weight - (bodyweight || 0)) : 0) : fromTotal(w);
-    setWeight(Math.max(isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0, base));
+    setWeight(Math.max(isBarbell && !useBodyweight && f === 1 ? BARBELL_MIN_LB : 0, base));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variantKey]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
@@ -4049,13 +4051,13 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             </button>
             {perSideOn && (
               <button onClick={() => setSledOpen((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline">
-                {sled > 0 ? `Machine +${sled}` : 'Machine Adds'}
+                {isBarbell ? `Bar ${sled} lb` : sled > 0 ? `Machine +${sled}` : 'Machine Adds'}
               </button>
             )}
           </div>
           {perSideOn && sledOpen && (
             <div style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-2 whitespace-nowrap">
-              The sled itself weighs
+              {isBarbell ? 'The bar weighs' : 'The sled itself weighs'}
               <input
                 type="number"
                 inputMode="decimal"
@@ -4065,7 +4067,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
                 onFocus={(e) => e.target.select()}
                 style={{ background: INK_3, color: PAPER }}
                 className="w-16 rounded-md px-2 py-1 text-base text-center outline-none"
-                aria-label="Machine weight in pounds"
+                aria-label={isBarbell ? 'Bar weight in pounds' : 'Machine weight in pounds'}
               />
               lb
             </div>
