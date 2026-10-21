@@ -19,8 +19,7 @@ import { needsClearance } from '../screening/screening';
 import { buildRecap, dayKey } from './weekly';
 import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
-import FitnessTrends from './FitnessTrends';
-import Trends from './Trends';
+import Progress from './Progress';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
 import { programPlans, normalizeMoves } from '../program/programs';
@@ -447,7 +446,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       <div className="flex flex-col gap-3">
         <ScreeningStatus />
         <TailoredTips />
-        {!intakeDone && (
+        {/* The setup homework waits until the first workout is logged, so day one is about moving, not forms. */}
+        {!intakeDone && workouts.length > 0 && (
           <button
             onClick={() => setShowBaseline(true)}
             style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }}
@@ -543,20 +543,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           weekStartDay={weekStartDay}
         />
 
-        <ScienceStrategy
-          dataTour="birdseye-science"
-          assessmentDone={assessmentDone}
-          onStartAssessment={() => setShowAssessment(true)}
-          resistanceGoal={resistanceGoal}
-          aerobicGoalMinutes={aerobicGoalMinutes}
-          restingHrNum={restingHrNum} maxHrNum={maxHrNum} maxHrIsPredicted={maxHrIsPredicted}
-          prescribedZone={prescribedZone}
-        />
 
 
-        <Trends userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
-        <FitnessTrends userId={userId} profile={profile} active={active} hideScale={program?.goal === 'fat_loss'} />
-        <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
+        <Progress userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
       </div>
 
       {showProgramSheet && <ProgramSheet userId={userId} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={weekStartDay} initialStep={programSheetStep} />}
@@ -1047,133 +1036,5 @@ function DayChoicePopup({ day, count, plans = [], onStartPlan, onPlanned, onView
         </div>
       </div>
     </Portal>
-  );
-}
-
-const MOVEMENT_INFO = {
-  Aerobic: 'Anything that gets your heart rate up counts: walking, cycling, dancing, even yard work.',
-  Resistance: 'No gym needed. Bodyweight moves, bands, carrying groceries, and yard work all count.',
-  Flexibility: 'Stretching, yoga, and mobility work all count.',
-  ACSM: 'ACSM is the American College of Sports Medicine, one of the largest sports medicine and exercise science organizations in the world. These targets come from its published exercise guidelines, which line up with the U.S. Physical Activity Guidelines: 150 to 300 minutes of moderate aerobic activity a week, strength work on 2 or more days, and regular stretching. Treat them as a solid starting point, not a rulebook. Message Greg if you want help tailoring them to you.',
-  RPE: 'Rating of perceived exertion (RPE) is how hard it feels, from 1 (sitting still) to 10 (all out). Light is about 2-4, moderate 5-6 (you can talk but not sing), and vigorous 7-8 (only a few words at a time). It is the same scale as your check-in after a workout, and it works without a heart rate monitor.',
-};
-// ACSM's 0-10 effort scale mapped to the three intensity bands.
-const RPE_BY_ZONE = { Light: '2–4', Moderate: '5–6', Vigorous: '7–8' };
-
-// Your individualized exercise prescription and the ACSM guidelines it's
-// built on, as one dropdown — they said nearly the same thing twice.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
-  const zones = computeHrZones(restingHrNum, maxHrNum);
-  const [open, setOpen] = useState(false);
-  const revealRef = useRevealOnOpen(open);
-  const [openInfo, setOpenInfo] = useState(null);
-  const infoBtn = (label) => (
-    <button onClick={() => setOpenInfo((v) => (v === label ? null : label))} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-      <Info size={13} />
-    </button>
-  );
-  const infoBox = (label) => openInfo === label && (
-    <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-2">{MOVEMENT_INFO[label]}</div>
-  );
-
-  return (
-    <div ref={revealRef} data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
-      <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
-        <span />
-        <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">
-          Science-Backed Plan{' '}
-          <button
-            onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
-            aria-label="About This Plan"
-            style={{ color: TEXT_SOFT }}
-            className="inline-block align-middle p-1 -m-1"
-          >
-            <Info size={14} />
-          </button>
-        </span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </div>
-
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-4">
-          {infoBox('ACSM')}
-
-          <div>
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: MOSS }} className="text-lg font-bold">Aerobic</span>{infoBtn('Aerobic')}
-            </div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              {aerobicGoalMinutes} min/week of moderate-intensity activity, over 3+ days. Vigorous minutes count double.
-            </p>
-            {prescribedZone && zones && <div style={{ color: SKY }} className="text-sm mb-1">Greg recommends: {prescribedZone} zone</div>}
-            <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">
-              {zones ? `Heart-rate ranges${maxHrIsPredicted ? ' (est.)' : ''} and rating of perceived exertion (RPE)` : 'Effort by feel: rating of perceived exertion (RPE)'}{' '}
-              <span className="inline-block align-middle">{infoBtn('RPE')}</span>
-            </div>
-            <div className="space-y-1">
-              {(zones || Object.keys(RPE_BY_ZONE).map((label) => ({ label }))).map((z) => (
-                <div key={z.label} className="flex items-center justify-center gap-2">
-                  <span style={{ color: PAPER_DIM }} className="text-sm">{z.label}:</span>
-                  <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm">
-                    {z.lowBpm != null ? `${z.lowBpm}–${z.highBpm} bpm · ` : ''}RPE {RPE_BY_ZONE[z.label]}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {!zones && <p style={{ color: TEXT_SOFT }} className="text-sm mt-1">Add your resting heart rate in Account to see heart-rate ranges too.</p>}
-            {infoBox('RPE')}
-            {infoBox('Aerobic')}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: SKY }} className="text-lg font-bold">Resistance</span>{infoBtn('Resistance')}
-            </div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              {resistanceGoal} day{resistanceGoal === 1 ? '' : 's'}/week, all major muscles, 2–4 sets of 8–12 reps.
-            </p>
-            {infoBox('Resistance')}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: BRICK }} className="text-lg font-bold">Flexibility</span>{infoBtn('Flexibility')}
-            </div>
-            <p style={{ color: TEXT_SOFT }} className="text-sm">
-              2–3 days/week. Hold each stretch 10–30 sec.
-            </p>
-            {infoBox('Flexibility')}
-          </div>
-
-          {!assessmentDone && (
-            <button onClick={onStartAssessment} style={{ color: MOSS }} className="text-sm underline">
-              Complete your fitness baseline for a fuller picture →
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function MovementLibrary({ hrZones }) {
-  const [open, setOpen] = useState(false);
-  const revealRef = useRevealOnOpen(open);
-  return (
-    <div ref={revealRef} data-tour="birdseye-library" style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: AMBER }} className="text-base uppercase tracking-wide font-bold">Movement Library</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
-      {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
-          <p style={{ color: TEXT_SOFT }} className="text-sm italic text-center mb-3">
-            Gardening counts. So does dancing.
-          </p>
-          <MetBrowser hrZones={hrZones} />
-        </div>
-      )}
-    </div>
   );
 }

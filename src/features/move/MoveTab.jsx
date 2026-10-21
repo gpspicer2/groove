@@ -1284,12 +1284,13 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   async function saveCheckIn(fields, reflect = false) {
     const id = checkInWorkoutId;
     setCheckInWorkoutId(null);
-    // One sheet now: the reflection is offered inside it, so there's no second pop-up after.
-    if (reflect && onJournalAfterWorkout) onJournalAfterWorkout(id);
+    // One sheet now: the reflection is offered inside it, so there's no second pop-up after. The effort rating is saved
+    // first so the reflection can see it and skip asking again.
     if (fields) {
       await supabase.from('workouts').update(fields).eq('id', id);
       if (fields.felt_off) notifyFeltOff();
     }
+    if (reflect && onJournalAfterWorkout) onJournalAfterWorkout(id);
   }
 
   // Reopens a finished workout as the live one, so a session that was

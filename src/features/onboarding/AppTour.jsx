@@ -24,7 +24,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Your overview: weekly goals, a calendar for logging and planning workouts, trends over time, and the science behind your plan.",
+    body: "Your overview: weekly goals, a calendar for logging and planning workouts, and your progress over time.",
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
@@ -36,7 +36,7 @@ const STEPS = [
   },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
-    body: "Short reads on movement and sticking with it.",
+    body: "Tidbits: short reads on movement and sticking with it. Guides: your personal plan and a library of everyday activities.",
   },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'top', color: PLUM, noTabs: true, title: 'Your Account',

@@ -115,9 +115,10 @@ function fitTrend(points) {
   return { slope, mean: my, first: points[0], last: points[n - 1], at: (i) => my + slope * (i - mx) };
 }
 
-export default function Trends({ userId, profile, active, weekStartDay = 'sunday', hideScale = false }) {
-  const [open, setOpen] = useState(false);
-  const revealRef = useRevealOnOpen(open);
+export default function Trends({ userId, profile, active, weekStartDay = 'sunday', hideScale = false, embedded = false }) {
+  const [openState, setOpen] = useState(false);
+  const open = embedded || openState; // embedded in the Progress card: always open, no card of its own
+  const revealRef = useRevealOnOpen(embedded ? false : open);
   const [data, setData] = useState(null); // { workouts, sets, measures }
   const [error, setError] = useState('');
   const [metric, setMetric] = useState(hideScale ? 'aerobic' : 'volume');
@@ -294,16 +295,8 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
     }
   }
 
-  return (
-    <div ref={revealRef} data-tour="birdseye-trends" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
-        <span />
-        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">Trends</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
-
-      {open && (
-        <div className="mt-2.5 space-y-2">
+  const panel = open && (
+        <div className={`${embedded ? '' : 'mt-2.5 '}space-y-2 text-center`}>
           {hideScale && metric === 'bodyweight' && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Once a month is plenty. Day to day, the scale mostly shows water. Cardio minutes and strength tell you more.</div>}
           <div className="flex items-center gap-2">
             <select value={metric} onChange={(e) => { setMetric(e.target.value); setPicked(null); }} style={selectStyle} className={`${selectClass} flex-1`} aria-label="What to Track">
@@ -331,7 +324,16 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
 
           {body}
         </div>
-      )}
+  );
+  if (embedded) return panel || null;
+  return (
+    <div ref={revealRef} data-tour="birdseye-trends" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">Trends</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+      </button>
+      {panel}
     </div>
   );
 }

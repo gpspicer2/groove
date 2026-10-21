@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { startCheckout } from '../../lib/api';
 import { MEMBERSHIP_PRICE } from '../../lib/membership';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
-import { MovementLibrary } from '../birdseye/BirdseyeTab';
+import { MovementLibrary } from '../learn/Guides';
 
 const INCLUDED = [
   'Your own movement plan from Greg',

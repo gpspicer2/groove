@@ -84,14 +84,15 @@ function Row({ label, latest, unit, points, color, delta, deltaGood, due, note, 
 
 // Trends from the measurements people log in Account and the fitness tests,
 // plus estimated 1RMs. Hidden until there's something to show.
-export default function FitnessTrends({ userId, profile, active, hideScale = false }) {
+export default function FitnessTrends({ userId, profile, active, hideScale = false, embedded = false }) {
   const [measurements, setMeasurements] = useState([]);
   const [oneRms, setOneRms] = useState([]);
   const [estimating, setEstimating] = useState(false);
   const [logging, setLogging] = useState(false);
   const [reload, setReload] = useState(0);
-  const [open, setOpen] = useState(false);
-  const revealRef = useRevealOnOpen(open);
+  const [openState, setOpen] = useState(false);
+  const open = embedded || openState; // embedded in the Progress card: always open, no card of its own
+  const revealRef = useRevealOnOpen(embedded ? false : open);
   const { updateProfile } = useAuth();
 
   useEffect(() => {
@@ -155,14 +156,16 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
   });
 
   return (
-    <div ref={revealRef} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center text-center">
-        <span />
-        <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">Your Fitness</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
-      </button>
+    <div ref={revealRef} style={embedded ? undefined : { background: INK_2, borderTop: `2px solid ${MOSS}` }} className={embedded ? '' : 'rounded-lg px-5 py-4'}>
+      {!embedded && (
+        <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center text-center">
+          <span />
+          <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">Your Fitness</span>
+          <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+        </button>
+      )}
       {open && (
-        <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3">
+        <div style={embedded ? undefined : { borderTop: `1px dashed ${INK_3}` }} className={embedded ? 'text-center' : 'mt-3 pt-3'}>
           {rows.map(({ key, ...r }) => <Row key={key} {...r} />)}
           {rows.some((r) => r.due) && (
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Personal Data → Body and Fitness.</div>

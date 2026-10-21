@@ -39,7 +39,9 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
     const { data: recent } = await supabase.from('workouts').select('id, started_at, muscle_groups, activities').eq('user_id', user.id).not('completed_at', 'is', null).is('deleted_at', null).order('started_at', { ascending: false }).limit(10);
     if (!recent?.length) { setRecentWorkout(null); return; }
     const anchor = recent.find((w) => w.id === preferredId) || recent[0];
-    setRecentWorkout({ id: anchor.id, title: workoutTitle(anchor.muscle_groups || [], anchor.activities || []) });
+    // The effort rating from the post-workout check-in, so the reflection never asks it twice (read apart: the column may not exist yet).
+    const r = await supabase.from('workouts').select('rpe').eq('id', anchor.id).maybeSingle();
+    setRecentWorkout({ id: anchor.id, title: workoutTitle(anchor.muscle_groups || [], anchor.activities || []), rpe: r.error ? null : (r.data?.rpe ?? null) });
   }
 
   useEffect(() => {
@@ -452,7 +454,8 @@ const STEPS = ['feel', 'stood', 'next'];
 function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [mood, setMood] = useState(4);
-  const [effort, setEffort] = useState(null);
+  const [effort, setEffort] = useState(recentWorkout?.rpe ?? null);
+  const effortKnown = Boolean(recentWorkout?.rpe); // already answered in the check-in right after the workout
   const [wentWell, setWentWell] = useState('');
   const [wasHard, setWasHard] = useState('');
   const [nextTime, setNextTime] = useState('');
@@ -501,12 +504,16 @@ function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
           <div style={{ color: PAPER }} className="text-lg font-medium mb-2 text-center">How's your mood?</div>
           <div style={{ color: AMBER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-medium mb-2 text-center">{MOOD_LABELS[mood - 1]}</div>
           <input type="range" min={1} max={7} value={mood} onChange={(e) => setMood(Number(e.target.value))} className="w-full" style={{ accentColor: AMBER }} />
-          <div className="flex justify-between mt-1 mb-5">
+          <div className="flex justify-between mt-1">
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[0]}</span>
             <span style={{ color: TEXT_SOFT }} className="text-sm">{MOOD_LABELS[6]}</span>
           </div>
-          <div style={{ color: PAPER }} className="text-lg font-medium mb-2 text-center">How hard was it?</div>
-          <EffortRow value={effort} onChange={setEffort} />
+          {!effortKnown && (
+            <>
+              <div style={{ color: PAPER }} className="text-lg font-medium mb-2 text-center mt-5">How hard was it?</div>
+              <EffortRow value={effort} onChange={setEffort} />
+            </>
+          )}
         </div>
       )}
 

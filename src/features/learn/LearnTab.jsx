@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, VIOLET, SKY, LIME, AMBER, MOSS, BRICK } from '../../theme';
 import Portal from '../../Portal';
+import Guides from './Guides';
 
 // Cycled by position in the list being shown, so neighbors are always
 // different colors (stable across reloads, not randomized). The order keeps
@@ -86,6 +87,7 @@ export default function LearnTab() {
   const [explainCategory, setExplainCategory] = useState(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [loadError, setLoadError] = useState('');
+  const [section, setSection] = useState('tidbits'); // 'tidbits' (short reads) | 'guides' (your plan and the movement library)
   const pressTimerRef = useRef(null);
 
   function selectCategory(key) {
@@ -162,6 +164,22 @@ export default function LearnTab() {
         </div>
       )}
 
+      <div className="flex justify-center mb-3">
+        <div style={{ background: INK_2 }} className="inline-flex rounded-full p-0.5">
+          {[{ id: 'tidbits', label: 'Tidbits' }, { id: 'guides', label: 'Guides' }].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSection(t.id)}
+              style={{ background: section === t.id ? VIOLET : 'transparent', color: section === t.id ? INK : PAPER_DIM }}
+              className="rounded-full px-6 py-1.5 text-sm font-medium"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {section === 'guides' ? <Guides userId={user?.id} /> : (<>
       <div className="flex items-center gap-2 mb-2">
         <div data-tour="learn-search" className="relative flex-1">
           <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
@@ -305,6 +323,7 @@ export default function LearnTab() {
         </div>
       )}
       </div>
+      </>)}
     </div>
   );
 }
