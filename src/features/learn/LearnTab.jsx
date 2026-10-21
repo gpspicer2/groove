@@ -45,15 +45,21 @@ function mapArticle(row) {
   };
 }
 
-// Tidbits that make the case for Groove itself lead the list: the "we're not
-// meant to exercise" one, then tracking/data, then journaling. Everything else
-// keeps the database order (pinned, then newest). Matched on the title so no
-// SQL is needed; Greg can still pin others.
-const PROMO_ORDER = [/born to\s*\*?exercise|meant to\s*\*?(exercise|move)/i, /track|data|measure/i, /journal|reflect|writ/i];
+// Tidbits that make the case for Groove itself lead the list: "You Weren't Born
+// to Exercise" first, then tracking/data, then journaling; anything about dancing
+// sinks to the bottom. A title match beats a summary match; everything else keeps
+// the database order (pinned, then newest). The sort runs once on load, so every
+// list (favorites, categories, search) inherits it. No SQL needed.
+const PROMO_ORDER = [/born to\s*\*?exercise|meant to\s*\*?(exercise|move)/i, /track|data|measure|log/i, /journal|reflect|writ/i];
+const DANCE = /danc|zumba|salsa|ballet/i;
 function promoRank(a) {
   const t = a.title.replace(/\*/g, '');
-  const i = PROMO_ORDER.findIndex((re) => re.test(t));
-  return i === -1 ? PROMO_ORDER.length : i;
+  const first = PROMO_ORDER.findIndex((re) => re.test(t));
+  if (first === 0) return 0;
+  if (DANCE.test(t) || (first === -1 && DANCE.test(a.summary || ''))) return 99;
+  if (first !== -1) return first;
+  const viaSummary = PROMO_ORDER.findIndex((re, k) => k > 0 && re.test(a.summary || ''));
+  return viaSummary === -1 ? 50 : 10 + viaSummary;
 }
 
 // Lightweight markdown for titles — *word* renders italic. Lets a
