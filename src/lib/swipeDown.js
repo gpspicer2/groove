@@ -12,7 +12,10 @@ export function useSwipeDown(onClose) {
   const [dy, setDy] = useState(0);
   const [dragging, setDragging] = useState(false);
 
+  // Sheets opened from inside another sheet (Account > Injuries...) sit in its React tree, so their touches would bubble up
+  // and pull the parent sheet closed too. Keep each sheet's gesture to itself.
   function onTouchStart(e) {
+    e.stopPropagation();
     const t = e.touches[0];
     const el = ref.current;
     // Anything marked data-no-sheet-drag (a sideways scroller, a slider) keeps its own gesture.
@@ -20,6 +23,7 @@ export function useSwipeDown(onClose) {
     st.current = { y0: t.clientY, x0: t.clientX, canDrag: !locked && (!el || el.scrollTop <= 0), active: false, dy: 0 };
   }
   function onTouchMove(e) {
+    e.stopPropagation();
     const s = st.current;
     if (!s.canDrag) return;
     const t = e.touches[0];
@@ -31,7 +35,8 @@ export function useSwipeDown(onClose) {
     s.dy = Math.max(0, d);
     setDy(s.dy);
   }
-  function onTouchEnd() {
+  function onTouchEnd(e) {
+    e?.stopPropagation?.();
     const s = st.current;
     if (s.active && s.dy > 110) onClose();
     s.active = false; s.canDrag = false;

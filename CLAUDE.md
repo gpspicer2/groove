@@ -154,6 +154,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 - Move's start flow is playful but restrained: sentence-case questions ("Where are we moving today?", "What kind of workout?", "Which muscles?", "What's the goal?"), one emoji per tile on workout type and training goal only, plain chips for muscle groups. "Combined" is shown as "Mixed" (`modeLabel` in exerciseLibrary; the stored value stays 'Combined'). Keep emoji sparing.
 
 ## Code gotchas
+- A sheet opened from inside another sheet (Account > Injuries, Lifting Preferences, Body and Fitness...) sits in the parent's React tree, so `useSwipeDown` stops touch events from bubbling (otherwise swiping the child closed the Account sheet too). Keep that when editing it.
 - Every React hook must run before any early return (otherwise React error #300).
 - Drag-to-reorder uses raw window touch listeners (`passive: false`); swipe drawers fire buttons on touch end.
 - The same exercise can appear in two muscle groups — card keys carry a `#n` suffix.
