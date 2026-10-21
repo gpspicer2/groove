@@ -4151,14 +4151,14 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Make it a superset', onEdit, editLabel = 'Edit settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
+function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Make a Superset', onEdit, editLabel = 'Edit Settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
   const close = () => setOpen(false);
   const row = (key, label, Icon, color, onClick) => (
-    <button key={key} onClick={onClick} style={{ background: INK_3, color: PAPER }} className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2">
-      <Icon size={16} color={color} /> {label}
+    <button key={key} onClick={onClick} style={{ background: INK_3, color: PAPER }} className="w-full flex items-center justify-center gap-1.5 rounded-md py-2.5 px-2 text-sm font-medium">
+      <Icon size={15} color={color} /> {label}
     </button>
   );
   return (
@@ -4177,27 +4177,25 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
           <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={close}>
             <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-5" onClick={(e) => e.stopPropagation()}>
               <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
-              {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-3">{title}</div>}
-              {onUndo && row('undo', 'Not finished yet (un-check)', Check, LIME, () => { close(); onUndo(); })}
-              {onSwap && row('swap', 'Swap for another', Replace, LIME, () => { close(); onSwap(); })}
-              {onSuperset && row('superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); })}
-              {onNever && row('never', 'Swap, and never suggest this again', Replace, TEXT_SOFT, () => { close(); onNever(); })}
-              {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
-              {(onMoveUp || onMoveDown) && (
-                <div className="flex gap-2">
-                  {onMoveUp ? <div className="flex-1">{row('up', 'Move up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}</div> : null}
-                  {onMoveDown ? <div className="flex-1">{row('down', 'Move down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}</div> : null}
-                </div>
-              )}
-              <button
-                onClick={() => arm.press('remove', () => { close(); onRemove(); })}
-                data-armed={arm.armed === 'remove'}
-                style={{ background: BRICK, color: PAPER, outline: arm.armed === 'remove' ? `2px solid ${PAPER}` : 'none', outlineOffset: -4 }}
-                className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
-              >
-                <Trash2 size={16} /> {arm.armed === 'remove' ? 'Tap again to remove' : 'Remove'}
-              </button>
-              <button onClick={close} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 text-center">Cancel</button>
+              {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-2.5">{title}</div>}
+              <div className="grid grid-cols-2 gap-2">
+                {onUndo && row('undo', 'Not Finished Yet', Check, LIME, () => { close(); onUndo(); })}
+                {onSwap && row('swap', 'Swap', Replace, LIME, () => { close(); onSwap(); })}
+                {onSuperset && row('superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); })}
+                {onNever && row('never', 'Never Suggest', Replace, TEXT_SOFT, () => { close(); onNever(); })}
+                {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
+                {onMoveUp && row('up', 'Move Up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}
+                {onMoveDown && row('down', 'Move Down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}
+                <button
+                  onClick={() => arm.press('remove', () => { close(); onRemove(); })}
+                  data-armed={arm.armed === 'remove'}
+                  style={{ background: BRICK, color: PAPER, outline: arm.armed === 'remove' ? `2px solid ${PAPER}` : 'none', outlineOffset: -4 }}
+                  className="col-span-2 w-full flex items-center justify-center gap-1.5 rounded-md py-2.5 text-sm font-medium"
+                >
+                  <Trash2 size={15} /> {arm.armed === 'remove' ? 'Tap Again to Remove' : 'Remove'}
+                </button>
+              </div>
+              <button onClick={close} style={{ color: TEXT_SOFT }} className="w-full text-sm pt-3 pb-1 text-center">Cancel</button>
             </div>
           </div>
         </Portal>
@@ -4383,7 +4381,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const [byTime, setByTime] = useState(isHoldExercise(exercise));
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split Superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">
           {exercise.name}
@@ -4458,7 +4456,7 @@ function SupersetCardio({ exercise, loggedSets, onLogSet, onDeleteSet, onOpenSwa
     });
   }
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split the superset" onUndo={onUndo} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split Superset" onUndo={onUndo} onRemove={onRemove}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">{exercise.name} <span style={{ color: AMBER }} className="text-sm font-medium">cardio</span></div>
         {loggedSets.length > 0 && (
