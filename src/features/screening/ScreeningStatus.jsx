@@ -6,7 +6,7 @@ import { RESULT_COPY, needsClearance } from './screening';
 
 // Short reminder while a doctor's okay is still recommended. Used on
 // Birdseye (only when clearance is pending) and in Account (always).
-export default function ScreeningStatus({ alwaysShow = false, inset = false, compact = false }) {
+export default function ScreeningStatus({ alwaysShow = false, inset = false, compact = false, bare = false }) {
   const { profile, updateProfile } = useAuth();
   const [retaking, setRetaking] = useState(false);
   const screening = profile?.screening;
@@ -25,6 +25,23 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
   const status = pending
     ? copy.banner
     : screening.cleared_at ? 'Cleared by your doctor.' : copy.title + '.';
+
+  // Inside Account > Personal Data: a slim row.
+  if (bare) {
+    return (
+      <>
+        <div style={{ background: INK_2 }} className="rounded-md px-3.5 py-2.5 mb-1.5 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <span style={{ color }} className="text-sm font-medium">Health check</span>
+            <button onClick={() => setRetaking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Update</button>
+          </div>
+          <div style={{ color: PAPER_DIM }} className="text-[13px] leading-snug">{status}</div>
+          {pending && <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-[13px] underline">My doctor cleared me</button>}
+        </div>
+        {retaking && <ScreeningFlow onClose={() => setRetaking(false)} onDone={() => setRetaking(false)} />}
+      </>
+    );
+  }
 
   return (
     <>

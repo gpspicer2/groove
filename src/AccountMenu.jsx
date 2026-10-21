@@ -109,34 +109,30 @@ function AccountModal({ onClose }) {
         <SwitchAccountSection />
 
         {!isTrainer && (
-          <div className="grid grid-cols-2 gap-2 mb-2 items-stretch">
-            <a
-              href="sms:+16034754544"
-              style={{ background: LIME, color: INK }}
-              className="flex flex-col items-center justify-center gap-1 rounded-md px-3 py-3 text-sm font-medium"
-            >
-              <MessageCircle size={20} /> Message Greg
-            </a>
-            <ScreeningStatus alwaysShow inset compact />
-          </div>
+          <a
+            href="sms:+16034754544"
+            style={{ background: LIME, color: INK }}
+            className="flex items-center justify-center gap-2 rounded-md px-3 py-2.5 mb-2 text-sm font-medium"
+          >
+            <MessageCircle size={18} /> Message Greg
+          </a>
         )}
-
-        {!isTrainer && <BaselineDataSection userId={user.id} />}
 
         {!isTrainer && (
-          <LinkRow
-            label={activeInjuries(inj.injuries).length ? `Injuries and limits (${activeInjuries(inj.injuries).length})` : 'Injuries and limits'}
-            onClick={() => setShowInjuries(true)}
+          <PersonalDataSection
+            userId={user.id}
+            injuryCount={activeInjuries(inj.injuries).length}
+            onInjuries={() => setShowInjuries(true)}
+            onExperience={() => setShowExperience(true)}
+            onMovements={() => setShowMovements(true)}
           />
         )}
-        {!isTrainer && <LinkRow label="Lifting experience" onClick={() => setShowExperience(true)} />}
 
         {!isTrainer && (
           <SettingsSection
             userId={user.id}
             onChangePassword={() => setShowPassword(true)}
             onPaymentInfo={() => setShowPassword('payment')}
-            onManageMovements={() => setShowMovements(true)}
           />
         )}
 
@@ -353,9 +349,9 @@ function AvatarCropModal({ image, onCancel, onSave }) {
   );
 }
 
-function LinkRow({ label, onClick }) {
+function LinkRow({ label, onClick, inset = false }) {
   return (
-    <button onClick={onClick} style={{ background: INK_3 }} className="w-full grid grid-cols-[16px_1fr_16px] items-center rounded-md px-4 py-3 mb-2">
+    <button onClick={onClick} style={{ background: inset ? INK_2 : INK_3 }} className={`w-full grid grid-cols-[16px_1fr_16px] items-center rounded-md px-4 ${inset ? 'py-2.5 mb-1.5' : 'py-3 mb-2'}`}>
       <span />
       <span style={{ color: PAPER }} className="text-sm text-center">{label}</span>
       <ChevronRight size={16} color={TEXT_SOFT} className="justify-self-end" />
@@ -536,7 +532,32 @@ function MovementsModal({ onClose }) {
   );
 }
 
-function BaselineDataSection({ userId }) {
+// Account > Personal Data: everything about you in one fold-down (health check, injuries, lifting experience,
+// your activities, and body and fitness numbers).
+function PersonalDataSection({ userId, injuryCount, onInjuries, onExperience, onMovements }) {
+  const [open, setOpen] = useState(false);
+  const revealRef = useRevealOnOpen(open);
+  return (
+    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
+      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+        <span />
+        <span style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Personal Data</span>
+        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+      </button>
+      {open && (
+        <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
+          <ScreeningStatus alwaysShow bare />
+          <LinkRow inset label={injuryCount ? `Injuries and limits (${injuryCount})` : 'Injuries and limits'} onClick={onInjuries} />
+          <LinkRow inset label="Lifting experience" onClick={onExperience} />
+          <LinkRow inset label="Manage Your Movements" onClick={onMovements} />
+          <BaselineDataSection userId={userId} nested />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BaselineDataSection({ userId, nested = false }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
   const revealRef = useRevealOnOpen(open);
@@ -593,10 +614,10 @@ function BaselineDataSection({ userId }) {
   const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
 
   return (
-    <div ref={revealRef} style={{ background: INK_3 }} className="rounded-md px-4 py-2.5 mb-2">
-      <button onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center">
+    <div ref={revealRef} style={nested ? undefined : { background: INK_3 }} className={nested ? 'mb-1' : 'rounded-md px-4 py-2.5 mb-2'}>
+      <button onClick={() => setOpen((v) => !v)} style={nested ? { background: INK_2 } : undefined} className={`w-full grid grid-cols-[24px_1fr_24px] items-center ${nested ? 'rounded-md px-4 py-2.5' : ''}`}>
         <span />
-        <span style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Baseline Data</span>
+        <span style={nested ? { color: PAPER } : { color: SKY }} className={nested ? 'text-sm' : 'text-base uppercase tracking-wide font-bold'}>{nested ? 'Body and Fitness' : 'Baseline Data'}</span>
         <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
       </button>
       {open && (loading ? (
@@ -718,7 +739,7 @@ function BaselineDataSection({ userId }) {
   );
 }
 
-function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMovements }) {
+function SettingsSection({ userId, onChangePassword, onPaymentInfo }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
   const revealRef = useRevealOnOpen(open);
@@ -734,65 +755,45 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo, onManageMove
       </button>
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
-          <LinkRow label="Change Password" onClick={onChangePassword} />
-          <LinkRow label="Membership" onClick={onPaymentInfo} />
-          <LinkRow label="Manage Your Movements" onClick={onManageMovements} />
-          <StravaRow />
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <button onClick={onChangePassword} style={{ background: INK_2, color: PAPER }} className="rounded-md py-2.5 text-sm">Change Password</button>
+            <button onClick={onPaymentInfo} style={{ background: INK_2, color: PAPER }} className="rounded-md py-2.5 text-sm">Membership</button>
+          </div>
 
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Week Starts On</div>
+          {/* One line each: the label, then its choices. */}
           <div className="flex items-center gap-2 mb-2">
+            <span style={{ color: TEXT_SOFT }} className="text-sm w-24 shrink-0 text-left">Week starts</span>
             {['monday', 'sunday'].map((day) => {
               const selected = (profile?.week_start_day || 'sunday') === day;
               return (
-                <button
-                  key={day}
-                  onClick={() => updateProfile({ week_start_day: day })}
-                  style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }}
-                  className="flex-1 rounded-md py-2.5 text-sm font-medium capitalize"
-                >
-                  {day}
-                </button>
+                <button key={day} onClick={() => updateProfile({ week_start_day: day })} style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }} className="flex-1 rounded-md py-2 text-sm font-medium capitalize">{day}</button>
               );
             })}
           </div>
-
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Appearance</div>
           <div className="flex items-center gap-2 mb-2">
+            <span style={{ color: TEXT_SOFT }} className="text-sm w-24 shrink-0 text-left">Appearance</span>
             {[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([value, label]) => {
               const selected = themePref === value;
               return (
-                <button
-                  key={value}
-                  onClick={() => { setThemePref(value); setThemePrefState(value); }}
-                  style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }}
-                  className="flex-1 rounded-md py-2.5 text-sm font-medium"
-                >
-                  {label}
-                </button>
+                <button key={value} onClick={() => { setThemePref(value); setThemePrefState(value); }} title={value === 'auto' ? "Matches your phone's setting" : undefined} style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }} className="flex-1 rounded-md py-2 text-sm font-medium">{label}</button>
               );
             })}
           </div>
-          {themePref === 'auto' && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">Matches your phone's setting.</div>}
 
           <NotificationsRow />
 
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide block text-center mb-2 mt-4">Rest Timer</div>
           <button
             onClick={() => { const next = !autoStartRest; setAutoStartRest(next); setAutoStartRestTimer(next); }}
             style={{ background: INK_2 }}
             className="w-full rounded-md px-4 py-2.5 mb-2 flex items-center justify-between text-left"
           >
-            <span style={{ color: PAPER }} className="text-sm">Auto-start after logging a set</span>
-            <span
-              style={{ background: autoStartRest ? LIME : INK_3 }}
-              className="relative shrink-0 w-10 h-6 rounded-full"
-            >
-              <span
-                style={{ background: PAPER, transform: autoStartRest ? 'translateX(16px)' : 'translateX(2px)' }}
-                className="absolute top-0.5 w-5 h-5 rounded-full transition-transform"
-              />
+            <span style={{ color: PAPER }} className="text-sm">Auto-start rest timer</span>
+            <span style={{ background: autoStartRest ? LIME : INK_3 }} className="relative shrink-0 w-10 h-6 rounded-full">
+              <span style={{ background: PAPER, transform: autoStartRest ? 'translateX(16px)' : 'translateX(2px)' }} className="absolute top-0.5 w-5 h-5 rounded-full transition-transform" />
             </span>
           </button>
+
+          <StravaRow />
 
           <DeletedWorkoutsSection userId={userId} />
         </div>

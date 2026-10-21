@@ -423,7 +423,7 @@ export function repsFor(name, reps) {
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
 export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
 
-export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
@@ -439,7 +439,9 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     // recentNames runs most recent first, so when a muscle runs out of fresh options the one
     // done longest ago comes back first.
     const stale = pool.filter((e) => recentNames.includes(e.name)).sort((a, b) => recentNames.indexOf(b.name) - recentNames.indexOf(a.name));
-    return { group, ordered: [...shuffle(fresh), ...stale], at: 0 };
+    // Lifts the member loves come first (the shuffle still varies the rest).
+    const loved = (e) => Number(prefer.includes(e.name));
+    return { group, ordered: [...shuffle(fresh).sort((x, y) => loved(y) - loved(x)), ...stale], at: 0 };
   });
   // Round-robin: every muscle gets its first exercise before any muscle gets a second, so a short
   // session still covers each muscle (arms and core don't get squeezed out by extra chest and back).

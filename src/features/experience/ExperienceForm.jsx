@@ -13,7 +13,7 @@ export default function ExperienceForm({ answers, onChange }) {
             {g.items.map((it) => (
               <div key={it.id} style={{ background: INK_3 }} className="rounded-md px-3 py-1.5">
                 <div style={{ color: PAPER }} className="text-sm font-medium mb-1">{it.label}</div>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-4 gap-1">
                   {EXPERIENCE_STATES.map((s) => {
                     const on = answers[it.id] === s.id;
                     return (
@@ -21,7 +21,7 @@ export default function ExperienceForm({ answers, onChange }) {
                         key={s.id}
                         onClick={() => onChange({ ...answers, [it.id]: on ? undefined : s.id })}
                         style={{ background: on ? SKY : 'transparent', color: on ? INK : PAPER_DIM, border: `1px solid ${on ? SKY : TEXT_SOFT}` }}
-                        className="rounded-md py-1 text-[13px] font-medium"
+                        className="rounded-md py-1 text-[12px] font-medium"
                       >
                         {s.label}
                       </button>

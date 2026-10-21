@@ -1,7 +1,7 @@
 import { ADVANCED_LIFTS } from '../move/exerciseLibrary';
 
 // The lifting experience survey: which movements a member knows, wants to learn, or wants left out.
-// `names` are the library exercises each answer covers. Answers: 'know' | 'learn' | 'skip' (blank = no answer).
+// `names` are the library exercises each answer covers. Answers: 'know' | 'learn' | 'skip' (blank = no answer; 'love' counts as knowing it and is also favored).
 export const EXPERIENCE_GROUPS = [
   { title: 'Squats', items: [
     { id: 'back_squat', label: 'Back squat', names: ['Barbell Back Squat', 'Pause Back Squat'] },
@@ -41,6 +41,7 @@ export const EXPERIENCE_GROUPS = [
 
 export const EXPERIENCE_STATES = [
   { id: 'know', label: 'Know it' },
+  { id: 'love', label: 'Love it' },
   { id: 'learn', label: 'Learn it' },
   { id: 'skip', label: 'Skip it' },
 ];
@@ -53,11 +54,15 @@ export function blockedByExperience(answers = {}) {
   const blocked = new Set();
   ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'skip') it.names.forEach((n) => blocked.add(n)); });
   const known = new Set();
-  ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'know') it.names.forEach((n) => known.add(n)); });
+  ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'know' || answers[it.id] === 'love') it.names.forEach((n) => known.add(n)); });
   ADVANCED_LIFTS.forEach((n) => { if (!known.has(n)) blocked.add(n); });
   return [...blocked];
 }
 // True when the member said they know this exercise (used to prefer familiar lifts).
 export function knowsLift(answers = {}, name) {
-  return ALL_ITEMS.some((it) => answers[it.id] === 'know' && it.names.includes(name));
+  return ALL_ITEMS.some((it) => (answers[it.id] === 'know' || answers[it.id] === 'love') && it.names.includes(name));
+}
+// Lifts the member loves: suggested workouts pick these first, and they win when a day's lift has options.
+export function lovedLifts(answers = {}) {
+  return ALL_ITEMS.filter((it) => answers[it.id] === 'love').flatMap((it) => it.names);
 }

@@ -36,7 +36,7 @@ import { startOfWeek } from '../../lib/week';
 import { MoveProgramCard, MoveProgramLink, useProgramWeek, useHr } from '../program/ProgramCards';
 import { programTitle, zoneText, intervalLine } from '../program/programs';
 import { useExperience } from '../experience/useExperience';
-import { blockedByExperience, knowsLift } from '../experience/movements';
+import { blockedByExperience, knowsLift, lovedLifts } from '../experience/movements';
 
 // Whether a workout was started as a clean slate (remembered on this device).
 function isCleanSlateWorkout(id) {
@@ -787,7 +787,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers)];
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined)
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers))
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
       // first choice is skipped, blocked or not available where the member is training).
@@ -796,7 +796,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         programSession.leads.forEach((lead, i) => {
           const options = lead.names
             .filter((n) => !blocked.includes(n) && !leadEntries.some((e) => e.name === n))
-            .sort((a, b) => Number(knowsLift(experience.answers, b)) - Number(knowsLift(experience.answers, a)));
+            .sort((a, b) => (lovedLifts(experience.answers).includes(b) - lovedLifts(experience.answers).includes(a)) || (Number(knowsLift(experience.answers, b)) - Number(knowsLift(experience.answers, a))));
           for (const n of options) {
             const group = Object.keys(EXERCISE_LIBRARY).find((g) => EXERCISE_LIBRARY[g].some((e) => e.name === n));
             const lib = group ? EXERCISE_LIBRARY[group].find((e) => e.name === n) : null;
