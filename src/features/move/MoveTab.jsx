@@ -8,6 +8,8 @@ import { useArmed } from '../../lib/useArmed';
 import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import ExperienceSheet from '../experience/ExperienceSheet';
+import FirstTimeHint from '../onboarding/FirstTimeHint';
 import SwipeHint from '../../SwipeHint';
 import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
@@ -424,6 +426,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const programLifted = useProgramLifted(user?.id, program, `${completedWorkouts.length}-${sets.length}`);
   const hrNow = useHr(program);
   const experience = useExperience(user?.id);
+  const [showGymSheet, setShowGymSheet] = useState(false);
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
@@ -1475,6 +1478,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           </div>
         )}
         {!planning && !program && !selectedLocation && !movementMode && <MoveProgramLink onOpen={() => setShowProgramSheet(true)} />}
+        {/* First-timers: a way to tell Groove what their gym has, so suggested workouts fit. Hides once they answer. */}
+        {!planning && !selectedLocation && !movementMode && completedWorkouts.length === 0 && !experience.experience?.gym?.has && (
+          <FirstTimeHint id="gym" userId={user?.id} label="Want Workouts That Fit Your Gym?" color={SKY} onOpen={() => setShowGymSheet(true)} className="mb-2 -mt-1" />
+        )}
+        {showGymSheet && <ExperienceSheet answers={experience.answers} gym={experience.experience?.gym} onSave={experience.save} onClose={() => setShowGymSheet(false)} startOnGym />}
         {aerobicSession && movementMode === 'Aerobic' && !planning && (
           <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-left">
             <div style={{ color: PAPER }} className="text-sm font-medium">{aerobicSession.name} · {aerobicSession.minutes} min</div>

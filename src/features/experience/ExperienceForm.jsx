@@ -96,9 +96,9 @@ function Row({ it, answers, onChange, onInfo }) {
 
 // The survey itself: one page per muscle group (arrows, dots, or Next). Each page starts with a short list of the common lifts
 // and a "More Lifts" fold-down for the rest. Every lift is a slider from Love It to Skip It; the (i) explains it.
-export default function ExperienceForm({ answers, onChange, gym = {}, onGym = null }) {
+export default function ExperienceForm({ answers, onChange, gym = {}, onGym = null, startOnGym = false }) {
   const [info, setInfo] = useState(null);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(startOnGym && onGym ? EXPERIENCE_GROUPS.length : 0); // the last page is Your Gym
   const [openMore, setOpenMore] = useState({});
   const topRef = useRef(null);
   const swipe = useRef(null);

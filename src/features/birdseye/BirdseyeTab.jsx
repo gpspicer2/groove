@@ -20,6 +20,7 @@ import { buildRecap, dayKey } from './weekly';
 import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import Progress from './Progress';
+import FirstTimeHint from '../onboarding/FirstTimeHint';
 import { distinctDays } from '../../lib/days';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
@@ -523,7 +524,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           )}
           {/* First-timers (nothing logged yet) get a friendly way into setting their goals. */}
           {workouts.length === 0 && trackedGoals.length > 0 && (
-            <button onClick={() => setGoalHelp(true)} style={{ color: LIME }} className="w-full text-base font-bold text-center mt-1.5 py-0.5">Where Did These Come From?</button>
+            <FirstTimeHint id="goals" userId={userId} label="Where Did These Come From?" color={LIME} onOpen={() => setGoalHelp(true)} className="mt-1" />
           )}
           {/* The nudge lives inside this card (not a card of its own) so the calendar stays higher on the screen. */}
           {insight && intakeDone && (
@@ -532,6 +533,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         </div>
 
         <WorkoutCalendar
+          userId={userId}
           dataTour="birdseye-calendar"
           workouts={workouts}
           hasResistance={hasResistance}
@@ -841,7 +843,7 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onMovePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
+function WorkoutCalendar({ userId, workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onMovePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [choiceDay, setChoiceDay] = useState(null); // a day that already has workouts
   const [plannedDay, setPlannedDay] = useState(null); // a day with planned workouts
@@ -935,6 +937,17 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
           );
         })}
       </div>
+      {/* First-timers (no plans yet) get a one-tap way to plan tomorrow; it hides itself once a plan exists. */}
+      {plans.length === 0 && workouts.length < 3 && (
+        <FirstTimeHint
+          id="plan"
+          userId={userId}
+          label="Want to Plan a Workout?"
+          color={LIME}
+          className="mt-1"
+          onOpen={() => { const t = new Date(); t.setDate(t.getDate() + 1); setPlanForm({ dateStr: dateInputValue(t), plan: null }); }}
+        />
+      )}
       {plannedDay && (
         <PlannedWorkoutPopup
           dateStr={dateInputValue(plannedDay)}

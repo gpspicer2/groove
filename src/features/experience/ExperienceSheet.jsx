@@ -6,7 +6,7 @@ import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 import ExperienceForm from './ExperienceForm';
 
 // Account > Lifting Preferences. Saves as you tap.
-export default function ExperienceSheet({ answers, gym, onSave, onClose }) {
+export default function ExperienceSheet({ answers, gym, onSave, onClose, startOnGym = false }) {
   const sheet = useSwipeDown(onClose);
   const set = (next) => onSave({ answers: Object.fromEntries(Object.entries(next).filter(([, v]) => v)), gym: gym || {} });
   const setGym = (next) => onSave({ answers, gym: next });
@@ -21,7 +21,7 @@ export default function ExperienceSheet({ answers, gym, onSave, onClose }) {
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-3">Which lifts do you love, know, want to learn, or want to skip? Programs and suggested workouts lean on your answers. Olympic lifts only appear if you say you know them.</div>
-          <ExperienceForm answers={answers} onChange={set} gym={gym || {}} onGym={setGym} />
+          <ExperienceForm answers={answers} onChange={set} gym={gym || {}} onGym={setGym} startOnGym={startOnGym} />
           <button onClick={onClose} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">Done</button>
         </div>
       </div>
