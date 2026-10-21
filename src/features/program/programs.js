@@ -133,22 +133,23 @@ const CYCLES = {
   },
   linear: {
     len: 7, exercises: 6, mainCount: 0,
+    // NSCA hypertrophy range: 6-12 reps at roughly 67-85% of max, rest 30-90 sec (a little longer on the heaviest weeks).
     weeks: [
-      { phase: 'Build', main: rx(3, '12-15', '7', '60-90 sec') },
-      { phase: 'Build', main: rx(3, '12-15', '8', '60-90 sec') },
-      { phase: 'Build', main: rx(4, '10-12', '8', '90 sec') },
-      { phase: 'Build', main: rx(4, '10-12', '8-9', '90 sec') },
-      { phase: 'Build', main: rx(4, '8-10', '8-9', '90 sec-2 min') },
-      { phase: 'Build', main: rx(4, '8-10', '9', '2 min') },
+      { phase: 'Build', main: rx(3, '9-11', '7', '60-90 sec') },
+      { phase: 'Build', main: rx(3, '9-11', '8', '60-90 sec') },
+      { phase: 'Build', main: rx(4, '8-10', '8', '90 sec') },
+      { phase: 'Build', main: rx(4, '8-10', '8-9', '90 sec') },
+      { phase: 'Build', main: rx(4, '7-9', '8-9', '90 sec') },
+      { phase: 'Build', main: rx(4, '7-9', '9', '90 sec-2 min') },
       { phase: 'Deload', main: rx(3, '10', '6', '60-90 sec') },
     ],
   },
   undulating: {
     len: 4, exercises: 6, mainCount: 0,
     days: [
-      { label: 'Heavy', main: rx(4, '5-8', '8-9', '2-3 min') },
+      { label: 'Heavy', main: rx(4, '6-8', '8-9', '2 min') },
       { label: 'Moderate', main: rx(3, '8-12', '8', '90 sec') },
-      { label: 'Light', main: rx(3, '12-20', '7-8', '60 sec') },
+      { label: 'Light', main: rx(3, '12-15', '7-8', '60 sec') },
     ],
     deload: { label: 'Deload', main: rx(3, '10', '6', '60-90 sec') },
   },
@@ -189,20 +190,30 @@ export function cyclePosition(program, week) {
   return ((week - 1) % cycleLength(program)) + 1;
 }
 
-// Shifts a rep target up or down (never below 3), e.g. 12-15 by -3 is 9-12, 5 by -2 is 3.
-function shiftReps(reps, d) {
+// Moves a rep target up or down by `d`, keeping its width and keeping it inside the range NSCA gives for that goal
+// (strength 2-6, hypertrophy 6-12, fat loss circuits 8-20). E.g. 9-11 by -2 is 7-9; 5 by -2 is 3.
+function shiftReps(reps, d, min, max) {
   const m = String(reps).match(/^(\d+)(?:-(\d+))?$/);
   if (!m) return reps;
-  const lo = Math.max(3, Number(m[1]) + d);
-  const hi = m[2] ? Math.max(3, Number(m[2]) + d) : null;
-  return hi != null && hi !== lo ? `${lo}-${hi}` : String(lo);
+  const width = m[2] ? Number(m[2]) - Number(m[1]) : 0;
+  let lo = Number(m[1]) + d;
+  if (lo < min) lo = min;
+  if (lo + width > max) lo = Math.max(min, max - width);
+  const hi = Math.min(max, lo + width);
+  return hi > lo ? `${lo}-${hi}` : String(lo);
 }
 // Each week's prescription is the "Moderate" day. Within the week the sessions rotate Heavy / Moderate / Light
-// (like the undulating program does), so no two lifting days in a row look the same.
-const DAY_SHIFT = { Heavy: { strength: -2, other: -3 }, Light: { strength: 3, other: 3 } };
-function flavored(main, label, key) {
-  const d = DAY_SHIFT[label]?.[key === 'strength' ? 'strength' : 'other'];
-  return d ? { ...main, reps: shiftReps(main.reps, d) } : main;
+// (like the undulating program does), so no two lifting days in a row look the same. Strength stays at 6 reps or
+// fewer every day (NSCA: heavy loads, 85%+ of max); hypertrophy stays within 6-12.
+const DAY_SHIFT = {
+  strength: { min: 2, max: 6, Heavy: -2, Light: 1 },
+  hypertrophy: { min: 6, max: 12, Heavy: -2, Light: 2 },
+  fat_loss: { min: 8, max: 20, Heavy: -3, Light: 3 },
+};
+function flavored(main, label, goal) {
+  const c = DAY_SHIFT[goal];
+  const d = c?.[label];
+  return d ? { ...main, reps: shiftReps(main.reps, d, c.min, c.max) } : main;
 }
 
 // The sessions for one week, with the prescription for that week.
@@ -236,9 +247,9 @@ export function sessionsForWeek(program, week) {
     } else {
       const w = cyc.weeks[pos - 1];
       label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + week - 1) % 3];
-      presc = { main: flavored(w.main, label, key), acc: w.acc || null };
+      presc = { main: flavored(w.main, label, program.goal), acc: w.acc || null };
     }
-    const style = program.goal === 'strength' || (presc.main.reps && Number(String(presc.main.reps).split('-')[0]) <= 6) ? 'Strength' : 'Hypertrophy';
+    const style = program.goal === 'strength' ? 'Strength' : 'Hypertrophy';
     out.push({
       id: `w${week}-r${li}`, kind: 'resistance', name: t.name + (label && key === 'undulating' ? ` · ${label}` : ''),
       shortName: t.name, groups: t.groups, style, day, label,

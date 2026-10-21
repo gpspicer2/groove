@@ -388,14 +388,20 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
 // training style rather than the library's default. The final list is
 // then stably sorted compound-first (see COMPOUND_PATTERN above),
 // preserving the muscle-group order otherwise.
-// Within one workout the big lifts keep the day's rep range and single-joint (isolation) lifts go about three reps
-// higher, so a session isn't the same sets x reps all the way down. High-rep (endurance) ranges stay as they are.
+// Within one workout the big lifts keep the day's rep range and single-joint (isolation) lifts run a little higher,
+// so a session isn't the same sets x reps all the way down. Hypertrophy ranges stay inside NSCA's 6-12; a strength
+// day's assistance lifts go to 6-8; high-rep (12+) ranges stay as they are.
 export function repsFor(name, reps) {
   if (isCompound(name)) return reps;
   const m = String(reps).match(/^(\d+)(?:-(\d+))?$/);
-  if (!m || Number(m[1]) >= 15) return reps;
-  const lo = Number(m[1]) + 3;
-  return m[2] ? `${lo}-${Number(m[2]) + 3}` : String(lo);
+  if (!m) return reps;
+  const lo = Number(m[1]);
+  const hi = m[2] ? Number(m[2]) : lo;
+  if (lo >= 12) return reps;
+  if (hi <= 6) return '6-8';
+  const nlo = Math.min(12, lo + 2);
+  const nhi = Math.min(12, Math.max(hi, nlo + 2));
+  return nhi > nlo ? `${nlo}-${nhi}` : String(nlo);
 }
 
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.

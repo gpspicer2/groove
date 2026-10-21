@@ -830,8 +830,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         if (idx >= appliedSession.exercises) return [];
         const isMain = idx < appliedSession.mainCount || !appliedSession.acc;
         const rxn = isMain ? appliedSession.presc : appliedSession.acc;
-        // Holds keep their own timed target; a deload stays uniform; otherwise isolation lifts run a few reps higher.
-        const reps = holdReps(ex) ?? (appliedSession.phase === 'Deload' || !isMain ? rxn.reps : repsFor(ex.name, rxn.reps));
+        // Holds keep their own timed target; a deload and a strength session (main lifts + accessories) stay as prescribed; otherwise isolation lifts run a couple of reps higher.
+        const reps = holdReps(ex) ?? (appliedSession.phase === 'Deload' || appliedSession.acc ? rxn.reps : repsFor(ex.name, rxn.reps));
         return [{ ...ex, sets: rxn.sets, reps }];
       });
     }
