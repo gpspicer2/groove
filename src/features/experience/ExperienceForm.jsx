@@ -26,7 +26,7 @@ export default function ExperienceForm({ answers, onChange }) {
     <div className="text-left">
       {EXPERIENCE_GROUPS.map((g) => (
         <div key={g.title} className="mb-3">
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">{g.title}</div>
+          <div style={{ color: TEXT_SOFT }} className="text-base font-medium uppercase tracking-wide mb-1.5 text-center">{g.title}</div>
           <div className="space-y-1">
             {g.items.map((it) => (
               <div key={it.id} style={{ background: INK_3 }} className="rounded-md px-3 py-1.5">
