@@ -4,12 +4,12 @@ The link: https://groove-rho.vercel.app
 
 ## Quick share (the link makes a preview card)
 
-Paste this into a text. The link turns into a card with the GROOVE picture and a one-line description, like an Amazon or Strava share (`index.html` has the preview tags, the picture is `public/og-image.png`):
+Paste this into a text. The link turns into a card with the GROOVE picture and a one-line description, like an Amazon or Strava share (`index.html` has the preview tags, the picture is `public/og-image-v2.png`):
 
 > I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!
-> https://groove-rho.vercel.app
+> https://groove-rho.vercel.app/?invite
 
-Put the link on its own line, last, so the card appears under your message. Texts and apps sometimes keep an old preview for a while, so if the card looks wrong, send the link to yourself first to check it.
+Put the link on its own line, last, and type or paste it as plain text so it appears only once (copying from a chat can add a second copy in parentheses, and Messages then skips the card). The `?invite` on the end is on purpose: phones remember the preview for each exact link, so a link they saw before the picture existed keeps showing no picture. The new ending is a link they have never seen, and it opens the same app. The picture file has a version in its name (`og-image-v2.png`) for the same reason; if the picture is ever redrawn, bump the name to `-v3` in `index.html`, the script and here.
 
 ## The text (copy and paste)
 

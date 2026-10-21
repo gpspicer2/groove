@@ -1,4 +1,4 @@
-# Makes public/og-image.png: the picture that shows in a link preview (iMessage, WhatsApp, Facebook...) when someone
+# Makes public/og-image-v2.png: the picture that shows in a link preview (iMessage, WhatsApp, Facebook...) when someone
 # shares the Groove link. Run: python3 scripts/make-share-image.py   (needs pillow; uses the Outfit font if installed)
 from PIL import Image, ImageDraw, ImageFont
 import glob
@@ -32,5 +32,5 @@ def centered(text, y, f, fill):
 
 centered('Movement mentorship and education', 370, font(58), TEXT)
 centered('Find movement you will keep doing', 450, font(38), SOFT)
-img.save('public/og-image.png', optimize=True)
+img.save('public/og-image-v2.png', optimize=True)
 print('saved', img.size)

@@ -24,11 +24,11 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Your overview: weekly goals, a calendar for logging and planning workouts, and your progress over time.",
+    body: "Your overview: weekly goals, a calendar for logging and planning workouts, your training program once you start one, and your progress over time.",
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Log any workout, today or a past day: resistance, aerobic, flexibility, or mixed. Follow an optional training program, add cardio or stretches any time, and tell us how it felt after.",
+    body: "Log any workout, today or a past day: resistance, aerobic, flexibility, or mixed. Or build a training program (Strength, Hypertrophy, Fat Loss or Improve Fitness) and Move lays out your week. Add cardio or stretches any time, and tell us how it felt after.",
   },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',
