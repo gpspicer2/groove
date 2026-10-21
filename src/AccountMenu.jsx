@@ -265,20 +265,20 @@ function AvatarPicker({ userId }) {
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
         aria-label="Change Photo"
-        className="relative block w-24 h-24"
+        className="relative block w-16 h-16"
       >
-        <span style={{ background: INK_3 }} className="block w-24 h-24 rounded-full overflow-hidden flex items-center justify-center">
+        <span style={{ background: INK_3 }} className="block w-16 h-16 rounded-full overflow-hidden flex items-center justify-center">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="Account" className="w-full h-full object-cover" />
           ) : (
-            <User size={40} color={TEXT_SOFT} />
+            <User size={28} color={TEXT_SOFT} />
           )}
         </span>
         {uploading && (
           <span style={{ background: 'rgba(0,0,0,0.5)', color: PAPER }} className="absolute inset-0 rounded-full flex items-center justify-center text-xs">Uploading…</span>
         )}
-        <span style={{ background: INK_2, border: `2px solid ${INK_3}` }} className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center">
-          <Camera size={15} color={PAPER} />
+        <span style={{ background: INK_2, border: `2px solid ${INK_3}` }} className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center">
+          <Camera size={12} color={PAPER} />
         </span>
       </button>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
@@ -347,6 +347,11 @@ function AvatarCropModal({ image, onCancel, onSave }) {
       </div>
     </Portal>
   );
+}
+
+// A compact tile for two-across grids.
+function LinkButton({ label, onClick }) {
+  return <button onClick={onClick} style={{ background: INK_2 }} className="rounded-md px-2 py-2.5 text-sm text-center leading-tight"><span style={{ color: PAPER }}>{label}</span></button>;
 }
 
 function LinkRow({ label, onClick, inset = false }) {
@@ -547,20 +552,21 @@ function PersonalDataSection({ userId, injuryCount, onInjuries, onExperience, on
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
           <ScreeningStatus alwaysShow bare />
-          <LinkRow inset label={injuryCount ? `Injuries and Limits (${injuryCount})` : 'Injuries and Limits'} onClick={onInjuries} />
-          <LinkRow inset label="Lifting Preferences" onClick={onExperience} />
-          <LinkRow inset label="Manage Your Movements" onClick={onMovements} />
-          <BaselineDataSection userId={userId} nested />
+          <div className="grid grid-cols-2 gap-1.5 items-stretch">
+            <LinkButton label={injuryCount ? `Injuries and Limits (${injuryCount})` : 'Injuries and Limits'} onClick={onInjuries} />
+            <LinkButton label="Lifting Preferences" onClick={onExperience} />
+            <LinkButton label="Manage Your Movements" onClick={onMovements} />
+            <BaselineDataSection userId={userId} />
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function BaselineDataSection({ userId, nested = false }) {
+function BaselineDataSection({ userId }) {
   const { profile, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
-  const revealRef = useRevealOnOpen(open);
   const [loading, setLoading] = useState(true);
   const [age, setAge] = useState(null);
   const [ageInput, setAgeInput] = useState('');
@@ -571,6 +577,7 @@ function BaselineDataSection({ userId, nested = false }) {
   const [showPeakInfo, setShowPeakInfo] = useState(false);
   const [intakeDone, setIntakeDone] = useState(true);
   const [showBaselineForm, setShowBaselineForm] = useState(false);
+  const [test, setTest] = useState(null); // 'vo2' | '1rm'
 
   useEffect(() => {
     (async () => {
@@ -613,121 +620,94 @@ function BaselineDataSection({ userId, nested = false }) {
   const maxHrNum = maxHr.trim() === '' ? (predictedMaxHR(age) || null) : parseFloat(maxHr);
   const maxHrIsPredicted = maxHr.trim() === '' && maxHrNum != null;
 
+  const box = { background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' };
+  const cap = { color: TEXT_SOFT };
+  const sheetUi = useSwipeDown(() => setOpen(false));
+
   return (
-    <div ref={revealRef} style={nested ? undefined : { background: INK_3 }} className={nested ? 'mb-1' : 'rounded-md px-4 py-2.5 mb-2'}>
-      <button onClick={() => setOpen((v) => !v)} style={nested ? { background: INK_2 } : undefined} className={`w-full grid grid-cols-[24px_1fr_24px] items-center ${nested ? 'rounded-md px-4 py-2.5' : ''}`}>
-        <span />
-        <span style={nested ? { color: PAPER } : { color: SKY }} className={nested ? 'text-sm' : 'text-base uppercase tracking-wide font-bold'}>{nested ? 'Body and Fitness' : 'Baseline Data'}</span>
-        <span className="justify-self-end">{open ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}</span>
+    <>
+      <button onClick={() => setOpen(true)} style={{ background: INK_2 }} className="w-full rounded-md px-2 py-2.5 text-sm text-center h-full" >
+        <span style={{ color: PAPER }}>Body and Fitness</span>
       </button>
-      {open && (loading ? (
-        <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-3">Loading…</div>
-      ) : (
-        <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3 space-y-4">
-          {!intakeDone && (
-            <button
-              onClick={() => setShowBaselineForm(true)}
-              style={{ background: INK_2, color: SKY }}
-              className="w-full rounded-md py-2.5 text-sm font-medium"
-            >
-              Finish your intake questionnaire →
-            </button>
-          )}
-          <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1 text-center">Age</div>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={ageInput}
-              onChange={(e) => setAgeInput(e.target.value)}
-              onBlur={(e) => saveAge(e.target.value)}
-              placeholder="—"
-              style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-              className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none mx-auto block"
-            />
-          </div>
-          <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Gender</div>
-            <div className="flex items-center gap-2">
-              {GENDER_OPTIONS.map((g) => {
-                const selected = profile?.gender === g;
-                return (
-                  <button
-                    key={g}
-                    onClick={() => updateProfile({ gender: g })}
-                    style={{ background: selected ? LIME : INK_2, color: selected ? INK : PAPER_DIM }}
-                    className="flex-1 rounded-md py-2 text-sm font-medium"
-                  >
-                    {g}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1 text-center">Bodyweight</div>
-            <div className="flex items-center justify-center gap-2">
-              <input
-                type="number"
-                inputMode="decimal"
-                value={bodyweight}
-                onChange={(e) => setBodyweight(e.target.value)}
-                onBlur={(e) => saveBodyweight(e.target.value)}
-                placeholder="—"
-                style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-                className="w-20 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-              />
-              <span style={{ color: TEXT_SOFT }} className="text-sm">lb</span>
-            </div>
-          </div>
-          <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Heart Rate</div>
-            {prescribedZone && (
-              <div style={{ color: SKY }} className="text-sm mb-2 text-center">Greg recommends the {prescribedZone} zone</div>
-            )}
-            <div className="flex items-center justify-center gap-4 mb-2">
-              <div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">Resting</div>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={restingHr}
-                  onChange={(e) => setRestingHr(e.target.value)}
-                  onBlur={(e) => saveHr('resting_hr_bpm', e.target.value)}
-                  placeholder="—"
-                  style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-                  className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-                />
+      {open && (
+        <Portal>
+          <div style={{ background: 'rgba(0,0,0,0.5)' }} className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setOpen(false)}>
+            <div ref={sheetUi.ref} {...sheetUi.handlers} style={{ background: INK_2, ...sheetUi.style }} className="w-full max-w-sm rounded-t-2xl px-5 py-4 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-6" />
+                <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Body and Fitness</h2>
+                <button onClick={() => setOpen(false)} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
               </div>
-              <div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-1 flex items-center gap-1">
-                  Peak{maxHrIsPredicted ? ' (est.)' : ''}
-                  <button onClick={() => setShowPeakInfo((v) => !v)} style={{ color: TEXT_SOFT }} className="p-0.5 -m-0.5">
-                    <Info size={12} />
-                  </button>
+              {loading ? (
+                <div style={{ color: TEXT_SOFT }} className="text-sm text-center">Loading…</div>
+              ) : (
+                <div className="space-y-3">
+                  {!intakeDone && (
+                    <button onClick={() => setShowBaselineForm(true)} style={{ background: INK_3, color: SKY }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                      Finish Your Intake Questionnaire →
+                    </button>
+                  )}
+                  <div className="flex items-end gap-3">
+                    <div className="w-16 shrink-0">
+                      <div style={cap} className="text-sm mb-1 text-center">Age</div>
+                      <input type="number" inputMode="numeric" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} onBlur={(e) => saveAge(e.target.value)} placeholder="—" style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="w-full rounded-md px-1 py-2 text-lg text-center outline-none" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div style={cap} className="text-sm mb-1 text-center">Gender</div>
+                      <div className="flex gap-1.5">
+                        {GENDER_OPTIONS.map((g) => {
+                          const selected = profile?.gender === g;
+                          return (
+                            <button key={g} onClick={() => updateProfile({ gender: g })} style={{ background: selected ? LIME : INK_3, color: selected ? INK : PAPER_DIM }} className="flex-1 rounded-md py-2.5 text-sm font-medium">{g}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div style={cap} className="text-sm mb-1 text-center">Weight (lb)</div>
+                      <input type="number" inputMode="decimal" value={bodyweight} onChange={(e) => setBodyweight(e.target.value)} onBlur={(e) => saveBodyweight(e.target.value)} placeholder="—" style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="w-full rounded-md px-1 py-2 text-lg text-center outline-none" />
+                    </div>
+                    <div>
+                      <div style={cap} className="text-sm mb-1 text-center">Resting HR</div>
+                      <input type="number" inputMode="numeric" value={restingHr} onChange={(e) => setRestingHr(e.target.value)} onBlur={(e) => saveHr('resting_hr_bpm', e.target.value)} placeholder="—" style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="w-full rounded-md px-1 py-2 text-lg text-center outline-none" />
+                    </div>
+                    <div>
+                      <div style={cap} className="text-sm mb-1 flex items-center justify-center gap-1">
+                        Peak HR{maxHrIsPredicted ? '*' : ''}
+                        <button onClick={() => setShowPeakInfo((v) => !v)} style={{ color: TEXT_SOFT }} className="p-0.5 -m-0.5" aria-label="About peak heart rate"><Info size={12} /></button>
+                      </div>
+                      <input type="number" inputMode="numeric" value={maxHr} onChange={(e) => setMaxHr(e.target.value)} onBlur={(e) => saveHr('max_hr_bpm', e.target.value)} placeholder={maxHrIsPredicted ? String(maxHrNum) : '—'} style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="w-full rounded-md px-1 py-2 text-lg text-center outline-none" />
+                    </div>
+                  </div>
+                  {prescribedZone && <div style={{ color: SKY }} className="text-sm text-center">Greg recommends the {prescribedZone} zone</div>}
+                  {showPeakInfo && (
+                    <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm text-left">
+                      The highest heart rate you've seen during a hard effort. We estimate it from your age unless you enter your own.
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setTest('vo2')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">VO2max Test</button>
+                    <button onClick={() => setTest('1rm')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">Strength (1RM)</button>
+                  </div>
                 </div>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={maxHr}
-                  onChange={(e) => setMaxHr(e.target.value)}
-                  onBlur={(e) => saveHr('max_hr_bpm', e.target.value)}
-                  placeholder={maxHrIsPredicted ? String(maxHrNum) : '—'}
-                  style={{ background: INK_2, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
-                  className="w-16 rounded-md px-2 py-1.5 text-lg text-center outline-none"
-                />
-              </div>
+              )}
+              {test && (
+                <Portal>
+                  <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[55] flex items-center justify-center px-4" onClick={() => setTest(null)}>
+                    <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => setTest(null)} aria-label="Close" style={{ color: TEXT_SOFT }} className="absolute top-3 right-3 p-2 z-10"><X size={18} /></button>
+                      {test === 'vo2' ? <VO2maxEstimator userId={userId} profile={profile} updateProfile={updateProfile} /> : <OneRMEstimator userId={userId} />}
+                    </div>
+                  </div>
+                </Portal>
+              )}
             </div>
-            {showPeakInfo && (
-              <div style={{ background: INK_2, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm text-left mb-2">
-                The highest heart rate you've seen during a hard effort. We estimate it from your age unless you enter your own.
-              </div>
-            )}
           </div>
-          <VO2maxEstimator userId={userId} profile={profile} updateProfile={updateProfile} />
-          <OneRMEstimator userId={userId} />
-        </div>
-      ))}
+        </Portal>
+      )}
       {showBaselineForm && (
         <BaselineFlow
           userId={userId}
@@ -735,7 +715,7 @@ function BaselineDataSection({ userId, nested = false }) {
           onComplete={() => { setShowBaselineForm(false); setIntakeDone(true); }}
         />
       )}
-    </div>
+    </>
   );
 }
 
