@@ -4042,6 +4042,12 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
               <button onMouseDown={(e) => e.preventDefault()} onClick={() => setWeight(0)} style={{ color: TEXT_SOFT }} className="px-1.5 py-1 text-sm underline shrink-0">Clear</button>
             </div>
           )}
+          {perSideOn && (
+            <div style={{ color: PAPER_DIM }} className="text-sm tabular-nums">
+              Total {(Number(weight) || 0) * 2 + extra} lb
+              <span style={{ color: TEXT_SOFT }}> ({2} × {Number(weight) || 0}{extra > 0 ? ` + ${isBarbell ? 'bar' : 'machine'} ${extra}` : ''})</span>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-4 whitespace-nowrap">
             <button
               onMouseDown={(e) => e.preventDefault()}
