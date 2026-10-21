@@ -3,6 +3,7 @@ import { ADVANCED_LIFTS } from '../move/exerciseLibrary';
 // The lifting experience survey: which movements a member knows, wants to learn, or wants left out.
 // `names` are the library exercises each answer covers. Answers: 'know' | 'learn' | 'skip' (blank = no answer; 'love' counts as knowing it and is also favored).
 // Each page is a muscle group: `items` are the short list everyone sees; `more` are extra lifts behind "More Lifts".
+// Each page is a muscle group: `items` are the short list everyone sees; `more` are extra lifts behind "More Lifts".
 export const EXPERIENCE_GROUPS = [
   { title: 'Chest',
     items: [
@@ -73,15 +74,19 @@ export const EXPERIENCE_GROUPS = [
       { id: 'diamond', label: 'Diamond Push-Ups', info: 'Push-ups with your hands close together under your chest. Works your triceps hard.', names: ['Diamond Push-Ups'] },
       { id: 'bench_dips', label: 'Bench Dips', info: 'With your hands on a bench behind you, lower and raise your body by bending your elbows.', names: ['Bench Dips'] },
     ] },
-  { title: 'Legs',
+  { title: 'Legs and Hips',
     items: [
       { id: 'back_squat', label: 'Back Squat', info: 'A barbell rests across your upper back as you squat down and stand up. The classic leg lift.', names: ['Barbell Back Squat', 'Pause Back Squat'] },
-      { id: 'front_squat', label: 'Front Squat', info: 'The barbell rests on the front of your shoulders while you squat. It keeps your chest upright and works the front of your thighs.', names: ['Front Squat'] },
-      { id: 'goblet', label: 'Goblet Squat', info: 'Hold one dumbbell or kettlebell at your chest and squat. A friendly way to learn squatting.', names: ['Goblet Squat'] },
       { id: 'leg_press', label: 'Leg Press', info: 'Sit in a machine and push a weight away with your legs. Easy on your balance and back.', names: ['Leg Press'] },
       { id: 'lunges', label: 'Lunges', info: 'Step forward or back into a lunge. Works one leg at a time.', names: ['Walking Lunges', 'Reverse Lunges'] },
+      { id: 'deadlift', label: 'Conventional Deadlift', info: 'Lift a barbell from the floor to standing, with your feet hip-width and hands just outside your knees.', names: ['Conventional Deadlift'] },
+      { id: 'rdl', label: 'Romanian Deadlift', info: 'Hinge at your hips with a barbell or dumbbells, sliding the weight down your legs with knees slightly bent. Works hamstrings and glutes.', names: ['Romanian Deadlift', 'Single-Leg Romanian Deadlift'] },
+      { id: 'hip_thrust', label: 'Hip Thrust', info: 'Back against a bench with a barbell or dumbbell on your hips, drive your hips up. A glute builder.', names: ['Hip Thrust', 'Dumbbell Hip Thrust'] },
+      { id: 'leg_curl', label: 'Leg Curl', info: 'Curl your heels toward your glutes on a machine, lying or seated. Works your hamstrings.', names: ['Leg Curl', 'Seated Hamstring Curl'] },
     ],
     more: [
+      { id: 'front_squat', label: 'Front Squat', info: 'The barbell rests on the front of your shoulders while you squat. It keeps your chest upright and works the front of your thighs.', names: ['Front Squat'] },
+      { id: 'goblet', label: 'Goblet Squat', info: 'Hold one dumbbell or kettlebell at your chest and squat. A friendly way to learn squatting.', names: ['Goblet Squat'] },
       { id: 'hack_squat', label: 'Hack Squat', info: 'Squat on an angled machine with your back against a pad and shoulders under pads. Loads your quads with less strain on your back.', names: ['Hack Squat'] },
       { id: 'smith_squat', label: 'Smith Machine Squat', info: 'A squat with the bar fixed on vertical rails, so it only moves up and down.', names: ['Smith Machine Squat'] },
       { id: 'split_squat', label: 'Bulgarian Split Squat', info: 'Rest your back foot on a bench and squat on your front leg. Tough on your thighs and balance.', names: ['Bulgarian Split Squat'] },
@@ -90,16 +95,7 @@ export const EXPERIENCE_GROUPS = [
       { id: 'wall_sit', label: 'Wall Sit', info: 'Slide down a wall until your thighs are level and hold. A timed leg burner.', names: ['Wall Sit'] },
       { id: 'calf_raise', label: 'Calf Raises', info: 'Rise onto your toes and lower back down. Works your calves.', names: ['Calf Raises'] },
       { id: 'seated_calf', label: 'Seated Calf Raise', info: 'Sit with a pad on your knees and raise your heels. Works the deeper calf muscle.', names: ['Seated Calf Raise'] },
-    ] },
-  { title: 'Hips',
-    items: [
-      { id: 'deadlift', label: 'Conventional Deadlift', info: 'Lift a barbell from the floor to standing, with your feet hip-width and hands just outside your knees.', names: ['Conventional Deadlift'] },
-      { id: 'rdl', label: 'Romanian Deadlift', info: 'Hinge at your hips with a barbell or dumbbells, sliding the weight down your legs with knees slightly bent. Works hamstrings and glutes.', names: ['Romanian Deadlift', 'Single-Leg Romanian Deadlift'] },
-      { id: 'hip_thrust', label: 'Hip Thrust', info: 'Back against a bench with a barbell or dumbbell on your hips, drive your hips up. A glute builder.', names: ['Hip Thrust', 'Dumbbell Hip Thrust'] },
-      { id: 'leg_curl', label: 'Leg Curl', info: 'Curl your heels toward your glutes on a machine, lying or seated. Works your hamstrings.', names: ['Leg Curl', 'Seated Hamstring Curl'] },
       { id: 'good_morning', label: 'Good Morning', info: 'A barbell on your upper back as you bow forward at the hips with a flat back, then stand tall.', names: ['Barbell Good Morning', 'Bodyweight Good Morning'] },
-    ],
-    more: [
       { id: 'sumo', label: 'Sumo Deadlift', info: 'A deadlift with a wide stance and toes turned out, hands inside your knees.', names: ['Sumo Deadlift'] },
       { id: 'trap_bar', label: 'Trap Bar Deadlift', info: 'A deadlift standing inside a hexagon-shaped bar. Often feels easier on the back than a straight bar.', names: ['Trap Bar Deadlift'] },
       { id: 'glute_bridge', label: 'Glute Bridge', info: 'Lie on your back and lift your hips off the floor, on one or both legs.', names: ['Single-Leg Glute Bridge'] },
