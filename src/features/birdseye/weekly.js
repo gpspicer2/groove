@@ -1,3 +1,4 @@
+import { distinctDays } from '../../lib/days';
 // Weekly summaries for Birdseye's "Last week" card: totals, which goals
 // were hit, milestones, and a gentle goal-progression suggestion.
 
@@ -26,8 +27,8 @@ export function summarizeWeek({ workouts, weekStart, offset, aerobicMinutesByWor
     start,
     sessions: inWeek.length,
     aerobicMin,
-    resistance: inWeek.filter(hasResistance).length,
-    flexibility: inWeek.filter(hasFlexibility).length,
+    resistance: distinctDays(inWeek.filter(hasResistance)),
+    flexibility: distinctDays(inWeek.filter(hasFlexibility)),
     kcal,
   };
 }

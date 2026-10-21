@@ -20,6 +20,7 @@ import { buildRecap, dayKey } from './weekly';
 import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import Progress from './Progress';
+import { distinctDays } from '../../lib/days';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
 import { programPlans, normalizeMoves } from '../program/programs';
@@ -318,10 +319,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const workoutsThisWeek = weekAll.filter((w) => !isLive(w));
   const thisWeekIds = new Set(workoutsThisWeek.map((w) => w.id));
   const liftsThisWeek = liftSetRows.filter((s) => thisWeekIds.has(s.workout_id));
-  const resistanceThisWeek = workoutsThisWeek.filter(hasResistance).length;
+  const resistanceThisWeek = distinctDays(workoutsThisWeek.filter(hasResistance));
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
-  const flexibilityThisWeek = workoutsThisWeek.filter(hasFlexibility).length;
-  const balanceThisWeek = workoutsThisWeek.filter(hasBalance).length;
+  const flexibilityThisWeek = distinctDays(workoutsThisWeek.filter(hasFlexibility));
+  const balanceThisWeek = distinctDays(workoutsThisWeek.filter(hasBalance));
 
   // ACSM phrases the aerobic guideline in moderate-equivalent minutes —
   // vigorous minutes count double — not a session count, so that's the
@@ -390,13 +391,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       const d = new Date(w.started_at);
       return d >= ws && d < we;
     });
-    const rCount = weekWorkouts.filter(hasResistance).length;
+    const rCount = distinctDays(weekWorkouts.filter(hasResistance));
     const aMinutes = weekWorkouts.reduce((sum, w) => {
       const b = aerobicMinutesByWorkout[w.id];
       return sum + (b ? b.moderate + b.vigorous * 2 : 0);
     }, 0);
-    const fCount = weekWorkouts.filter(hasFlexibility).length;
-    const bCount = weekWorkouts.filter(hasBalance).length;
+    const fCount = distinctDays(weekWorkouts.filter(hasFlexibility));
+    const bCount = distinctDays(weekWorkouts.filter(hasBalance));
     const metAll = (!trackAerobicGoal || aMinutes >= aerobicGoalMinutes)
       && (!trackResistanceGoal || rCount >= resistanceGoal)
       && (!trackFlexibilityGoal || fCount >= flexibilityGoal)
@@ -481,14 +482,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           />
         )}
 
-        {insight && intakeDone && (
-          <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
-            <div style={{ color: PAPER }} className="text-sm">{insight}</div>
-          </div>
-        )}
-
-        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
-          <div className="flex items-center justify-between mb-1">
+        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-2.5">
+          <div className="flex items-center justify-between mb-0.5">
             <span />
             <span style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide">Weekly Goals</span>
             <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
@@ -519,10 +514,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           ))}
 
           {(kcalThisWeek > 0 || streak > 0) && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-2 flex flex-wrap items-center justify-center gap-x-3">
+            <div style={{ color: TEXT_SOFT }} className="text-sm mt-1.5 flex flex-wrap items-center justify-center gap-x-3">
               {kcalThisWeek > 0 && <span>~{kcalThisWeek.toLocaleString()} kcal this week</span>}
               {streak > 0 && <span style={{ color: LIME }}>🔥 {streak} week{streak === 1 ? '' : 's'} hitting {trackedCount > 2 ? 'all' : trackedCount === 2 ? 'both' : 'your'} {trackedCount === 1 ? 'goal' : 'goals'}</span>}
             </div>
+          )}
+          {/* The nudge lives inside this card (not a card of its own) so the calendar stays higher on the screen. */}
+          {insight && intakeDone && (
+            <div style={{ color: PAPER, borderTop: `1px dashed ${INK_3}` }} className="text-sm text-center mt-2 pt-2">{insight}</div>
           )}
         </div>
 
@@ -706,7 +705,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, 
   const plannedPct = Math.max(0, Math.min(100 - pct, (displayPlanned / displayGoal) * 100));
 
   return (
-    <div ref={goalRef} className="relative mb-2 last:mb-0 rounded-md overflow-hidden">
+    <div ref={goalRef} className="relative mb-1.5 last:mb-0 rounded-md overflow-hidden">
       <button
         onClick={() => (aerobic || extra) && setExpanded((v) => !v)}
         className="w-full flex items-center justify-between mb-1 py-0.5"
@@ -726,7 +725,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, 
           </span>
         </span>
       </button>
-      <div style={{ background: INK_3 }} className="h-2 rounded-full overflow-hidden relative">
+      <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden relative">
         <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
         {plannedPct > 0 && (
           <div
@@ -906,7 +905,7 @@ function WorkoutCalendar({ workouts, hasResistance, hasAerobic, hasFlexibility, 
                 else onLogOnDate && onLogOnDate(day);
               }}
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
-              className="aspect-[7/5] rounded-md flex flex-col items-center justify-center gap-0.5 group"
+              className="aspect-[3/2] rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
               <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
               {hasAny || dayPlans.length > 0 ? (

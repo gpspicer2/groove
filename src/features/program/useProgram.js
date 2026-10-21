@@ -65,12 +65,13 @@ export function useProgramProgress(userId, program, active, refreshKey, weekStar
       const ids = w.data.map((x) => x.id);
       const s = await supabase.from('workout_sets').select('workout_id, movement_type, muscle_group, moderate_minutes, vigorous_minutes').in('workout_id', ids);
       if (cancelled || s.error) return;
-      const res = new Set(); const aer = new Set(); let eq = 0;
+      const dayOf = {}; w.data.forEach((x) => { const d = new Date(x.started_at); dayOf[x.id] = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; });
+      const res = new Set(); const aer = new Set(); let eq = 0; // lifting sessions count days: two workouts the same day are one session
       (s.data || []).forEach((r) => {
         const type = r.movement_type || 'resistance';
         if (!finished.has(r.workout_id)) return;
         if (type === 'aerobic') { aer.add(r.workout_id); eq += (Number(r.moderate_minutes) || 0) + 2 * (Number(r.vigorous_minutes) || 0); } // harder minutes count double (ACSM)
-        else if (type === 'resistance' && r.muscle_group !== 'Warm-up') res.add(r.workout_id);
+        else if (type === 'resistance' && r.muscle_group !== 'Warm-up') res.add(dayOf[r.workout_id]);
       });
       setDone({ resistance: res.size, aerobic: aer.size, aerobicEq: Math.round(eq), inProgress });
     })();

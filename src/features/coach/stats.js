@@ -51,7 +51,7 @@ export function computeMemberStats(clients, workouts, sets, now = new Date()) {
   sets.forEach((s) => { (setsByWorkout[s.workout_id] ||= []).push(s); });
   const out = {};
   clients.forEach((c) => {
-    out[c.id] = { week: { sessions: 0, aerobic: 0, resistance: 0, flexibility: 0 }, lastAt: null, feltOff: null, rpes: [], sessions14: 0 };
+    out[c.id] = { week: { sessions: 0, aerobic: 0, resistance: 0, flexibility: 0 }, resDays: new Set(), flexDays: new Set(), lastAt: null, feltOff: null, rpes: [], sessions14: 0 };
   });
   workouts.forEach((w) => {
     const st = out[w.user_id];
@@ -67,8 +67,10 @@ export function computeMemberStats(clients, workouts, sets, now = new Date()) {
       const wSets = setsByWorkout[w.id] || [];
       const k = kindsOf(w, wSets);
       st.week.sessions += 1;
-      if (k.resistance) st.week.resistance += 1;
-      if (k.flexibility) st.week.flexibility += 1;
+      // Resistance and flexibility goals count days, not workouts.
+      const dk = `${at.getFullYear()}-${at.getMonth()}-${at.getDate()}`;
+      if (k.resistance) { st.resDays.add(dk); st.week.resistance = st.resDays.size; }
+      if (k.flexibility) { st.flexDays.add(dk); st.week.flexibility = st.flexDays.size; }
       if (k.aerobic) {
         let mins = 0;
         wSets.forEach((s) => {

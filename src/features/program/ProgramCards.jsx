@@ -182,13 +182,17 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
   const next = week.next;
   const today = new Date().getDay();
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-3 text-center">
+    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-2.5 text-center">
       <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-lg uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
+        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.doneCount} of {week.sessions.length} done this week{week.minutes ? ` · ${week.minutes.done}/${week.minutes.target} cardio min` : ''}</div>
+      {/* Once everything is done the line at the bottom says so, so the count is only shown while sessions remain. */}
+      {(next || week.minutes) && (
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5">{week.doneCount} of {week.sessions.length} done this week{week.minutes ? ` · ${week.minutes.done}/${week.minutes.target} cardio min` : ''}</div>
+      )}
+      {!next && !week.minutes && <div className="mb-1.5" />}
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
           Pick your training days
@@ -201,7 +205,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
             <div
               key={s.id}
               style={{ background: isNext ? LIME : INK_3, color: isNext ? INK : s.done ? TEXT_SOFT : PAPER, outline: s.day === today && !isNext ? `1.5px solid ${LIME}` : 'none' }}
-              className="flex-1 min-w-0 rounded-md py-1.5 px-0.5 text-sm font-medium leading-tight flex items-center justify-center gap-1"
+              className="flex-1 min-w-0 rounded-md py-1 px-0.5 text-sm font-medium leading-tight flex items-center justify-center gap-1"
             >
               {DAY_NAMES[s.day]}{s.done && <Check size={12} />}
             </div>
@@ -220,7 +224,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
           )}
         </div>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm mt-2">All {week.sessions.length} sessions done this week. Nice work!</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm mt-1.5">All {week.sessions.length} sessions done this week. Nice work!</div>
       )}
     </div>
   );
