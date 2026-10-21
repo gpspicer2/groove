@@ -22,18 +22,42 @@ function InfoPopup({ item, onClose }) {
 }
 
 // A four-stop slider from Love It to Skip It. Drag the pill, or just tap a stop. Nothing is chosen until it is touched.
+// Time of the last scroll anywhere (the sheet scrolls, not the page), so a touch that merely stops a scroll is never an answer.
+let lastScrollAt = 0;
+if (typeof document !== 'undefined') document.addEventListener('scroll', () => { lastScrollAt = Date.now(); }, true);
+
 function ExperienceSlider({ value, onChange, label }) {
   const ref = useRef(null);
-  const dragging = useRef(false);
+  const g = useRef(null); // the gesture in progress: { x, y, drag, ignore }
   const idx = EXPERIENCE_STATES.findIndex((x) => x.id === value);
-  const pick = (e) => {
+  const pick = (clientX) => {
     const r = ref.current.getBoundingClientRect();
-    const x = Math.min(Math.max(e.clientX - r.left, 0), r.width - 1);
+    const x = Math.min(Math.max(clientX - r.left, 0), r.width - 1);
     const next = EXPERIENCE_STATES[Math.floor((x / r.width) * EXPERIENCE_STATES.length)].id;
     if (next !== value) onChange(next);
   };
   const move = (d) => onChange(EXPERIENCE_STATES[Math.min(EXPERIENCE_STATES.length - 1, Math.max(0, (idx < 0 ? (d > 0 ? -1 : EXPERIENCE_STATES.length) : idx) + d))].id);
   const [tone, onTone] = idx >= 0 ? TONES[EXPERIENCE_STATES[idx].tone] : [TEXT_SOFT, INK];
+  // A finger only answers on a clean tap or a sideways drag. Scrolling up or down (the browser takes over and cancels the
+  // gesture) never answers, and neither does a touch that lands while the sheet is still scrolling.
+  const down = (e) => {
+    const touch = e.pointerType !== 'mouse';
+    g.current = { x: e.clientX, y: e.clientY, drag: false, touch, ignore: touch && Date.now() - lastScrollAt < 250 };
+    if (!touch) { e.currentTarget.setPointerCapture(e.pointerId); g.current.drag = true; pick(e.clientX); }
+  };
+  const moved = (e) => {
+    const s = g.current; if (!s || s.ignore) return;
+    if (!s.drag) {
+      const dx = Math.abs(e.clientX - s.x); const dy = Math.abs(e.clientY - s.y);
+      if (dx > 10 && dx > dy * 1.5) { s.drag = true; e.currentTarget.setPointerCapture(e.pointerId); } else return;
+    }
+    pick(e.clientX);
+  };
+  const up = (e) => {
+    const s = g.current; g.current = null;
+    if (!s || s.ignore || s.drag) return;
+    if (Math.abs(e.clientX - s.x) < 10 && Math.abs(e.clientY - s.y) < 10) pick(e.clientX); // a tap
+  };
   return (
     <div
       ref={ref}
@@ -45,11 +69,11 @@ function ExperienceSlider({ value, onChange, label }) {
       aria-valuenow={idx < 0 ? undefined : idx}
       aria-valuetext={idx < 0 ? 'Not answered' : EXPERIENCE_STATES[idx].label}
       onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); move(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); } }}
-      onPointerDown={(e) => { dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); pick(e); }}
-      onPointerMove={(e) => { if (dragging.current) pick(e); }}
-      onPointerUp={() => { dragging.current = false; }}
-      onPointerCancel={() => { dragging.current = false; }}
-      style={{ touchAction: 'none', background: INK_2 }}
+      onPointerDown={down}
+      onPointerMove={moved}
+      onPointerUp={up}
+      onPointerCancel={() => { g.current = null; }}
+      style={{ touchAction: 'pan-y', background: INK_2 }}
       className="relative h-11 rounded-full select-none cursor-pointer"
     >
       <div className="absolute inset-0 grid grid-cols-4 rounded-full overflow-hidden">
