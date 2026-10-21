@@ -111,6 +111,10 @@ export const EXERCISE_LIBRARY = {
     { name: 'Push-Ups', sets: 3, reps: '10-15', equipment: 'bodyweight' },
     { name: 'Machine Chest Press', sets: 3, reps: '10-12', equipment: 'machine' },
     { name: 'Pause Bench Press', sets: 3, reps: '4-6', equipment: 'barbell' }, // a 1-2 second stop on the chest: builds strength off the chest
+    { name: 'Plate-Loaded Chest Press', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Pec Deck Fly', sets: 3, reps: '10-15', equipment: 'machine' },
+    { name: 'Cable Fly', sets: 3, reps: '10-15', equipment: 'cable' },
+    { name: 'Smith Machine Bench Press', sets: 3, reps: '8-12', equipment: 'machine' },
   ],
   Back: [
     { name: 'Pull-Ups', sets: 4, reps: '8-10', equipment: 'bodyweight' },
@@ -131,6 +135,9 @@ export const EXERCISE_LIBRARY = {
     { name: 'Power Clean', sets: 4, reps: '3-5', equipment: 'barbell', advanced: true }, // Olympic lift: only with experience
     { name: 'Hang Power Clean', sets: 4, reps: '3-5', equipment: 'barbell', advanced: true },
     { name: 'Power Snatch', sets: 4, reps: '2-4', equipment: 'barbell', advanced: true },
+    { name: 'T-Bar Row', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Plate-Loaded Row', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Assisted Pull-Up Machine', sets: 3, reps: '8-12', equipment: 'machine' },
   ],
   Legs: [
     { name: 'Barbell Back Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
@@ -142,6 +149,9 @@ export const EXERCISE_LIBRARY = {
     { name: 'Reverse Lunges', sets: 3, reps: '10-12', equipment: 'bodyweight' },
     { name: 'Calf Raises', sets: 3, reps: '12-20', equipment: 'bodyweight' },
     { name: 'Pause Back Squat', sets: 3, reps: '4-6', equipment: 'barbell' },
+    { name: 'Hack Squat', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Smith Machine Squat', sets: 3, reps: '8-12', equipment: 'machine' },
+    { name: 'Seated Calf Raise', sets: 3, reps: '12-20', equipment: 'machine' },
   ],
   Quadriceps: [
     { name: 'Front Squat', sets: 4, reps: '8-10', equipment: 'barbell' },
@@ -168,6 +178,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Dumbbell Hip Thrust', sets: 3, reps: '10-15', equipment: 'dumbbell' },
     { name: 'Donkey Kicks', sets: 3, reps: '12-15', equipment: 'bodyweight' },
     { name: 'Kettlebell Swing', sets: 3, reps: '10-15', equipment: 'dumbbell' },
+    { name: 'Hip Abduction Machine', sets: 3, reps: '12-15', equipment: 'machine' },
   ],
   Shoulders: [
     { name: 'Overhead Press', sets: 4, reps: '6-8', equipment: 'barbell' },
@@ -180,6 +191,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Handstand Hold (wall)', sets: 3, reps: '20-30s', equipment: 'bodyweight' },
     { name: 'Plank Shoulder Taps', sets: 3, reps: '10-16', equipment: 'bodyweight' },
     { name: 'Push Press', sets: 4, reps: '4-6', equipment: 'barbell', advanced: true },
+    { name: 'Machine Shoulder Press', sets: 3, reps: '8-12', equipment: 'machine' },
   ],
   Biceps: [
     { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
@@ -208,6 +220,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Russian Twist', sets: 3, reps: '15-20', equipment: 'bodyweight' },
     { name: 'Ab Wheel Rollout', sets: 3, reps: '8-10', equipment: 'bodyweight' },
     { name: 'Side Plank', sets: 3, reps: '30-45s', equipment: 'bodyweight' },
+    { name: 'Machine Crunch', sets: 3, reps: '10-15', equipment: 'machine' },
   ],
 };
 
