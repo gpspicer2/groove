@@ -346,7 +346,7 @@ export function sessionsForWeek(program, week) {
         // Powerlifting days: the first lift is the week's top work; variation (volume) days run lighter.
         label = w.phase === 'Deload' ? 'Deload' : t.volume ? 'Volume' : '';
         let top = t.volume && !deload ? flavored(w.main, 'Light', 'strength') : w.main;
-        if (t.leads && t.leads[0] === LEAD.deadlift && top.sets > 3) top = { ...top, sets: top.sets - 2 }; // deadlifts are taxing: fewer heavy sets
+        if (t.leads && t.leads[0] === LEAD.deadlift && top.sets > 3) top = { ...top, sets: Math.max(3, top.sets - 2) }; // deadlifts are taxing: fewer heavy sets
         presc = { main: top, sec: w.sec || null, acc: w.acc || null };
       } else {
         label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + flavorSkew + week - 1) % 3];

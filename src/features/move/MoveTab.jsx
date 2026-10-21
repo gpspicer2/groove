@@ -787,7 +787,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers)];
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession && programSession.exercises > 6 ? programSession.exercises : undefined)
+      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
       // first choice is skipped, blocked or not available where the member is training).
@@ -806,7 +806,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           }
         });
         const names = new Set(leadEntries.map((e) => e.name));
-        plan = [...leadEntries, ...plan.filter((ex) => !names.has(ex.name))];
+        // Don't pile another squat, bench or deadlift variation onto a day whose main lift is that pattern.
+        const family = (leadEntries[0]?.name.match(/Squat|Deadlift|Bench/) || [])[0];
+        plan = [...leadEntries, ...plan.filter((ex) => !names.has(ex.name) && !(family && ex.name.includes(family)))];
       }
       // Run down: a shorter session with one fewer set per exercise.
       if (readiness?.tired) plan = plan.slice(0, 4).map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) }));
@@ -3856,7 +3858,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
     return () => clearTimeout(t);
   }, [timeLeft]);
-  useEffect(() => () => keepAwake(false), []);
+  const lockedAwake = useRef(false); // only release the screen lock if this timer took it
+  useEffect(() => () => { if (lockedAwake.current) keepAwake(false); }, []);
 
   function handleLog() {
     if (belowBarbell) return;
@@ -3927,7 +3930,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           {Number(seconds) > 0 && (
             <button
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { unlockAudio(); keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
+              onClick={() => { unlockAudio(); lockedAwake.current = timeLeft == null; keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
               style={{ background: timeLeft != null ? SKY : INK_3, color: timeLeft != null ? INK : PAPER }}
               className="rounded-md py-2.5 px-2 min-w-[2.5rem] text-base font-medium tabular-nums flex items-center justify-center"
               aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
