@@ -7,10 +7,10 @@ import MetBrowser from '../../MetBrowser';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, MOSS, AMBER, BRICK, VIOLET } from '../../theme';
 
-// Learn > Guides: the two reference cards that used to sit at the bottom of Birdseye. Science-Backed Plan is your
+// Learn > Guides: the two reference cards that used to sit at the bottom of Birdseye. Scientific Support is your
 // individual prescription (from your goals, heart rate and Greg's zone) plus the ACSM guidelines behind it; Movement
 // Library lists everyday activities by intensity. Both stay closed until tapped.
-export default function Guides({ userId, active = true }) {
+export default function Guides({ userId, active = true, openSupport = false }) {
   const [data, setData] = useState({ assessmentDone: true, prescribedZone: null, restingHrNum: null, maxHrNum: null, maxHrIsPredicted: false, resistanceGoal: 3, aerobicGoalMinutes: 150 });
   const [showAssessment, setShowAssessment] = useState(false);
 
@@ -40,7 +40,7 @@ export default function Guides({ userId, active = true }) {
 
   return (
     <div className="space-y-3">
-      <ScienceStrategy dataTour="birdseye-science" {...data} onStartAssessment={() => setShowAssessment(true)} />
+      <ScienceStrategy dataTour="birdseye-science" defaultOpen={openSupport} {...data} onStartAssessment={() => setShowAssessment(true)} />
       <MovementLibrary hrZones={computeHrZones(data.restingHrNum, data.maxHrNum)} />
       {showAssessment && (
         <FitnessAssessmentFlow
@@ -65,9 +65,9 @@ const RPE_BY_ZONE = { Light: '2–4', Moderate: '5–6', Vigorous: '7–8' };
 
 // Your individualized exercise prescription and the ACSM guidelines it's
 // built on, as one dropdown — they said nearly the same thing twice.
-function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour }) {
+function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, aerobicGoalMinutes, restingHrNum, maxHrNum, maxHrIsPredicted, prescribedZone, dataTour, defaultOpen = false }) {
   const zones = computeHrZones(restingHrNum, maxHrNum);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const revealRef = useRevealOnOpen(open);
   const [openInfo, setOpenInfo] = useState(null);
   const infoBtn = (label) => (
@@ -84,7 +84,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
       <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
         <span />
         <span style={{ color: VIOLET }} className="text-base uppercase tracking-wide font-bold">
-          Science-Backed Plan{' '}
+          Scientific Support{' '}
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
             aria-label="About This Plan"

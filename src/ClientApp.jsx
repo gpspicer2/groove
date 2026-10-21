@@ -75,6 +75,7 @@ export default function ClientApp() {
   useEffect(() => { window.dispatchEvent(new Event('groove:tabchange')); }, [tab]);
   const [deepLinkWorkoutId, setDeepLinkWorkoutId] = useState(null);
   const [logDate, setLogDate] = useState(null); // YYYY-MM-DD picked on the Birdseye calendar
+  const [learnRequest, setLearnRequest] = useState(null); // { section, open } from Birdseye's "Want Some Help?"
   const [journalRequest, setJournalRequest] = useState(null); // { workoutId } from the post-workout journal prompt
   const [programRequest, setProgramRequest] = useState(null); // { session } from a training program
   const [planRequest, setPlanRequest] = useState(null); // { mode: 'plan' | 'start', date?, plan }
@@ -144,6 +145,7 @@ export default function ClientApp() {
       onStartPlan={startPlan}
       onStartProgramSession={startProgramSession}
       onOpenGroove={openGrooveDrawer}
+      onOpenScientificSupport={() => { setLearnRequest({ section: 'guides', open: 'support' }); setTab('learn'); }}
       active={tab === 'birdseye'}
       openBaselineOnLoad={locked ? false : openBaselineOnLoad}
       onBaselineAutoOpened={() => setOpenBaselineOnLoad(false)}
@@ -222,7 +224,7 @@ export default function ClientApp() {
             locked ? <LockedTab key="birdseye" showOverlay={!showTour} showLibrary>{birdseyeEl}</LockedTab> : birdseyeEl,
             locked ? <LockedTab key="move" showOverlay={!showTour}>{moveEl}</LockedTab> : moveEl,
             locked ? <LockedTab key="journal" showOverlay={!showTour}>{journalEl}</LockedTab> : journalEl,
-            <LearnTab key="learn" />,
+            <LearnTab key="learn" request={learnRequest} onConsumeRequest={() => setLearnRequest(null)} />,
           ]}
         />
       </div>

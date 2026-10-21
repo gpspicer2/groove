@@ -76,7 +76,7 @@ function teaser(text, maxSentences = 1) {
   return { teaser: sentences.slice(0, maxSentences).join('').trim(), hasMore: true };
 }
 
-export default function LearnTab() {
+export default function LearnTab({ request = null, onConsumeRequest }) {
   const { user } = useAuth();
   const [articles, setArticles] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
@@ -88,6 +88,7 @@ export default function LearnTab() {
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [loadError, setLoadError] = useState('');
   const [section, setSection] = useState('tidbits'); // 'tidbits' (short reads) | 'guides' (your plan and the movement library)
+  const [openSupport, setOpenSupport] = useState(false); // arrived from "Want Some Help?" on Birdseye: Scientific Support starts open
   const pressTimerRef = useRef(null);
 
   function selectCategory(key) {
@@ -140,6 +141,15 @@ export default function LearnTab() {
     }
   }
 
+  // Birdseye can send people straight to Learn > Guides > Scientific Support.
+  useEffect(() => {
+    if (!request) return;
+    setSection(request.section || 'tidbits');
+    setOpenSupport(request.open === 'support');
+    onConsumeRequest && onConsumeRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request]);
+
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
@@ -169,7 +179,7 @@ export default function LearnTab() {
           {[{ id: 'tidbits', label: 'Tidbits' }, { id: 'guides', label: 'Guides' }].map((t) => (
             <button
               key={t.id}
-              onClick={() => setSection(t.id)}
+              onClick={() => { setSection(t.id); setOpenSupport(false); }}
               style={{ background: section === t.id ? VIOLET : 'transparent', color: section === t.id ? INK : PAPER_DIM }}
               className="rounded-full px-6 py-1.5 text-sm font-medium"
             >
@@ -179,7 +189,7 @@ export default function LearnTab() {
         </div>
       </div>
 
-      {section === 'guides' ? <Guides userId={user?.id} /> : (<>
+      {section === 'guides' ? <Guides userId={user?.id} openSupport={openSupport} /> : (<>
       <div className="flex items-center gap-2 mb-2">
         <div data-tour="learn-search" className="relative flex-1">
           <Search size={14} color={TEXT_SOFT} className="absolute left-3 top-1/2 -translate-y-1/2" />
