@@ -3822,19 +3822,29 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
-  const perSideEligible = !useBodyweight && /plate.?loaded|hack squat|leg press|t-?bar/i.test(exercise.name || '');
+  const perSideEligible = !useBodyweight && /plate.?loaded|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
   const perSideKey = `groove:perSide:${(exercise.name || '').toLowerCase()}`;
   const [perSideOn, setPerSideOn] = useState(() => {
     try { const v = localStorage.getItem(perSideKey); return v == null ? true : v === '1'; } catch { return true; }
   });
-  const f = perSideEligible && perSideOn ? 2 : 1; // typed number x f = total pounds
-  const fromTotal = (v) => (f === 2 ? Math.round(v / 2 / 2.5) * 2.5 : roundToFive(v));
-  const shownW = (w) => (f === 2 && w != null ? `${Math.round((w / 2) * 10) / 10}/side` : (formatMoneyLikeWeight(w) ?? '—'));
+  const f = perSideEligible && perSideOn ? 2 : 1; // total pounds = typed number x f + what the machine itself adds
+  // Some machines have a sled or carriage that weighs something; set it once per exercise (0 = ignore it).
+  const sledKey = `groove:machineAdds:${(exercise.name || '').toLowerCase()}`;
+  const [sled, setSled] = useState(() => { try { return Number(localStorage.getItem(sledKey)) || 0; } catch { return 0; } });
+  const [sledOpen, setSledOpen] = useState(false);
+  const extra = f === 2 ? sled : 0;
+  function changeSled(v) {
+    const n = v === '' ? 0 : Math.max(0, Number(v) || 0);
+    setSled(n);
+    try { localStorage.setItem(sledKey, String(n)); } catch { /* storage unavailable */ }
+  }
+  const fromTotal = (v) => (f === 2 ? Math.max(0, Math.round((v - extra) / 2 / 2.5) * 2.5) : roundToFive(v));
+  const shownW = (w) => (f === 2 && w != null ? `${Math.round(((w - extra) / 2) * 10) / 10}/side` : (formatMoneyLikeWeight(w) ?? '—'));
   function togglePerSide() {
     const next = !perSideOn;
     setPerSideOn(next);
     try { localStorage.setItem(perSideKey, next ? '1' : '0'); } catch { /* storage unavailable */ }
-    setWeight((w) => (w === '' ? '' : next ? Math.round((Number(w) / 2) * 10) / 10 : Number(w) * 2));
+    setWeight((w) => (w === '' ? '' : next ? Math.max(0, Math.round(((Number(w) - sled) / 2) * 10) / 10) : Number(w) * 2 + sled));
   }
   const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? fromTotal(startWeight) : 0));
   const belowBarbell = barbellFloor > 0 && Number(weight) < barbellFloor;
@@ -3886,7 +3896,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     if (useBodyweight) {
       onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
     } else {
-      onLog({ setNumber: nextSetNumber, weight: (Number(weight) || 0) * f, isBodyweight: false, ...countPayload });
+      onLog({ setNumber: nextSetNumber, weight: (Number(weight) || 0) * f + extra, isBodyweight: false, ...countPayload });
     }
   }
 
@@ -3894,7 +3904,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // first set), even after the boxes were changed. Hidden when Log would do the very same thing.
   const ref = mostRecentLogged || (last && last.weight != null ? last : null);
   const refCount = ref ? (ref.durationSeconds ? `${ref.durationSeconds}s` : ref.reps != null ? `${ref.reps}` : null) : null;
-  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight) * f;
+  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight) * f + extra;
   const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
   const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < BARBELL_MIN_LB);
   function handleRepeat() {
@@ -4010,14 +4020,57 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
         </button>
       )}
       {perSideEligible && (
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={togglePerSide}
-          style={{ background: perSideOn ? SKY : INK_3, color: perSideOn ? INK : PAPER_DIM }}
-          className="mx-auto mt-1.5 block rounded-full px-3 py-0.5 text-sm"
-        >
-          {perSideOn ? 'Weight Per Side' : 'Total Weight'}
-        </button>
+        <div className="mt-1.5 flex flex-col items-center gap-1.5">
+          {perSideOn && (
+            <div className="flex items-center justify-center gap-1">
+              {[45, 25, 10, 5].map((pl) => (
+                <button
+                  key={pl}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setWeight((w) => Math.round(((Number(w) || 0) + pl) * 10) / 10)}
+                  style={{ background: INK_3, color: PAPER }}
+                  className="rounded-full px-2.5 py-1.5 text-sm tabular-nums shrink-0"
+                  aria-label={`Add a ${pl} pound plate to each side`}
+                >
+                  +{pl}
+                </button>
+              ))}
+              <button onMouseDown={(e) => e.preventDefault()} onClick={() => setWeight(0)} style={{ color: TEXT_SOFT }} className="px-1.5 py-1 text-sm underline shrink-0">Clear</button>
+            </div>
+          )}
+          <div className="flex items-center justify-center gap-4 whitespace-nowrap">
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={togglePerSide}
+              style={{ color: TEXT_SOFT }}
+              className="text-sm underline"
+            >
+              {perSideOn ? 'Use Total Weight' : 'Use Per Side'}
+            </button>
+            {perSideOn && (
+              <button onClick={() => setSledOpen((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline">
+                {sled > 0 ? `Machine +${sled}` : 'Machine Adds'}
+              </button>
+            )}
+          </div>
+          {perSideOn && sledOpen && (
+            <div style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-2 whitespace-nowrap">
+              The sled itself weighs
+              <input
+                type="number"
+                inputMode="decimal"
+                value={sled || ''}
+                placeholder="0"
+                onChange={(e) => changeSled(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                style={{ background: INK_3, color: PAPER }}
+                className="w-16 rounded-md px-2 py-1 text-base text-center outline-none"
+                aria-label="Machine weight in pounds"
+              />
+              lb
+            </div>
+          )}
+        </div>
       )}
       {contextBits.length > 0 && (
         <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-1.5 text-center">

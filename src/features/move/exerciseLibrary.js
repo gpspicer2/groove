@@ -171,7 +171,7 @@ export const EXERCISE_LIBRARY = {
     { name: 'Barbell Good Morning', sets: 3, reps: '6-10', equipment: 'barbell' },
   ],
   Glutes: [
-    { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'barbell' },
+    { name: 'Hip Thrust', sets: 4, reps: '8-12', equipment: 'machine' },
     { name: 'Single-Leg Glute Bridge', sets: 3, reps: '12-15', equipment: 'bodyweight' },
     { name: 'Cable Kickback', sets: 3, reps: '12-15', equipment: 'cable' },
     { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', equipment: 'dumbbell' },
