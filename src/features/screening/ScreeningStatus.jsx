@@ -32,7 +32,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
       <>
         <div style={{ background: INK_2 }} className="rounded-md px-3.5 py-2.5 mb-1.5 text-center">
           <div className="flex items-center justify-center gap-2">
-            <span style={{ color }} className="text-sm font-medium">Health check</span>
+            <span style={{ color }} className="text-sm font-medium">Health Check</span>
             <button onClick={() => setRetaking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Update</button>
           </div>
           <div style={{ color: PAPER_DIM }} className="text-[13px] leading-snug">{status}</div>
@@ -46,7 +46,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
   return (
     <>
       <div style={{ background: inset ? INK_3 : INK_2, borderTop: `2px solid ${color}` }} className={`rounded-${inset ? 'md' : 'lg'} ${compact ? 'px-3 py-2.5 flex flex-col justify-center' : 'px-5 py-4'} text-center ${inset && !compact ? 'mb-2' : ''}`}>
-        <div style={{ color }} className={`text-sm uppercase tracking-wide font-bold ${compact ? '' : 'mb-1'}`}>Health check</div>
+        <div style={{ color }} className={`text-sm uppercase tracking-wide font-bold ${compact ? '' : 'mb-1'}`}>Health Check</div>
         <div style={{ color: PAPER_DIM }} className="text-sm">{status}</div>
         <div className={`flex justify-center ${compact ? 'flex-col items-center gap-0.5 mt-1' : 'gap-4 mt-2'}`}>
           {pending && (

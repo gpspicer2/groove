@@ -547,8 +547,8 @@ function PersonalDataSection({ userId, injuryCount, onInjuries, onExperience, on
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_2}` }} className="mt-3 pt-3">
           <ScreeningStatus alwaysShow bare />
-          <LinkRow inset label={injuryCount ? `Injuries and limits (${injuryCount})` : 'Injuries and limits'} onClick={onInjuries} />
-          <LinkRow inset label="Lifting experience" onClick={onExperience} />
+          <LinkRow inset label={injuryCount ? `Injuries and Limits (${injuryCount})` : 'Injuries and Limits'} onClick={onInjuries} />
+          <LinkRow inset label="Lifting Experience" onClick={onExperience} />
           <LinkRow inset label="Manage Your Movements" onClick={onMovements} />
           <BaselineDataSection userId={userId} nested />
         </div>

@@ -82,7 +82,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving, onBack }) {
               </button>
             ) : <div />}
             <div style={{ color: TEXT_SOFT }} className="text-sm">
-              {step === 'result' ? 'Health check' : `Health check · ${index + 1} of ${questionCount}`}
+              {step === 'result' ? 'Health Check' : `Health Check · ${index + 1} of ${questionCount}`}
             </div>
             {onClose && step !== 'result' ? (
               <button onClick={onClose} style={{ color: TEXT_SOFT }} className="justify-self-end p-2 -m-2" aria-label="Close"><X size={18} /></button>

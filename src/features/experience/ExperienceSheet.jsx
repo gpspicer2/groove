@@ -16,7 +16,7 @@ export default function ExperienceSheet({ answers, onSave, onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-1">
             <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Lifting experience</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Lifting Experience</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-3">Which lifts do you know? Programs and suggested workouts lean on these. Olympic lifts only appear if you say you know them.</div>

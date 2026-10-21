@@ -54,7 +54,7 @@ export default function InjurySheet({ injuries, onSave, onClose }) {
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onClose} />
         <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 max-h-[88vh] overflow-y-auto text-center">
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
-          <div style={{ color: PAPER }} className="text-base font-medium">Injuries and limits</div>
+          <div style={{ color: PAPER }} className="text-base font-medium">Injuries and Limits</div>
           <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Workouts built for you work around these automatically.</div>
 
           {active.length === 0 && !adding && <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Nothing listed.</div>}
