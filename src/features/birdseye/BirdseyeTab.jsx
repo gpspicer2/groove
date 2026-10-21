@@ -25,7 +25,7 @@ import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
 import { programPlans, normalizeMoves } from '../program/programs';
 import ProgramSheet from '../program/ProgramSheet';
-import { ProgramWeekCard, useProgramWeek } from '../program/ProgramCards';
+import { ProgramWeekCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
@@ -544,6 +544,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
 
 
+        {!program && <MoveProgramLink color={LIME} className="-my-1" onOpen={() => { setProgramSheetStep(null); setShowProgramSheet(true); }} />}
         <Progress userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
       </div>
 

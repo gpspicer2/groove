@@ -1474,6 +1474,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
             <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-[13px] mt-0.5 py-0.5">No thanks, I know my way around</button>
           </div>
         )}
+        {!planning && !program && !selectedLocation && !movementMode && <MoveProgramLink onOpen={() => setShowProgramSheet(true)} />}
         {aerobicSession && movementMode === 'Aerobic' && !planning && (
           <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-left">
             <div style={{ color: PAPER }} className="text-sm font-medium">{aerobicSession.name} · {aerobicSession.minutes} min</div>
@@ -1522,7 +1523,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           cleanSlate={cleanSlate}
           onToggleCleanSlate={setCleanSlate}
         />
-        {!planning && !program && <MoveProgramLink onOpen={() => setShowProgramSheet(true)} />}
         </>
       )}
 

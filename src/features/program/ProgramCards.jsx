@@ -166,11 +166,11 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   );
 }
 
-// Move, no program yet: a quiet one-line way in.
-export function MoveProgramLink({ onOpen }) {
+// No program yet: a bold, tab-colored one-line way in (Move uses teal, Birdseye green).
+export function MoveProgramLink({ onOpen, color = SKY, className = 'mb-2' }) {
   return (
-    <button onClick={onOpen} style={{ color: TEXT_SOFT }} className="w-full mt-3 text-sm flex items-center justify-center gap-1.5 py-1.5">
-      <ListChecks size={14} /> Follow a Training Program <span style={{ opacity: 0.7 }}>(optional)</span>
+    <button onClick={onOpen} style={{ color }} className={`w-full text-base font-bold flex items-center justify-center gap-1.5 py-1.5 ${className}`}>
+      <ListChecks size={16} /> Build a Training Program
     </button>
   );
 }
