@@ -74,6 +74,7 @@ const LIVE_BACKUP_KEY = 'groove:liveBackup';
 // A checked-off exercise reads green (a soft tint of the Birdseye green).
 const DONE_BG = `color-mix(in srgb, ${LIME} 28%, ${INK_2})`;
 const BARBELL_MIN_LB = 45;
+const EZ_BAR_LB = 20;
 
 // The aerobic piece that opens a resistance session starts unnamed so the
 // client picks their own activity (treadmill, bike, jump rope...) instead
@@ -3821,8 +3822,12 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const notFreeBar = /plate.?loaded|machine|smith|dumbbell|cable|kettlebell|landmine|assisted|bodyweight|single.?(leg|arm)|\bT-?Bar\b/i.test(exercise.name || '');
   // Typed-in names count too: the usual barbell lifts even without the word "barbell" (Pendlay Row, Deadlift, Back Squat...).
   const barbellName = /barbell|pendlay|deadlift|(back|front|pause|box|zercher) squat|(bench|overhead|military|push) press|power clean|snatch|good morning|bent.?over row|skull crusher|preacher curl|\bez.?bar|trap bar/i.test(exercise.name || '');
-  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || barbellName);
-  const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
+  const ezBar = /ez/i.test(variantKey || '');
+  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || barbellName || ezBar);
+  // An EZ bar is lighter than an Olympic bar (about 20 lb); with no bar chosen yet on a curl or extension, don't block the Log button.
+  const ezCapable = /curl|extension|skull/i.test(exercise.name || '');
+  const barLb = ezBar ? EZ_BAR_LB : ezCapable && !variantKey ? 0 : BARBELL_MIN_LB;
+  const barbellFloor = isBarbell && !useBodyweight ? barLb : 0;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
   const plateName = /plate.?loaded|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
@@ -3833,10 +3838,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   });
   const f = perSideEligible && perSideOn ? 2 : 1; // total pounds = typed number x f + what the machine itself adds
   // Some machines have a sled or carriage that weighs something; set it once per exercise (0 = ignore it).
-  const sledKey = `groove:machineAdds:${(exercise.name || '').toLowerCase()}`;
-  const sledDefault = isBarbell ? BARBELL_MIN_LB : 0;
+  const sledKey = `groove:machineAdds:${(exercise.name || '').toLowerCase()}${ezBar ? ':ez' : ''}`;
+  const sledDefault = isBarbell ? barLb : 0;
   const [sled, setSled] = useState(() => { try { const v = localStorage.getItem(sledKey); return v == null ? sledDefault : Number(v) || 0; } catch { return sledDefault; } });
   const [sledOpen, setSledOpen] = useState(false);
+  // Choosing a different bar (EZ vs straight) loads that bar's remembered weight.
+  const firstSled = useRef(true);
+  useEffect(() => {
+    if (firstSled.current) { firstSled.current = false; return; }
+    try { const v = localStorage.getItem(sledKey); setSled(v == null ? sledDefault : Number(v) || 0); } catch { setSled(sledDefault); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sledKey]);
   const extra = f === 2 ? sled : 0;
   function changeSled(v) {
     const n = v === '' ? 0 : Math.max(0, Number(v) || 0);
@@ -3859,7 +3871,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    setWeight(useBodyweight ? 0 : Math.max(isBarbell && f === 1 ? BARBELL_MIN_LB : 0, fromTotal(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
+    setWeight(useBodyweight ? 0 : Math.max(isBarbell && f === 1 ? barLb : 0, fromTotal(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
   // Choosing a grip / bar that has its own history moves the weight box to what that variation last used.
@@ -3870,7 +3882,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     const w = suggestNextWeight(exercise, last, style, last?.daysSince)?.weight ?? last.weight;
     if (w == null) return;
     const base = useBodyweight ? (last.isBodyweight ? Math.max(0, last.weight - (bodyweight || 0)) : 0) : fromTotal(w);
-    setWeight(Math.max(isBarbell && !useBodyweight && f === 1 ? BARBELL_MIN_LB : 0, base));
+    setWeight(Math.max(isBarbell && !useBodyweight && f === 1 ? barLb : 0, base));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variantKey]);
   const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
@@ -3936,7 +3948,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const refCount = ref ? (ref.durationSeconds ? `${ref.durationSeconds}s` : ref.reps != null ? `${ref.reps}` : null) : null;
   const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight) * f + extra;
   const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
-  const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < BARBELL_MIN_LB);
+  const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < barLb);
   function handleRepeat() {
     onLog({ setNumber: nextSetNumber, weight: ref.weight, isBodyweight: Boolean(ref.isBodyweight), reps: ref.reps ?? null, durationSeconds: ref.durationSeconds ?? null, ...(mostRecentLogged ? { distance: mostRecentLogged.distance || null } : {}) });
   }
@@ -4128,7 +4140,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           {contextBits.join(' · ')}
         </div>
       )}
-      {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1 mb-2">The bar alone is {BARBELL_MIN_LB} lb.</div>}
+      {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1 mb-2">The bar alone is {barLb} lb.</div>}
     </>
   );
 }
