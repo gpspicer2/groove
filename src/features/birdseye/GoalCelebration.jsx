@@ -14,10 +14,18 @@ export default function GoalCelebration({ userId, weekKey, goals, latestAt, acti
   const metKey = goals.filter((g) => g.met).map((g) => g.mode).join(',');
 
   useEffect(() => {
-    if (!active || !userId || !metKey) return;
+    if (!active || !userId) return;
     const key = `groove:goalsDone:${userId}:${weekKey}`;
     let done = [];
     try { done = JSON.parse(localStorage.getItem(key) || '[]'); } catch { done = []; }
+    // A goal that is not met right now is forgotten, so if it was marked by an older count (or a workout was
+    // deleted) and is then reached for real, it still gets its confetti.
+    const stillMet = done.filter((m) => goals.some((g) => g.mode === m && g.met));
+    if (stillMet.length !== done.length) {
+      done = stillMet;
+      try { localStorage.setItem(key, JSON.stringify(done)); } catch { /* storage blocked */ }
+    }
+    if (!metKey) return;
     const fresh = goals.filter((g) => g.met && !done.includes(g.mode));
     if (fresh.length === 0) return;
     try { localStorage.setItem(key, JSON.stringify([...new Set([...done, ...fresh.map((g) => g.mode)])])); } catch { /* storage blocked */ }
