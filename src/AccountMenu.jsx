@@ -7,7 +7,7 @@ import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, Chevron
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount, startCheckout, openBillingPortal } from './lib/api';
-import { MEMBERSHIP_PRICE } from './lib/membership';
+import { PLANS, money } from './lib/membership';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, PLUM } from './theme';
 import Portal from './Portal';
 import { predictedMaxHR, computeHrZones } from './lib/heartRate';
@@ -445,9 +445,13 @@ function PaymentModal({ onClose }) {
         </button>
       )}
       {(!status || status === 'canceled') && (
-        <button onClick={() => go(startCheckout)} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
-          {busy ? 'Opening…' : `Join for $${MEMBERSHIP_PRICE}/month`}
-        </button>
+        <div className="space-y-2">
+          {PLANS.map((p) => (
+            <button key={p.id} onClick={() => go(() => startCheckout(p.id))} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+              {busy ? 'Opening…' : `Join ${p.name} · ${money(p.price)}/month`}
+            </button>
+          ))}
+        </div>
       )}
       <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-3">Payments are handled securely by Stripe.</div>
     </Popup>

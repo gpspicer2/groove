@@ -14,16 +14,20 @@ export async function deleteAccount() {
 
 // Billing: both return the address of a secure Stripe page to send the
 // member to (card details are entered there, never in Groove).
-async function billingUrl(path) {
+async function billingUrl(path, body) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not signed in');
-  const res = await fetch(path, { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
-  let body = {};
-  try { body = await res.json(); } catch { /* not JSON */ }
-  if (!res.ok || !body.url) throw new Error(body.error || 'Could not reach billing. Try again in a moment.');
-  return body.url;
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  let out = {};
+  try { out = await res.json(); } catch { /* not JSON */ }
+  if (!res.ok || !out.url) throw new Error(out.error || 'Could not reach billing. Try again in a moment.');
+  return out.url;
 }
-export const startCheckout = () => billingUrl('/api/billing/checkout');
+export const startCheckout = (plan = 'app') => billingUrl('/api/billing/checkout', { plan });
 export const openBillingPortal = () => billingUrl('/api/billing/portal');
 
 // Coach only: removes a member account and all of its data.

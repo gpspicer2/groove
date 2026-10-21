@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK, MOSS } from '../../theme';
-import { MEMBERSHIP_PRICE, MEMBERSHIP_REQUIRED } from '../../lib/membership';
+import { MEMBERSHIP_PRICE, MENTOR_PRICE, MEMBERSHIP_REQUIRED, money } from '../../lib/membership';
 import { Avatar, Stat, SectionTitle } from './CoachParts';
 
 const LABELS = {
@@ -11,7 +11,10 @@ const LABELS = {
 
 export default function Members({ clients, onClientChanged }) {
   const [busyId, setBusyId] = useState(null);
-  const paying = clients.filter((c) => c.membership_status === 'active' || c.membership_status === 'trialing').length;
+  const payers = clients.filter((c) => c.membership_status === 'active' || c.membership_status === 'trialing');
+  const paying = payers.length;
+  const mentees = payers.filter((c) => c.membership_plan === 'mentor').length;
+  const monthly = mentees * MENTOR_PRICE + (paying - mentees) * MEMBERSHIP_PRICE;
   const comped = clients.filter((c) => c.membership_status === 'comped').length;
   const pastDue = clients.filter((c) => c.membership_status === 'past_due').length;
   const none = clients.filter((c) => !c.membership_status || c.membership_status === 'canceled').length;
@@ -27,7 +30,7 @@ export default function Members({ clients, onClientChanged }) {
   return (
     <div>
       <div className="grid grid-cols-2 gap-3">
-        <Stat label="Paying" value={paying} sub={`about $${paying * MEMBERSHIP_PRICE}/month`} color={MOSS} />
+        <Stat label="Paying" value={paying} sub={`about ${money(monthly)}/month`} color={MOSS} />
         <Stat label="Comped" value={comped} sub="free access" color={PLUM} />
         <Stat label="Past Due" value={pastDue} color={pastDue ? BRICK : PAPER} />
         <Stat label="No Plan Yet" value={none} />
@@ -58,7 +61,7 @@ export default function Members({ clients, onClientChanged }) {
               <span className="flex-1 min-w-0">
                 <span style={{ color: PAPER }} className="block text-sm font-medium truncate">{c.full_name || c.email}</span>
                 <span style={{ color: label ? label[1] : TEXT_SOFT }} className="block text-sm">
-                  {label ? label[0] : 'No plan'}
+                  {label ? label[0] : 'No plan'}{c.membership_plan === 'mentor' && label?.[0] !== 'Comped' && ['Paying', 'Trial', 'Past due'].includes(label?.[0]) ? ' · With Greg' : ''}
                   {c.membership_renews_at && label?.[0] === 'Paying' ? ` · renews ${new Date(c.membership_renews_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                 </span>
               </span>

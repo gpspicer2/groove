@@ -1,6 +1,12 @@
-// Membership price shown in the app. The real price is set on the Stripe
-// price (see api/billing); change this number to match when it changes.
-export const MEMBERSHIP_PRICE = Number(import.meta.env.VITE_MEMBERSHIP_PRICE) || 49;
+// Plan prices shown in the app. The real prices are set on the Stripe prices
+// (see api/billing); change these numbers to match when they change.
+export const MEMBERSHIP_PRICE = Number(import.meta.env.VITE_MEMBERSHIP_PRICE) || 14.99; // Groove (app)
+export const MENTOR_PRICE = Number(import.meta.env.VITE_MENTOR_PRICE) || 94.99; // Groove (with Greg)
+export const PLANS = [
+  { id: 'app', name: 'Groove', price: MEMBERSHIP_PRICE, line: 'Logging, goals, programs and learning tools' },
+  { id: 'mentor', name: 'Groove (with Greg)', price: MENTOR_PRICE, line: 'Everything in Groove, plus regular mentorship and check-ins with Greg' },
+];
+export const money = (n) => `$${Number(n).toFixed(2)}`;
 
 // Statuses that give someone full access.
 export function hasAccess(profile) {

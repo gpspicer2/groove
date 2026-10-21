@@ -21,6 +21,14 @@ function mapStatus(status) {
   return 'canceled'; // canceled, incomplete_expired, paused...
 }
 
+// Which plan a subscription is on, from the price it bills.
+function planOf(sub) {
+  const priceId = sub.items?.data?.[0]?.price?.id;
+  if (priceId && priceId === process.env.STRIPE_PRICE_ID_MENTOR) return 'mentor';
+  if (priceId && priceId === process.env.STRIPE_PRICE_ID) return 'app';
+  return sub.metadata?.plan || null;
+}
+
 async function applySubscription(sub) {
   const fields = {
     membership_status: mapStatus(sub.status),
@@ -32,6 +40,12 @@ async function applySubscription(sub) {
   const query = supabaseAdmin.from('profiles').update(fields);
   const { error } = userId ? await query.eq('id', userId) : await query.eq('stripe_customer_id', sub.customer);
   if (error) throw error;
+  // Saved separately so billing keeps working until the membership_plan column exists.
+  const plan = planOf(sub);
+  if (plan) {
+    const q = supabaseAdmin.from('profiles').update({ membership_plan: plan });
+    await (userId ? q.eq('id', userId) : q.eq('stripe_customer_id', sub.customer));
+  }
 }
 
 export default async function handler(req, res) {

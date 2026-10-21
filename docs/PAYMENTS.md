@@ -1,6 +1,6 @@
 # Membership payments (Stripe)
 
-One flat monthly membership. Card details are entered on Stripe's own pages,
+Two monthly plans: Groove ($14.99, the app) and Groove (with Greg) ($94.99, regular mentorship and check-ins). Card details are entered on Stripe's own pages,
 never in Groove. The app only learns "this person is paying".
 
 ## How it works
@@ -17,9 +17,10 @@ never in Groove. The app only learns "this person is paying".
 | Name | Value |
 | --- | --- |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...` while testing, `sk_live_...` after) |
-| `STRIPE_PRICE_ID` | The membership price's ID (`price_...`) |
+| `STRIPE_PRICE_ID` | The Groove ($14.99) price's ID (`price_...`) |
+| `STRIPE_PRICE_ID_MENTOR` | The Groove (with Greg) ($94.99) price's ID (`price_...`) |
 | `STRIPE_WEBHOOK_SECRET` | The webhook's signing secret (`whsec_...`) |
-| `VITE_MEMBERSHIP_PRICE` | Price shown in the app, e.g. `49` (must match the Stripe price) |
+| `VITE_MEMBERSHIP_PRICE` / `VITE_MENTOR_PRICE` | Optional: prices shown in the app (default 14.99 and 94.99; must match Stripe) |
 | `VITE_REQUIRE_MEMBERSHIP` | `true` to start requiring membership |
 
 Webhook URL: `https://groove-rho.vercel.app/api/billing/webhook`

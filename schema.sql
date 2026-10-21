@@ -388,6 +388,8 @@ alter table public.profiles add column if not exists membership_status text;
 alter table public.profiles add column if not exists membership_renews_at timestamptz;
 alter table public.profiles add column if not exists stripe_customer_id text;
 alter table public.profiles add column if not exists stripe_subscription_id text;
+-- Which paid plan: 'app' (Groove) or 'mentor' (Groove with Greg). Set by the payment webhook.
+alter table public.profiles add column if not exists membership_plan text;
 
 -- Push notification devices (one row per phone/browser that turned reminders on)
 create table push_subscriptions (
@@ -443,6 +445,7 @@ begin
     new.membership_renews_at := old.membership_renews_at;
     new.stripe_customer_id := old.stripe_customer_id;
     new.stripe_subscription_id := old.stripe_subscription_id;
+    new.membership_plan := old.membership_plan;
   end if;
   return new;
 end $$;

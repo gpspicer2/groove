@@ -2,29 +2,23 @@ import React, { useState } from 'react';
 import { Lock } from '../../lib/icons';
 import { useAuth } from '../../auth/AuthContext';
 import { startCheckout } from '../../lib/api';
-import { MEMBERSHIP_PRICE } from '../../lib/membership';
+import { PLANS, money } from '../../lib/membership';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 import { MovementLibrary } from '../learn/Guides';
-
-const INCLUDED = [
-  'Your own movement plan from Greg',
-  'Weekly goals, tracking, and progress',
-  'Log workouts and journal privately',
-];
 
 // What Birdseye, Move and Journal show until someone joins. Learn and the
 // Movement Library stay open so people can look around first.
 export default function LockedTab({ children, showOverlay = true, showLibrary = false }) {
   const { profile } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const pastDue = profile?.membership_status === 'past_due';
   const canceled = profile?.membership_status === 'canceled';
 
-  async function join() {
-    setBusy(true); setError('');
-    try { window.location.href = await startCheckout(); }
-    catch (e) { setError(e.message); setBusy(false); }
+  async function join(plan) {
+    setBusy(plan); setError('');
+    try { window.location.href = await startCheckout(plan); }
+    catch (e) { setError(e.message); setBusy(''); }
   }
 
   const card = (
@@ -33,17 +27,22 @@ export default function LockedTab({ children, showOverlay = true, showLibrary = 
       <h2 style={{ color: PLUM }} className="text-xl font-medium mb-1">
         {pastDue ? 'Payment needs attention' : canceled ? 'Welcome back' : 'Members only'}
       </h2>
-      <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-4xl font-semibold mt-2">
-        ${MEMBERSHIP_PRICE}<span style={{ color: TEXT_SOFT }} className="text-base font-normal"> / month</span>
-      </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Cancel anytime.</div>
-      <div className="space-y-1 mb-4">
-        {INCLUDED.map((t) => <p key={t} style={{ color: PAPER_DIM }} className="text-sm">{t}</p>)}
+      <div className="space-y-2 mt-3 mb-3 text-left">
+        {PLANS.map((p) => (
+          <div key={p.id} style={{ background: INK, border: `1px solid color-mix(in srgb, ${PLUM} ${p.id === 'mentor' ? 60 : 25}%, transparent)` }} className="rounded-md px-4 py-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span style={{ color: PAPER }} className="text-base font-medium">{p.name}</span>
+              <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-semibold">{money(p.price)}<span style={{ color: TEXT_SOFT }} className="text-sm font-normal"> / month</span></span>
+            </div>
+            <p style={{ color: PAPER_DIM }} className="text-sm mb-2">{p.line}</p>
+            <button onClick={() => join(p.id)} disabled={!!busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
+              {busy === p.id ? 'Opening Secure Checkout…' : pastDue || canceled ? `Update with ${p.name}` : `Join ${p.name}`}
+            </button>
+          </div>
+        ))}
       </div>
       {error && <div style={{ color: BRICK }} className="text-sm mb-2">{error}</div>}
-      <button onClick={join} disabled={busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mb-2">
-        {busy ? 'Opening secure checkout…' : pastDue || canceled ? 'Update membership' : 'Join'}
-      </button>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1">Cancel anytime.</div>
       <p style={{ color: TEXT_SOFT }} className="text-xs">Payment is handled securely by Stripe.</p>
     </div>
   );
