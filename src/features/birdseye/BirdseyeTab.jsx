@@ -473,6 +473,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           />
         )}
 
+        {!program && <MoveProgramLink color={LIME} className="-mb-1" onOpen={() => { setProgramSheetStep(null); setShowProgramSheet(true); }} />}
         {program && (
           <ProgramWeekCard
             program={program} week={programWeek}
@@ -544,7 +545,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
 
 
-        {!program && <MoveProgramLink color={LIME} className="-my-1" onOpen={() => { setProgramSheetStep(null); setShowProgramSheet(true); }} />}
         <Progress userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
       </div>
 
