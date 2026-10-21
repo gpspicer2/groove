@@ -26,20 +26,20 @@ export default function GregBio({ onClose }) {
           <button onClick={onClose} aria-label="Close" className="absolute top-3 right-3 p-1"><X size={20} color={TEXT_SOFT} /></button>
           <div className="flex items-center justify-center gap-3 mb-3">
             <img src="/greg.jpg" alt="Greg" style={{ objectPosition: '50% 20%' }} className="w-14 h-14 rounded-full object-cover shrink-0" />
-            <h2 style={{ color: PLUM }} className="text-xl font-medium">Hi, I'm Greg! 🕺</h2>
+            <h2 style={{ color: PLUM }} className="text-xl font-medium">Meet Greg! 🕺</h2>
           </div>
           <div style={{ color: PAPER_DIM }} className="text-sm space-y-1.5 text-center">
             <p>
-              I'm an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College I studied evolutionary biology and animal behavior until a research mentor introduced me to exercise physiology. I went on to earn my master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of working with patients, athletes, and students, one thing keeps coming up:
+              Greg is an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College, Greg studied evolutionary biology and animal behavior until a research mentor introduced exercise physiology. Greg went on to earn a master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of working with patients, athletes, and students, one thing keeps coming up:
               <b style={{ color: PAPER }} className="block text-[15px]">most people don't like exercise.</b>
             </p>
-            <p>That's why I advocate for <b style={{ color: PAPER }}>movement</b>.</p>
+            <p>That's why Greg advocates for <b style={{ color: PAPER }}>movement</b>.</p>
             <p>
               Exercise is planned, structured, repetitive movement performed to improve or maintain fitness. That's a lot of rules for something that's supposed to be good for you. <em>Movement</em> is anything that gets you going: a walk, gardening, playing with your kids, a bike ride. It all counts.
             </p>
-            <p>My job is to help you find movement you'll actually keep doing, learn how your body benefits from it, and start right where you are.</p>
-            <p style={{ color: PAPER }} className="font-medium">Together, we'll get you in a groove.</p>
-            <p style={{ color: TEXT_SOFT }}>Questions? Message me anytime from Account.</p>
+            <p>Greg's job is to help you find movement you'll actually keep doing, learn how your body benefits from it, and start right where you are.</p>
+            <p style={{ color: PAPER }} className="font-medium">Together, you and Greg will find your groove.</p>
+            <p style={{ color: TEXT_SOFT }}>Questions? Message Greg anytime from Account.</p>
           </div>
           <button onClick={onClose} style={{ background: PLUM, color: INK_2 }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">Close</button>
         </div>
