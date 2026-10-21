@@ -74,7 +74,7 @@ export async function notifyNewMember() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    await fetch('/api/push/new-member', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+    await fetch('/api/push/event', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ type: 'new-member' }) });
   } catch { /* the Today screen still shows them as just joined */ }
 }
 
@@ -83,6 +83,6 @@ export async function notifyFeltOff() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    await fetch('/api/push/felt-off', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+    await fetch('/api/push/event', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ type: 'felt-off' }) });
   } catch { /* the check-in is already saved; the daily summary will still catch it */ }
 }
