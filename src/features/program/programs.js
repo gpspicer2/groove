@@ -125,9 +125,9 @@ const CYCLES = {
   strength: {
     len: 4, exercises: 5, mainCount: 2,
     weeks: [
-      { phase: 'Build', main: rx(4, '5', '7', '3 min'), acc: rx(3, '8-10', '8', '90 sec') },
       { phase: 'Build', main: rx(4, '5', '8', '3 min'), acc: rx(3, '8-10', '8', '90 sec') },
-      { phase: 'Build', main: rx(5, '3-5', '8-9', '3-4 min'), acc: rx(3, '8-10', '8', '90 sec') },
+      { phase: 'Build', main: rx(4, '5', '8-9', '3 min'), acc: rx(3, '8-10', '8', '90 sec') },
+      { phase: 'Build', main: rx(5, '3-5', '9', '3-4 min'), acc: rx(3, '8-10', '8', '90 sec') },
       { phase: 'Deload', main: rx(3, '5', '6', '2-3 min'), acc: rx(2, '8-10', '6', '60 sec') },
     ],
   },
