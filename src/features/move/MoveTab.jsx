@@ -3817,8 +3817,10 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // A barbell weighs 45 lb on its own, so a barbell lift is never lighter.
   // A name that says machine, plate-loaded, Smith, dumbbell, cable etc. is never a free barbell, even if the exercise
   // inherited 'barbell' from a swap or a typed name.
-  const notFreeBar = /plate.?loaded|machine|smith|dumbbell|cable|kettlebell|landmine|assisted|\bT-?Bar\b/i.test(exercise.name || '');
-  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || /barbell/i.test(exercise.name || ''));
+  const notFreeBar = /plate.?loaded|machine|smith|dumbbell|cable|kettlebell|landmine|assisted|bodyweight|single.?(leg|arm)|\bT-?Bar\b/i.test(exercise.name || '');
+  // Typed-in names count too: the usual barbell lifts even without the word "barbell" (Pendlay Row, Deadlift, Back Squat...).
+  const barbellName = /barbell|pendlay|deadlift|(back|front|pause|box|zercher) squat|(bench|overhead|military|push) press|power clean|snatch|good morning|bent.?over row|skull crusher|preacher curl|\bez.?bar|trap bar/i.test(exercise.name || '');
+  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || barbellName);
   const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
