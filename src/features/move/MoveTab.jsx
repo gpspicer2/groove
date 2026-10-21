@@ -1462,14 +1462,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           <MoveProgramCard program={program} week={programWeek} lifted={programLifted} flex={flexForCard} onStart={beginProgramSession} onManage={() => setShowProgramSheet(true)} />
         )}
         {!planning && !program && !starterGone && !startingPlan && !selectedLocation && !movementMode && !completedWorkouts.some((w) => w.movementMode === 'Resistance' || w.movementMode === 'Combined') && (
-          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
+          <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-center">
             <div style={{ color: PAPER }} className="text-base font-medium">New to lifting? Start here</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5 mb-2.5">A gentle full-body workout: 5 simple moves, 2 light sets each. About 25 minutes.</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug mt-0.5 mb-2">A gentle full-body workout: 5 simple moves, about 25 minutes.</div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2.5 text-sm font-medium">At the Gym</button>
               <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At Home</button>
             </div>
-            <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-sm mt-2 py-1">No thanks, I know my way around</button>
+            <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-[13px] mt-1 py-0.5">No thanks, I know my way around</button>
           </div>
         )}
         {aerobicSession && movementMode === 'Aerobic' && !planning && (

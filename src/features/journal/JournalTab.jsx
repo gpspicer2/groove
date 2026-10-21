@@ -86,9 +86,8 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-4">
-        <div><Lock size={12} className="inline -mt-0.5 mr-1" />Only you can read your journal.</div>
-        <div>Greg never sees it. Something he should know? <a href="sms:+16034754544" style={{ color: AMBER }} className="underline font-medium">Message Greg</a></div>
+      <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug text-center mb-3">
+        <Lock size={12} className="inline -mt-0.5 mr-1" />Only you can read this. Greg never sees it. Something he should know? <a href="sms:+16034754544" style={{ color: AMBER }} className="underline font-medium">Message Greg</a>
       </div>
 
       {mode === 'checkin' ? (

@@ -451,10 +451,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           <button
             onClick={() => setShowBaseline(true)}
             style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }}
-            className="w-full rounded-lg px-5 py-3 text-center"
+            className="w-full rounded-lg px-5 py-2.5 text-center"
           >
             <div style={{ color: PAPER }} className="text-sm font-medium">Finish Setting Up Your Account <span style={{ color: PLUM }}>→</span></div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm">About 10 minutes, whenever you're ready</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">About 10 minutes, whenever you're ready</div>
           </button>
         )}
 
@@ -481,7 +481,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           />
         )}
 
-        {insight && (
+        {insight && intakeDone && (
           <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
             <div style={{ color: PAPER }} className="text-sm">{insight}</div>
           </div>
@@ -1080,7 +1080,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
     <div ref={revealRef} data-tour={dataTour} style={{ background: INK_2, borderTop: `2px solid ${MOSS}` }} className="rounded-lg px-5 py-4 text-center">
       <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
         <span />
-        <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">
+        <span style={{ color: MOSS }} className="text-[14px] uppercase tracking-tight font-bold whitespace-nowrap">
           Science Supported Strategy{' '}
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
