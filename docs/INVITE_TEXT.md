@@ -14,24 +14,16 @@ Type or paste it as plain text so it appears only once (copying from a chat can 
 
 Paste all of this as one message (link last, on its own line):
 
-> Hey! I made an app to help with movement mentorship and education, and I'd love for you to try it. It's free while I'm testing it.
+> Hey! I'm starting work as an exercise physiologist, helping people build movement into their lives and reach their fitness goals, and I built an app to do it. Would you be one of my first testers? It's free while I test it.
 >
-> Quick tip: it's really a website, so tap Share, then Add to Home Screen, and it'll sit with your other apps and open just like one. (On Android, tap the three dots, then Add to Home screen.)
+> Tip: it's a website, so tap Share, then Add to Home Screen to keep it with your apps. (Android: tap the three dots, then Add to Home screen.)
 >
-> Heads up: getting started takes about 5 minutes (sign up, a few health questions, a quick tour). After your first workout it will also offer a 10-minute "get to know you" set of questions. That part is optional, but it helps me tailor things to you.
->
-> If anything is confusing, broken, or annoying, tell me. That's exactly what I need to hear. Thank you!
+> Setup takes about 5 minutes, plus an optional 10-minute "get to know you" after your first workout. Tell me what's confusing or broken. Thank you!
 > https://groove-rho.vercel.app/?invite
 
-### Version for people who don't know what you're up to yet
+### Even shorter (for people who already know what you're up to)
 
-> Hey! I'm starting something new: I'm going to be working with people as an exercise physiologist, helping them build movement into their lives and work toward their fitness goals. I built an app to do it, and I'd love for you to be one of my first testers. It's free while I'm testing it.
->
-> Quick tip: it's really a website, so tap Share, then Add to Home Screen, and it'll sit with your other apps and open just like one. (On Android, tap the three dots, then Add to Home screen.)
->
-> Heads up: getting started takes about 5 minutes (sign up, a few health questions, a quick tour). After your first workout it will also offer a 10-minute "get to know you" set of questions. That part is optional, but it helps me tailor things to you.
->
-> If anything is confusing, broken, or annoying, tell me. That's exactly what I need to hear. Thank you!
+> Hey! I made an app to help with movement mentorship and education. It's free while I test it. Tip: tap Share, then Add to Home Screen. Setup takes about 5 minutes, and I'd love to know what's confusing or broken. Thank you!
 > https://groove-rho.vercel.app/?invite
 
 (The 5 and 10 minute figures are estimates, not timed. The first-run steps are sign up, the consent screen, the health check and the seven-card tour. The 10-minute set is the "Finish Setting Up Your Account" card, which only appears after the first logged workout.)
