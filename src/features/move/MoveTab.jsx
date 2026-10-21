@@ -3846,6 +3846,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const shownW = (w) => (f === 2 && w != null ? `${Math.round(((w - extra) / 2) * 10) / 10}/side` : (formatMoneyLikeWeight(w) ?? '—'));
   function togglePerSide() {
     const next = !perSideOn;
+    setPlates([]);
     setPerSideOn(next);
     try { localStorage.setItem(perSideKey, next ? '1' : '0'); } catch { /* storage unavailable */ }
     setWeight((w) => (w === '' ? '' : next ? Math.max(0, Math.round(((Number(w) - sled) / 2) * 10) / 10) : Number(w) * 2 + sled));
@@ -3877,7 +3878,30 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   useEffect(() => () => clearTimeout(jumpTimer.current), []);
   // A weight ending in 0 or 5 is usually finished (135, 45, 22.5), so hop to reps after a short pause
   // (the pause lets 10 become 105 for anyone still typing).
+  // Plate buttons remember the order they were tapped so Undo can take the last one back off.
+  const [plates, setPlates] = useState([]);
+  const [optsOpen, setOptsOpen] = useState(false);
+  const [tipOn, setTipOn] = useState(() => { try { return localStorage.getItem('groove:plateTip') !== '1'; } catch { return false; } });
+  function dismissTip() {
+    setTipOn(false);
+    try { localStorage.setItem('groove:plateTip', '1'); } catch { /* storage unavailable */ }
+  }
+  function addPlate(pl) {
+    setPlates((p) => [...p, pl]);
+    setWeight((w) => Math.round(((Number(w) || 0) + pl) * 10) / 10);
+    if (tipOn) dismissTip();
+  }
+  function undoPlate() {
+    if (plates.length > 0) {
+      const last = plates[plates.length - 1];
+      setPlates((p) => p.slice(0, -1));
+      setWeight((w) => Math.max(0, Math.round(((Number(w) || 0) - last) * 10) / 10));
+    } else {
+      setWeight(0);
+    }
+  }
   function weightTyped(v) {
+    setPlates([]);
     setWeight(v === '' ? '' : Number(v));
     clearTimeout(jumpTimer.current);
     if (!byTime && /[05]$/.test(String(v)) && Number(v) > 0) jumpTimer.current = setTimeout(() => { repsRef.current?.focus(); }, 650);
@@ -3896,6 +3920,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 
   function handleLog() {
     if (belowBarbell) return;
+    setPlates([]);
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
     if (useBodyweight) {
       onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
@@ -4025,13 +4050,19 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
       )}
       {perSideEligible && (
         <div className="mt-1.5 flex flex-col items-center gap-1.5">
+          {tipOn && (
+            <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-1.5 text-sm text-center flex items-start gap-2">
+              <span>{perSideOn ? 'Tap the plates on one side. The total is added for you.' : 'Counting plates? Tap Weight Options to enter them per side.'}</span>
+              <button onClick={dismissTip} aria-label="Got it" style={{ color: TEXT_SOFT }} className="shrink-0 -mr-1 px-1 underline">Got it</button>
+            </div>
+          )}
           {perSideOn && (
             <div className="flex items-center justify-center gap-1">
               {[45, 25, 10, 5].map((pl) => (
                 <button
                   key={pl}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setWeight((w) => Math.round(((Number(w) || 0) + pl) * 10) / 10)}
+                  onClick={() => addPlate(pl)}
                   style={{ background: INK_3, color: PAPER }}
                   className="rounded-full px-2.5 py-1.5 text-sm tabular-nums shrink-0"
                   aria-label={`Add a ${pl} pound plate to each side`}
@@ -4039,45 +4070,54 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
                   +{pl}
                 </button>
               ))}
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => setWeight(0)} style={{ color: TEXT_SOFT }} className="px-1.5 py-1 text-sm underline shrink-0">Clear</button>
+              <button onMouseDown={(e) => e.preventDefault()} onClick={undoPlate} style={{ color: TEXT_SOFT }} className="px-1.5 py-1 text-sm underline shrink-0">
+                {plates.length > 0 ? 'Undo' : 'Clear'}
+              </button>
             </div>
           )}
           {perSideOn && (
             <div style={{ color: PAPER_DIM }} className="text-sm tabular-nums">
               Total {(Number(weight) || 0) * 2 + extra} lb
-              <span style={{ color: TEXT_SOFT }}> ({2} × {Number(weight) || 0}{extra > 0 ? ` + ${isBarbell ? 'bar' : 'machine'} ${extra}` : ''})</span>
+              <span style={{ color: TEXT_SOFT }}> (2 × {Number(weight) || 0}{extra > 0 ? ` + ${isBarbell ? 'bar' : 'machine'} ${extra}` : ''})</span>
             </div>
           )}
-          <div className="flex items-center justify-center gap-4 whitespace-nowrap">
-            <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={togglePerSide}
-              style={{ color: TEXT_SOFT }}
-              className="text-sm underline"
-            >
-              {perSideOn ? 'Use Total Weight' : 'Use Per Side'}
-            </button>
-            {perSideOn && (
-              <button onClick={() => setSledOpen((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline">
-                {isBarbell ? `Bar ${sled} lb` : sled > 0 ? `Machine +${sled}` : 'Machine Adds'}
-              </button>
-            )}
-          </div>
-          {perSideOn && sledOpen && (
-            <div style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-2 whitespace-nowrap">
-              {isBarbell ? 'The bar weighs' : 'The sled itself weighs'}
-              <input
-                type="number"
-                inputMode="decimal"
-                value={sled || ''}
-                placeholder="0"
-                onChange={(e) => changeSled(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                style={{ background: INK_3, color: PAPER }}
-                className="w-16 rounded-md px-2 py-1 text-base text-center outline-none"
-                aria-label={isBarbell ? 'Bar weight in pounds' : 'Machine weight in pounds'}
-              />
-              lb
+          <button onClick={() => setOptsOpen((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm underline">
+            {optsOpen ? 'Hide Weight Options' : 'Weight Options'}
+          </button>
+          {optsOpen && (
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="flex items-center justify-center gap-4 whitespace-nowrap">
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={togglePerSide}
+                  style={{ background: INK_3, color: PAPER }}
+                  className="rounded-full px-3 py-1 text-sm"
+                >
+                  {perSideOn ? 'Use Total Weight' : 'Use Per Side'}
+                </button>
+                {perSideOn && (
+                  <button onClick={() => setSledOpen((v) => !v)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3 py-1 text-sm">
+                    {isBarbell ? `Bar ${sled} lb` : sled > 0 ? `Machine +${sled}` : 'Machine Adds'}
+                  </button>
+                )}
+              </div>
+              {perSideOn && sledOpen && (
+                <div style={{ color: TEXT_SOFT }} className="text-sm flex items-center gap-2 whitespace-nowrap">
+                  {isBarbell ? 'The bar weighs' : 'The sled itself weighs'}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={sled || ''}
+                    placeholder="0"
+                    onChange={(e) => changeSled(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    style={{ background: INK_3, color: PAPER }}
+                    className="w-16 rounded-md px-2 py-1 text-base text-center outline-none"
+                    aria-label={isBarbell ? 'Bar weight in pounds' : 'Machine weight in pounds'}
+                  />
+                  lb
+                </div>
+              )}
             </div>
           )}
         </div>
