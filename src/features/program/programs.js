@@ -239,14 +239,16 @@ export function sessionsForWeek(program, week) {
       return;
     }
     const t = lifts[li % lifts.length];
+    // Push / Pull / Legs x2: the second push day (and pull, legs) takes a different flavor than the first.
+    const flavorSkew = chosenSplit(program)?.id === 'ppl6' && li >= 3 ? 1 : 0;
     let presc; let label = '';
     if (key === 'undulating') {
-      const d = deload ? cyc.deload : cyc.days[(li + week - 1) % 3];
+      const d = deload ? cyc.deload : cyc.days[(li + flavorSkew + week - 1) % 3];
       presc = { main: d.main, acc: null };
       label = d.label;
     } else {
       const w = cyc.weeks[pos - 1];
-      label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + week - 1) % 3];
+      label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + flavorSkew + week - 1) % 3];
       presc = { main: flavored(w.main, label, program.goal), acc: w.acc || null };
     }
     const style = program.goal === 'strength' ? 'Strength' : 'Hypertrophy';
