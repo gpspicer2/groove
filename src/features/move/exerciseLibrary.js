@@ -390,7 +390,7 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
 // preserving the muscle-group order otherwise.
 // Within one workout the big lifts keep the day's rep range and single-joint (isolation) lifts run a little higher,
 // so a session isn't the same sets x reps all the way down. Hypertrophy ranges stay inside NSCA's 6-12; a strength
-// day's assistance lifts go to 6-8; high-rep (12+) ranges stay as they are.
+// day's assistance lifts go to 8-10; high-rep (12+) ranges stay as they are.
 export function repsFor(name, reps) {
   if (isCompound(name)) return reps;
   const m = String(reps).match(/^(\d+)(?:-(\d+))?$/);
@@ -398,7 +398,7 @@ export function repsFor(name, reps) {
   const lo = Number(m[1]);
   const hi = m[2] ? Number(m[2]) : lo;
   if (lo >= 12) return reps;
-  if (hi <= 6) return '6-8';
+  if (hi <= 6) return '8-10';
   const nlo = Math.min(12, lo + 2);
   const nhi = Math.min(12, Math.max(hi, nlo + 2));
   return nhi > nlo ? `${nlo}-${nhi}` : String(nlo);
@@ -438,7 +438,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       if (!ex) continue;
       l.at += 1;
       usedNames.add(ex.name);
-      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
+      picked.push({ ...ex, muscleGroup: l.group, sets: style === 'Strength' && !isCompound(ex.name) ? Math.min(3, styleConfig.sets ?? ex.sets) : styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
     }
   }
   // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks

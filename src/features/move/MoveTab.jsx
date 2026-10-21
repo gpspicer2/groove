@@ -14,7 +14,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -823,12 +823,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const sameGroups = programSession && selectedGroups.length === programSession.groups.length && programSession.groups.every((g) => selectedGroups.includes(g));
     const appliedSession = programSession && !cleanSlate && movementMode === 'Resistance' && selectedStyle === programSession.style && sameGroups ? programSession : null;
     if (appliedSession) {
-      let j = 0;
+      let j = 0; let mains = 0;
       plan = plan.flatMap((ex) => {
         if (ex.type !== 'resistance') return [ex];
         const idx = j++;
         if (idx >= appliedSession.exercises) return [];
-        const isMain = idx < appliedSession.mainCount || !appliedSession.acc;
+        // In a strength session only the first few big (compound) lifts get the heavy prescription;
+        // single-joint lifts always get the lighter accessory one, wherever they fall in the list.
+        const isMain = !appliedSession.acc || (isCompound(ex.name) && mains++ < appliedSession.mainCount);
         const rxn = isMain ? appliedSession.presc : appliedSession.acc;
         // Holds keep their own timed target; a deload and a strength session (main lifts + accessories) stay as prescribed; otherwise isolation lifts run a couple of reps higher.
         const reps = holdReps(ex) ?? (appliedSession.phase === 'Deload' || appliedSession.acc ? rxn.reps : repsFor(ex.name, rxn.reps));
