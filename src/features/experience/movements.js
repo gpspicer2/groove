@@ -127,11 +127,47 @@ const ALL_ITEMS = EXPERIENCE_GROUPS.flatMap((g) => [...g.items, ...g.more]);
 
 // Library exercises to leave out of suggested workouts and programs: anything the member marked "Skip it", and the Olympic
 // and other technical lifts unless they said they know them.
-// Every Smith machine lift in the library; they are only suggested when the member says their gym has one (Lifting Preferences > Your Gym).
-export const SMITH_LIFTS = Object.values(EXERCISE_LIBRARY).flat().filter((e) => e.equipment === 'smith').map((e) => e.name);
+// Your Gym: which equipment a member has. Each item covers some library lifts; lifts for equipment marked "no" are left out of
+// suggested workouts and programs (swaps and hand-picked exercises still list everything). Anything never answered counts as
+// available, except the Smith machine (not every gym has one). Stored as gym: { has: { id: true|false } } in movement_experience.
+const LIB = Object.values(EXERCISE_LIBRARY).flat();
+const PLATE_NAMES = ['Plate-Loaded Chest Press', 'Plate-Loaded Row', 'T-Bar Row', 'Hip Thrust'];
+const SPECIAL = { legpress: ['Leg Press'], hack: ['Hack Squat'], plate: PLATE_NAMES, pullup: ['Pull-Ups', 'Chin-Up (underhand)', 'Hanging Leg Raise'] };
+export const EQUIPMENT_ITEMS = [
+  { id: 'dumbbell', label: 'Dumbbells', lifts: () => LIB.filter((e) => e.equipment === 'dumbbell').map((e) => e.name) },
+  { id: 'barbell', label: 'Barbell and Rack', lifts: () => LIB.filter((e) => e.equipment === 'barbell').map((e) => e.name) },
+  { id: 'cable', label: 'Cable Machines', lifts: () => LIB.filter((e) => e.equipment === 'cable').map((e) => e.name) },
+  { id: 'machine', label: 'Weight Machines', lifts: () => LIB.filter((e) => e.equipment === 'machine' && !Object.values(SPECIAL).flat().includes(e.name)).map((e) => e.name) },
+  { id: 'plate', label: 'Plate-Loaded Machines', lifts: () => SPECIAL.plate },
+  { id: 'legpress', label: 'Leg Press', lifts: () => SPECIAL.legpress },
+  { id: 'hack', label: 'Hack Squat', lifts: () => SPECIAL.hack },
+  { id: 'smith', label: 'Smith Machine', lifts: () => LIB.filter((e) => e.equipment === 'smith').map((e) => e.name) },
+  { id: 'pullup', label: 'Pull-Up Bar', lifts: () => SPECIAL.pullup },
+];
+const ALL_ON = { dumbbell: true, barbell: true, cable: true, machine: true, plate: true, legpress: true, hack: true, smith: true, pullup: true };
+// Quick starts: tap one to fill the checklist, then adjust.
+export const GYM_TYPES = [
+  { id: 'full', label: 'Full Gym', has: { ...ALL_ON } },
+  { id: 'machines', label: 'Machine Gym', has: { ...ALL_ON, barbell: false, plate: false, hack: false, pullup: false } },
+  { id: 'apartment', label: 'Hotel Gym', has: { dumbbell: true, barbell: false, cable: false, machine: false, plate: false, legpress: false, hack: false, smith: false, pullup: false } },
+  { id: 'home_rack', label: 'Home with Rack', has: { dumbbell: true, barbell: true, cable: false, machine: false, plate: false, legpress: false, hack: false, smith: false, pullup: true } },
+  { id: 'home', label: 'Home Basics', has: { dumbbell: true, barbell: false, cable: false, machine: false, plate: false, legpress: false, hack: false, smith: false, pullup: false } },
+];
+export function gymHas(gym, id) {
+  if (gym?.has && id in gym.has) return gym.has[id] === true;
+  if (id === 'smith') return gym?.smith === true; // older saves
+  return true;
+}
+// Library lifts to leave out because the member's gym lacks the equipment.
+export function blockedByGym(gym) {
+  const out = new Set();
+  EQUIPMENT_ITEMS.forEach((it) => { if (!gymHas(gym, it.id)) it.lifts().forEach((n) => out.add(n)); });
+  return [...out];
+}
+// Smith lifts (kept for anything that still wants the plain list).
+export const SMITH_LIFTS = LIB.filter((e) => e.equipment === 'smith').map((e) => e.name);
 export function blockedByExperience(answers = {}, gym = null) {
-  const blocked = new Set();
-  if (!gym || gym.smith !== true) SMITH_LIFTS.forEach((n) => blocked.add(n));
+  const blocked = new Set(blockedByGym(gym));
   ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'skip') it.names.forEach((n) => blocked.add(n)); });
   const known = new Set();
   ALL_ITEMS.forEach((it) => { if (answers[it.id] === 'know' || answers[it.id] === 'love') it.names.forEach((n) => known.add(n)); });

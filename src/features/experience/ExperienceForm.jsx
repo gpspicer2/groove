@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Portal from '../../Portal';
-import { Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from '../../lib/icons';
-import { EXPERIENCE_GROUPS, EXPERIENCE_STATES } from './movements';
+import { Info, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from '../../lib/icons';
+import { EXPERIENCE_GROUPS, EXPERIENCE_STATES, EQUIPMENT_ITEMS, GYM_TYPES, gymHas } from './movements';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, AMBER, ON_AMBER, BRICK } from '../../theme';
 
 const TONES = { LIME: [LIME, INK], AMBER: [AMBER, ON_AMBER], SKY: [SKY, INK], BRICK: [BRICK, PAPER] }; // [color, text on that color]
@@ -151,22 +151,41 @@ export default function ExperienceForm({ answers, onChange, gym = {}, onGym = nu
 
       <div key={page} className={dir.current > 0 ? 'groove-slide-from-right' : 'groove-slide-from-left'}>
       {g.gym ? (
-        <div style={{ background: INK_3 }} className="rounded-md px-3 py-3 text-center">
-          <div style={{ color: PAPER }} className="text-base font-medium flex items-center justify-center gap-1.5">
-            Does your gym have a Smith machine?
-            <button onClick={() => setInfo({ label: 'Smith Machine', info: 'A barbell fixed on vertical rails, so it only moves up and down, with hooks to rack it anywhere. Smith machine lifts are only suggested if you say yes.' })} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="About the Smith machine"><Info size={16} /></button>
-          </div>
-          <div className="flex justify-center gap-2 mt-2.5">
-            {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map((o) => (
+        <div className="text-center">
+          <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Suggested workouts only use equipment you have. You can still add any exercise by hand.</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">Quick Start</div>
+          <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+            {GYM_TYPES.map((t) => (
               <button
-                key={o.label}
-                onClick={() => onGym({ ...gym, smith: gym.smith === o.v ? undefined : o.v })}
-                style={{ background: gym.smith === o.v ? SKY : INK_2, color: gym.smith === o.v ? INK : PAPER }}
-                className="rounded-full px-6 py-2 text-base font-medium"
+                key={t.id}
+                onClick={() => onGym({ ...gym, has: { ...t.has }, smith: t.has.smith, type: t.id })}
+                style={{ background: gym.type === t.id ? SKY : INK_3, color: gym.type === t.id ? INK : PAPER }}
+                className="rounded-full px-3 py-1.5 text-sm font-medium"
               >
-                {o.label}
+                {t.label}
               </button>
             ))}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">What Does Your Gym Have?</div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {EQUIPMENT_ITEMS.map((it) => {
+              const on = gymHas(gym, it.id);
+              return (
+                <button
+                  key={it.id}
+                  onClick={() => {
+                    const has = Object.fromEntries(EQUIPMENT_ITEMS.map((x) => [x.id, gymHas(gym, x.id)]));
+                    has[it.id] = !on;
+                    onGym({ ...gym, has, smith: has.smith, type: undefined });
+                  }}
+                  aria-pressed={on}
+                  style={{ background: on ? SKY : INK_3, color: on ? INK : PAPER_DIM }}
+                  className="rounded-md px-2 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"
+                >
+                  {on ? <Check size={14} /> : null} {it.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : (
