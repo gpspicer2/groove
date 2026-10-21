@@ -4325,6 +4325,18 @@ function ExerciseCard({
 
 // Grip / handle / bar choice for an exercise (tap again to clear).
 function VariationChips({ variation, value, onChange }) {
+  // Once a choice is made the options fold into one small line (tap it to change); per-set choices (grips) stay open.
+  const [changing, setChanging] = useState(false);
+  if (value && !variation.perSet && !changing) {
+    return (
+      <div className="mb-2 flex items-center justify-center gap-2">
+        <span style={{ color: TEXT_SOFT }} className="text-[13px]">{variation.label}</span>
+        <button onClick={() => setChanging(true)} style={{ background: SKY, color: INK }} className="rounded-full px-3 py-0.5 text-sm" aria-label={`${variation.label}: ${value}. Tap to change`}>
+          {value}
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="mb-2">
       <div style={{ color: TEXT_SOFT }} className="text-[13px] text-center mb-1">{variation.label}{variation.perSet ? ' for this set' : ''}</div>
@@ -4332,7 +4344,7 @@ function VariationChips({ variation, value, onChange }) {
         {variation.options.map((o) => (
           <button
             key={o}
-            onClick={() => onChange(value === o ? null : o)}
+            onClick={() => { onChange(value === o ? null : o); setChanging(false); }}
             style={{ background: value === o ? SKY : INK_3, color: value === o ? INK : PAPER_DIM }}
             className="rounded-full px-3 py-1 text-sm"
           >
