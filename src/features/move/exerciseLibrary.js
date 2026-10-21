@@ -225,7 +225,7 @@ export const EXERCISE_LIBRARY = {
 };
 
 // Olympic lifts and other technical lifts: only suggested to members who say they are comfortable with them
-// (Account > Lifting experience).
+// (Account > Lifting Preferences).
 export const ADVANCED_LIFTS = Object.values(EXERCISE_LIBRARY).flat().filter((e) => e.advanced).map((e) => e.name);
 
 // Stretches for a Flexibility session, keyed by the same muscle groups as

@@ -72,7 +72,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const [split, setSplit] = useState(program?.split || null);
   const [weekdays, setWeekdays] = useState(hasChosenDays(program) ? program.weekdays : []);
 
-  // Lifting programs ask once which lifts the member knows (Account > Lifting experience changes it later).
+  // Lifting programs ask once which lifts the member knows (Account > Lifting Preferences changes it later).
   const nextAfterGoal = () => ((goal === 'strength' || goal === 'hypertrophy') && !exp.answered ? 'experience' : 'days');
   const dayChoices = goal === 'fat_loss' ? [4, 5, 6] : [2, 3, 4, 5, 6];
   const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
@@ -194,7 +194,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
 
           {step === 'experience' && goal && (
             <>
-              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which lifts do you know? Your program leans on these. Olympic lifts only appear if you say you know them.</div>
+              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which lifts do you love, know, want to learn, or want to skip? Your program leans on your answers. Olympic lifts only appear if you say you know them.</div>
               <ExperienceForm answers={(expDraft || exp.answers)} onChange={setExpDraft} />
               <div className="flex items-center justify-between mt-1">
                 {back(goal === 'hypertrophy' ? 'model' : 'goal')}

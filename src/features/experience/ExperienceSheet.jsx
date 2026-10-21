@@ -5,7 +5,7 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 import ExperienceForm from './ExperienceForm';
 
-// Account > Lifting experience. Saves as you tap.
+// Account > Lifting Preferences. Saves as you tap.
 export default function ExperienceSheet({ answers, onSave, onClose }) {
   const sheet = useSwipeDown(onClose);
   const set = (next) => onSave({ answers: Object.fromEntries(Object.entries(next).filter(([, v]) => v)) });
@@ -16,10 +16,10 @@ export default function ExperienceSheet({ answers, onSave, onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-1">
             <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Lifting Experience</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Lifting Preferences</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-3">Which lifts do you know? Programs and suggested workouts lean on these. Olympic lifts only appear if you say you know them.</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-3">Which lifts do you love, know, want to learn, or want to skip? Programs and suggested workouts lean on your answers. Olympic lifts only appear if you say you know them.</div>
           <ExperienceForm answers={answers} onChange={set} />
           <button onClick={onClose} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">Done</button>
         </div>

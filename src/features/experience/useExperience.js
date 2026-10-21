@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
-// Lifting experience lives in profiles.movement_experience (jsonb: { answers: { id: 'know'|'learn'|'skip' } }).
+// Lifting Preferences lives in profiles.movement_experience (jsonb: { answers: { id: 'know'|'learn'|'skip' } }).
 // Until that column exists in Supabase, a copy on this device keeps everything working (same idea as the program).
 const key = (userId) => `groove:experience:${userId}`;
 function readLocal(userId) {
