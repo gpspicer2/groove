@@ -21,7 +21,7 @@ function InfoPopup({ item, onClose }) {
   );
 }
 
-// A four-stop slider from Love It to Skip It. Drag the pill, or just tap a stop. Nothing is chosen until it is touched.
+// A four-stop bar from Love It to Skip It: tap a stop and the pill slides there. Nothing is chosen until it is touched.
 // Time of the last scroll anywhere (the sheet scrolls, not the page), so a touch that merely stops a scroll is never an answer.
 let lastScrollAt = 0;
 if (typeof document !== 'undefined') document.addEventListener('scroll', () => { lastScrollAt = Date.now(); }, true);
@@ -38,25 +38,13 @@ function ExperienceSlider({ value, onChange, label }) {
   };
   const move = (d) => onChange(EXPERIENCE_STATES[Math.min(EXPERIENCE_STATES.length - 1, Math.max(0, (idx < 0 ? (d > 0 ? -1 : EXPERIENCE_STATES.length) : idx) + d))].id);
   const [tone, onTone] = idx >= 0 ? TONES[EXPERIENCE_STATES[idx].tone] : [TEXT_SOFT, INK];
-  // A finger only answers on a clean tap or a sideways drag. Scrolling up or down (the browser takes over and cancels the
-  // gesture) never answers, and neither does a touch that lands while the sheet is still scrolling.
-  const down = (e) => {
-    const touch = e.pointerType !== 'mouse';
-    g.current = { x: e.clientX, y: e.clientY, drag: false, touch, ignore: touch && Date.now() - lastScrollAt < 250 };
-    if (!touch) { e.currentTarget.setPointerCapture(e.pointerId); g.current.drag = true; pick(e.clientX); }
-  };
-  const moved = (e) => {
-    const s = g.current; if (!s || s.ignore) return;
-    if (!s.drag) {
-      const dx = Math.abs(e.clientX - s.x); const dy = Math.abs(e.clientY - s.y);
-      if (dx > 10 && dx > dy * 1.5) { s.drag = true; e.currentTarget.setPointerCapture(e.pointerId); } else return;
-    }
-    pick(e.clientX);
-  };
+  // Answers are taps only (no dragging the pill), so a sideways swipe on a bar changes the muscle group instead.
+  // Scrolling, and a touch that merely stops a scroll in progress, never answer.
+  const down = (e) => { g.current = { x: e.clientX, y: e.clientY, ignore: e.pointerType !== 'mouse' && Date.now() - lastScrollAt < 250 }; };
   const up = (e) => {
     const s = g.current; g.current = null;
-    if (!s || s.ignore || s.drag) return;
-    if (Math.abs(e.clientX - s.x) < 10 && Math.abs(e.clientY - s.y) < 10) pick(e.clientX); // a tap
+    if (!s || s.ignore) return;
+    if (Math.abs(e.clientX - s.x) < 10 && Math.abs(e.clientY - s.y) < 10) pick(e.clientX);
   };
   return (
     <div
@@ -70,7 +58,6 @@ function ExperienceSlider({ value, onChange, label }) {
       aria-valuetext={idx < 0 ? 'Not answered' : EXPERIENCE_STATES[idx].label}
       onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); move(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); } }}
       onPointerDown={down}
-      onPointerMove={moved}
       onPointerUp={up}
       onPointerCancel={() => { g.current = null; }}
       style={{ touchAction: 'pan-y', background: INK_2 }}
@@ -129,10 +116,10 @@ export default function ExperienceForm({ answers, onChange }) {
       <button onClick={() => go(page + 1)} disabled={page === last} style={{ color: page === last ? TEXT_SOFT : SKY, opacity: page === last ? 0.4 : 1 }} className="text-base font-medium px-1 py-1.5 flex items-center gap-0.5">Next <ChevronRight size={18} /></button>
     </div>
   );
-  // Swipe sideways anywhere except on a slider (which has its own sideways drag) to change muscle group.
+  // Swipe sideways anywhere (bars included, since answers are taps) to change muscle group.
   const swipeStart = (e) => {
     const t = e.touches[0];
-    swipe.current = e.target.closest && e.target.closest('[role="slider"]') ? null : { x: t.clientX, y: t.clientY };
+    swipe.current = { x: t.clientX, y: t.clientY };
   };
   const swipeEnd = (e) => {
     const s0 = swipe.current; swipe.current = null;
