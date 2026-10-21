@@ -1,3 +1,4 @@
 {
-  "crons": [{ "path": "/api/push/daily", "schedule": "0 13 * * *" }]
+  "crons": [{ "path": "/api/push/daily", "schedule": "0 13 * * *" }],
+  "git": { "deploymentEnabled": { "claude/groove-access-yz22dk": false } }
 }
