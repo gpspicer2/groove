@@ -9,7 +9,10 @@ export const GOALS = [
   { id: 'strength', label: 'Strength', emoji: '💥', blurb: 'Powerlifting-style: squat, bench and deadlift.' },
   { id: 'hypertrophy', label: 'Hypertrophy', emoji: '📈', blurb: 'Bodybuilding-style: muscle size and shape.' },
   { id: 'fat_loss', label: 'Weight Loss', emoji: '🔥', blurb: 'Heart-rate cardio you choose, plus 2 short strength days.' },
+  { id: 'fitness', label: 'Improve Fitness', emoji: '⚡', blurb: 'Stay in shape or get fitter: steady cardio plus 2 full-body strength days.' },
 ];
+// Cardio-plus-strength programs share one engine: cardio days you fill with any activity, and two full-body strength days.
+export const isHybridGoal = (goal) => goal === 'fat_loss' || goal === 'fitness';
 
 export const MODELS = [
   { id: 'undulating', label: 'Undulating', blurb: 'Heavy, moderate and light days mixed through every week.' },
@@ -20,6 +23,7 @@ export const GOAL_INFO = {
   strength: 'Prepares you for powerlifting, with no meet needed. The squat, bench press and deadlift get heavy work in low reps (6 or fewer, about 85%+ of your max) with long rests, then a second lift and smaller supporting lifts. Effort climbs over three weeks, then a lighter deload week.',
   hypertrophy: 'Prepares you for bodybuilding, with no show needed. Muscle size comes from enough hard sets per muscle each week (about 10-20), mostly 6-12 reps taken close to failure, with a good mix of big lifts and isolation work. Pick how the weeks progress below.',
   fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Cardio minutes build gradually and you pick activities you enjoy, guided by heart rate or effort. Two short strength days help you keep muscle. We do not push the scale: it swings daily and can stay flat while you gain muscle and lose fat. You will see cardio minutes, resting heart rate, strength and fitness tests instead.',
+  fitness: 'ACSM\'s general guidance for healthy adults: 150-300 minutes of moderate cardio a week plus strength work on 2 days. Cardio starts from what you already do and builds gently, with a lighter week every fourth week, and you pick activities you enjoy. The two full-body strength days use moderate weights and 8-12 reps.',
 };
 export const MODEL_INFO = {
   undulating: 'Daily undulating periodization (DUP) changes the rep range from workout to workout. Heavy days build strength, moderate days build size, light days add volume with less strain. Each muscle gets all three through the week, and the pattern shifts every week.',
@@ -131,7 +135,7 @@ export const SPLIT_OPTIONS = {
   ],
 };
 export function splitOptions(program) {
-  if (program.goal === 'fat_loss') return [];
+  if (isHybridGoal(program.goal)) return [];
   if (program.goal === 'strength') {
     const p = POWER_SPLITS[program.days];
     return p ? [{ id: `pl${program.days}`, label: p.label, freq: p.freq, tag: 'Powerlifting', sessions: p.sessions, info: 'The squat, bench press and deadlift each get a heavy day, with a second lift and supporting work after. Days that train a lift a second time are lighter variations.' }] : [];
@@ -152,6 +156,10 @@ const FAT_LOSS = {
   5: { seq: 'ARARA', days: [1, 2, 3, 5, 6], lifts: [T.fullA, T.fullB] },
   6: { seq: 'ARAARA', days: [1, 2, 3, 4, 6, 0], lifts: [T.fullA, T.fullB] },
 };
+
+// Improve Fitness uses the same layouts (4-6 days: enough room for ACSM's cardio minutes plus two strength days).
+const HYBRID = { fat_loss: FAT_LOSS, fitness: FAT_LOSS };
+const hybridPlan = (program) => HYBRID[program.goal][program.days] || HYBRID[program.goal][4];
 
 const DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 4, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -206,6 +214,17 @@ const CYCLES = {
       { phase: 'Deload', main: rx(2, '10', '6', '60 sec') },
     ],
   },
+  // Improve Fitness: ACSM's general guidance for healthy adults (2-4 sets of 8-12 at a moderate effort), eased in over
+  // three weeks, then a lighter week.
+  fitness: {
+    len: 4, exercises: 6, mainCount: 0,
+    weeks: [
+      { phase: 'Build', main: rx(2, '10-12', '6', '60-90 sec') },
+      { phase: 'Build', main: rx(3, '10-12', '7', '60-90 sec') },
+      { phase: 'Build', main: rx(3, '8-12', '7-8', '60-90 sec') },
+      { phase: 'Deload', main: rx(2, '10', '6', '60 sec') },
+    ],
+  },
 };
 
 export function cycleKey(program) {
@@ -221,7 +240,7 @@ export function programTitle(program) {
 }
 
 export function resistanceDays(program) {
-  return program.goal === 'fat_loss' ? FAT_LOSS[program.days].seq.split('R').length - 1 : program.days;
+  return isHybridGoal(program.goal) ? hybridPlan(program).seq.split('R').length - 1 : program.days;
 }
 
 // 1-based week number since the program started (weeks follow the member's week start).
@@ -237,17 +256,24 @@ export function cyclePosition(program, week) {
 // ---- Weight loss cardio: weekly minutes in heart-rate zones ----
 export const WEEKLY_MINUTES_CAP = 250; // ACSM: more than 250 min/week for clinically significant weight loss
 export function cardioDays(program) {
-  return FAT_LOSS[program.days].seq.split('A').length - 1;
+  return hybridPlan(program).seq.split('A').length - 1;
 }
 // The week's cardio minutes: start where the member is (program.startMinutes), build about 10% a week, and make every
 // 4th week a lighter one (70%). Capped at ACSM's 250, or about 60 minutes per cardio day if that is lower.
+// Improve Fitness builds more gently (about 5% a week, 80% in the lighter week) toward ACSM's 300 minutes, about 90 minutes
+// per cardio day at most.
+const CARDIO_RULES = {
+  fat_loss: { cap: WEEKLY_MINUTES_CAP, perDay: 60, growth: 1.1, light: 0.7 },
+  fitness: { cap: 300, perDay: 90, growth: 1.05, light: 0.8 },
+};
 export function weeklyMinutes(program, week) {
+  const r = CARDIO_RULES[program.goal] || CARDIO_RULES.fat_loss;
   const start = Math.max(60, Number(program.startMinutes) || 90);
-  const cap = Math.max(start, Math.min(WEEKLY_MINUTES_CAP, cardioDays(program) * 60));
+  const cap = Math.max(start, Math.min(r.cap, cardioDays(program) * r.perDay));
   const pos = ((week - 1) % 4) + 1;
   const blocks = Math.floor((week - 1) / 4);
-  const build = (b) => Math.min(cap, start * 1.1 ** b);
-  const m = pos === 4 ? 0.7 * build(blocks * 3 + 2) : build(blocks * 3 + (pos - 1));
+  const build = (b) => Math.min(cap, start * r.growth ** b);
+  const m = pos === 4 ? r.light * build(blocks * 3 + 2) : build(blocks * 3 + (pos - 1));
   return Math.round(m / 5) * 5;
 }
 export const ZONES = {
@@ -304,6 +330,7 @@ const DAY_SHIFT = {
   strength: { min: 2, max: 6, Heavy: -2, Light: 1 },
   hypertrophy: { min: 6, max: 12, Heavy: -2, Light: 2 },
   fat_loss: { min: 8, max: 20, Heavy: -3, Light: 3 },
+  fitness: { min: 8, max: 15, Heavy: -2, Light: 3 },
 };
 function flavored(main, label, goal) {
   const c = DAY_SHIFT[goal];
@@ -319,9 +346,10 @@ export function sessionsForWeek(program, week) {
   const deload = pos === cyc.len && (key !== 'undulating' ? cyc.weeks[pos - 1].phase === 'Deload' : true);
   const out = [];
 
-  const lifts = program.goal === 'fat_loss' ? FAT_LOSS[program.days].lifts : chosenSplit(program).sessions;
-  const seq = program.goal === 'fat_loss' ? FAT_LOSS[program.days].seq : 'R'.repeat(program.days);
-  const defaultDays = program.goal === 'fat_loss' ? FAT_LOSS[program.days].days : DAYS[program.days];
+  const hybrid = isHybridGoal(program.goal);
+  const lifts = hybrid ? hybridPlan(program).lifts : chosenSplit(program).sessions;
+  const seq = hybrid ? hybridPlan(program).seq : 'R'.repeat(program.days);
+  const defaultDays = hybrid ? hybridPlan(program).days : DAYS[program.days];
   // The days the member picked (Mon-first order), else a sensible default spread.
   const days = hasChosenDays(program) ? orderedWeekdays(program.weekdays) : defaultDays;
   let li = 0; let ai = 0;

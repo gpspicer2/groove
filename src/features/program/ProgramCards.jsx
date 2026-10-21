@@ -5,7 +5,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../..
 import { useAuth } from '../../auth/AuthContext';
 import NoScaleSheet from './NoScaleSheet';
 import { predictedMaxHR } from '../../lib/heartRate';
-import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
+import { GOALS, isHybridGoal, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
 export function useHr(program) {
@@ -23,7 +23,7 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
     if (!program) return null;
     const week = weekNumber(program, new Date(), weekStartDay);
     let r = 0; let a = 0; let cum = 0;
-    const weightLoss = program.goal === 'fat_loss';
+    const weightLoss = isHybridGoal(program.goal); // cardio counted by minutes (weight loss and improve fitness)
     const moves = normalizeMoves(program, weekStartDay);
     const sessions = sessionsForWeek(program, week).map((s0) => {
       // A moved session shows the weekday it was moved to.
@@ -73,7 +73,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
   const split = chosenSplit(program);
   const model = program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
-  const exact = program.goal === 'fat_loss'
+  const exact = isHybridGoal(program.goal)
     ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} strength days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
