@@ -311,7 +311,7 @@ export const STYLE_CONFIG = {
 // they demand the most technique and energy and should be done while
 // fresh.
 const COMPOUND_PATTERN = /Squat|Deadlift|Press|Push-Up|Row|Pulldown|Pull-Up|Chin-Up|Dip|Hip Thrust|Lunge|Step-Up|Good Morning/i;
-function isCompound(name) {
+export function isCompound(name) {
   return COMPOUND_PATTERN.test(name);
 }
 
@@ -388,6 +388,16 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
 // training style rather than the library's default. The final list is
 // then stably sorted compound-first (see COMPOUND_PATTERN above),
 // preserving the muscle-group order otherwise.
+// Within one workout the big lifts keep the day's rep range and single-joint (isolation) lifts go about three reps
+// higher, so a session isn't the same sets x reps all the way down. High-rep (endurance) ranges stay as they are.
+export function repsFor(name, reps) {
+  if (isCompound(name)) return reps;
+  const m = String(reps).match(/^(\d+)(?:-(\d+))?$/);
+  if (!m || Number(m[1]) >= 15) return reps;
+  const lo = Number(m[1]) + 3;
+  return m[2] ? `${lo}-${Number(m[2]) + 3}` : String(lo);
+}
+
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
 export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
 
@@ -422,7 +432,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       if (!ex) continue;
       l.at += 1;
       usedNames.add(ex.name);
-      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? styleConfig.reps ?? ex.reps });
+      picked.push({ ...ex, muscleGroup: l.group, sets: styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
     }
   }
   // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks

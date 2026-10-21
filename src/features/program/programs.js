@@ -189,6 +189,22 @@ export function cyclePosition(program, week) {
   return ((week - 1) % cycleLength(program)) + 1;
 }
 
+// Shifts a rep target up or down (never below 3), e.g. 12-15 by -3 is 9-12, 5 by -2 is 3.
+function shiftReps(reps, d) {
+  const m = String(reps).match(/^(\d+)(?:-(\d+))?$/);
+  if (!m) return reps;
+  const lo = Math.max(3, Number(m[1]) + d);
+  const hi = m[2] ? Math.max(3, Number(m[2]) + d) : null;
+  return hi != null && hi !== lo ? `${lo}-${hi}` : String(lo);
+}
+// Each week's prescription is the "Moderate" day. Within the week the sessions rotate Heavy / Moderate / Light
+// (like the undulating program does), so no two lifting days in a row look the same.
+const DAY_SHIFT = { Heavy: { strength: -2, other: -3 }, Light: { strength: 3, other: 3 } };
+function flavored(main, label, key) {
+  const d = DAY_SHIFT[label]?.[key === 'strength' ? 'strength' : 'other'];
+  return d ? { ...main, reps: shiftReps(main.reps, d) } : main;
+}
+
 // The sessions for one week, with the prescription for that week.
 export function sessionsForWeek(program, week) {
   const key = cycleKey(program);
@@ -219,10 +235,10 @@ export function sessionsForWeek(program, week) {
       label = d.label;
     } else {
       const w = cyc.weeks[pos - 1];
-      presc = { main: w.main, acc: w.acc || null };
-      label = w.phase === 'Deload' ? 'Deload' : '';
+      label = w.phase === 'Deload' ? 'Deload' : ['Heavy', 'Moderate', 'Light'][(li + week - 1) % 3];
+      presc = { main: flavored(w.main, label, key), acc: w.acc || null };
     }
-    const style = presc.main.reps && Number(String(presc.main.reps).split('-')[0]) <= 6 ? 'Strength' : 'Hypertrophy';
+    const style = program.goal === 'strength' || (presc.main.reps && Number(String(presc.main.reps).split('-')[0]) <= 6) ? 'Strength' : 'Hypertrophy';
     out.push({
       id: `w${week}-r${li}`, kind: 'resistance', name: t.name + (label && key === 'undulating' ? ` · ${label}` : ''),
       shortName: t.name, groups: t.groups, style, day, label,
