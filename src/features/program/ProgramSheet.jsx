@@ -11,12 +11,13 @@ import {
 } from './programs';
 import { useHr } from './ProgramCards';
 import ExperienceForm from '../experience/ExperienceForm';
+import NoScaleSheet from './NoScaleSheet';
 import { useExperience } from '../experience/useExperience';
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 function WeekList({ program, week }) {
-  const hr = useHr();
+  const hr = useHr(program);
   const sessions = sessionsForWeek(program, week);
   return (
     <div className="space-y-1.5 text-left">
@@ -60,6 +61,10 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const sheet = useSwipeDown(onClose);
   const exp = useExperience(userId);
   const [expDraft, setExpDraft] = useState(null);
+  const hrOn = useHr(); // true when heart-rate zones can be shown (resting and max heart rate on file)
+  const [guide, setGuide] = useState(program?.guide || null);
+  const [whyNoScale, setWhyNoScale] = useState(false);
+  const guideNow = guide || (hrOn ? 'hr' : 'rpe');
   const [step, setStep] = useState(initialStep || (program ? 'manage' : 'goal'));
   const [goal, setGoal] = useState(program?.goal || null);
   const [model, setModel] = useState(program?.model || null);
@@ -73,7 +78,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
   const options = goal ? splitOptions(draftBase) : [];
   const splitId = options.find((o) => o.id === split)?.id || options[0]?.id || null;
-  const draft = { ...draftBase, split: splitId, weekdays: weekdays.length === days ? weekdays : null };
+  const draft = { ...draftBase, ...(goal === 'fat_loss' ? { guide: guideNow } : {}), split: splitId, weekdays: weekdays.length === days ? weekdays : null };
 
   async function start() {
     // Changing only the days or split keeps your place in the cycle; a new goal or method starts fresh.
@@ -91,6 +96,18 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
     onClose();
   }
 
+  // Weight loss cardio can be guided by heart rate or by effort (RPE and the talk test), so no watch is needed.
+  const guideToggle = (value, onPick) => (
+    <div className="mb-2">
+      <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Guide my cardio by</div>
+      <div className="grid grid-cols-2 gap-2">
+        {[{ id: 'hr', label: 'Heart rate' }, { id: 'rpe', label: 'Effort (RPE)' }].map((o) => (
+          <button key={o.id} onClick={() => onPick(o.id)} style={{ background: value === o.id ? SKY : INK_3, color: value === o.id ? INK : PAPER }} className="rounded-md py-2 text-sm font-medium">{o.label}</button>
+        ))}
+      </div>
+      <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-1">{value === 'hr' && !hrOn ? 'Heart-rate zones need your resting heart rate (add it under Your Fitness on Birdseye). Until then you will see effort.' : value === 'hr' ? 'Zones come from your resting and max heart rate.' : 'Effort is a 0-10 scale plus the talk test. No watch needed.'}</div>
+    </div>
+  );
   const tile = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
   const back = (to) => <button onClick={() => setStep(to)} style={{ color: TEXT_SOFT }} className="text-sm py-2">Back</button>;
 
@@ -113,6 +130,12 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week{chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · {phaseLabel(program, week)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This week</div>
                 <WeekList program={program} week={week} />
+                {program.goal === 'fat_loss' && (
+                  <div className="mt-3 text-left">
+                    {guideToggle(program.guide || (hrOn ? 'hr' : 'rpe'), (g) => { setGuide(g); onSave({ ...program, guide: g }); })}
+                    <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Why no scale?</button>
+                  </div>
+                )}
                 <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
                   {hasChosenDays(program) ? 'Change Training Days' : 'Pick Your Training Days'}
                 </button>
@@ -212,6 +235,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                   <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2 text-sm mb-3">{chosenSplit(draft).info}</div>
                 </>
               )}
+              {goal === 'fat_loss' && guideToggle(guideNow, setGuide)}
               <WeekList program={draft} week={1} />
               <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">Your resistance goal on Birdseye becomes {resistanceDays(draft)} day{resistanceDays(draft) === 1 ? '' : 's'} a week.</div>
               <div className="flex items-center justify-between mt-3">
@@ -267,6 +291,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
           )}
         </div>
       </div>
+      {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
     </Portal>
   );
 }

@@ -421,7 +421,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   activeIdRef.current = activeWorkoutId;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
   const programLifted = useProgramLifted(user?.id, program, `${completedWorkouts.length}-${sets.length}`);
-  const hrNow = useHr();
+  const hrNow = useHr(program);
   const experience = useExperience(user?.id);
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 

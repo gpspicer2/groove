@@ -19,7 +19,7 @@ export const MODELS = [
 export const GOAL_INFO = {
   strength: 'Prepares you for powerlifting, with no meet needed. The squat, bench press and deadlift get heavy work in low reps (6 or fewer, about 85%+ of your max) with long rests, then a second lift and smaller supporting lifts. Effort climbs over three weeks, then a lighter deload week.',
   hypertrophy: 'Prepares you for bodybuilding, with no show needed. Muscle size comes from enough hard sets per muscle each week (about 10-20), mostly 6-12 reps taken close to failure, with a good mix of big lifts and isolation work. Pick how the weeks progress below.',
-  fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Your weekly cardio minutes start where you are and build about 10% a week (a lighter week every 4th), in heart-rate zones. You pick any activity you enjoy to fill them. Two short strength days help you keep muscle while you lose fat.',
+  fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Cardio minutes build gradually and you pick activities you enjoy, guided by heart rate or effort. Two short strength days help you keep muscle. Here we do not track scale weight: it swings daily and can stay flat while you gain muscle and lose fat. You will see cardio minutes, resting heart rate, strength and how you feel instead.',
 };
 export const MODEL_INFO = {
   undulating: 'Daily undulating periodization (DUP) changes the rep range from workout to workout. Heavy days build strength, moderate days build size, light days add volume with less strain. Each muscle gets all three through the week, and the pattern shifts every week.',
@@ -251,14 +251,15 @@ export function weeklyMinutes(program, week) {
   return Math.round(m / 5) * 5;
 }
 export const ZONES = {
-  moderate: { label: 'Moderate', lowPct: 0.4, highPct: 0.59, rpe: '5-6' },
-  easy: { label: 'Easy to moderate', lowPct: 0.4, highPct: 0.5, rpe: '4-5' },
-  hard: { label: 'Hard', lowPct: 0.6, highPct: 0.79, rpe: '7-8' },
+  moderate: { label: 'Moderate', lowPct: 0.4, highPct: 0.59, rpe: '5-6', talk: 'you can talk but not sing' },
+  easy: { label: 'Easy to moderate', lowPct: 0.4, highPct: 0.5, rpe: '4-5', talk: 'you can chat easily' },
+  hard: { label: 'Hard', lowPct: 0.6, highPct: 0.79, rpe: '7-8', talk: 'only a few words at a time' },
 };
-// "128-142 bpm" when resting and max heart rate are known, else the percent of heart rate reserve.
+// "128-142 bpm" when the member guides by heart rate and their resting and max are known; otherwise effort (RPE, a 0-10 scale)
+// with the talk test, so no watch is needed.
 export function zoneText(zone, hr) {
   if (hr && hr.rest != null && hr.max != null) return `${karvonenBpm(hr.rest, hr.max, zone.lowPct)}–${karvonenBpm(hr.rest, hr.max, zone.highPct)} bpm`;
-  return `${Math.round(zone.lowPct * 100)}–${Math.round(zone.highPct * 100)}% of heart rate reserve`;
+  return `effort ${zone.rpe.replace('-', '–')} of 10, ${zone.talk}`;
 }
 // One cardio session. `n` cardio days a week; the last one is the long one, the first are steady, and from week 3
 // one steady day can become an interval day (short harder bursts), which is optional.

@@ -87,7 +87,7 @@ function Row({ label, latest, unit, points, color, delta, deltaGood, due, note, 
 
 // Trends from the measurements people log in Account and the fitness tests,
 // plus estimated 1RMs. Hidden until there's something to show.
-export default function FitnessTrends({ userId, profile, active }) {
+export default function FitnessTrends({ userId, profile, active, hideScale = false }) {
   const [measurements, setMeasurements] = useState([]);
   const [oneRms, setOneRms] = useState([]);
   const [estimating, setEstimating] = useState(false);
@@ -106,7 +106,7 @@ export default function FitnessTrends({ userId, profile, active }) {
   }, [userId, active, reload]);
 
   const rows = [];
-  KINDS.forEach((k) => {
+  KINDS.filter((k) => !(hideScale && k.kind === 'bodyweight')).forEach((k) => {
     const pts = measurements.filter((m) => m.kind === k.kind).map((m) => ({ value: Number(m.value), at: m.measured_at }));
     if (pts.length === 0) {
       // Nothing logged yet: fall back to the single value on file.

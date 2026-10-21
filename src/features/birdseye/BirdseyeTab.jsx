@@ -554,8 +554,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         />
 
 
-        <Trends userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} />
-        <FitnessTrends userId={userId} profile={profile} active={active} />
+        <Trends userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
+        <FitnessTrends userId={userId} profile={profile} active={active} hideScale={program?.goal === 'fat_loss'} />
         <MovementLibrary hrZones={computeHrZones(restingHrNum, maxHrNum)} />
       </div>
 

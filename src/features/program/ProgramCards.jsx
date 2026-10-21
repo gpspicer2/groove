@@ -3,12 +3,14 @@ import { Check, Pencil, Play, ListChecks, ChevronDown, ChevronUp } from '../../l
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
 import { useAuth } from '../../auth/AuthContext';
+import NoScaleSheet from './NoScaleSheet';
 import { predictedMaxHR } from '../../lib/heartRate';
 import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
-export function useHr() {
+export function useHr(program) {
   const { profile } = useAuth();
+  if (program?.guide === 'rpe') return null; // guided by effort instead of heart rate
   const rest = profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null;
   const max = profile?.max_hr_bpm != null ? Number(profile.max_hr_bpm) : predictedMaxHR(profile?.age != null ? Number(profile.age) : null);
   return rest != null && max != null ? { rest, max } : null;
@@ -62,7 +64,8 @@ const writeFlag = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } ca
 export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStart, onManage }) {
   const [card, setCard] = useState(() => readFlag(LS_CARD));
   const [open, setOpen] = useState(() => readFlag(LS_OPEN));
-  const hr = useHr();
+  const hr = useHr(program);
+  const [whyNoScale, setWhyNoScale] = useState(false);
   if (!program || !week) return null;
   const toggleCard = () => setCard((v) => { writeFlag(LS_CARD, !v); return !v; });
   const toggle = () => setOpen((v) => { writeFlag(LS_OPEN, !v); return !v; });
@@ -135,6 +138,8 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
         </div>
       )}
       <button onClick={toggle} style={{ color: SKY }} className="w-full text-center text-sm mt-2.5 py-0.5">{open ? 'Hide the whole week' : 'See the whole week'}</button>
+      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">Why no scale?</button>}
+      {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">
           <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This week</div>
