@@ -45,6 +45,17 @@ function mapArticle(row) {
   };
 }
 
+// Tidbits that make the case for Groove itself lead the list: the "we're not
+// meant to exercise" one, then tracking/data, then journaling. Everything else
+// keeps the database order (pinned, then newest). Matched on the title so no
+// SQL is needed; Greg can still pin others.
+const PROMO_ORDER = [/meant to\s*\*?(exercise|move)|exercise\W*(isn|is not)/i, /track|data|measure/i, /journal|reflect|writ/i];
+function promoRank(a) {
+  const t = a.title.replace(/\*/g, '');
+  const i = PROMO_ORDER.findIndex((re) => re.test(t));
+  return i === -1 ? PROMO_ORDER.length : i;
+}
+
 // Lightweight markdown for titles — *word* renders italic. Lets a
 // specific word be emphasized (e.g. "...Meant to *Move*") without
 // needing a rich-text editor for what's otherwise plain text.
@@ -121,7 +132,7 @@ export default function LearnTab({ request = null, onConsumeRequest }) {
       ]);
       const firstError = articlesRes.error || favRes.error;
       setLoadError(firstError ? `Couldn't load Learn: ${firstError.message}` : '');
-      setArticles((articlesRes.data || []).map(mapArticle));
+      setArticles((articlesRes.data || []).map(mapArticle).map((a, i) => ({ a, i })).sort((x, y) => promoRank(x.a) - promoRank(y.a) || x.i - y.i).map((x) => x.a));
       setFavoriteIds(new Set((favRes.data || []).map((f) => f.article_id)));
       setLoading(false);
     })();
