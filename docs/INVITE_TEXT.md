@@ -10,7 +10,18 @@ The link turns into a card with the GROOVE picture, the title "Groove: Movement 
 
 Type or paste it as plain text so it appears only once (copying from a chat can add a second copy in parentheses, and Messages then skips the card). The `?invite` on the end is on purpose: phones remember the preview for each exact link, so a link they saw before the picture existed keeps showing no picture. The new ending is a link they have never seen, and it opens the same app. The picture file has a version in its name (`og-image-v2.png`) for the same reason; if the picture is ever redrawn, bump the name to `-v3` in `index.html`, the script and here.
 
-If you'd rather write your own words above the card, a text that works: "I made an app to help with movement mentorship and education. Would love your thoughts!" then the link on the next line.
+### The text to send (reads like a text, with the setup heads-up)
+
+Paste all of this as one message (link last, on its own line):
+
+> Hey! I made an app to help with movement mentorship and education, and I'd love for you to try it. It's free while I'm testing it.
+>
+> Heads up: getting started takes about 5 minutes (sign up, a few health questions, a quick tour). After your first workout it will also offer a 10-minute "get to know you" set of questions. That part is optional, but it helps me tailor things to you.
+>
+> If anything is confusing, broken, or annoying, tell me. That's exactly what I need to hear. Thank you!
+> https://groove-rho.vercel.app/?invite
+
+(The 5 and 10 minute figures are estimates, not timed. The first-run steps are sign up, the consent screen, the health check and the seven-card tour. The 10-minute set is the "Finish Setting Up Your Account" card, which only appears after the first logged workout.)
 
 ## The text (copy and paste)
 
