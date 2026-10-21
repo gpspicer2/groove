@@ -20,7 +20,7 @@ export const CONSENT_POINTS = [
 ];
 
 export default function ConsentScreen({ onBackToHealthCheck }) {
-  const { updateProfile, signOut } = useAuth();
+  const { updateProfile, signOut, reloadProfile } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
     const err = (await updateProfile({ consented_at: new Date().toISOString(), consent_version: CONSENT_VERSION }))?.error;
     setSaving(false);
     if (err) setError(err.message);
-    else { notifyNewMember(); onBackToHealthCheck?.(); }
+    else { notifyNewMember().then(() => reloadProfile?.()); onBackToHealthCheck?.(); } // tells Greg, and picks up the launch-promo comp
   }
 
   return (
