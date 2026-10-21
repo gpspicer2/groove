@@ -108,6 +108,7 @@ export function buildAttention(clients, stats, now = new Date(), acks = {}) {
     const s = c.screening;
     const joinedDays = c.created_at ? Math.floor((now - new Date(c.created_at)) / DAY) : 0;
     const add = (level, kind, sig, text) => items.push({ id: c.id, level, kind, sig: String(sig), title: name, text });
+    if (joinedDays < 7 && c.consented_at) add('new', 'newMember', 'joined', joinedDays === 0 ? 'Just joined today. Say hi!' : `Joined ${joinedDays} day${joinedDays === 1 ? '' : 's'} ago. Say hi!`);
     if (s && s.result === 'stop_and_clearance' && !s.cleared_at) add('red', 'symptoms', s.result, 'Reported symptoms. Paused until a doctor clears them.');
     if (st.feltOff) add('red', 'feltOff', +new Date(st.feltOff.at), `Felt off after a workout${st.feltOff.note ? `: ${st.feltOff.note}` : ''}`);
     if (c.membership_status === 'past_due') add('red', 'pastDue', 'past_due', 'Membership payment failed.');
@@ -121,7 +122,7 @@ export function buildAttention(clients, stats, now = new Date(), acks = {}) {
     const mine = { ...(byId[item.id]?.coach_ack || {}), ...(acks[item.id] || {}) };
     return mine[item.kind] === item.sig;
   };
-  const rank = { red: 0, amber: 1 };
+  const rank = { red: 0, new: 1, amber: 2 };
   return items.filter((i) => !seen(i)).sort((a, b) => rank[a.level] - rank[b.level]);
 }
 

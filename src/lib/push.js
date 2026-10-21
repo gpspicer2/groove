@@ -69,6 +69,15 @@ export async function disablePush() {
   try { localStorage.removeItem(OWNER_KEY); } catch { /* storage blocked */ }
 }
 
+// Tells Greg right away that a new member just signed up and agreed to the consent screen (the server sends the push).
+export async function notifyNewMember() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch('/api/push/new-member', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } });
+  } catch { /* the Today screen still shows them as just joined */ }
+}
+
 // Tells Greg right away that someone felt off (the server sends the push).
 export async function notifyFeltOff() {
   try {

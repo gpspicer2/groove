@@ -3,6 +3,7 @@ import { Check } from '../../lib/icons';
 import { useAuth } from '../../auth/AuthContext';
 import Wordmark from '../../Wordmark';
 import GregBio from './GregBio';
+import { notifyNewMember } from '../../lib/push';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK } from '../../theme';
 
 // Bump the version whenever the wording changes, so the date and text each
@@ -31,7 +32,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
     const err = (await updateProfile({ consented_at: new Date().toISOString(), consent_version: CONSENT_VERSION }))?.error;
     setSaving(false);
     if (err) setError(err.message);
-    else onBackToHealthCheck?.();
+    else { notifyNewMember(); onBackToHealthCheck?.(); }
   }
 
   return (

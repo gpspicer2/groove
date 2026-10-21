@@ -7,6 +7,7 @@ Reminders that arrive even when Groove is closed (Web Push).
 - `public/sw.js` is the service worker. `src/lib/push.js` + Account > Settings > Reminders turn it on per device.
 - `api/push/daily.js` runs every morning at 13:00 UTC (about 9am Eastern; Vercel's free plan allows one run a day and may drift within the hour). Triggered by Vercel Cron, protected by `CRON_SECRET`.
 - `api/push/felt-off.js` is called from the check-in sheet.
+- `api/push/new-member.js` is called when a new member agrees on the consent screen (their first step): Greg gets "<name> just joined Groove". Only members who joined in the last two days can trigger it, so re-agreeing after a wording change does not count. Without push set up, Today still lists them as "Just joined" (green dot) for 7 days or until Greg opens their page.
 - On iPhone, reminders only work after the app is added to the Home Screen (iOS 16.4+).
 
 ## Vercel environment variables
