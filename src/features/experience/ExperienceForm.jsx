@@ -148,10 +148,10 @@ export default function ExperienceForm({ answers, onChange }) {
 
       {g.more.length > 0 && (
         <>
+          {moreOpen && <div className="space-y-1 mt-1">{g.more.map((it) => <Row key={it.id} it={it} answers={answers} onChange={onChange} onInfo={setInfo} />)}</div>}
           <button onClick={() => setOpenMore((m) => ({ ...m, [g.title]: !moreOpen }))} style={{ background: INK_3, color: SKY }} className="w-full rounded-md py-2.5 mt-2 text-base font-medium flex items-center justify-center gap-1.5">
             {moreOpen ? 'Fewer Lifts' : `More Lifts${answeredMore ? ` (${answeredMore} answered)` : ''}`} {moreOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </button>
-          {moreOpen && <div className="space-y-1 mt-1">{g.more.map((it) => <Row key={it.id} it={it} answers={answers} onChange={onChange} onInfo={setInfo} />)}</div>}
         </>
       )}
 
