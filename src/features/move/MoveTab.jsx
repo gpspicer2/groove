@@ -3820,14 +3820,30 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const notFreeBar = /plate.?loaded|machine|smith|dumbbell|cable|kettlebell|landmine|assisted|\bT-?Bar\b/i.test(exercise.name || '');
   const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || /barbell/i.test(exercise.name || ''));
   const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
-  const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? roundToFive(startWeight) : 0));
+  // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
+  // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
+  const perSideEligible = !useBodyweight && /plate.?loaded|hack squat|leg press|t-?bar/i.test(exercise.name || '');
+  const perSideKey = `groove:perSide:${(exercise.name || '').toLowerCase()}`;
+  const [perSideOn, setPerSideOn] = useState(() => {
+    try { const v = localStorage.getItem(perSideKey); return v == null ? true : v === '1'; } catch { return true; }
+  });
+  const f = perSideEligible && perSideOn ? 2 : 1; // typed number x f = total pounds
+  const fromTotal = (v) => (f === 2 ? Math.round(v / 2 / 2.5) * 2.5 : roundToFive(v));
+  const shownW = (w) => (f === 2 && w != null ? `${Math.round((w / 2) * 10) / 10}/side` : (formatMoneyLikeWeight(w) ?? '—'));
+  function togglePerSide() {
+    const next = !perSideOn;
+    setPerSideOn(next);
+    try { localStorage.setItem(perSideKey, next ? '1' : '0'); } catch { /* storage unavailable */ }
+    setWeight((w) => (w === '' ? '' : next ? Math.round((Number(w) / 2) * 10) / 10 : Number(w) * 2));
+  }
+  const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? fromTotal(startWeight) : 0));
   const belowBarbell = barbellFloor > 0 && Number(weight) < barbellFloor;
   // Switching to/from bodyweight changes what the number means (added
   // load vs. total), so start the field over instead of carrying it across.
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-    setWeight(useBodyweight ? 0 : Math.max(isBarbell ? BARBELL_MIN_LB : 0, roundToFive(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
+    setWeight(useBodyweight ? 0 : Math.max(isBarbell ? BARBELL_MIN_LB : 0, fromTotal(mostRecentLogged?.isBodyweight ? 0 : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? 0))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useBodyweight]);
   // Choosing a grip / bar that has its own history moves the weight box to what that variation last used.
@@ -3837,7 +3853,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     if (!variantHasHistory || !last) return;
     const w = suggestNextWeight(exercise, last, style, last?.daysSince)?.weight ?? last.weight;
     if (w == null) return;
-    const base = useBodyweight ? (last.isBodyweight ? Math.max(0, last.weight - (bodyweight || 0)) : 0) : roundToFive(w);
+    const base = useBodyweight ? (last.isBodyweight ? Math.max(0, last.weight - (bodyweight || 0)) : 0) : fromTotal(w);
     setWeight(Math.max(isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0, base));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variantKey]);
@@ -3870,7 +3886,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     if (useBodyweight) {
       onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
     } else {
-      onLog({ setNumber: nextSetNumber, weight, isBodyweight: false, ...countPayload });
+      onLog({ setNumber: nextSetNumber, weight: (Number(weight) || 0) * f, isBodyweight: false, ...countPayload });
     }
   }
 
@@ -3878,7 +3894,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // first set), even after the boxes were changed. Hidden when Log would do the very same thing.
   const ref = mostRecentLogged || (last && last.weight != null ? last : null);
   const refCount = ref ? (ref.durationSeconds ? `${ref.durationSeconds}s` : ref.reps != null ? `${ref.reps}` : null) : null;
-  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight);
+  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight) * f;
   const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
   const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < BARBELL_MIN_LB);
   function handleRepeat() {
@@ -3891,8 +3907,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const contextBits = [
     `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
-    last && `Last ${last.isBodyweight ? bwLabel(last.weight, bodyweight) : (formatMoneyLikeWeight(last.weight) ?? '—')}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
-    suggestion && `Try ${formatMoneyLikeWeight(suggestion.weight)}`,
+    last && `Last ${last.isBodyweight ? bwLabel(last.weight, bodyweight) : shownW(last.weight)}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
+    suggestion && `Try ${shownW(suggestion.weight)}`,
   ].filter(Boolean);
 
   const boxClass = 'w-full rounded-md pl-1.5 pr-7 py-2.5 text-base outline-none text-center';
@@ -3911,9 +3927,9 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             onFocus={(e) => e.target.select()}
             style={boxStyle}
             className={boxClass}
-            aria-label="Weight in pounds"
+            aria-label={f === 2 ? 'Weight in pounds on each side' : 'Weight in pounds'}
           />
-          <span style={{ color: TEXT_SOFT }} className={unitClass}>{useBodyweight ? '+lb' : 'lb'}</span>
+          <span style={{ color: TEXT_SOFT }} className={unitClass}>{useBodyweight ? '+lb' : f === 2 ? 'ea' : 'lb'}</span>
         </label>
         {byTime ? (
           <>
@@ -3990,7 +4006,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           style={{ background: INK_3, color: PAPER_DIM }}
           className="w-full mt-1.5 rounded-md py-1.5 text-sm flex items-center justify-center gap-1.5"
         >
-          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : ref.weight}×{refCount}
+          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : (f === 2 ? shownW(ref.weight) : ref.weight)}×{refCount}
+        </button>
+      )}
+      {perSideEligible && (
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={togglePerSide}
+          style={{ background: perSideOn ? SKY : INK_3, color: perSideOn ? INK : PAPER_DIM }}
+          className="mx-auto mt-1.5 block rounded-full px-3 py-0.5 text-sm"
+        >
+          {perSideOn ? 'Weight Per Side' : 'Total Weight'}
         </button>
       )}
       {contextBits.length > 0 && (
