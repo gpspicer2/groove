@@ -487,8 +487,8 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           </div>
         )}
 
-        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
+        <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-3">
+          <div className="flex items-center justify-between mb-1">
             <span />
             <span style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide">Weekly Goals</span>
             <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
@@ -717,7 +717,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, 
   const plannedPct = Math.max(0, Math.min(100 - pct, (displayPlanned / displayGoal) * 100));
 
   return (
-    <div ref={goalRef} className="relative mb-2.5 last:mb-0 rounded-md overflow-hidden">
+    <div ref={goalRef} className="relative mb-2 last:mb-0 rounded-md overflow-hidden">
       <button
         onClick={() => (aerobic || extra) && setExpanded((v) => !v)}
         className="w-full flex items-center justify-between mb-1 py-0.5"
@@ -1081,7 +1081,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
       <div onClick={() => setOpen((v) => !v)} className="w-full grid grid-cols-[24px_1fr_24px] items-center cursor-pointer">
         <span />
         <span style={{ color: MOSS }} className="text-base uppercase tracking-wide font-bold">
-          Science Supported Strategy{' '}
+          Science-Backed Plan{' '}
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
             aria-label="About This Plan"

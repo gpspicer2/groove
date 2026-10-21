@@ -86,7 +86,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
 
   return (
     <div className="max-w-md mx-auto px-4 pb-12">
-      <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug text-center mb-3">
+      <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug text-center mb-3">
         <Lock size={12} className="inline -mt-0.5 mr-1" />Only you can read this. Greg never sees it. Something he should know? <a href="sms:+16034754544" style={{ color: AMBER }} className="underline font-medium">Message Greg</a>
       </div>
 
@@ -101,7 +101,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
             style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }}
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
-            <div style={{ color: PAPER }} className="text-sm font-medium">Post-Movement Reflection</div>
+            <div style={{ color: PAPER }} className="text-base font-medium">Post-Movement Reflection</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">A quick check-in after training.</div>
           </button>
           <button
@@ -109,7 +109,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
             style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }}
             className="flex-1 rounded-lg px-3 py-4 text-center"
           >
-            <div style={{ color: PAPER }} className="text-sm font-medium">Just Journal</div>
+            <div style={{ color: PAPER }} className="text-base font-medium">Just Journal</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5">Pick a prompt and write freely.</div>
           </button>
         </div>
@@ -178,10 +178,10 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
         className="flex items-center justify-between gap-2 px-4 py-3"
       >
         <div className="flex-1 min-w-0 text-center">
-          <div style={{ color: PAPER }} className="text-sm">
+          <div style={{ color: PAPER }} className="text-base">
             {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {entry.structured?.workoutTitle ? `After ${shortWorkoutTitle(entry.structured.workoutTitle)}` : entry.prompt}
           </div>
-          {summary && <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug line-clamp-2 mt-0.5">{summary}</div>}
+          {summary && <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug line-clamp-2 mt-0.5">{summary}</div>}
         </div>
       </div>
 
@@ -293,13 +293,13 @@ function EditEntryModal({ entry, onClose, onSaved }) {
             </div>
           ) : (
             <div>
-              <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-2">{entry.prompt}</div>
+              <div style={{ color: TEXT_SOFT }} className="text-base text-center mb-2">{entry.prompt}</div>
               <textarea
                 value={response}
                 onChange={(e) => setResponse(e.target.value)}
                 rows={5}
                 style={{ background: INK_3, color: PAPER }}
-                className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
+                className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none"
               />
             </div>
           )}
@@ -330,7 +330,7 @@ function LabeledInput({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center"
+        className="w-full rounded-md px-3 py-2.5 text-base outline-none text-center"
       />
     </div>
   );
@@ -345,7 +345,7 @@ function LabeledTextarea({ label, value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         rows={2}
         style={{ background: INK_3, color: PAPER }}
-        className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none"
+        className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none"
       />
     </div>
   );
@@ -380,7 +380,7 @@ function FreeformEntry({ onSaved, onCancel }) {
                 key={p}
                 onClick={() => setPrompt(p)}
                 style={{ background: INK_3, color: PAPER }}
-                className="w-full text-center rounded-md px-4 py-2.5 text-sm"
+                className="w-full text-center rounded-md px-4 py-2 text-[15px]"
               >
                 {p}
               </button>
@@ -393,14 +393,14 @@ function FreeformEntry({ onSaved, onCancel }) {
       ) : (
         <>
           <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Prompt</div>
-          <div style={{ color: PAPER }} className="text-sm mb-3 text-center">{prompt}</div>
+          <div style={{ color: PAPER }} className="text-base mb-3 text-center">{prompt}</div>
           <textarea
             value={response}
             onChange={(e) => setResponse(e.target.value)}
             rows={4}
             placeholder="Write whatever comes to mind…"
             style={{ background: INK_3, color: PAPER }}
-            className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none mb-3"
+            className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none mb-3"
           />
           <div className="flex items-center gap-2">
             <button onClick={() => setPrompt(null)} style={{ color: TEXT_SOFT }} className="text-sm py-3 px-2">
@@ -438,8 +438,8 @@ function EffortRow({ value, onChange }) {
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span style={{ color: TEXT_SOFT }} className="text-[13px]">Easy</span>
-        <span style={{ color: TEXT_SOFT }} className="text-[13px]">All out</span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Easy</span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm">All out</span>
       </div>
     </div>
   );
@@ -514,9 +514,9 @@ function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-3 text-center">What stood out?</div>
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-1">What felt good</div>
-          <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2} placeholder="A lift, a feeling, a win…" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center mb-3" />
+          <textarea value={wentWell} onChange={(e) => setWentWell(e.target.value)} rows={2} placeholder="A lift, a feeling, a win…" style={box} className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none text-center mb-3" />
           <div style={{ color: PAPER_DIM }} className="text-sm text-center mb-1">What was hard</div>
-          <textarea value={wasHard} onChange={(e) => setWasHard(e.target.value)} rows={2} placeholder="Optional" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center" />
+          <textarea value={wasHard} onChange={(e) => setWasHard(e.target.value)} rows={2} placeholder="Optional" style={box} className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none text-center" />
         </div>
       )}
 
@@ -524,7 +524,7 @@ function CheckinFlow({ recentWorkout, onSaved, onCancel }) {
         <div>
           <div style={{ color: PAPER }} className="text-lg font-medium mb-1 text-center">One thing for next time?</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm text-center mb-3">A reminder to your future self.</div>
-          <textarea value={nextTime} onChange={(e) => setNextTime(e.target.value)} rows={3} placeholder="Optional. Leave blank to skip" style={box} className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none text-center" />
+          <textarea value={nextTime} onChange={(e) => setNextTime(e.target.value)} rows={3} placeholder="Optional. Leave blank to skip" style={box} className="w-full rounded-md px-3 py-2.5 text-base outline-none resize-none text-center" />
         </div>
       )}
 
