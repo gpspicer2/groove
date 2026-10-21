@@ -32,7 +32,7 @@ export default function Guides({ userId, active = true, openSupport = false }) {
       restingHrNum: resting,
       maxHrNum: maxResolved || null,
       maxHrIsPredicted: maxMeasured == null && maxResolved != null,
-      resistanceGoal: row?.resistance_goal || 3,
+      resistanceGoal: row?.resistance_goal || 2,
       aerobicGoalMinutes: row?.aerobic_goal_minutes || 150,
     });
   }

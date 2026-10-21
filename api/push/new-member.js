@@ -12,14 +12,20 @@ export default async function handler(req, res) {
   const user = await getAuthedUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   try {
-    const { data: me } = await supabaseAdmin.from('profiles').select('full_name, email, role, created_at, membership_status').eq('id', user.id).single();
+    const { data: me } = await supabaseAdmin.from('profiles').select('full_name, email, role, created_at, membership_status, resistance_goal').eq('id', user.id).single();
     if (!me || me.role !== 'client') return res.status(200).json({ sent: 0 });
     if (!me.created_at || Date.now() - new Date(me.created_at).getTime() > 2 * 864e5) return res.status(200).json({ sent: 0 });
     // Launch promo: anyone joining before the cutoff is comped (never overrides a status that is already set).
+    const fresh = {};
+    // New members start on ACSM's minimum of 2 strength days a week (the database default is 3, which they can raise).
+    if (Number(me.resistance_goal) === 3) fresh.resistance_goal = 2;
     let comped = false;
     if (!me.membership_status && Date.now() < COMP_SIGNUPS_UNTIL.getTime() && new Date(me.created_at) < COMP_SIGNUPS_UNTIL) {
-      const { error: compError } = await supabaseAdmin.from('profiles').update({ membership_status: 'comped' }).eq('id', user.id);
-      comped = !compError;
+      fresh.membership_status = 'comped';
+    }
+    if (Object.keys(fresh).length) {
+      const { error: freshError } = await supabaseAdmin.from('profiles').update(fresh).eq('id', user.id);
+      comped = !freshError && fresh.membership_status === 'comped';
     }
     const { data: trainers } = await supabaseAdmin.from('profiles').select('id').eq('role', 'trainer');
     const ids = (trainers || []).map((t) => t.id);

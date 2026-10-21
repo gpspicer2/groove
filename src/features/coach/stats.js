@@ -37,7 +37,7 @@ function kindsOf(w, wSets) {
 export function goalsFor(profile) {
   return {
     aerobic: profile.aerobic_goal_minutes || 150,
-    resistance: profile.resistance_goal || 3,
+    resistance: profile.resistance_goal || 2,
     flexibility: profile.flexibility_goal || 2,
     trackAerobic: profile.track_aerobic_goal !== false,
     trackResistance: profile.track_resistance_goal !== false,

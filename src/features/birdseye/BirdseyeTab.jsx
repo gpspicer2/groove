@@ -71,7 +71,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [restingHrNum, setRestingHrNum] = useState(null);
   const [maxHrNum, setMaxHrNum] = useState(null);
   const [maxHrIsPredicted, setMaxHrIsPredicted] = useState(false);
-  const [resistanceGoal, setResistanceGoal] = useState(3);
+  const [resistanceGoal, setResistanceGoal] = useState(2);
   const [aerobicGoal, setAerobicGoal] = useState(3);
   const [aerobicGoalMinutes, setAerobicGoalMinutes] = useState(150);
   const [flexibilityGoal, setFlexibilityGoal] = useState(2);
@@ -137,7 +137,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     setRestingHrNum(resting);
     setMaxHrNum(maxResolved || null);
     setMaxHrIsPredicted(maxMeasured == null && maxResolved != null);
-    setResistanceGoal(profileRow?.resistance_goal || 3);
+    setResistanceGoal(profileRow?.resistance_goal || 2);
     setAerobicGoal(profileRow?.aerobic_goal || 3);
     setAerobicGoalMinutes(profileRow?.aerobic_goal_minutes || 150);
     setFlexibilityGoal(profileRow?.flexibility_goal || 2);
@@ -523,7 +523,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           )}
           {/* First-timers (nothing logged yet) get a friendly way into setting their goals. */}
           {workouts.length === 0 && trackedGoals.length > 0 && (
-            <button onClick={() => setGoalHelp(true)} style={{ color: LIME }} className="w-full text-base font-bold text-center mt-1.5 py-0.5">Want Some Help?</button>
+            <button onClick={() => setGoalHelp(true)} style={{ color: LIME }} className="w-full text-base font-bold text-center mt-1.5 py-0.5">Where Did These Come From?</button>
           )}
           {/* The nudge lives inside this card (not a card of its own) so the calendar stays higher on the screen. */}
           {insight && intakeDone && (
@@ -1051,13 +1051,13 @@ function DayChoicePopup({ day, count, plans = [], onStartPlan, onPlanned, onView
   );
 }
 
-// "Want Some Help?" for first-time members: what the three weekly goals mean in plain words (from ACSM), and a way to
-// set them or read more under Learn > Guides > Scientific Support.
+// "Where Did These Come From?" for first-time members (their goals load automatically): what the three weekly goals mean in
+// plain words (from ACSM), and a way to change them or read more under Learn > Guides > Scientific Support.
 function GoalHelpSheet({ onSetGoals, onScience, onClose }) {
   const sheet = useSwipeDown(onClose);
   const rows = [
     { icon: Activity, color: MOSS, name: 'Aerobic', text: '150 minutes a week of moderate activity. Walking, cycling, and dancing all count, and hard minutes count double.' },
-    { icon: Dumbbell, color: SKY, name: 'Resistance', text: '2 or 3 days a week of strength work. Bodyweight moves count.' },
+    { icon: Dumbbell, color: SKY, name: 'Resistance', text: 'At least 2 days a week of strength work for your major muscles. Bodyweight moves count.' },
     { icon: PersonStanding, color: BRICK, name: 'Flexibility', text: '2 or 3 days a week of stretching or yoga.' },
   ];
   return (
@@ -1067,10 +1067,10 @@ function GoalHelpSheet({ onSetGoals, onScience, onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-1">
             <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Setting Your Weekly Goals</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Where Your Goals Come From</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm mb-3">These come from ACSM, a leading sports medicine organization. A good place to aim, and you can change them any time.</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm mb-3">These loaded automatically from ACSM, a leading sports medicine organization. A good place to aim, and you can change them any time.</div>
           <div className="space-y-2 mb-3">
             {rows.map(({ icon: Icon, color, name, text }) => (
               <div key={name} style={{ background: INK_3 }} className="rounded-md px-3 py-2.5">
@@ -1082,8 +1082,8 @@ function GoalHelpSheet({ onSetGoals, onScience, onClose }) {
               </div>
             ))}
           </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Not there yet? Pick goals you can hit for a few weeks, then raise them.</div>
-          <button onClick={onSetGoals} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">Set My Goals</button>
+          <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Just starting? Two strength days is plenty. Add a third when it feels easy.</div>
+          <button onClick={onSetGoals} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">Change My Goals</button>
           <button onClick={onScience} style={{ color: TEXT_SOFT }} className="w-full text-sm underline py-1.5">Read the Scientific Support</button>
         </div>
       </div>
