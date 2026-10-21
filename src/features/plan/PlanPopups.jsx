@@ -64,7 +64,7 @@ export function PlanFormPopup({ dateStr, plan, onSave, onDetails, onClose }) {
           <button onClick={() => setStep('form')} style={{ background: LIME, color: INK }} className="w-full rounded-xl py-3 text-sm font-medium mb-1.5">
             Yes, let's plan it
           </button>
-          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Not now</button>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Not Now</button>
         </div>
       </Sheet>
     );
@@ -216,7 +216,7 @@ export function PlannedWorkoutPopup({ dateStr, plans, isToday, isPast = false, o
                   {isPast ? 'Log It' : 'Start Workout'}
                 </button>
               )}
-              {p.programSession && <div style={{ color: LIME }} className="text-sm mt-1.5">From your training program</div>}
+              {p.programSession && <div style={{ color: LIME }} className="text-sm mt-1.5">From Your Training Program</div>}
               {onMove && (
                 <div className="mt-2">
                   <button onClick={() => setMovingId(movingId === p.id ? null : p.id)} style={{ color: TEXT_SOFT }} className="text-sm underline">

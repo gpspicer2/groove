@@ -59,7 +59,7 @@ function CoachNotes({ clientId }) {
             <div style={{ color: PAPER }} className="text-sm whitespace-pre-wrap">{n.body}</div>
             <div className="flex items-center justify-between mt-1.5">
               <span style={{ color: TEXT_SOFT }} className="text-sm">{new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <button onClick={() => arm.press(n.id, () => remove(n.id))} data-armed={arm.armed === n.id} style={arm.armed === n.id ? { background: BRICK, color: PAPER } : { color: BRICK }} className="p-1 rounded-md" aria-label="Delete note">{arm.armed === n.id ? <span className="text-xs font-medium px-1">Sure?</span> : <Trash2 size={15} />}</button>
+              <button onClick={() => arm.press(n.id, () => remove(n.id))} data-armed={arm.armed === n.id} style={arm.armed === n.id ? { background: BRICK, color: PAPER } : { color: BRICK }} className="p-1 rounded-md" aria-label="Delete Note">{arm.armed === n.id ? <span className="text-xs font-medium px-1">Sure?</span> : <Trash2 size={15} />}</button>
             </div>
           </div>
         ))}
@@ -82,7 +82,7 @@ function RemoveMember({ client, onRemoved }) {
   }
 
   if (!open) {
-    return <button onClick={() => setOpen(true)} style={{ color: BRICK }} className="w-full text-sm py-3 mt-6">Delete this member</button>;
+    return <button onClick={() => setOpen(true)} style={{ color: BRICK }} className="w-full text-sm py-3 mt-6">Delete This Member</button>;
   }
   return (
     <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-4 mt-6 text-center">
@@ -141,12 +141,12 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       {tab === 'overview' && (
         <div>
           <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3.5">
-            <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">This week</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">This Week</div>
             <WeekBars client={client} week={stat.week} unitless />
           </div>
           <div className="grid grid-cols-2 gap-3 mt-3">
             <Stat label="Workouts, 2 weeks" value={stat.sessions14} />
-            <Stat label="Avg effort" value={stat.avgRpe ? stat.avgRpe.toFixed(1) : '—'} sub="of 10" />
+            <Stat label="Avg Effort" value={stat.avgRpe ? stat.avgRpe.toFixed(1) : '—'} sub="of 10" />
           </div>
           {flags.length > 0 && (
             <>
@@ -156,7 +156,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
               </div>
             </>
           )}
-          <SectionTitle>Latest workouts</SectionTitle>
+          <SectionTitle>Latest Workouts</SectionTitle>
           {mine.length === 0 ? (
             <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-2xl px-4 py-4 text-sm">No workouts yet.</div>
           ) : (
@@ -170,7 +170,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
               ))}
             </div>
           )}
-          <button onClick={() => setTab('workouts')} style={{ color: PLUM }} className="text-sm font-medium mt-2 px-1">All workouts</button>
+          <button onClick={() => setTab('workouts')} style={{ color: PLUM }} className="text-sm font-medium mt-2 px-1">All Workouts</button>
         </div>
       )}
 

@@ -16,7 +16,7 @@ export default function NoScaleSheet({ onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-2">
             <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">About weighing in</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">About Weighing In</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
           <ul className="space-y-2 list-disc pl-5 mb-3">
@@ -25,10 +25,10 @@ export default function NoScaleSheet({ onClose }) {
             <Point>You can still log your weight whenever you like. Once a month is plenty.</Point>
           </ul>
           <div style={{ background: INK_3 }} className="rounded-md px-3.5 py-3 mb-3 text-left">
-            <div style={{ color: SKY }} className="text-sm font-medium mb-1">What we watch instead</div>
+            <div style={{ color: SKY }} className="text-sm font-medium mb-1">What We Watch Instead</div>
             <div style={{ color: PAPER_DIM }} className="text-sm">Weekly cardio minutes, resting heart rate, VO2max, how much you lift, strength and fitness tests (chair stands, push-ups, plank), and how you feel. They are all under Trends and Your Fitness on Birdseye.</div>
           </div>
-          <button onClick={onClose} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">Got it</button>
+          <button onClick={onClose} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">Got It</button>
         </div>
       </div>
     </Portal>

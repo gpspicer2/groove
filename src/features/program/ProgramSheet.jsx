@@ -99,9 +99,9 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   // Weight loss cardio can be guided by heart rate or by effort (RPE and the talk test), so no watch is needed.
   const guideToggle = (value, onPick) => (
     <div className="mb-2">
-      <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Guide my cardio by</div>
+      <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Guide My Cardio by</div>
       <div className="grid grid-cols-2 gap-2">
-        {[{ id: 'hr', label: 'Heart rate' }, { id: 'rpe', label: 'Effort (RPE)' }].map((o) => (
+        {[{ id: 'hr', label: 'Heart Rate' }, { id: 'rpe', label: 'Effort (RPE)' }].map((o) => (
           <button key={o.id} onClick={() => onPick(o.id)} style={{ background: value === o.id ? SKY : INK_3, color: value === o.id ? INK : PAPER }} className="rounded-md py-2 text-sm font-medium">{o.label}</button>
         ))}
       </div>
@@ -128,12 +128,12 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <>
                 <div style={{ color: SKY }} className="text-base font-medium">{programTitle(program)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week{chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · {phaseLabel(program, week)}</div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This week</div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This Week</div>
                 <WeekList program={program} week={week} />
                 {program.goal === 'fat_loss' && (
                   <div className="mt-3 text-left">
                     {guideToggle(program.guide || (hrOn ? 'hr' : 'rpe'), (g) => { setGuide(g); onSave({ ...program, guide: g }); })}
-                    <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">About weighing in</button>
+                    <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">About Weighing In</button>
                   </div>
                 )}
                 <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
@@ -199,7 +199,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div className="flex items-center justify-between mt-1">
                 {back(goal === 'hypertrophy' ? 'model' : 'goal')}
                 <div className="flex items-center gap-3">
-                  <button onClick={async () => { await exp.save({ answers: {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for now</button>
+                  <button onClick={async () => { await exp.save({ answers: {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for Now</button>
                   <button onClick={async () => { await exp.save({ answers: Object.fromEntries(Object.entries(expDraft || {}).filter(([, v]) => v)) }); setStep('days'); }} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               </div>
               {options.length > 0 && (
                 <>
-                  <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Choose a split <span style={{ color: TEXT_SOFT }}>(best supported first)</span></div>
+                  <div style={{ color: PAPER_DIM }} className="text-sm mb-1.5">Choose a Split <span style={{ color: TEXT_SOFT }}>(best supported first)</span></div>
                   <div className="space-y-1.5 mb-2">
                     {options.map((o) => (
                       <button key={o.id} onClick={() => setSplit(o.id)} style={tile(splitId === o.id)} className="w-full rounded-xl px-3 py-2 text-left">
@@ -249,7 +249,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
             <>
               <div style={{ color: SKY }} className="text-sm font-medium mb-1">{programTitle(draft)}</div>
               <div className="flex items-center justify-center gap-2 mb-3">
-                <span style={{ color: PAPER_DIM }} className="text-sm whitespace-nowrap">Days a week</span>
+                <span style={{ color: PAPER_DIM }} className="text-sm whitespace-nowrap">Days a Week</span>
                 {dayChoices.map((n) => (
                   <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays((w) => w.slice(0, n)); }} style={tile(days === n)} className="w-8 h-8 rounded-full text-sm font-medium shrink-0">{n}</button>
                 ))}

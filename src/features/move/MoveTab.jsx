@@ -206,7 +206,7 @@ function IntensityMinutesGroup({ light, setLight, moderate, setModerate, vigorou
   return (
     <>
       <div className="flex items-center justify-center gap-1.5 mb-1.5">
-        <span style={{ color: TEXT_SOFT }} className="text-sm">Minutes by intensity</span>
+        <span style={{ color: TEXT_SOFT }} className="text-sm">Minutes by Intensity</span>
         <button onClick={() => setShowGuide(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2 whitespace-nowrap">
           Not sure?
         </button>
@@ -1390,12 +1390,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
       {!activeWorkout && lostBackup && (
         <div style={{ background: INK_2, borderLeft: `3px solid ${AMBER}` }} className="rounded-md px-4 py-3 mb-4 text-center">
-          <div style={{ color: PAPER }} className="text-sm font-medium mb-1">Looks like a workout was lost</div>
+          <div style={{ color: PAPER }} className="text-sm font-medium mb-1">Looks Like a Workout Was Lost</div>
           <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
             We kept a copy of your last session's exercises ({new Date(lostBackup.savedAt).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}). Restore it to keep going — logged sets may need re-entering.
           </div>
           <div className="flex gap-2">
-            <button onClick={restoreLostWorkout} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Restore workout</button>
+            <button onClick={restoreLostWorkout} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Restore Workout</button>
             <button onClick={dismissLostWorkout} style={{ color: TEXT_SOFT }} className="px-3 text-sm">Dismiss</button>
           </div>
         </div>
@@ -1447,7 +1447,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         <>
         {planning && (
           <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-3 mb-2 text-center">
-            <div style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Planning a workout</div>
+            <div style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">Planning a Workout</div>
             <button onClick={cancelPlanning} style={{ color: TEXT_SOFT }} className="text-sm underline mt-0.5">Cancel</button>
           </div>
         )}
@@ -1466,8 +1466,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
             <div style={{ color: PAPER }} className="text-base font-medium">New to lifting? Start here</div>
             <div style={{ color: TEXT_SOFT }} className="text-sm mt-0.5 mb-2.5">A gentle full-body workout: 5 simple moves, 2 light sets each. About 25 minutes.</div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2.5 text-sm font-medium">At the gym</button>
-              <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At home</button>
+              <button onClick={() => beginStarter('At the Gym')} style={{ background: SKY, color: INK }} className="rounded-md py-2.5 text-sm font-medium">At the Gym</button>
+              <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At Home</button>
             </div>
             <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-sm mt-2 py-1">No thanks, I know my way around</button>
           </div>
@@ -1850,7 +1850,7 @@ function StartWorkout({
 
       {showProgramOffer && (
         <div style={{ background: INK_3, borderLeft: `3px solid ${LIME}` }} className="rounded-md px-4 py-3 mb-5 text-center">
-          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Greg assigned</div>
+          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide mb-1">Greg Assigned</div>
           <div style={{ color: PAPER }} className="text-sm font-medium mb-3">{assignedProgram.name}</div>
           <button
             onClick={() => onStartAssignedProgram(selectedLocation)}
@@ -1938,7 +1938,7 @@ function StartWorkout({
                 <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
                 <div style={{ background: INK_2 }} className="relative w-full max-w-sm rounded-xl p-5" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between mb-3">
-                    <div style={{ color: SKY }} className="text-sm font-medium uppercase tracking-wide">Serial vs. Integrated</div>
+                    <div style={{ color: SKY }} className="text-sm font-medium uppercase tracking-wide">Serial Vs. Integrated</div>
                     <button onClick={() => setShowCombinedInfo(false)} style={{ color: TEXT_SOFT }} className="p-1 -m-1"><X size={18} /></button>
                   </div>
                   <div style={{ color: PAPER }} className="text-sm leading-relaxed space-y-3">
@@ -1960,8 +1960,8 @@ function StartWorkout({
                       <div style={{ color: TEXT_SOFT }} className="text-sm mb-4">You can always add or remove it as you go.</div>
                       <div className="space-y-2">
                         {[
-                          { key: 'integrated-exercises', label: 'Between exercises' },
-                          { key: 'integrated-sets', label: 'Between sets' },
+                          { key: 'integrated-exercises', label: 'Between Exercises' },
+                          { key: 'integrated-sets', label: 'Between Sets' },
                         ].map(({ key, label }) => (
                           <button
                             key={key}
@@ -2594,7 +2594,7 @@ function ActiveWorkout({
         </div>
         <div style={{ color: SKY }} className="text-sm">
           {[!isSameDay(workout.startedAt) && dayLabel(workout.startedAt), workout.style].filter(Boolean).map((t) => <span key={t}>{t} · </span>)}
-          <button onClick={() => setEditingLocation((v) => !v)} className="underline decoration-dotted underline-offset-2" aria-label="Change location">
+          <button onClick={() => setEditingLocation((v) => !v)} className="underline decoration-dotted underline-offset-2" aria-label="Change Location">
             {workout.location || 'Add location'}
           </button>
         </div>
@@ -3132,7 +3132,7 @@ function QuickAerobicForm({ onSubmit, onCancel, fixedName }) {
           className="w-14 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
         <span style={{ color: TEXT_SOFT }} className="text-sm">min</span>
-        <button onClick={submit} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Log it</button>
+        <button onClick={submit} style={{ background: AMBER, color: ON_AMBER }} className="flex-1 rounded-md py-2 text-sm font-medium">Log It</button>
       </div>
     </div>
   );
@@ -3207,7 +3207,7 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
         <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 space-y-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between">
-            <div style={{ color: PAPER }} className="text-sm font-medium">Edit cardio burst</div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Edit Cardio Burst</div>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2" aria-label="Close"><X size={18} /></button>
           </div>
           <input
@@ -3280,7 +3280,7 @@ function PairChooser({ exercise, next, onNext, onOther, onCardio, onClose }) {
           ) : (
           <>
           {next && <button onClick={onNext} style={{ background: INK_3, color: PAPER }} className={btn}>{next.name} (next in your list)</button>}
-          <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>Another exercise</button>
+          <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>Another Exercise</button>
           <button onClick={() => setCardio(true)} style={{ background: INK_3, color: PAPER }} className={btn}>A cardio burst (jump rope, bike...)</button>
           </>
           )}
@@ -3374,7 +3374,7 @@ function MovementPicker({ label, group, setGroup, name, setName, location }) {
   return (
     <div className="mb-3">
       {label && <div style={{ color: SKY }} className="text-sm mb-2 text-center">{label}</div>}
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Muscle group</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Muscle Group</div>
       <div className="flex flex-wrap justify-center gap-2 mb-3">
         {MUSCLE_GROUPS.map((g) => (
           <button
@@ -3494,7 +3494,7 @@ function AddExerciseToHistoryForm({ onAdd, onCancel }) {
         style={{ background: INK_2, color: PAPER }}
         className="w-full rounded-md px-3 py-2.5 text-sm outline-none text-center mb-2"
       />
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Muscle group</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Muscle Group</div>
       <div className="flex flex-wrap justify-center gap-2 mb-2">
         {MUSCLE_GROUPS.map((g) => (
           <button
@@ -3618,7 +3618,7 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
   }
   return (
     <div style={{ background: INK_2, borderLeft: `3px solid ${BRICK}` }} className="rounded-md px-4 py-3 mb-4 groove-ease-in">
-      <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">Add a stretch</div>
+      <div style={{ color: PAPER }} className="text-base font-medium mb-2 text-center">Add a Stretch</div>
       <div className="flex flex-wrap justify-center gap-1.5 mb-2.5">
         {groups.map((g) => (
           <button
@@ -4904,10 +4904,10 @@ function ExerciseGuideSheet({ name, guide, accent, onClose }) {
           {row('Move', guide.move)}
           {row('Watch for', guide.watch)}
           <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-3 mb-3 text-left">
-            <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide font-bold mb-1">The basics</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide font-bold mb-1">The Basics</div>
             {(guide.rules || []).map((t) => <div key={t} style={{ color: PAPER_DIM }} className="text-[13px] leading-snug mb-1">{t}</div>)}
           </div>
-          <button onClick={onClose} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-3 text-sm font-medium">Got it</button>
+          <button onClick={onClose} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-3 text-sm font-medium">Got It</button>
         </div>
       </div>
     </Portal>

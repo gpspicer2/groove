@@ -135,7 +135,7 @@ export default function FitnessAssessmentFlow({ userId, onClose, onComplete }) {
             </h2>
             <div className="space-y-2">
               <ModeButton label="Time myself in the app" selected={aerobicMode === 'timed'} onClick={() => setAerobicMode('timed')} />
-              <ModeButton label="Describe it in my own words" selected={aerobicMode === 'described'} onClick={() => setAerobicMode('described')} />
+              <ModeButton label="Describe It in My Own Words" selected={aerobicMode === 'described'} onClick={() => setAerobicMode('described')} />
             </div>
           </div>
         )}
@@ -291,7 +291,7 @@ function TimedAerobicStep({ activity, onSelectActivity, onSeconds, result, onRes
   if (!activity) {
     return (
       <div>
-        <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">Pick an activity</h2>
+        <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-xl font-medium mb-4">Pick an Activity</h2>
         <div className="space-y-2">
           {AEROBIC_ACTIVITIES.map((a) => (
             <ModeButton key={a.key} label={a.label} selected={activity === a.key} onClick={() => onSelectActivity(a.key)} />

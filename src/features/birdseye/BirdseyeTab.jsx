@@ -453,13 +453,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
             style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }}
             className="w-full rounded-lg px-5 py-3 text-center"
           >
-            <div style={{ color: PAPER }} className="text-sm font-medium">Finish setting up your account <span style={{ color: PLUM }}>→</span></div>
+            <div style={{ color: PAPER }} className="text-sm font-medium">Finish Setting Up Your Account <span style={{ color: PLUM }}>→</span></div>
             <div style={{ color: TEXT_SOFT }} className="text-sm">About 10 minutes, whenever you're ready</div>
           </button>
         )}
 
         {todayPlan && <TodayPlanCard plan={todayPlan} onStart={(p) => handleStartPlan(p)} />}
-        {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for yesterday" action="Log It" onStart={(p) => handleStartPlan(p, p.planned_for)} />}
+        {missedPlan && !todayPlan && <TodayPlanCard plan={missedPlan} label="Planned for Yesterday" action="Log It" onStart={(p) => handleStartPlan(p, p.planned_for)} />}
 
         {recap && (
           <RecapCard
@@ -1040,7 +1040,7 @@ function DayChoicePopup({ day, count, plans = [], onStartPlan, onPlanned, onView
                   )}
                 </div>
               ))}
-              <button onClick={onPlanned} style={{ color: TEXT_SOFT }} className="text-sm underline mb-1">Edit or delete plans</button>
+              <button onClick={onPlanned} style={{ color: TEXT_SOFT }} className="text-sm underline mb-1">Edit or Delete Plans</button>
             </div>
           )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
@@ -1084,7 +1084,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
           Science Supported Strategy{' '}
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); setOpenInfo((v) => (v === 'ACSM' ? null : 'ACSM')); }}
-            aria-label="About this plan"
+            aria-label="About This Plan"
             style={{ color: TEXT_SOFT }}
             className="inline-block align-middle p-1 -m-1"
           >

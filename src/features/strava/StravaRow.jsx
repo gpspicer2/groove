@@ -31,7 +31,7 @@ export default function StravaRow() {
         className="text-sm inline-flex items-center justify-center gap-2 py-1.5"
       >
         <StravaMark size={14} />
-        {busy ? 'Opening…' : connected ? (<><span style={{ background: LIME }} className="w-1.5 h-1.5 rounded-full" /> Strava connected</>) : 'Connect Strava (optional)'}
+        {busy ? 'Opening…' : connected ? (<><span style={{ background: LIME }} className="w-1.5 h-1.5 rounded-full" /> Strava Connected</>) : 'Connect Strava (Optional)'}
       </button>
       {connected && menu && (
         <div style={{ background: INK_2 }} className="rounded-md mt-1 px-4 py-2 flex items-center justify-center gap-5">

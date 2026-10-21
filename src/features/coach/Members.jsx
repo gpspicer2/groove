@@ -29,8 +29,8 @@ export default function Members({ clients, onClientChanged }) {
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Paying" value={paying} sub={`about $${paying * MEMBERSHIP_PRICE}/month`} color={MOSS} />
         <Stat label="Comped" value={comped} sub="free access" color={PLUM} />
-        <Stat label="Past due" value={pastDue} color={pastDue ? BRICK : PAPER} />
-        <Stat label="No plan yet" value={none} />
+        <Stat label="Past Due" value={pastDue} color={pastDue ? BRICK : PAPER} />
+        <Stat label="No Plan Yet" value={none} />
       </div>
 
       <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3 mt-4">
@@ -42,7 +42,7 @@ export default function Members({ clients, onClientChanged }) {
             ? 'New members must join before using the app. Comped members skip the payment.'
             : 'Everyone still has full access. Turn on required membership when you are ready to charge.'}
         </div>
-        <a href="https://dashboard.stripe.com" target="_blank" rel="noreferrer" style={{ color: PLUM }} className="inline-block text-sm font-medium mt-2 underline">Open Stripe dashboard</a>
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noreferrer" style={{ color: PLUM }} className="inline-block text-sm font-medium mt-2 underline">Open Stripe Dashboard</a>
       </div>
 
       <SectionTitle>Members</SectionTitle>

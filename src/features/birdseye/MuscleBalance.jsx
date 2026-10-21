@@ -32,7 +32,7 @@ export default function MuscleBalance({ sets, bare = false }) {
     <div style={bare ? undefined : { background: INK_2, borderTop: `2px solid ${SKY}` }} className={bare ? '' : 'rounded-lg px-5 py-4'}>
       <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 flex items-center justify-center gap-1.5">
         Muscles This Week
-        <button onClick={() => setShowInfo(true)} aria-label="About muscle goals" style={{ color: TEXT_SOFT }} className="p-1 -m-1"><Info size={14} /></button>
+        <button onClick={() => setShowInfo(true)} aria-label="About Muscle Goals" style={{ color: TEXT_SOFT }} className="p-1 -m-1"><Info size={14} /></button>
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         {BALANCE_BUCKETS.map((b) => {
@@ -52,7 +52,7 @@ export default function MuscleBalance({ sets, bare = false }) {
             <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={() => setShowInfo(false)} />
             <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-5 pt-4 pb-6 space-y-3 text-center">
               <div className="flex items-center justify-between">
-                <div style={{ color: PAPER }} className="text-sm font-medium">Muscle goals</div>
+                <div style={{ color: PAPER }} className="text-sm font-medium">Muscle Goals</div>
                 <button onClick={() => setShowInfo(false)} aria-label="Close" style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>
               </div>
               {[

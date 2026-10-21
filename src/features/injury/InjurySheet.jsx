@@ -22,7 +22,7 @@ function Row({ injury, onRecover, onRemove }) {
       <div style={{ color: PAPER_DIM }} className="text-[13px] mt-1">{st.tip}</div>
       {injury.note ? <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-1 italic">{injury.note}</div> : null}
       <div className="flex gap-4 mt-2">
-        <button onClick={onRecover} style={{ color: SKY }} className="text-[13px] font-medium">Mark recovered</button>
+        <button onClick={onRecover} style={{ color: SKY }} className="text-[13px] font-medium">Mark Recovered</button>
         <button data-armed={armed === 'rm' ? 'true' : undefined} onClick={() => press('rm', onRemove)} style={{ color: armed === 'rm' ? BRICK : TEXT_SOFT }} className="text-[13px]">{armed === 'rm' ? 'Sure?' : 'Remove'}</button>
       </div>
     </div>
@@ -78,7 +78,7 @@ export default function InjurySheet({ injuries, onSave, onClose }) {
               <button onClick={() => setAdding(false)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Cancel</button>
             </div>
           ) : (
-            <button onClick={() => setAdding(true)} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium">Add an injury</button>
+            <button onClick={() => setAdding(true)} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium">Add an Injury</button>
           )}
           <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-3">General guidance only. Sharp pain or swelling? Check in with a pro.</div>
           {!adding && <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Close</button>}

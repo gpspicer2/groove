@@ -340,7 +340,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
 
         {phase === 'exitPrompt' && (
           <div style={{ background: INK, border: `1px solid ${PLUM}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: PLUM, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Let's get to know you</div>
+            <div style={{ color: PLUM, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Let's Get to Know You</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               A few questions so I can mentor you. About 10 minutes.
             </div>
@@ -355,7 +355,7 @@ export default function AppTour({ tab, onChangeTab, onComplete, onTabHighlight }
 
         {phase === 'confirmSkip' && (
           <div style={{ background: INK, border: `1px solid ${BRICK}`, top: headerBottom + 16 }} className="absolute left-4 right-4 max-w-sm mx-auto rounded-xl px-5 py-6 z-10 text-center">
-            <div style={{ color: BRICK, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Heads up</div>
+            <div style={{ color: BRICK, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-1.5">Heads Up</div>
             <div style={{ color: PAPER_DIM }} className="text-base mb-5 leading-snug">
               No rush. You can finish it anytime from Account.
             </div>

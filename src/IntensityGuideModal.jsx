@@ -56,7 +56,7 @@ export default function IntensityGuideModal({ onClose, hrZones }) {
             </div>
           )}
 
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">What counts at each intensity</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">What Counts at Each Intensity</div>
           <MetBrowser hrZones={hrZones} />
         </div>
       </div>

@@ -14,7 +14,7 @@ const RETEST_DAYS = 56; // ~8 weeks
 // the rest show the trend only.
 const TESTS = [
   { kind: 'pushups', label: 'Push-ups', unit: ' reps', color: SKY, upIsGood: true, how: 'As many as you can with good form, no time limit.', step: 1 },
-  { kind: 'plank', label: 'Plank hold', unit: ' sec', color: SKY, upIsGood: true, how: 'Hold a forearm plank in a straight line until your form breaks.', step: 1 },
+  { kind: 'plank', label: 'Plank Hold', unit: ' sec', color: SKY, upIsGood: true, how: 'Hold a forearm plank in a straight line until your form breaks.', step: 1 },
   { kind: 'chair_stand', label: '30-sec chair stand', unit: '', color: SKY, upIsGood: true, how: 'Arms crossed on your chest, stand fully up and sit back down as many times as you can in 30 seconds.', step: 1 },
   { kind: 'sit_reach', label: 'Sit-and-reach', unit: ' in', color: SKY, upIsGood: true, allowNegative: true, how: 'Sit with legs straight and reach forward. Measure how far past your toes you get. Use a negative number if you stop short.', step: 0.5 },
 ];
@@ -62,7 +62,7 @@ function Row({ label, latest, unit, points, color, delta, deltaGood, due, note, 
     <div className="flex items-center gap-3 py-1.5">
       <div className="flex-1 text-left min-w-0">
         <div style={{ color: PAPER_DIM }} className="text-sm truncate">{label}</div>
-        {due && <div style={{ color: AMBER }} className="text-sm">Time to retest</div>}
+        {due && <div style={{ color: AMBER }} className="text-sm">Time to Retest</div>}
         {!due && note && <div style={{ color: TEXT_SOFT }} className="text-sm">{note}</div>}
       </div>
       <Sparkline points={points} color={color} />
@@ -158,7 +158,7 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
       {rows.some((r) => r.due) && (
         <div style={{ color: TEXT_SOFT }} className="text-sm mt-1">Retest in Account → Baseline Data.</div>
       )}
-      <button onClick={() => setLogging(true)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-2">Log a strength or mobility test</button>
+      <button onClick={() => setLogging(true)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-2">Log a Strength or Mobility Test</button>
       {logging && <LogTestSheet userId={userId} onClose={() => setLogging(false)} onSaved={() => { setLogging(false); setReload((n) => n + 1); }} />}
       {estimating && (
         <Portal>

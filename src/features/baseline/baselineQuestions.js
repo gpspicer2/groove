@@ -8,13 +8,13 @@ export const BASELINE_SECTIONS = [
     title: 'Basic Information',
     subtitle: 'Please enter the following information.',
     questions: [
-      { key: 'name', label: 'Preferred first and last name', type: 'text', required: true },
+      { key: 'name', label: 'Preferred First and Last Name', type: 'text', required: true },
       { key: 'age', label: 'Age', type: 'age', required: true, half: true },
       { key: 'bodyweight', label: 'Bodyweight (lb)', hint: 'For calorie estimates.', type: 'number', half: true },
       { key: 'phone', label: 'Phone', type: 'tel', required: true },
       {
         key: 'preferred_contact',
-        label: 'Preferred way to reach you',
+        label: 'Preferred Way to Reach You',
         type: 'radio',
         required: true,
         options: ['Email', 'Text', 'Phone call', 'Facetime', 'Other'],
@@ -53,7 +53,7 @@ export const BASELINE_SECTIONS = [
     questions: [
       {
         key: 'coaching_style',
-        label: 'Preferred mentorship style',
+        label: 'Preferred Mentorship Style',
         type: 'radio',
         options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other (e.g., a mix of a couple styles — please explain)'],
       },

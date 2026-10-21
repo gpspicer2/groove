@@ -10,13 +10,13 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME } from '../../them
 // (8 weeks) or per month (6 months / 1 year). Tap anywhere on the chart to
 // read a point. A dashed line shows the overall direction.
 const METRICS = [
-  { id: 'volume', label: 'Weight lifted', unit: 'lb' },
-  { id: 'kcal', label: 'Calories burned', unit: 'kcal' },
+  { id: 'volume', label: 'Weight Lifted', unit: 'lb' },
+  { id: 'kcal', label: 'Calories Burned', unit: 'kcal' },
   { id: 'aerobic', label: 'Aerobic', unit: 'min' },
   { id: 'workouts', label: 'Workouts', unit: '' },
   { id: 'bodyweight', label: 'Bodyweight', unit: 'lb' },
-  { id: 'muscle', label: 'By muscle group', unit: '' },
-  { id: 'exercise', label: 'By exercise', unit: 'lb' },
+  { id: 'muscle', label: 'By Muscle Group', unit: '' },
+  { id: 'exercise', label: 'By Exercise', unit: 'lb' },
 ];
 const RANGES = [
   { id: '8w', label: '8w', unit: 'week', count: 8 },
@@ -247,7 +247,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
             </div>
             <div className="text-right text-sm leading-tight">
               <div style={{ color: TEXT_SOFT }}>{isCurrent ? `This ${per} so far` : cur.long}</div>
-              {isBest ? <div style={{ color: LIME }} className="font-medium">Best yet</div> : trendText && <div style={{ color: trendColor }}>{trendText}</div>}
+              {isBest ? <div style={{ color: LIME }} className="font-medium">Best Yet</div> : trendText && <div style={{ color: trendColor }}>{trendText}</div>}
             </div>
           </div>
 
@@ -306,7 +306,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
         <div className="mt-2.5 space-y-2">
           {hideScale && metric === 'bodyweight' && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Once a month is plenty. Day to day, the scale mostly shows water. Cardio minutes and strength tell you more.</div>}
           <div className="flex items-center gap-2">
-            <select value={metric} onChange={(e) => { setMetric(e.target.value); setPicked(null); }} style={selectStyle} className={`${selectClass} flex-1`} aria-label="What to track">
+            <select value={metric} onChange={(e) => { setMetric(e.target.value); setPicked(null); }} style={selectStyle} className={`${selectClass} flex-1`} aria-label="What to Track">
               {metrics.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
             <Seg options={RANGES} value={rangeId} onChange={(v) => { setRangeId(v); setPicked(null); }} />
@@ -314,7 +314,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
 
           {metric === 'muscle' && muscles.length > 0 && (
             <div className="flex items-center gap-2">
-              <select value={chosenMuscle} onChange={(e) => setMuscle(e.target.value)} style={selectStyle} className={`${selectClass} flex-1`} aria-label="Muscle group">
+              <select value={chosenMuscle} onChange={(e) => setMuscle(e.target.value)} style={selectStyle} className={`${selectClass} flex-1`} aria-label="Muscle Group">
                 {muscles.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
               <Seg options={[{ id: 'weight', label: 'Weight' }, { id: 'sets', label: 'Sets' }]} value={muscleBy} onChange={setMuscleBy} />

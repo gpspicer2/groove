@@ -264,7 +264,7 @@ function AvatarPicker({ userId }) {
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        aria-label="Change photo"
+        aria-label="Change Photo"
         className="relative block w-24 h-24"
       >
         <span style={{ background: INK_3 }} className="block w-24 h-24 rounded-full overflow-hidden flex items-center justify-center">
@@ -312,7 +312,7 @@ function AvatarCropModal({ image, onCancel, onSave }) {
     <Portal>
       <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-4">
         <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-2xl px-5 py-6">
-          <h3 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-base text-center mb-4">Adjust your photo</h3>
+          <h3 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-base text-center mb-4">Adjust Your Photo</h3>
           <div className="relative w-full" style={{ height: 280, background: INK_3, borderRadius: 12, overflow: 'hidden' }}>
             <Cropper
               image={image}
@@ -681,7 +681,7 @@ function BaselineDataSection({ userId, nested = false }) {
             </div>
           </div>
           <div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Heart rate</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-2 text-center">Heart Rate</div>
             {prescribedZone && (
               <div style={{ color: SKY }} className="text-sm mb-2 text-center">Greg recommends the {prescribedZone} zone</div>
             )}
@@ -762,7 +762,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo }) {
 
           {/* One line each: the label, then its choices. */}
           <div className="flex items-center gap-2 mb-2">
-            <span style={{ color: TEXT_SOFT }} className="text-sm w-24 shrink-0 text-left">Week starts</span>
+            <span style={{ color: TEXT_SOFT }} className="text-sm w-24 shrink-0 text-left">Week Starts</span>
             {['monday', 'sunday'].map((day) => {
               const selected = (profile?.week_start_day || 'sunday') === day;
               return (
@@ -787,7 +787,7 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo }) {
             style={{ background: INK_2 }}
             className="w-full rounded-md px-4 py-2.5 mb-2 flex items-center justify-between text-left"
           >
-            <span style={{ color: PAPER }} className="text-sm">Auto-start rest timer</span>
+            <span style={{ color: PAPER }} className="text-sm">Auto-Start Rest Timer</span>
             <span style={{ background: autoStartRest ? LIME : INK_3 }} className="relative shrink-0 w-10 h-6 rounded-full">
               <span style={{ background: PAPER, transform: autoStartRest ? 'translateX(16px)' : 'translateX(2px)' }} className="absolute top-0.5 w-5 h-5 rounded-full transition-transform" />
             </span>

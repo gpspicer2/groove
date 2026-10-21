@@ -186,7 +186,7 @@ export function ClientProgramLine({ clientId }) {
   }, [clientId]);
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Training program</div>
+      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-1">Training Program</div>
       <div style={{ color: program ? PAPER : TEXT_SOFT }} className="text-sm">
         {program ? `${programTitle(program)} · ${program.days} days a week · week ${weekNumber(program)}` : 'Not following one'}
       </div>
@@ -220,7 +220,7 @@ export function ClientHeartRate({ clientId }) {
 
   return (
     <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Heart rate zones</div>
+      <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Heart Rate Zones</div>
       {!zones ? (
         <div style={{ color: TEXT_SOFT }} className="text-sm">This client hasn't entered resting/max heart rate on Birdseye yet.</div>
       ) : (
@@ -294,7 +294,7 @@ export function ClientBaseline({ clientId }) {
         </div>
       ))}
       <div style={{ background: INK_2 }} className="rounded-md px-4 py-3">
-        <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Fitness self-assessment</div>
+        <div style={{ color: SKY }} className="text-sm uppercase tracking-wide mb-2">Fitness Self-Assessment</div>
         {!assessment.aerobic_rating ? (
           <div style={{ color: TEXT_SOFT }} className="text-sm">Not completed yet.</div>
         ) : (
@@ -305,7 +305,7 @@ export function ClientBaseline({ clientId }) {
             </div>
             {assessment.aerobic_mode === 'timed' ? (
               <div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm">Timed activity</div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm">Timed Activity</div>
                 <div style={{ color: PAPER }} className="text-sm">
                   {assessment.aerobic_activity === 'walk' ? 'Walk ~600m' : 'Stair climb'} — {Math.floor((assessment.aerobic_seconds || 0) / 60)}:{String((assessment.aerobic_seconds || 0) % 60).padStart(2, '0')}, result: {assessment.aerobic_result || '—'}
                 </div>

@@ -47,7 +47,7 @@ export function RecapCard({ userId, recap, goals, onRaiseGoal, active }) {
       <button onClick={dismiss} aria-label="Dismiss" style={{ color: TEXT_SOFT }} className="absolute top-3 right-3 p-1">
         <X size={14} />
       </button>
-      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-1">Last week</div>
+      <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-1">Last Week</div>
       <div style={{ color: PAPER }} className="text-sm font-medium mb-2">{bits.join(' · ')}</div>
       {rows.length > 0 && (
         <div className="flex justify-center flex-wrap gap-2 mb-1">

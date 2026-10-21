@@ -114,7 +114,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
             <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s, hr)}{acc ? ` · ${acc}` : ''}</div>
           </div>
           {s.inProgress ? (
-            <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In progress</span>
+            <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In Progress</span>
           ) : (
             <button onClick={() => onStart(s)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start
@@ -127,7 +127,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
           {flex && (
             <div style={{ background: INK_3 }} className="flex items-center justify-between gap-3 rounded-md px-3 py-2 mt-2">
               <div className="min-w-0">
-                <div style={{ color: PAPER }} className="text-sm font-medium">Flex day</div>
+                <div style={{ color: PAPER }} className="text-sm font-medium">Flex Day</div>
                 <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">Fills in what this week left out: {flex.label}</div>
               </div>
               <button onClick={() => onStart(flex.session)} style={{ background: SKY, color: INK }} className="shrink-0 rounded-md px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5">
@@ -138,11 +138,11 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
         </div>
       )}
       <button onClick={toggle} style={{ color: SKY }} className="w-full text-center text-sm mt-2.5 py-0.5">{open ? 'Hide the whole week' : 'See the whole week'}</button>
-      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">About weighing in</button>}
+      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">About Weighing In</button>}
       {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">
-          <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This week</div>
+          <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This Week</div>
           <div className="space-y-1.5">
             {week.sessions.map((x) => (
               <div key={x.id} style={{ background: INK_3 }} className="rounded-md px-3 py-2 flex items-start gap-2.5">
@@ -170,7 +170,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
 export function MoveProgramLink({ onOpen }) {
   return (
     <button onClick={onOpen} style={{ color: TEXT_SOFT }} className="w-full mt-3 text-sm flex items-center justify-center gap-1.5 py-1.5">
-      <ListChecks size={14} /> Follow a training program <span style={{ opacity: 0.7 }}>(optional)</span>
+      <ListChecks size={14} /> Follow a Training Program <span style={{ opacity: 0.7 }}>(optional)</span>
     </button>
   );
 }
@@ -212,7 +212,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
         <div className="flex items-center justify-between gap-3 text-left mt-2">
           <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? (next.zone ? `${next.name} ${next.minutes} min` : 'Cardio') : next.name}</div>
           {next.inProgress ? (
-            <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In progress</span>
+            <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In Progress</span>
           ) : (
             <button onClick={() => onStart(next)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3.5 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start

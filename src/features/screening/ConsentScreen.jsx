@@ -44,7 +44,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
             <p key={p} className="text-sm text-center" style={p.startsWith('If you feel chest pain') ? { color: BRICK } : { color: PAPER_DIM }}>
               {p}
               {p.startsWith('Groove offers movement mentorship') && (
-                <> <button onClick={() => setShowBio(true)} style={{ color: PLUM }} className="underline font-medium">Learn more about Greg</button></>
+                <> <button onClick={() => setShowBio(true)} style={{ color: PLUM }} className="underline font-medium">Learn More About Greg</button></>
               )}
             </p>
           ))}
@@ -68,7 +68,7 @@ export default function ConsentScreen({ onBackToHealthCheck }) {
           >
             {saving ? 'Saving…' : 'Continue'}
           </button>
-          <button onClick={signOut} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center">Sign out</button>
+          <button onClick={signOut} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center">Sign Out</button>
         </div>
       </div>
       {showBio && <GregBio onClose={() => setShowBio(false)} />}

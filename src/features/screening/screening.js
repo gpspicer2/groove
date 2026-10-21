@@ -12,36 +12,36 @@ export const SCREENING_VERSION = 'acsm-2015-v1';
 export const SYMPTOMS = [
   { key: 'chest_pain', label: 'Chest, neck, jaw, or arm pain or tightness' },
   { key: 'breathless', label: 'Short of breath at rest or light activity' },
-  { key: 'dizziness', label: 'Dizziness or fainting' },
+  { key: 'dizziness', label: 'Dizziness or Fainting' },
   { key: 'orthopnea', label: 'Breathless lying flat or waking at night' },
-  { key: 'ankle_swelling', label: 'Swelling in both ankles' },
+  { key: 'ankle_swelling', label: 'Swelling in Both Ankles' },
   { key: 'palpitations', label: 'Racing, pounding, or fluttering heartbeat' },
   { key: 'claudication', label: 'Leg cramping when walking that eases with rest' },
-  { key: 'murmur', label: 'A heart murmur' },
+  { key: 'murmur', label: 'A Heart Murmur' },
   { key: 'unusual_fatigue', label: 'Unusual tiredness with everyday activities' },
 ];
 
 // Known cardiovascular (cardiac, cerebrovascular, peripheral vascular),
 // metabolic (type 1 or 2 diabetes), or renal disease.
 export const DISEASES = [
-  { key: 'heart', label: 'Heart disease, stent, or bypass' },
-  { key: 'stroke_vascular', label: 'Stroke or poor leg circulation' },
-  { key: 'diabetes', label: 'Type 1 or type 2 diabetes' },
-  { key: 'kidney', label: 'Kidney disease' },
+  { key: 'heart', label: 'Heart Disease, Stent, or Bypass' },
+  { key: 'stroke_vascular', label: 'Stroke or Poor Leg Circulation' },
+  { key: 'diabetes', label: 'Type 1 or Type 2 Diabetes' },
+  { key: 'kidney', label: 'Kidney Disease' },
 ];
 
 // Not part of the clearance decision. Recorded so Greg (and later,
 // condition-specific guidance) can account for them.
 export const OTHER_CONDITIONS = [
-  { key: 'hypertension', label: 'High blood pressure' },
-  { key: 'cholesterol', label: 'High cholesterol' },
+  { key: 'hypertension', label: 'High Blood Pressure' },
+  { key: 'cholesterol', label: 'High Cholesterol' },
   { key: 'prediabetes', label: 'Prediabetes' },
   { key: 'obesity', label: 'Obesity' },
   { key: 'lung', label: 'Asthma or COPD' },
-  { key: 'arthritis', label: 'Arthritis or joint pain' },
+  { key: 'arthritis', label: 'Arthritis or Joint Pain' },
   { key: 'osteoporosis', label: 'Osteoporosis' },
   { key: 'pregnancy', label: 'Pregnant or baby in the past year' },
-  { key: 'cancer', label: 'Cancer, now or in the past' },
+  { key: 'cancer', label: 'Cancer, Now or in the Past' },
 ];
 
 // 'clear'               no clearance needed

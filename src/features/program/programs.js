@@ -71,10 +71,10 @@ const LEAD = {
   rdl: { label: 'RDL', names: ['Romanian Deadlift', 'Barbell Good Morning', 'Single-Leg Romanian Deadlift'] },
   row: { label: 'Row', names: ['Barbell Row', 'Pendlay Row', 'Seated Cable Row'] },
   pullups: { label: 'Pull-ups', names: ['Pull-Ups', 'Lat Pulldown'] },
-  pauseSquat: { label: 'Pause squat', names: ['Pause Back Squat', 'Barbell Back Squat', 'Front Squat'] },
-  frontSquat: { label: 'Front squat', names: ['Front Squat', 'Goblet Squat', 'Leg Press'] },
-  pauseBench: { label: 'Pause bench', names: ['Pause Bench Press', 'Close-Grip Bench Press', 'Barbell Bench Press'] },
-  closeGrip: { label: 'Close-grip bench', names: ['Close-Grip Bench Press', 'Barbell Bench Press'] },
+  pauseSquat: { label: 'Pause Squat', names: ['Pause Back Squat', 'Barbell Back Squat', 'Front Squat'] },
+  frontSquat: { label: 'Front Squat', names: ['Front Squat', 'Goblet Squat', 'Leg Press'] },
+  pauseBench: { label: 'Pause Bench', names: ['Pause Bench Press', 'Close-Grip Bench Press', 'Barbell Bench Press'] },
+  closeGrip: { label: 'Close-Grip Bench', names: ['Close-Grip Bench Press', 'Barbell Bench Press'] },
 };
 const PL = {
   squat: { name: 'Squat Day', groups: ['Legs', 'Hamstrings', 'Core'], leads: [LEAD.squat, LEAD.rdl] },
@@ -252,7 +252,7 @@ export function weeklyMinutes(program, week) {
 }
 export const ZONES = {
   moderate: { label: 'Moderate', lowPct: 0.4, highPct: 0.59, rpe: '5-6', talk: 'you can talk but not sing' },
-  easy: { label: 'Easy to moderate', lowPct: 0.4, highPct: 0.5, rpe: '4-5', talk: 'you can chat easily' },
+  easy: { label: 'Easy to Moderate', lowPct: 0.4, highPct: 0.5, rpe: '4-5', talk: 'you can chat easily' },
   hard: { label: 'Hard', lowPct: 0.6, highPct: 0.79, rpe: '7-8', talk: 'only a few words at a time' },
 };
 // "128-142 bpm" when the member guides by heart rate and their resting and max are known; otherwise effort (RPE, a 0-10 scale)

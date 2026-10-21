@@ -18,7 +18,7 @@ export default function JournalPromptSheet({ onJournal, onSkip }) {
           <button onClick={onJournal} style={{ background: AMBER, color: ON_AMBER }} className="w-full rounded-md py-3 text-sm font-medium mb-2">
             Write a Post-Movement Reflection
           </button>
-          <button onClick={onSkip} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5">Not now</button>
+          <button onClick={onSkip} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1.5">Not Now</button>
         </div>
       </div>
     </Portal>

@@ -12,10 +12,10 @@ export const DEFAULT_PLAN_MINUTES = 30;
 export const PLAN_MINUTE_OPTIONS = [15, 30, 45, 60, 90];
 
 export const PLAN_SUGGESTIONS = [
-  { label: 'Outdoor walk', emoji: '🚶', kind: 'aerobic' },
-  { label: 'Gym session', emoji: '🏋️', kind: 'resistance' },
+  { label: 'Outdoor Walk', emoji: '🚶', kind: 'aerobic' },
+  { label: 'Gym Session', emoji: '🏋️', kind: 'resistance' },
   { label: 'Yoga', emoji: '🧘', kind: 'flexibility' },
-  { label: 'Bike ride', emoji: '🚴', kind: 'aerobic' },
+  { label: 'Bike Ride', emoji: '🚴', kind: 'aerobic' },
   { label: 'Run', emoji: '🏃', kind: 'aerobic' },
   { label: 'Stretching', emoji: '🤸', kind: 'flexibility' },
 ];

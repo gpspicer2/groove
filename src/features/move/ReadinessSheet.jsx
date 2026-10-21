@@ -25,7 +25,7 @@ export default function ReadinessSheet({ onConfirm, onCancel, injuries = [] }) {
             {BODY_AREAS.map((a) => (
               <button key={a.id} onClick={() => toggle(a.id)} style={chip(areas.includes(a.id))} className="rounded-full px-3.5 py-1.5 text-sm">{a.label}</button>
             ))}
-            <button onClick={() => setTired((v) => !v)} style={chip(tired)} className="rounded-full px-3.5 py-1.5 text-sm">Run down</button>
+            <button onClick={() => setTired((v) => !v)} style={chip(tired)} className="rounded-full px-3.5 py-1.5 text-sm">Run Down</button>
           </div>
           {injuries.length > 0 && <div style={{ color: SKY }} className="text-[13px] mb-2">Already working around: {injuries.map((i) => i.label).join(', ')}</div>}
           <div style={{ color: TEXT_SOFT }} className="text-[13px] mb-4">Sharp pain or swelling? Skip that area and check in with a pro.</div>

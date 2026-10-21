@@ -36,7 +36,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
             <button onClick={() => setRetaking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Update</button>
           </div>
           <div style={{ color: PAPER_DIM }} className="text-[13px] leading-snug">{status}</div>
-          {pending && <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-[13px] underline">My doctor cleared me</button>}
+          {pending && <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-[13px] underline">My Doctor Cleared Me</button>}
         </div>
         {retaking && <ScreeningFlow onClose={() => setRetaking(false)} onDone={() => setRetaking(false)} />}
       </>
@@ -50,7 +50,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
         <div style={{ color: PAPER_DIM }} className="text-sm">{status}</div>
         <div className={`flex justify-center ${compact ? 'flex-col items-center gap-0.5 mt-1' : 'gap-4 mt-2'}`}>
           {pending && (
-            <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-sm underline">My doctor cleared me</button>
+            <button onClick={markCleared} style={{ color: TEXT_SOFT }} className="text-sm underline">My Doctor Cleared Me</button>
           )}
           <button onClick={() => setRetaking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Update</button>
         </div>

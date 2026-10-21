@@ -112,7 +112,7 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           </div>
           {needsConfirm && (
             <div className="mb-3">
-              <label htmlFor="confirm" className="sr-only">Confirm password</label>
+              <label htmlFor="confirm" className="sr-only">Confirm Password</label>
               <input
                 type={showPw ? 'text' : 'password'}
                 name="confirm"

@@ -28,9 +28,9 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
 
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Members" value={members} />
-        <Stat label="Active this week" value={`${active}/${members}`} color={PLUM} />
-        <Stat label="Hit every goal" value={goalsMet} sub="so far this week" color={MOSS} />
-        <Stat label="Avg effort" value={avgEffort} sub="last 2 weeks, of 10" />
+        <Stat label="Active This Week" value={`${active}/${members}`} color={PLUM} />
+        <Stat label="Hit Every Goal" value={goalsMet} sub="so far this week" color={MOSS} />
+        <Stat label="Avg Effort" value={avgEffort} sub="last 2 weeks, of 10" />
       </div>
 
       <SectionTitle right={attention.length > 0 && <span style={{ background: PLUM, color: INK }} className="text-xs font-semibold rounded-full px-2 py-0.5">{attention.length}</span>}>
@@ -60,7 +60,7 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
         </div>
       )}
 
-      <SectionTitle>Recent activity</SectionTitle>
+      <SectionTitle>Recent Activity</SectionTitle>
       {recent.length === 0 ? (
         <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-2xl px-4 py-4 text-sm">No workouts yet.</div>
       ) : (

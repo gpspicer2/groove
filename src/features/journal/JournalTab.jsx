@@ -117,7 +117,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
       )}
 
       <div data-tour="journal-entries">
-        <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 text-center">Past entries</div>
+        <div style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide mb-2 text-center">Past Entries</div>
         {entries.length === 0 ? (
           <div style={{ background: INK_2, color: TEXT_SOFT }} className="rounded-md px-4 py-6 text-center text-sm">
             Nothing logged yet — your first entry will show up here.
@@ -200,7 +200,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
                 style={{ background: AMBER, color: ON_AMBER }}
                 className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
               >
-                <Pencil size={16} /> Edit entry
+                <Pencil size={16} /> Edit Entry
               </button>
               <button
                 onClick={() => arm.press('sheet', () => { setShowActions(false); onDelete(); })}
@@ -259,7 +259,7 @@ function EditEntryModal({ entry, onClose, onSaved }) {
         <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-5">
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Edit entry</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg">Edit Entry</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>
           </div>
 
@@ -374,7 +374,7 @@ function FreeformEntry({ onSaved, onCancel }) {
     <div style={{ background: INK_2, borderTop: `2px solid ${AMBER}` }} className="rounded-lg px-5 py-5 mb-4">
       {!prompt ? (
         <>
-          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">Pick a prompt</div>
+          <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-3 text-center">Pick a Prompt</div>
           <div className="space-y-2 mb-3">
             {PROMPTS.map((p) => (
               <button

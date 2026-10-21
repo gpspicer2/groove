@@ -58,7 +58,7 @@ function LinkPopup({ onClose, onDone }) {
         ) : (
           <form onSubmit={submit} onClick={(e) => e.stopPropagation()} style={{ background: INK_2, borderTop: `2px solid ${PLUM}` }} className="relative w-full max-w-xs rounded-2xl px-5 py-5 text-center">
             <div className="flex items-start justify-between mb-2">
-              <div style={{ color: PAPER }} className="text-base font-medium text-left">Link your other account</div>
+              <div style={{ color: PAPER }} className="text-base font-medium text-left">Link Your Other Account</div>
               <button type="button" onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={18} /></button>
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm text-left mb-3">Sign in once, then flip between both accounts with one tap on this device.</p>
@@ -127,7 +127,7 @@ export function SwitchAccountSection() {
     return (
       <>
         <div className="text-center mb-2">
-          <button onClick={() => setLinking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Link another account</button>
+          <button onClick={() => setLinking(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">Link Another Account</button>
         </div>
         {linking && <LinkPopup onClose={() => setLinking(false)} onDone={() => setLinking(false)} />}
       </>
