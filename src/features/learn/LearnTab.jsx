@@ -49,7 +49,7 @@ function mapArticle(row) {
 // meant to exercise" one, then tracking/data, then journaling. Everything else
 // keeps the database order (pinned, then newest). Matched on the title so no
 // SQL is needed; Greg can still pin others.
-const PROMO_ORDER = [/meant to\s*\*?(exercise|move)|exercise\W*(isn|is not)/i, /track|data|measure/i, /journal|reflect|writ/i];
+const PROMO_ORDER = [/born to\s*\*?exercise|meant to\s*\*?(exercise|move)/i, /track|data|measure/i, /journal|reflect|writ/i];
 function promoRank(a) {
   const t = a.title.replace(/\*/g, '');
   const i = PROMO_ORDER.findIndex((re) => re.test(t));
