@@ -4,7 +4,7 @@ The link: https://groove-rho.vercel.app
 
 ## Quick share (the link makes a preview card)
 
-The link turns into a card with the GROOVE picture, the title "Groove: Movement Mentorship & Education" and the little message underneath ("I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!"). Those live in the preview tags in `index.html` (the picture is `public/og-image-v2.png`). So the whole share is just this, on its own:
+The link turns into a card with the GROOVE picture, the title "Groove" and the little message underneath ("I made an app to help with movement mentorship and education. It's free while I test it, and I'd love to know what you think!"). Those live in the preview tags in `index.html` (the picture is `public/og-image-v2.png`). So the whole share is just this, on its own:
 
 > https://groove-rho.vercel.app/?invite
 
@@ -15,6 +15,8 @@ Type or paste it as plain text so it appears only once (copying from a chat can 
 Paste all of this as one message (link last, on its own line):
 
 > Hey! I made an app to help with movement mentorship and education, and I'd love for you to try it. It's free while I'm testing it.
+>
+> Quick tip: it's really a website, so tap Share, then Add to Home Screen, and it'll sit with your other apps and open just like one. (On Android, tap the three dots, then Add to Home screen.)
 >
 > Heads up: getting started takes about 5 minutes (sign up, a few health questions, a quick tour). After your first workout it will also offer a 10-minute "get to know you" set of questions. That part is optional, but it helps me tailor things to you.
 >
