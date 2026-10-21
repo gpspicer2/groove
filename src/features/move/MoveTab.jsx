@@ -3815,7 +3815,10 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     ? (mostRecentLogged?.isBodyweight ? Math.max(0, (mostRecentLogged.weight ?? 0) - (bodyweight || 0)) : 0)
     : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? null);
   // A barbell weighs 45 lb on its own, so a barbell lift is never lighter.
-  const isBarbell = exercise.equipment === 'barbell' || /barbell/i.test(exercise.name || '');
+  // A name that says machine, plate-loaded, Smith, dumbbell, cable etc. is never a free barbell, even if the exercise
+  // inherited 'barbell' from a swap or a typed name.
+  const notFreeBar = /plate.?loaded|machine|smith|dumbbell|cable|kettlebell|landmine|assisted|\bT-?Bar\b/i.test(exercise.name || '');
+  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || /barbell/i.test(exercise.name || ''));
   const barbellFloor = isBarbell && !useBodyweight ? BARBELL_MIN_LB : 0;
   const [weight, setWeight] = useState(Math.max(barbellFloor, startWeight != null ? roundToFive(startWeight) : 0));
   const belowBarbell = barbellFloor > 0 && Number(weight) < barbellFloor;
