@@ -1,4 +1,5 @@
 import { startOfWeek } from '../../lib/week.js';
+import { karvonenBpm } from '../../lib/heartRate.js';
 
 // Self-guided training programs: pick a goal (and for hypertrophy a method),
 // say how many days a week you can train, and the week is laid out for you.
@@ -7,7 +8,7 @@ import { startOfWeek } from '../../lib/week.js';
 export const GOALS = [
   { id: 'strength', label: 'Strength', emoji: '💥', blurb: 'Heavier lifts, fewer reps, longer rests.' },
   { id: 'hypertrophy', label: 'Hypertrophy', emoji: '📈', blurb: 'Build muscle size with moderate reps.' },
-  { id: 'fat_loss', label: 'Fat Loss', emoji: '🔥', blurb: 'Keep your muscle, add cardio, burn more.' },
+  { id: 'fat_loss', label: 'Weight Loss', emoji: '🔥', blurb: 'Heart-rate cardio you choose, plus 2 short strength days.' },
 ];
 
 export const MODELS = [
@@ -18,7 +19,7 @@ export const MODELS = [
 export const GOAL_INFO = {
   strength: 'Strength work uses heavier loads for fewer reps with long rests. Each week the main lifts get a little harder, and every 4th week is a lighter deload so you recover and come back stronger.',
   hypertrophy: 'Hypertrophy is muscle growth. Moderate loads, 8-15 reps, hard sets close to failure, and enough weekly volume per muscle. Pick how the weeks progress below.',
-  fat_loss: 'Fat loss comes from a modest calorie deficit over time. Lifting keeps your muscle while you lose fat, and cardio adds to the energy you burn. Strength sessions here use shorter rests and a little higher reps.',
+  fat_loss: 'Weight loss comes mostly from a modest calorie deficit; exercise adds to it. ACSM finds 150-250 minutes a week of moderate activity gives modest loss, and more than 250 minutes gives clinically meaningful loss. Your weekly cardio minutes start where you are and build about 10% a week (a lighter week every 4th), in heart-rate zones. You pick any activity you enjoy to fill them. Two short strength days help you keep muscle while you lose fat.',
 };
 export const MODEL_INFO = {
   undulating: 'Daily undulating periodization (DUP) changes the rep range from workout to workout. Heavy days build strength, moderate days build size, light days add volume with less strain. Each muscle gets all three through the week, and the pattern shifts every week.',
@@ -102,21 +103,22 @@ export function chosenSplit(program) {
   return opts.find((o) => o.id === program.split) || opts[0] || null;
 }
 
-// Fat loss: fewer lifting days, the rest are cardio days.
+// Weight loss: cardio days you fill with any activity you enjoy (in a heart-rate zone) plus two short
+// full-body strength days to keep muscle. 4-6 days a week (the old 2-3 day layouts stay for existing programs).
 const FAT_LOSS = {
-  2: { seq: 'RR', days: [1, 4], lifts: [T.fullA, T.fullB] },
-  3: { seq: 'RAR', days: [1, 3, 5], lifts: [T.fullA, T.fullB] },
-  4: { seq: 'RARR', days: [1, 2, 4, 6], lifts: [T.fullA, T.fullB, T.fullC] },
-  5: { seq: 'RARAR', days: [1, 2, 3, 5, 6], lifts: [T.fullA, T.fullB, T.fullC] },
-  6: { seq: 'RARRAR', days: [1, 2, 3, 4, 5, 6], lifts: [T.upperA, T.lowerA, T.upperB, T.lowerB] },
+  2: { seq: 'AR', days: [1, 4], lifts: [T.fullA, T.fullB] },
+  3: { seq: 'ARA', days: [1, 3, 5], lifts: [T.fullA, T.fullB] },
+  4: { seq: 'ARAR', days: [1, 2, 4, 5], lifts: [T.fullA, T.fullB] },
+  5: { seq: 'ARARA', days: [1, 2, 3, 5, 6], lifts: [T.fullA, T.fullB] },
+  6: { seq: 'ARAARA', days: [1, 2, 3, 4, 6, 0], lifts: [T.fullA, T.fullB] },
 };
+
 const DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 4, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // Weekdays (0 = Sunday) in Monday-first order, so sessions run in calendar order.
 export const orderedWeekdays = (list) => [...list].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
 // True once the member has picked exactly as many training days as the program needs.
 export const hasChosenDays = (program) => Array.isArray(program?.weekdays) && program.weekdays.length === program.days;
-
 
 const rx = (sets, reps, rpe, rest) => ({ sets, reps, rpe, rest });
 
@@ -153,13 +155,14 @@ const CYCLES = {
     ],
     deload: { label: 'Deload', main: rx(3, '10', '6', '60-90 sec') },
   },
+  // The two strength days: moderate loads, a few good lifts, enough to hold on to muscle in a calorie deficit.
   fat_loss: {
-    len: 4, exercises: 6, mainCount: 0, minutes: [30, 35, 40, 30],
+    len: 4, exercises: 5, mainCount: 0,
     weeks: [
-      { phase: 'Build', main: rx(3, '12-15', '7', '45-60 sec') },
-      { phase: 'Build', main: rx(3, '12-15', '8', '45-60 sec') },
-      { phase: 'Build', main: rx(4, '10-15', '8', '45-60 sec') },
-      { phase: 'Deload', main: rx(2, '12', '6', '45-60 sec') },
+      { phase: 'Build', main: rx(3, '10-12', '7', '60-90 sec') },
+      { phase: 'Build', main: rx(3, '10-12', '8', '60-90 sec') },
+      { phase: 'Build', main: rx(3, '8-12', '8', '60-90 sec') },
+      { phase: 'Deload', main: rx(2, '10', '6', '60 sec') },
     ],
   },
 };
@@ -188,6 +191,56 @@ export function weekNumber(program, today = new Date(), weekStartDay = 'sunday')
 }
 export function cyclePosition(program, week) {
   return ((week - 1) % cycleLength(program)) + 1;
+}
+
+// ---- Weight loss cardio: weekly minutes in heart-rate zones ----
+export const WEEKLY_MINUTES_CAP = 250; // ACSM: more than 250 min/week for clinically significant weight loss
+export function cardioDays(program) {
+  return FAT_LOSS[program.days].seq.split('A').length - 1;
+}
+// The week's cardio minutes: start where the member is (program.startMinutes), build about 10% a week, and make every
+// 4th week a lighter one (70%). Capped at ACSM's 250, or about 60 minutes per cardio day if that is lower.
+export function weeklyMinutes(program, week) {
+  const start = Math.max(60, Number(program.startMinutes) || 90);
+  const cap = Math.max(start, Math.min(WEEKLY_MINUTES_CAP, cardioDays(program) * 60));
+  const pos = ((week - 1) % 4) + 1;
+  const blocks = Math.floor((week - 1) / 4);
+  const build = (b) => Math.min(cap, start * 1.1 ** b);
+  const m = pos === 4 ? 0.7 * build(blocks * 3 + 2) : build(blocks * 3 + (pos - 1));
+  return Math.round(m / 5) * 5;
+}
+export const ZONES = {
+  moderate: { label: 'Moderate', lowPct: 0.4, highPct: 0.59, rpe: '5-6' },
+  easy: { label: 'Easy to moderate', lowPct: 0.4, highPct: 0.5, rpe: '4-5' },
+  hard: { label: 'Hard', lowPct: 0.6, highPct: 0.79, rpe: '7-8' },
+};
+// "128-142 bpm" when resting and max heart rate are known, else the percent of heart rate reserve.
+export function zoneText(zone, hr) {
+  if (hr && hr.rest != null && hr.max != null) return `${karvonenBpm(hr.rest, hr.max, zone.lowPct)}–${karvonenBpm(hr.rest, hr.max, zone.highPct)} bpm`;
+  return `${Math.round(zone.lowPct * 100)}–${Math.round(zone.highPct * 100)}% of heart rate reserve`;
+}
+// One cardio session. `n` cardio days a week; the last one is the long one, the first are steady, and from week 3
+// one steady day can become an interval day (short harder bursts), which is optional.
+function cardioSession(program, week, ai, n, day, deload) {
+  const total = weeklyMinutes(program, week);
+  const intervalAt = n >= 3 ? 1 : -1; // second session
+  const kinds = Array.from({ length: n }, (_, i) => (i === n - 1 && n >= 2 ? 'long' : week >= 3 && !deload && i === intervalAt ? 'intervals' : 'steady'));
+  const kind = kinds[ai];
+  const weight = { steady: 1, intervals: 0.75, long: 1.6 };
+  const sum = kinds.reduce((a, k) => a + weight[k], 0);
+  const minutes = Math.max(20, Math.round((total * weight[kind]) / sum / 5) * 5);
+  const base = { id: `w${week}-a${ai}`, kind: 'aerobic', day, minutes, phase: deload ? 'Deload' : 'Build', variant: kind };
+  if (kind === 'intervals') {
+    const rounds = Math.max(3, Math.floor((minutes - 10) / 4));
+    return { ...base, name: 'Intervals', zone: ZONES.hard, easyZone: ZONES.easy, rpe: ZONES.hard.rpe, intervals: { rounds, hard: 2, easy: 2, warm: 5, cool: 5 },
+      note: 'Short harder bursts with easy recovery. Optional: swap for a steady session if you would rather.' };
+  }
+  if (kind === 'long') return { ...base, name: 'Long Cardio', zone: ZONES.easy, rpe: ZONES.easy.rpe, note: 'Your longest session. Keep it easy enough to chat.' };
+  return { ...base, name: 'Steady Cardio', zone: ZONES.moderate, rpe: ZONES.moderate.rpe, note: 'Steady and comfortable, a little breathless but you can still talk.' };
+}
+export function intervalLine(s) {
+  const i = s.intervals;
+  return i ? `${i.warm} min easy, ${i.rounds} × (${i.hard} min hard + ${i.easy} min easy), ${i.cool} min easy` : null;
 }
 
 // Moves a rep target up or down by `d`, keeping its width and keeping it inside the range NSCA gives for that goal
@@ -233,8 +286,7 @@ export function sessionsForWeek(program, week) {
   seq.split('').forEach((c, i) => {
     const day = days[i];
     if (c === 'A') {
-      const minutes = cyc.minutes ? cyc.minutes[pos - 1] + (ai % 2) * 5 : 30;
-      out.push({ id: `w${week}-a${ai}`, kind: 'aerobic', name: 'Cardio', day, minutes, rpe: '5-6', phase: deload ? 'Deload' : 'Build', note: 'Steady, conversational pace. Walking, cycling, rowing, whatever you enjoy.' });
+      out.push(cardioSession(program, week, ai, cardioDays(program), day, deload));
       ai += 1;
       return;
     }
@@ -272,8 +324,8 @@ export function phaseLabel(program, week) {
 }
 
 const dash = (s) => String(s).replace('-', '–');
-export function prescriptionLine(s) {
-  if (s.kind === 'aerobic') return `${s.minutes} min · RPE ${dash(s.rpe)}`;
+export function prescriptionLine(s, hr) {
+  if (s.kind === 'aerobic') return s.zone ? `${s.minutes} min · ${s.zone.label} · ${zoneText(s.zone, hr)}` : `${s.minutes} min · RPE ${dash(s.rpe)}`;
   const p = s.presc;
   const main = `${p.sets} × ${dash(p.reps)} · RPE ${dash(p.rpe)} · rest ${dash(p.rest)}`;
   return main;

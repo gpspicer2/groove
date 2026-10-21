@@ -49,7 +49,7 @@ export function useProgram(userId) {
 
 // How many sessions of each kind were done this week (since the program began).
 export function useProgramProgress(userId, program, active, refreshKey, weekStartDay = 'sunday') {
-  const [done, setDone] = useState({ resistance: 0, aerobic: 0, inProgress: null });
+  const [done, setDone] = useState({ resistance: 0, aerobic: 0, aerobicEq: 0, inProgress: null });
   useEffect(() => {
     if (!userId || !program || active === false) return undefined;
     let cancelled = false;
@@ -57,22 +57,22 @@ export function useProgramProgress(userId, program, active, refreshKey, weekStar
       const weekStart = startOfWeek(new Date(), weekStartDay);
       const from = new Date(Math.max(weekStart.getTime(), new Date(`${program.startedAt}T00:00:00`).getTime()));
       const w = await supabase.from('workouts').select('id, started_at, completed_at, movement_mode').eq('user_id', userId).is('deleted_at', null).gte('started_at', from.toISOString());
-      if (w.error || !w.data?.length) { if (!cancelled) setDone({ resistance: 0, aerobic: 0, inProgress: null }); return; }
+      if (w.error || !w.data?.length) { if (!cancelled) setDone({ resistance: 0, aerobic: 0, aerobicEq: 0, inProgress: null }); return; }
       const finished = new Set(w.data.filter((x) => x.completed_at).map((x) => x.id));
       // A workout still being logged shows as "in progress" until it is finished.
       const open = w.data.find((x) => !x.completed_at);
       const inProgress = open && open.movement_mode !== 'Flexibility' ? (open.movement_mode === 'Aerobic' ? 'aerobic' : 'resistance') : null;
       const ids = w.data.map((x) => x.id);
-      const s = await supabase.from('workout_sets').select('workout_id, movement_type, muscle_group').in('workout_id', ids);
+      const s = await supabase.from('workout_sets').select('workout_id, movement_type, muscle_group, moderate_minutes, vigorous_minutes').in('workout_id', ids);
       if (cancelled || s.error) return;
-      const res = new Set(); const aer = new Set();
+      const res = new Set(); const aer = new Set(); let eq = 0;
       (s.data || []).forEach((r) => {
         const type = r.movement_type || 'resistance';
         if (!finished.has(r.workout_id)) return;
-        if (type === 'aerobic') aer.add(r.workout_id);
+        if (type === 'aerobic') { aer.add(r.workout_id); eq += (Number(r.moderate_minutes) || 0) + 2 * (Number(r.vigorous_minutes) || 0); } // harder minutes count double (ACSM)
         else if (type === 'resistance' && r.muscle_group !== 'Warm-up') res.add(r.workout_id);
       });
-      setDone({ resistance: res.size, aerobic: aer.size, inProgress });
+      setDone({ resistance: res.size, aerobic: aer.size, aerobicEq: Math.round(eq), inProgress });
     })();
     return () => { cancelled = true; };
   }, [userId, program?.startedAt, program?.goal, active, refreshKey, weekStartDay]); // eslint-disable-line react-hooks/exhaustive-deps

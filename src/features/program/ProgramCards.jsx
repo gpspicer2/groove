@@ -2,7 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { Check, Pencil, Play, ListChecks, ChevronDown, ChevronUp } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
-import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine } from './programs';
+import { useAuth } from '../../auth/AuthContext';
+import { predictedMaxHR } from '../../lib/heartRate';
+import { GOALS, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays } from './programs';
+
+// Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
+export function useHr() {
+  const { profile } = useAuth();
+  const rest = profile?.resting_hr_bpm != null ? Number(profile.resting_hr_bpm) : null;
+  const max = profile?.max_hr_bpm != null ? Number(profile.max_hr_bpm) : predictedMaxHR(profile?.age != null ? Number(profile.age) : null);
+  return rest != null && max != null ? { rest, max } : null;
+}
 
 // This week's sessions with done / next flags, from this week's logged workouts.
 export function useProgramWeek(userId, program, active, refreshKey, weekStartDay) {
@@ -10,23 +20,26 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
   return useMemo(() => {
     if (!program) return null;
     const week = weekNumber(program, new Date(), weekStartDay);
-    let r = 0; let a = 0;
+    let r = 0; let a = 0; let cum = 0;
+    const weightLoss = program.goal === 'fat_loss';
     const moves = normalizeMoves(program, weekStartDay);
     const sessions = sessionsForWeek(program, week).map((s0) => {
       // A moved session shows the weekday it was moved to.
       const s = moves[s0.id] ? { ...s0, day: new Date(`${moves[s0.id]}T12:00:00`).getDay() } : s0;
+      // Weight loss cardio counts by minutes, so any mix of activities and session lengths fills the week.
+      if (s.kind === 'aerobic' && weightLoss) { cum += s.minutes; return { ...s, done: done.aerobicEq >= cum * 0.9 }; }
       const isDone = s.kind === 'aerobic' ? a++ < done.aerobic : r++ < done.resistance;
       return { ...s, done: isDone };
     });
     const next = sessions.find((s) => !s.done) || null;
     // The session being logged right now.
     if (next && done.inProgress && (done.inProgress === 'aerobic') === (next.kind === 'aerobic')) next.inProgress = true;
-    return { week, sessions, next, doneCount: sessions.filter((s) => s.done).length, label: phaseLabel(program, week) };
-  }, [program, done.resistance, done.aerobic, done.inProgress, weekStartDay]);
+    return { week, sessions, next, doneCount: sessions.filter((s) => s.done).length, label: phaseLabel(program, week), minutes: weightLoss ? { done: done.aerobicEq, target: weeklyMinutes(program, week) } : null };
+  }, [program, done.resistance, done.aerobic, done.aerobicEq, done.inProgress, weekStartDay]);
 }
 
-function sessionDetail(s) {
-  if (s.kind === 'aerobic') return `${s.minutes} min · RPE 5–6 · easy, steady pace`;
+function sessionDetail(s, hr) {
+  if (s.kind === 'aerobic') return s.zone ? prescriptionLine(s, hr) : `${s.minutes} min · RPE 5–6 · easy, steady pace`;
   return `${s.exercises} exercises · ${prescriptionLine(s)}`;
 }
 
@@ -34,7 +47,7 @@ function sessionDetail(s) {
 // Start, and one line of progress (sessions this week, pounds lifted since the program began).
 // One line about what a session trains: the muscles, plus the day's flavor when it has one (Heavy, Light...).
 function sessionBlurb(x) {
-  if (x.kind === 'aerobic') return 'Cardio · steady, easy pace';
+  if (x.kind === 'aerobic') return x.zone ? (x.intervals ? intervalLine(x) : 'Any activity you enjoy that keeps you in this range') : 'Cardio · steady, easy pace';
   const parts = [...new Set(x.groups || [])];
   return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts.join(', ')}`;
 }
@@ -49,6 +62,7 @@ const writeFlag = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } ca
 export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStart, onManage }) {
   const [card, setCard] = useState(() => readFlag(LS_CARD));
   const [open, setOpen] = useState(() => readFlag(LS_OPEN));
+  const hr = useHr();
   if (!program || !week) return null;
   const toggleCard = () => setCard((v) => { writeFlag(LS_CARD, !v); return !v; });
   const toggle = () => setOpen((v) => { writeFlag(LS_OPEN, !v); return !v; });
@@ -56,7 +70,9 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
   const split = chosenSplit(program);
   const model = program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
-  const exact = [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
+  const exact = program.goal === 'fat_loss'
+    ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} strength days · heart-rate zones`
+    : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
   const acc = s && s.kind !== 'aerobic' ? accessoryLine(s) : '';
   const len = cycleLength(program);
@@ -71,7 +87,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
       <div style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</div>
       <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-1">
         <span className="truncate">{week.label}</span>
-        <span className="shrink-0">{lifted.toLocaleString()} lb lifted</span>
+        <span className="shrink-0">{week.minutes ? `${week.minutes.done} of ${week.minutes.target} min this week` : `${lifted.toLocaleString()} lb lifted`}</span>
       </div>
       <div className="flex gap-1.5 mt-2">
         {week.sessions.map((x) => {
@@ -92,7 +108,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
           <div className="min-w-0">
             <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
             <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(s)}</div>
-            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s)}{acc ? ` · ${acc}` : ''}</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s, hr)}{acc ? ` · ${acc}` : ''}</div>
           </div>
           {s.inProgress ? (
             <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In progress</span>
@@ -129,7 +145,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
                 <div className="min-w-0 flex-1">
                   <div style={{ color: x.done ? TEXT_SOFT : PAPER }} className="text-sm font-medium flex items-center gap-1.5">{x.name}{x.done && <Check size={12} />}</div>
                   <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(x)}</div>
-                  <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(x)}</div>
+                  <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(x, hr)}</div>
                 </div>
               </div>
             ))}
@@ -167,7 +183,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
         <span style={{ color: LIME }} className="text-lg uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.doneCount} of {week.sessions.length} done this week</div>
+      <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">{week.doneCount} of {week.sessions.length} done this week{week.minutes ? ` · ${week.minutes.done}/${week.minutes.target} cardio min` : ''}</div>
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
           Pick your training days
@@ -189,7 +205,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
       </div>
       {next ? (
         <div className="flex items-center justify-between gap-3 text-left mt-2">
-          <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? 'Cardio' : next.name}</div>
+          <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? (next.zone ? `${next.name} ${next.minutes} min` : 'Cardio') : next.name}</div>
           {next.inProgress ? (
             <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In progress</span>
           ) : (

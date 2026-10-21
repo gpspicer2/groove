@@ -7,12 +7,14 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
   GOALS, MODELS, GOAL_INFO, MODEL_INFO, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
-  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays,
+  sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine,
 } from './programs';
+import { useHr } from './ProgramCards';
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 function WeekList({ program, week }) {
+  const hr = useHr();
   const sessions = sessionsForWeek(program, week);
   return (
     <div className="space-y-1.5 text-left">
@@ -23,13 +25,29 @@ function WeekList({ program, week }) {
             <span style={{ color: TEXT_SOFT }} className="text-sm">{DAY_NAMES[s.day]}</span>
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-sm">
-            {s.kind === 'aerobic' ? `${s.minutes} min moderate · RPE 5–6` : `${s.exercises} exercises · ${prescriptionLine(s)}`}
+            {s.kind === 'aerobic' ? prescriptionLine(s, hr) : `${s.exercises} exercises · ${prescriptionLine(s)}`}
           </div>
           {accessoryLine(s) && <div style={{ color: TEXT_SOFT }} className="text-sm">{accessoryLine(s)}</div>}
+          {s.intervals && <div style={{ color: TEXT_SOFT }} className="text-sm">{intervalLine(s)}</div>}
         </div>
       ))}
     </div>
   );
+}
+
+// Average weekly cardio (moderate-equivalent minutes) over the last 4 weeks, rounded to 5 and kept between 60 and 180.
+async function recentWeeklyMinutes(userId) {
+  try {
+    const from = new Date(Date.now() - 28 * 864e5).toISOString();
+    const w = await supabase.from('workouts').select('id').eq('user_id', userId).is('deleted_at', null).not('completed_at', 'is', null).gte('started_at', from);
+    const ids = (w.data || []).map((x) => x.id);
+    let eq = 0;
+    for (let i = 0; i < ids.length; i += 25) {
+      const r = await supabase.from('workout_sets').select('movement_type, moderate_minutes, vigorous_minutes').in('workout_id', ids.slice(i, i + 25)).limit(5000);
+      (r.data || []).forEach((x) => { if (x.movement_type === 'aerobic') eq += (Number(x.moderate_minutes) || 0) + 2 * (Number(x.vigorous_minutes) || 0); });
+    }
+    return Math.min(180, Math.max(60, Math.round(eq / 4 / 5) * 5));
+  } catch { return 60; }
 }
 
 // Pick a program (goal, method, days a week) or manage the one in progress.
@@ -43,6 +61,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const [split, setSplit] = useState(program?.split || null);
   const [weekdays, setWeekdays] = useState(hasChosenDays(program) ? program.weekdays : []);
 
+  const dayChoices = goal === 'fat_loss' ? [4, 5, 6] : [2, 3, 4, 5, 6];
   const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
   const options = goal ? splitOptions(draftBase) : [];
   const splitId = options.find((o) => o.id === split)?.id || options[0]?.id || null;
@@ -52,6 +71,8 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
     // Changing only the days or split keeps your place in the cycle; a new goal or method starts fresh.
     const sameCycle = program && program.goal === draft.goal && (program.model || null) === (draft.model || null);
     const next = { ...draft, startedAt: sameCycle ? program.startedAt : draft.startedAt };
+    // Weight loss builds from what the member really does: their average cardio over the last 4 weeks.
+    if (next.goal === 'fat_loss') next.startMinutes = sameCycle && program.startMinutes ? program.startMinutes : await recentWeeklyMinutes(userId);
     await onSave(next);
     // Lifting days a week become the resistance goal on Birdseye.
     await supabase.from('profiles').update({ resistance_goal: resistanceDays(next), track_resistance_goal: true }).eq('id', userId);
@@ -100,7 +121,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">What are you training for?</div>
               <div className="space-y-2">
                 {GOALS.map((g) => (
-                  <button key={g.id} onClick={() => { setGoal(g.id); if (g.id !== 'hypertrophy') setModel(null); }} style={tile(goal === g.id)} className="w-full rounded-xl px-4 py-3">
+                  <button key={g.id} onClick={() => { setGoal(g.id); if (g.id !== 'hypertrophy') setModel(null); if (g.id === 'fat_loss' && days < 4) { setDays(4); setWeekdays((w) => w.slice(0, 4)); } }} style={tile(goal === g.id)} className="w-full rounded-xl px-4 py-3">
                     <div className="text-base font-medium">{g.emoji} {g.label}</div>
                     <div style={{ opacity: 0.85 }} className="text-sm">{g.blurb}</div>
                   </button>
@@ -145,12 +166,12 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: SKY }} className="text-sm font-medium mb-1">{programTitle(draft)}</div>
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">How many days a week can you train?</div>
               <div className="flex justify-center gap-2 mb-1">
-                {[2, 3, 4, 5, 6].map((n) => (
+                {dayChoices.map((n) => (
                   <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays((w) => w.slice(0, n)); }} style={tile(days === n)} className="w-12 h-12 rounded-xl text-lg font-medium">{n}</button>
                 ))}
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
-                {goal === 'fat_loss' ? `${resistanceDays(draft)} lifting days and ${days - resistanceDays(draft)} cardio day${days - resistanceDays(draft) === 1 ? '' : 's'} a week` : 'Pick what you can keep up. Consistency beats ambition.'}
+                {goal === 'fat_loss' ? `${resistanceDays(draft)} short strength days and ${cardioDays(draft)} cardio days a week` : 'Pick what you can keep up. Consistency beats ambition.'}
               </div>
               {options.length > 0 && (
                 <>
@@ -183,7 +204,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: SKY }} className="text-sm font-medium mb-1">{programTitle(draft)}</div>
               <div className="flex items-center justify-center gap-2 mb-3">
                 <span style={{ color: PAPER_DIM }} className="text-sm whitespace-nowrap">Days a week</span>
-                {[2, 3, 4, 5, 6].map((n) => (
+                {dayChoices.map((n) => (
                   <button key={n} onClick={() => { setDays(n); setSplit(null); setWeekdays((w) => w.slice(0, n)); }} style={tile(days === n)} className="w-8 h-8 rounded-full text-sm font-medium shrink-0">{n}</button>
                 ))}
               </div>

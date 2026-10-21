@@ -33,8 +33,8 @@ import { guideFor } from './exerciseGuides';
 import { unlockAudio, doubleBeep, keepAwake } from '../../lib/beep';
 import { flexSuggestion, flexSession } from '../program/flex';
 import { startOfWeek } from '../../lib/week';
-import { MoveProgramCard, MoveProgramLink, useProgramWeek } from '../program/ProgramCards';
-import { programTitle } from '../program/programs';
+import { MoveProgramCard, MoveProgramLink, useProgramWeek, useHr } from '../program/ProgramCards';
+import { programTitle, zoneText, intervalLine } from '../program/programs';
 
 // Whether a workout was started as a clean slate (remembered on this device).
 function isCleanSlateWorkout(id) {
@@ -330,6 +330,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const { program, save: saveProgram } = useProgram(user?.id);
   const [showProgramSheet, setShowProgramSheet] = useState(false);
   const [programSession, setProgramSession] = useState(null);
+  const [aerobicSession, setAerobicSession] = useState(null); // a program cardio session being set up (weight loss)
   const [autoStart, setAutoStart] = useState(false);
   // "How's your body today?" asked before a suggested lifting workout; the answer shapes the picks.
   const { injuries: allInjuries } = useInjuries(user?.id);
@@ -418,6 +419,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   activeIdRef.current = activeWorkoutId;
   const completedWorkouts = workouts.filter((w) => w.completedAt && !w.deletedAt);
   const programLifted = useProgramLifted(user?.id, program, `${completedWorkouts.length}-${sets.length}`);
+  const hrNow = useHr();
   const programWeek = useProgramWeek(user?.id, program, true, `${workouts.length}-${completedWorkouts.length}-${sets.length}`, profile?.week_start_day || 'sunday');
 
   // Safety net against a lost live workout: keep a local copy of the plan
@@ -560,7 +562,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Cardio day: set up an easy walk to swap or confirm, then tap Log Workout.
       setSelectedLocation(completedWorkouts[0]?.location || 'The Great Outdoors');
       setMovementMode('Aerobic');
-      setSelectedActivities((prev) => (prev.length ? prev : ['Walking']));
+      // Heart-rate cardio (weight loss) leaves the activity up to the member; older cardio days still suggest a walk.
+      setSelectedActivities((prev) => (sess.zone ? [] : prev.length ? prev : ['Walking']));
+      setAerobicSession(sess.zone ? sess : null);
       setSelectedGroups([]);
       setSelectedStyle('');
       setProgramSession(null);
@@ -704,6 +708,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   useEffect(() => { if (quickStart) { setQuickStart(false); startWorkout(); } }); // eslint-disable-line react-hooks/exhaustive-deps
 
   function resetStartChoices() {
+    setAerobicSession(null);
     setSelectedGroups([]);
     setSelectedActivities([]);
     setSelectedFlexActivities([]);
@@ -880,6 +885,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Starter', name: appliedSession.name, main: appliedSession.presc, acc: appliedSession.acc, exercises: appliedSession.exercises, mainCount: appliedSession.mainCount, phase: appliedSession.phase })); } catch { /* storage blocked */ }
     }
     setProgramSession(null);
+    if (aerobicSession && usesAerobic) {
+      const z = aerobicSession.zone;
+      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Program', name: aerobicSession.name, aerobic: { minutes: aerobicSession.minutes, zone: z.label, zoneText: zoneText(z, hrNow), intervals: aerobicSession.intervals ? intervalLine(aerobicSession) : null, hardText: aerobicSession.intervals ? zoneText(z, hrNow) : null, easyText: aerobicSession.easyZone ? zoneText(aerobicSession.easyZone, hrNow) : null } })); } catch { /* storage blocked */ }
+    }
+    setAerobicSession(null);
     if (movementMode === 'Combined' && combinedLayout) {
       try { localStorage.setItem(`groove:combinedLayout:${data.id}`, combinedLayout); } catch { /* storage blocked */ }
     }
@@ -1428,6 +1438,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
               <button onClick={() => beginStarter('In the Home')} style={{ background: INK_3, color: PAPER }} className="rounded-md py-2.5 text-sm font-medium">At home</button>
             </div>
             <button onClick={dismissStarter} style={{ color: TEXT_SOFT }} className="text-sm mt-2 py-1">No thanks, I know my way around</button>
+          </div>
+        )}
+        {aerobicSession && movementMode === 'Aerobic' && !planning && (
+          <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-left">
+            <div style={{ color: PAPER }} className="text-sm font-medium">{aerobicSession.name} · {aerobicSession.minutes} min</div>
+            <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{aerobicSession.zone.label} · {zoneText(aerobicSession.zone, hrNow)}{aerobicSession.intervals ? ` (easy ${zoneText(aerobicSession.easyZone, hrNow)})` : ''}</div>
+            {aerobicSession.intervals && <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{intervalLine(aerobicSession)}</div>}
+            <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">Pick any activity you enjoy that keeps you in this range.</div>
           </div>
         )}
         <StartWorkout
@@ -2186,6 +2204,13 @@ function workoutGuide(workout) {
     const raw = localStorage.getItem(`groove:programSession:${workout.id}`);
     if (raw) {
       const m = JSON.parse(raw);
+      if (m.aerobic) {
+        const a = m.aerobic;
+        const lines = [`${a.minutes} min · ${a.zone} · ${a.zoneText}`];
+        if (a.intervals) lines.push(`${a.intervals} (hard ${a.hardText}${a.easyText ? `, easy ${a.easyText}` : ''})`);
+        lines.push('Any activity you enjoy that keeps you in this range.');
+        return { title: `${m.program} · ${m.name}`, lines };
+      }
       const lines = [`${m.exercises} exercises · ${m.main.sets} × ${dash(m.main.reps)} · RPE ${dash(m.main.rpe)} · rest ${dash(m.main.rest)}`];
       if (m.acc) lines.push(`Accessories ${m.acc.sets} × ${dash(m.acc.reps)} · RPE ${dash(m.acc.rpe)}`);
       return { title: `${m.program} · ${m.name}`, lines };
