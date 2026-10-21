@@ -8,11 +8,22 @@ const AuthContext = createContext(null);
 // without typing a password each time. Saved the same way Supabase already
 // saves the current login (in this browser's storage).
 const LINK_KEY = 'groove:linkedAccounts';
+// Only these two logins may link or switch. Everyone else has no switch button and cannot link anything, and any other
+// saved links on a device are wiped. (This is on top of the real protection: the coach side only opens for the login the
+// database marks as the coach.)
+export const LINK_ALLOWED = ['gpspicer2@gmail.com', 'gspicer@lasell.edu'];
+export const canLinkEmail = (email) => LINK_ALLOWED.includes(String(email || '').trim().toLowerCase());
 function readLinked() {
   try { return JSON.parse(localStorage.getItem(LINK_KEY)) || {}; } catch { return {}; }
 }
 function writeLinked(obj) {
   try { localStorage.setItem(LINK_KEY, JSON.stringify(obj)); } catch { /* storage blocked */ }
+}
+// Drops saved logins (and their tokens) for any account that is not allowed to be linked.
+function allowedOnly(obj) {
+  const out = {};
+  Object.entries(obj || {}).forEach(([id, v]) => { if (canLinkEmail(v?.email)) out[id] = v; });
+  return out;
 }
 
 // Remembers that this phone has used Groove before, so the first-ever visit
@@ -30,7 +41,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
-  const [linked, setLinked] = useState(readLinked);
+  const [linked, setLinked] = useState(() => { const all = readLinked(); const ok = allowedOnly(all); if (Object.keys(ok).length !== Object.keys(all).length) writeLinked(ok); return ok; });
   // Set when someone arrives from a "reset your password" email link.
   const [recovering, setRecovering] = useState(false);
   const profileRef = useRef(null);
@@ -87,8 +98,8 @@ export function AuthProvider({ children }) {
     params.delete('view');
     const qs = params.toString();
     window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
-    if (profile.role === 'trainer') return;
-    const coach = Object.entries(readLinked()).find(([id, v]) => v.role === 'trainer' && id !== profile.id);
+    if (profile.role === 'trainer' || !canLinkEmail(profile.email)) return;
+    const coach = Object.entries(allowedOnly(readLinked())).find(([id, v]) => v.role === 'trainer' && id !== profile.id);
     if (coach) switchTo(coach[0]);
   }, [profile]);
 
@@ -105,12 +116,17 @@ export function AuthProvider({ children }) {
     const { data: cur } = await supabase.auth.getSession();
     const here = cur.session;
     if (!here) return { error: { message: 'Please sign in first.' } };
+    if (!canLinkEmail(here.user.email)) return { error: { message: 'This account cannot link other accounts.' } };
     const res = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (res.error) {
       await supabase.auth.setSession({ access_token: here.access_token, refresh_token: here.refresh_token });
       return { error: res.error };
     }
     const other = res.data.session;
+    if (!canLinkEmail(other.user.email)) {
+      await supabase.auth.setSession({ access_token: here.access_token, refresh_token: here.refresh_token });
+      return { error: { message: 'That account cannot be linked.' } };
+    }
     if (other.user.id === here.user.id) return { error: { message: "That's the account you're already using." } };
     const { data: otherProfile } = await supabase.from('profiles').select('*').eq('id', other.user.id).single();
     const all = readLinked();
@@ -126,7 +142,8 @@ export function AuthProvider({ children }) {
   async function switchTo(userId) {
     const all = readLinked();
     const target = all[userId];
-    if (!target) return { error: { message: 'That account is not linked on this device.' } };
+    const { data: here } = await supabase.auth.getSession();
+    if (!target || !canLinkEmail(target.email) || !canLinkEmail(here.session?.user?.email)) return { error: { message: 'That account is not linked on this device.' } };
     setSwitching(true);
     setTimeout(() => setSwitching(false), 10000); // never get stuck on the loading screen
     // Save the open account's latest login before leaving it.
@@ -154,8 +171,9 @@ export function AuthProvider({ children }) {
     return supabase.auth.signOut();
   }
 
-  const others = Object.entries(linked)
-    .filter(([id]) => id !== session?.user?.id)
+  const canLink = canLinkEmail(session?.user?.email);
+  const others = !canLink ? [] : Object.entries(linked)
+    .filter(([id, v]) => id !== session?.user?.id && canLinkEmail(v.email))
     .map(([id, v]) => ({ id, email: v.email, role: v.role }));
 
   const value = {
@@ -173,6 +191,7 @@ export function AuthProvider({ children }) {
     finishRecovery: () => setRecovering(false),
     signOut,
     reloadProfile: () => (session?.user ? loadProfile(session.user.id) : Promise.resolve()),
+    canLink,
     linkedOthers: others,
     linkAccount,
     switchTo,

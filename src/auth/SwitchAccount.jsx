@@ -78,11 +78,11 @@ function LinkPopup({ onClose, onDone }) {
 // One-tap flip between the coach and personal accounts. For a coach who
 // hasn't linked yet it opens the link form first.
 export function ViewToggle({ className = '', compact = false }) {
-  const { isTrainer, linkedOthers, switchTo } = useAuth();
+  const { isTrainer, canLink, linkedOthers, switchTo } = useAuth();
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState('');
   const other = linkedOthers[0];
-  if (!other && !isTrainer) return null;
+  if (!canLink || (!other && !isTrainer)) return null;
 
   async function go() {
     if (!other) { setLinking(true); return; }
@@ -120,9 +120,10 @@ export function ViewToggle({ className = '', compact = false }) {
 // Account menu: the switch itself lives in the top bar once two logins are linked. Here: one slim
 // line showing the linked login (with Unlink), or a way to link another login if none is yet.
 export function SwitchAccountSection() {
-  const { linkedOthers, unlinkAccount } = useAuth();
+  const { canLink, linkedOthers, unlinkAccount } = useAuth();
   const [linking, setLinking] = useState(false);
   const other = linkedOthers[0];
+  if (!canLink) return null; // only the two allowed logins can link anything
   if (!other) {
     return (
       <>
