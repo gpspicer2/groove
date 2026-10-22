@@ -1,10 +1,11 @@
 import React from 'react';
 import { ChevronRight, CheckCircle2 } from '../../lib/icons';
-import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, MOSS } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, MOSS } from '../../theme';
 import { workoutTitle } from '../move/exerciseLibrary';
 import { Avatar, Stat, SectionTitle, StatusDot } from './CoachParts';
 import { timeAgo } from './stats';
 import { ClearButton } from './ClearanceCard';
+import MessageComposer from './MessageComposer';
 
 function greeting() {
   const h = new Date().getHours();
@@ -18,6 +19,7 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
   const rpes = clients.map((c) => stats[c.id]?.avgRpe).filter(Boolean);
   const avgEffort = rpes.length ? (rpes.reduce((a, b) => a + b, 0) / rpes.length).toFixed(1) : '—';
   const byId = Object.fromEntries(clients.map((c) => [c.id, c]));
+  const [hiFor, setHiFor] = React.useState(null);
   const recent = workouts.slice(0, 8);
   // One row per member, even when several things need him.
   const groups = [];
@@ -55,6 +57,15 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
                 {review && c && (
                   <div className="px-4 pb-3 -mt-1 pl-9">
                     <ClearButton client={c} onClientChanged={onClientChanged} />
+                  </div>
+                )}
+                {c && g.items.some((a) => a.kind === 'newMember') && (
+                  <div className="px-4 pb-3 -mt-1 pl-9">
+                    {hiFor === g.id ? (
+                      <MessageComposer client={c} startOpen defaultText={`Hi ${(c.full_name || '').split(' ')[0]}! Welcome to Groove. `} onClose={() => setHiFor(null)} />
+                    ) : (
+                      <button onClick={() => setHiFor(g.id)} style={{ background: INK_3, color: PAPER }} className="rounded-md px-4 py-2 text-sm font-medium">Say Hi</button>
+                    )}
                   </div>
                 )}
               </div>

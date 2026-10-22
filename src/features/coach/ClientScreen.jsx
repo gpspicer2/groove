@@ -9,6 +9,7 @@ import { goalsFor, timeAgo } from './stats';
 import { workoutTitle } from '../move/exerciseLibrary';
 import { activeInjuries, injuryLine } from '../injury/injuries';
 import ClearanceCard from './ClearanceCard';
+import MessageComposer from './MessageComposer';
 import { ClientScreening, ClientHeartRate, ClientProgramLine, ClientBaseline, ProgramBuilder, ClientWorkouts } from './clientTools';
 
 const TABS = [['overview', 'Overview'], ['plan', 'Plan'], ['health', 'Health'], ['workouts', 'Workouts'], ['notes', 'Notes']];
@@ -139,6 +140,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       {tab === 'overview' && (
         <div>
           <ClearanceCard client={client} onClientChanged={onClientChanged} />
+          <MessageComposer client={client} />
           <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3.5">
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">This Week</div>
             <WeekBars client={client} week={stat.week} unitless />

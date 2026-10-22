@@ -8,6 +8,7 @@ import ConsentScreen from './features/screening/ConsentScreen';
 import NameScreen from './features/screening/NameScreen';
 import ScreeningFlow from './features/screening/ScreeningFlow';
 import { INK, TEXT_SOFT } from './theme';
+import { clearDeliveredNotifications } from './lib/push';
 
 function Shell() {
   const { user, profile, isTrainer, loading, switching, recovering, finishRecovery } = useAuth();
@@ -16,6 +17,13 @@ function Shell() {
   useEffect(() => {
     const t = setTimeout(() => setMinShown(true), Math.max(0, 1500 - performance.now()));
     return () => clearTimeout(t);
+  }, []);
+  // Opening (or returning to) the app clears Groove's notifications from the phone, so old alerts don't pile up.
+  useEffect(() => {
+    clearDeliveredNotifications();
+    const onVis = () => { if (document.visibilityState === 'visible') clearDeliveredNotifications(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);

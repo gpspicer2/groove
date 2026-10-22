@@ -78,6 +78,26 @@ export async function notifyNewMember() {
   } catch { /* the Today screen still shows them as just joined */ }
 }
 
+// Greg only: tells a member he sent them a message (the server checks it really is Greg, and pushes the latest message).
+export async function notifyMessage(memberId) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch('/api/push/event', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ type: 'message', memberId }) });
+  } catch { /* the message is saved; they'll see it on Birdseye next time they open Groove */ }
+}
+
+// Removes Groove's notifications from the phone's lock screen / tray once the app is open, so old alerts don't pile up.
+export async function clearDeliveredNotifications() {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (!reg || !reg.getNotifications) return;
+    const list = await reg.getNotifications();
+    list.forEach((n) => n.close());
+  } catch { /* not supported on this phone */ }
+}
+
 // Greg only: tells a member that he cleared them to exercise (the server checks it really is Greg, and sends the push).
 export async function notifyCleared(memberId) {
   try {

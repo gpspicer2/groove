@@ -7,6 +7,7 @@ import { clearanceReason, needsClearance, RESULT_COPY } from '../../src/features
 // One endpoint for the "tell Greg" events (Vercel's free plan allows only 12 serverless functions, so related
 // endpoints share a file). The client posts { type }:
 //   'felt-off'   a member said they felt off after a workout: tell Greg right away.
+//   'message'    Greg sent a member a message: push it to them (coach only).
 //   'cleared'    Greg cleared a member himself: tell that member (coach only).
 //   'screening'  a member's health check recommends a doctor's okay: tell Greg why.
 //   'new-member' a new member just agreed on the consent screen: launch-promo comp, starting goals, tell Greg.
@@ -32,6 +33,20 @@ async function feltOff(user) {
     tag: `feltoff-${user.id}`,
     url: '/?view=coach',
   });
+  return { sent };
+}
+
+// Greg sent a member a message: push its text to that member (coach only, and only for a message sent in the last few minutes).
+async function message(user, memberId) {
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+  if (caller?.role !== 'trainer' || !memberId) return { sent: 0 };
+  const { data: rows } = await supabaseAdmin.from('messages').select('body, created_at').eq('sender_id', user.id).eq('recipient_id', memberId).order('created_at', { ascending: false }).limit(1);
+  const m = rows && rows[0];
+  if (!m || Date.now() - new Date(m.created_at).getTime() > 10 * 60 * 1000) return { sent: 0 };
+  const { data: subs } = await supabaseAdmin.from('push_subscriptions').select('*').eq('user_id', memberId);
+  if (!subs || !subs.length) return { sent: 0 };
+  const text = String(m.body || '');
+  const sent = await sendPush(subs, { title: 'Message from Greg', body: text.length > 140 ? `${text.slice(0, 137)}...` : text, tag: `msg-${memberId}`, url: '/' });
   return { sent };
 }
 
@@ -108,6 +123,7 @@ export default async function handler(req, res) {
     if (type === 'felt-off') return res.status(200).json(await feltOff(user));
     if (type === 'new-member') return res.status(200).json(await newMember(user));
     if (type === 'screening') return res.status(200).json(await screeningFlag(user));
+    if (type === 'message') return res.status(200).json(await message(user, req.body.memberId));
     if (type === 'cleared') return res.status(200).json(await cleared(user, req.body.memberId));
     return res.status(400).json({ error: 'Unknown event' });
   } catch (err) {
