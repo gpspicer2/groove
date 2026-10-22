@@ -21,7 +21,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
     return (
       <div style={{ background: INK_2, borderTop: `2px solid ${TONE_COLOR.good}` }} className="rounded-lg px-5 py-4 text-center">
         <div style={{ color: TONE_COLOR.good }} className="text-sm uppercase tracking-wide font-bold mb-1">Health Check</div>
-        <div style={{ color: PAPER_DIM }} className="text-sm">Greg cleared you to exercise. Start light and build up gradually.</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm">Greg cleared you to Groove. Start light and build up gradually.</div>
         <button
           onClick={() => { try { localStorage.setItem(seenKey, '1'); } catch { /* storage blocked */ } setSeenTick((n) => n + 1); }}
           style={{ color: TEXT_SOFT }}

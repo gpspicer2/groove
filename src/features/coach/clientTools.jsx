@@ -192,7 +192,7 @@ export function ClientScreening({ client, onClientChanged }) {
               style={arm.armed === 'clear' ? { background: LIME, color: INK } : { background: INK_3, color: PAPER }}
               className="rounded-md px-4 py-2 text-sm font-medium"
             >
-              {arm.armed === 'clear' ? 'Tap Again to Confirm' : 'Clear to Exercise'}
+              {arm.armed === 'clear' ? 'Tap Again to Confirm' : 'Clear to Groove'}
             </button>
           )}
           {err && <div style={{ color: BRICK }} className="text-sm mt-1">{err}</div>}

@@ -109,7 +109,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving, onBack }) {
           {step === 'symptoms' && (
             <MultiQuestion
               title="Do you have any of these?"
-              hint="At rest or during activity."
+              hint="Tick only what is new, or what your doctor doesn't know about."
               options={SYMPTOMS}
               selected={symptoms}
               onChange={setSymptoms}

@@ -44,7 +44,7 @@ async function cleared(user, memberId) {
   if (!s || s.cleared_by !== 'coach' || !s.cleared_at || Date.now() - new Date(s.cleared_at).getTime() > 10 * 60 * 1000) return { sent: 0 };
   const { data: subs } = await supabaseAdmin.from('push_subscriptions').select('*').eq('user_id', memberId);
   if (!subs || !subs.length) return { sent: 0 };
-  const sent = await sendPush(subs, { title: 'Greg cleared you to exercise', body: 'Start light and build up gradually. Open Groove to get moving.', tag: `cleared-${memberId}`, url: '/' });
+  const sent = await sendPush(subs, { title: 'Greg cleared you to Groove', body: 'Start light and build up gradually. Open Groove to get moving.', tag: `cleared-${memberId}`, url: '/' });
   return { sent };
 }
 
