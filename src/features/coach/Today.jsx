@@ -7,11 +7,6 @@ import { timeAgo } from './stats';
 import { ClearButton } from './ClearanceCard';
 import MessageComposer from './MessageComposer';
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-}
-
 export default function Today({ firstName, clients, stats, attention, workouts, onOpenClient, onClientChanged }) {
   const members = clients.length;
   const active = clients.filter((c) => stats[c.id]?.week.sessions > 0).length;
@@ -26,12 +21,7 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
   attention.forEach((a) => { const g = groups.find((x) => x.id === a.id); if (g) g.items.push(a); else groups.push({ id: a.id, items: [a] }); });
 
   return (
-    <div>
-      <div className="px-1 mb-4">
-        <div style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-2xl font-semibold">{greeting()}, {firstName}</div>
-        <div style={{ color: TEXT_SOFT }} className="text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-      </div>
-
+    <div className="-mt-4">
       <SectionTitle right={groups.length > 0 && <span style={{ background: PLUM, color: INK }} className="text-xs font-semibold rounded-full px-2 py-0.5">{groups.length}</span>}>
         Needs You
       </SectionTitle>

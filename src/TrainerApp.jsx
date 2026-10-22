@@ -113,7 +113,10 @@ export default function TrainerApp() {
       <div style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <Wordmark height={30} className="justify-self-center" />
+          <div className="justify-self-center flex flex-col items-center">
+            <Wordmark height={30} />
+            <span style={{ color: SKY }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Coach</span>
+          </div>
           <div className="justify-self-end flex items-center gap-2">
             <ViewToggle compact />
             <AccountMenu />
