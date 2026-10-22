@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useAuth } from './auth/AuthContext';
-import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, ON_AMBER } from './theme';
+import { INK, INK_2, PAPER, PAPER_DIM, LIME, SKY, AMBER, VIOLET, ON_AMBER, BRICK } from './theme';
 import Wordmark from './Wordmark';
 import AccountMenu from './AccountMenu';
 import { ViewToggle } from './auth/SwitchAccount';
@@ -172,7 +172,7 @@ export default function ClientApp() {
           {isTrainer ? (
             <button onClick={() => { setView('coach'); window.scrollTo(0, 0); }} aria-label="Switch to Coach view" title="Tap the logo to switch to your coach view" className="justify-self-center flex flex-col items-center">
               <Wordmark height={30} running={Boolean(moveStatus)} />
-              <span style={{ color: PAPER_DIM }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Member</span>
+              <span style={{ color: BRICK }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Member</span>
             </button>
           ) : (
             <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
