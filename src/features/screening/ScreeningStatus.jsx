@@ -24,7 +24,7 @@ export default function ScreeningStatus({ alwaysShow = false, inset = false, com
 
   const status = pending
     ? copy.banner
-    : screening.cleared_at ? 'Cleared by your doctor.' : copy.title + '.';
+    : screening.cleared_at ? (screening.cleared_by === 'coach' ? 'Cleared by Greg.' : 'Cleared by your doctor.') : copy.title + '.';
 
   // Inside Account > Personal Data: a slim row.
   if (bare) {

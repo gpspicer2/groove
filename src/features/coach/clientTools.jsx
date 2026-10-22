@@ -135,8 +135,17 @@ export function ArticleManager() {
 
 const CLIENT_TABS = ['baseline', 'program', 'workouts'];
 
-export function ClientScreening({ client }) {
+export function ClientScreening({ client, onClientChanged }) {
   const s = client.screening;
+  const arm = useArmed();
+  const [err, setErr] = useState('');
+  // Greg's call: he can okay a member himself (for example when the symptom is already known and managed), or undo it.
+  async function setCleared(on) {
+    setErr('');
+    const next = on ? { ...s, cleared_at: new Date().toISOString(), cleared_by: 'coach' } : { ...s, cleared_at: null, cleared_by: null };
+    const { error } = await supabase.from('profiles').update({ screening: next }).eq('id', client.id);
+    if (error) setErr(error.message); else onClientChanged?.(client.id, { screening: next });
+  }
   const fmt = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   if (!s) {
     return (
@@ -153,13 +162,13 @@ export function ClientScreening({ client }) {
     ['Known disease', s.symptoms?.length ? 'Not asked (symptoms reported)' : labelsFor(DISEASES, s.diseases).join('; ') || 'None'],
     ['Other conditions', labelsFor(OTHER_CONDITIONS, s.other).join('; ') || 'None'],
     ['Checked', fmt(s.completed_at)],
-    s.cleared_at && ['Doctor clearance (self-reported)', fmt(s.cleared_at)],
+    s.cleared_at && [s.cleared_by === 'coach' ? 'Cleared by you' : 'Doctor clearance (self-reported)', fmt(s.cleared_at)],
     client.consented_at && ['Consent signed', fmt(client.consented_at)],
   ].filter(Boolean);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${color}` }} className="rounded-md px-4 py-3">
       <div style={{ color }} className="text-sm font-medium text-center mb-2">
-        {s.cleared_at ? 'Cleared by doctor' : copy.title}
+        {s.cleared_at ? (s.cleared_by === 'coach' ? 'Cleared by Greg' : 'Cleared by doctor') : copy.title}
       </div>
       <div className="space-y-1.5">
         {rows.map(([label, value]) => (
@@ -169,6 +178,23 @@ export function ClientScreening({ client }) {
           </div>
         ))}
       </div>
+      {s.result !== 'clear' && (
+        <div className="mt-3 text-center">
+          {s.cleared_at ? (
+            <button onClick={() => setCleared(false)} style={{ color: TEXT_SOFT }} className="text-sm underline">Undo Clearance</button>
+          ) : (
+            <button
+              onClick={() => arm.press('clear', () => setCleared(true))}
+              data-armed={arm.armed === 'clear'}
+              style={arm.armed === 'clear' ? { background: LIME, color: INK } : { background: INK_3, color: PAPER }}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+            >
+              {arm.armed === 'clear' ? 'Tap Again to Confirm' : 'Clear to Exercise'}
+            </button>
+          )}
+          {err && <div style={{ color: BRICK }} className="text-sm mt-1">{err}</div>}
+        </div>
+      )}
     </div>
   );
 }

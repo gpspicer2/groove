@@ -2,10 +2,12 @@ import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { getAuthedUser } from '../_lib/auth.js';
 import { sendPush } from '../_lib/push.js';
 import { COMP_SIGNUPS_UNTIL } from '../_lib/promo.js';
+import { clearanceReason, needsClearance, RESULT_COPY } from '../../src/features/screening/screening.js';
 
 // One endpoint for the "tell Greg" events (Vercel's free plan allows only 12 serverless functions, so related
 // endpoints share a file). The client posts { type }:
 //   'felt-off'   a member said they felt off after a workout: tell Greg right away.
+//   'screening'  a member's health check recommends a doctor's okay: tell Greg why.
 //   'new-member' a new member just agreed on the consent screen: launch-promo comp, starting goals, tell Greg.
 // Everything shown is read from the database, never trusted from the request.
 
@@ -27,6 +29,23 @@ async function feltOff(user) {
     title: `${me?.full_name || me?.email || 'A member'} felt off after a workout`,
     body: latest[0].felt_off_note || 'Open Groove to check in.',
     tag: `feltoff-${user.id}`,
+    url: '/?view=coach',
+  });
+  return { sent };
+}
+
+// A member's health check says a doctor's okay is recommended: tell Greg why, so he can review (and clear) it.
+async function screeningFlag(user) {
+  const { data: me } = await supabaseAdmin.from('profiles').select('full_name, email, role, screening').eq('id', user.id).single();
+  const s = me?.screening;
+  if (!me || me.role !== 'client' || !s || !needsClearance(s) || !RESULT_COPY[s.result]) return { sent: 0 };
+  const subs = await trainerSubs();
+  if (!subs.length) return { sent: 0 };
+  const why = clearanceReason(s);
+  const sent = await sendPush(subs, {
+    title: `${me.full_name || me.email || 'A member'}: health check needs your review`,
+    body: why ? `${why.charAt(0).toUpperCase()}${why.slice(1)}. Open Groove to review or clear.` : 'Open Groove to review or clear.',
+    tag: `screening-${user.id}`,
     url: '/?view=coach',
   });
   return { sent };
@@ -74,6 +93,7 @@ export default async function handler(req, res) {
   try {
     if (type === 'felt-off') return res.status(200).json(await feltOff(user));
     if (type === 'new-member') return res.status(200).json(await newMember(user));
+    if (type === 'screening') return res.status(200).json(await screeningFlag(user));
     return res.status(400).json({ error: 'Unknown event' });
   } catch (err) {
     console.error('push event failed', type, err);

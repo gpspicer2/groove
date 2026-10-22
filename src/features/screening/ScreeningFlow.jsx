@@ -3,6 +3,7 @@ import { ChevronLeft, X } from '../../lib/icons';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, AMBER, BRICK } from '../../theme';
+import { notifyScreening } from '../../lib/push';
 import { SCREENING_VERSION, SYMPTOMS, DISEASES, OTHER_CONDITIONS, screeningResult, RESULT_COPY, labelsFor } from './screening';
 
 export const TONE_COLOR = { good: PLUM, caution: AMBER, stop: BRICK };
@@ -56,6 +57,7 @@ export default function ScreeningFlow({ onDone, onClose, onSaving, onBack }) {
     setSaving(false);
     if (err) { setError(err.message); return; }
     setSaved(screening);
+    if (screening.result !== 'clear') notifyScreening();
     setStep('result');
   }
 

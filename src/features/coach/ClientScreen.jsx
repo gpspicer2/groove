@@ -183,7 +183,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       )}
       {tab === 'health' && (
         <div className="space-y-4">
-          <ClientScreening client={client} />
+          <ClientScreening client={client} onClientChanged={onClientChanged} />
           <ClientBaseline clientId={client.id} />
         </div>
       )}

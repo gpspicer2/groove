@@ -78,6 +78,15 @@ export async function notifyNewMember() {
   } catch { /* the Today screen still shows them as just joined */ }
 }
 
+// Tells Greg right away that a member's health check needs his review (the server sends the push).
+export async function notifyScreening() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch('/api/push/event', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ type: 'screening' }) });
+  } catch { /* Today still lists the flag */ }
+}
+
 // Tells Greg right away that someone felt off (the server sends the push).
 export async function notifyFeltOff() {
   try {
