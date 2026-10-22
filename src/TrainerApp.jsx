@@ -114,7 +114,7 @@ export default function TrainerApp() {
             onClientRemoved={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setSelectedId(null); }}
           />
         ) : tab === 'today' ? (
-          <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} />
+          <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} onClientChanged={clientChanged} />
         ) : tab === 'clients' ? (
           <Clients clients={clients} stats={stats} attention={attention} onOpenClient={open} />
         ) : tab === 'library' ? (
@@ -131,7 +131,12 @@ export default function TrainerApp() {
             return (
               <button key={key} onClick={() => goTab(key)} className="flex flex-col items-center gap-0.5 py-1.5 relative">
                 {active && <span style={{ background: PLUM }} className="absolute top-0 h-0.5 w-8 rounded-full" />}
-                <Icon size={21} color={active ? PLUM : TEXT_SOFT} />
+                <span className="relative">
+                  <Icon size={21} color={active ? PLUM : TEXT_SOFT} />
+                  {key === 'today' && attention.length > 0 && (
+                    <span style={{ background: PLUM, color: INK }} className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center">{attention.length}</span>
+                  )}
+                </span>
                 <span style={{ color: active ? PLUM : TEXT_SOFT }} className="text-xs font-medium">{label}</span>
               </button>
             );

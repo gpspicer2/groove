@@ -4,13 +4,14 @@ import { INK, INK_2, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, MOSS } from '../../theme
 import { workoutTitle } from '../move/exerciseLibrary';
 import { Avatar, Stat, SectionTitle, StatusDot } from './CoachParts';
 import { timeAgo } from './stats';
+import { ClearButton } from './ClearanceCard';
 
 function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-export default function Today({ firstName, clients, stats, attention, workouts, onOpenClient }) {
+export default function Today({ firstName, clients, stats, attention, workouts, onOpenClient, onClientChanged }) {
   const members = clients.length;
   const active = clients.filter((c) => stats[c.id]?.week.sessions > 0).length;
   const goalsMet = clients.filter((c) => stats[c.id]?.allGoalsMet).length;
@@ -18,6 +19,9 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
   const avgEffort = rpes.length ? (rpes.reduce((a, b) => a + b, 0) / rpes.length).toFixed(1) : '—';
   const byId = Object.fromEntries(clients.map((c) => [c.id, c]));
   const recent = workouts.slice(0, 8);
+  // One row per member, even when several things need him.
+  const groups = [];
+  attention.forEach((a) => { const g = groups.find((x) => x.id === a.id); if (g) g.items.push(a); else groups.push({ id: a.id, items: [a] }); });
 
   return (
     <div>
@@ -26,15 +30,8 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
         <div style={{ color: TEXT_SOFT }} className="text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="Members" value={members} />
-        <Stat label="Active This Week" value={`${active}/${members}`} color={PLUM} />
-        <Stat label="Hit Every Goal" value={goalsMet} sub="so far this week" color={MOSS} />
-        <Stat label="Avg Effort" value={avgEffort} sub="last 2 weeks, of 10" />
-      </div>
-
-      <SectionTitle right={attention.length > 0 && <span style={{ background: PLUM, color: INK }} className="text-xs font-semibold rounded-full px-2 py-0.5">{attention.length}</span>}>
-        Needs attention
+      <SectionTitle right={groups.length > 0 && <span style={{ background: PLUM, color: INK }} className="text-xs font-semibold rounded-full px-2 py-0.5">{groups.length}</span>}>
+        Needs You
       </SectionTitle>
       {attention.length === 0 ? (
         <div style={{ background: INK_2, color: PAPER_DIM }} className="rounded-2xl px-4 py-4 text-sm flex items-center gap-2">
@@ -42,23 +39,37 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
         </div>
       ) : (
         <div style={{ background: INK_2 }} className="rounded-2xl overflow-hidden">
-          {attention.map((a, i) => (
-            <button
-              key={`${a.id}-${i}`}
-              onClick={() => onOpenClient(a.id)}
-              style={{ borderTop: i ? `1px solid color-mix(in srgb, ${TEXT_SOFT} 18%, transparent)` : 'none' }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left"
-            >
-              <StatusDot level={a.level} />
-              <span className="flex-1 min-w-0">
-                <span style={{ color: PAPER }} className="block text-sm font-medium truncate">{a.title}</span>
-                <span style={{ color: TEXT_SOFT }} className="block text-sm">{a.text}</span>
-              </span>
-              <ChevronRight size={16} color={TEXT_SOFT} />
-            </button>
-          ))}
+          {groups.map((g, i) => {
+            const c = byId[g.id];
+            const review = g.items.some((a) => a.kind === 'clearance' || a.kind === 'symptoms');
+            return (
+              <div key={g.id} style={{ borderTop: i ? `1px solid color-mix(in srgb, ${TEXT_SOFT} 18%, transparent)` : 'none' }}>
+                <button onClick={() => onOpenClient(g.id)} className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                  <StatusDot level={g.items[0].level} />
+                  <span className="flex-1 min-w-0">
+                    <span style={{ color: PAPER }} className="block text-sm font-medium truncate">{g.items[0].title}</span>
+                    {g.items.map((a) => <span key={a.kind} style={{ color: TEXT_SOFT }} className="block text-sm">{a.text}</span>)}
+                  </span>
+                  <ChevronRight size={16} color={TEXT_SOFT} />
+                </button>
+                {review && c && (
+                  <div className="px-4 pb-3 -mt-1 pl-9">
+                    <ClearButton client={c} onClientChanged={onClientChanged} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
+
+      <SectionTitle>This Week</SectionTitle>
+      <div className="grid grid-cols-2 gap-3">
+        <Stat label="Members" value={members} />
+        <Stat label="Active This Week" value={`${active}/${members}`} color={PLUM} />
+        <Stat label="Hit Every Goal" value={goalsMet} sub="so far this week" color={MOSS} />
+        <Stat label="Avg Effort" value={avgEffort} sub="last 2 weeks, of 10" />
+      </div>
 
       <SectionTitle>Recent Activity</SectionTitle>
       {recent.length === 0 ? (

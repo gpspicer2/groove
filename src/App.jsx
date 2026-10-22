@@ -5,6 +5,7 @@ import AuthScreen from './auth/AuthScreen';
 import ClientApp from './ClientApp';
 import TrainerApp from './TrainerApp';
 import ConsentScreen from './features/screening/ConsentScreen';
+import NameScreen from './features/screening/NameScreen';
 import ScreeningFlow from './features/screening/ScreeningFlow';
 import { INK, TEXT_SOFT } from './theme';
 
@@ -32,7 +33,8 @@ function Shell() {
   if (!user) return <AuthScreen />;
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
   if (isTrainer) return <TrainerApp />;
-  // First run for clients: consent, then the health check, then the app.
+  // First run for clients: name, consent, then the health check, then the app.
+  if (!(profile.full_name || '').trim()) return <NameScreen />;
   if (!profile.consented_at || rereadConsent) return <ConsentScreen onBackToHealthCheck={() => setRereadConsent(false)} />;
   if (!profile.screening || screeningOpen) {
     return <ScreeningFlow onSaving={() => setScreeningOpen(true)} onDone={() => setScreeningOpen(false)} onBack={profile.screening ? undefined : () => setRereadConsent(true)} />;

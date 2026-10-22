@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useArmed } from '../../lib/useArmed';
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
-import { notifyCleared } from '../../lib/push';
+import { setClearance } from './clearance';
 import { titleCase } from '../../lib/titleCase';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from '../../theme';
 import { BASELINE_SECTIONS } from '../baseline/baselineQuestions';
@@ -140,16 +140,11 @@ export function ClientScreening({ client, onClientChanged }) {
   const s = client.screening;
   const arm = useArmed();
   const [err, setErr] = useState('');
-  // Greg's call: he can okay a member himself (for example when the symptom is already known and managed), or undo it.
   async function setCleared(on) {
     setErr('');
-    const next = on ? { ...s, cleared_at: new Date().toISOString(), cleared_by: 'coach' } : { ...s, cleared_at: null, cleared_by: null };
-    const { error } = await supabase.from('profiles').update({ screening: next }).eq('id', client.id);
-    if (error) { setErr(error.message); return; }
-    onClientChanged?.(client.id, { screening: next });
-    if (on) notifyCleared(client.id);
+    const { error } = await setClearance(client, on, onClientChanged);
+    if (error) setErr(error.message);
   }
-  const fmt = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   if (!s) {
     return (
       <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 text-sm text-center">

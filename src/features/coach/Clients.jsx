@@ -6,7 +6,7 @@ import { COACH_ALERT_DAYS } from '../../lib/activityGap';
 
 const FILTERS = [
   ['all', 'All'],
-  ['attention', 'Needs attention'],
+  ['attention', 'Needs You'],
   ['quiet', 'Quiet'],
   ['new', 'New'],
 ];
@@ -25,6 +25,7 @@ export default function Clients({ clients, stats, attention, onOpenClient }) {
   const [filter, setFilter] = useState('all');
   const attentionIds = new Set(attention.map((a) => a.id));
   const levelFor = (id) => (attention.find((a) => a.id === id)?.level) || null;
+  const flagFor = (id) => attention.find((a) => a.id === id) || null;
 
   const list = clients.filter((c) => {
     const q = query.trim().toLowerCase();
@@ -80,6 +81,11 @@ export default function Clients({ clients, stats, attention, onOpenClient }) {
                       <span className="truncate">{c.full_name || c.email}</span>
                       {level && <StatusDot level={level} />}
                     </span>
+                    {flagFor(c.id) && (
+                      <span style={{ color: levelFor(c.id) === 'red' ? BRICK : levelFor(c.id) === 'amber' ? AMBER : MOSS }} className="block text-sm font-medium">
+                        {flagFor(c.id).kind === 'clearance' || flagFor(c.id).kind === 'symptoms' ? 'Health check needs your review' : flagFor(c.id).text}
+                      </span>
+                    )}
                     <span style={{ color: TEXT_SOFT }} className="block text-sm">
                       {st.daysSince == null ? 'No workouts yet' : st.daysSince === 0 ? 'Active today' : `Last active ${st.daysSince}d ago`}
                       {badge && <> · <span style={{ color: badge[1] }}>{badge[0]}</span></>}
