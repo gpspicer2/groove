@@ -33,7 +33,7 @@ function RippleText({ text }) {
 }
 
 export default function ClientApp() {
-  const { user, profile, updateProfile, reloadProfile, isTrainer } = useAuth();
+  const { user, profile, updateProfile, reloadProfile, isTrainer, setView } = useAuth();
   // Without a membership, Birdseye, Move and Journal are locked; Learn stays open.
   const locked = MEMBERSHIP_REQUIRED && !hasAccess(profile);
   // Opening the app mid-workout lands on Move (MoveTab writes this backup while a workout is active).
@@ -169,7 +169,14 @@ export default function ClientApp() {
               <span style={{ background: PAPER_DIM }} className="block w-5 h-0.5 rounded-full" />
             </button>
           ) : <div />}
-          <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
+          {isTrainer ? (
+            <button onClick={() => { setView('coach'); window.scrollTo(0, 0); }} aria-label="Switch to Coach view" title="Tap the logo to switch to your coach view" className="justify-self-center flex flex-col items-center">
+              <Wordmark height={30} running={Boolean(moveStatus)} />
+              <span style={{ color: PAPER_DIM }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Member</span>
+            </button>
+          ) : (
+            <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
+          )}
           <div className="justify-self-end flex items-center gap-2">
             <ViewToggle compact />
             <AccountMenu />

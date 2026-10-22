@@ -24,7 +24,7 @@ const TABS = [
 // Greg's side of Groove. Same shell as the member app (tabs up top, swipe between them), with his own screens:
 // a dashboard that tells him who needs him, a members list with each person's week at a glance, Learn and Billing.
 export default function TrainerApp() {
-  const { user, profile } = useAuth();
+  const { user, profile, setView } = useAuth();
   const [tab, setTab] = useState('today');
   const [clients, setClients] = useState([]);
   const [workouts, setWorkouts] = useState([]);
@@ -113,10 +113,10 @@ export default function TrainerApp() {
       <div style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <div className="justify-self-center flex flex-col items-center">
+          <button onClick={() => { setView('member'); window.scrollTo(0, 0); }} aria-label="Switch to Member view" title="Tap the logo to switch to your member view" className="justify-self-center flex flex-col items-center">
             <Wordmark height={30} />
             <span style={{ color: SKY }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Coach</span>
-          </div>
+          </button>
           <div className="justify-self-end flex items-center gap-2">
             <ViewToggle compact />
             <AccountMenu />

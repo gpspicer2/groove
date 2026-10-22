@@ -83,20 +83,8 @@ export function ViewToggle({ className = '', compact = false }) {
   const [error, setError] = useState('');
   const other = linkedOthers[0];
 
-  // Greg's one login holds both views: flip in place, no second sign-in.
-  if (isTrainer) {
-    const label = coachView ? 'Member view' : 'Coach view';
-    const flip = () => { setView(coachView ? 'member' : 'coach'); window.scrollTo(0, 0); };
-    return compact ? (
-      <button onClick={flip} aria-label={`Switch to ${label}`} title={`Switch to ${label}`} style={{ background: INK_3, color: PLUM }} className={`w-8 h-8 rounded-full inline-flex items-center justify-center shrink-0 ${className}`}>
-        <Repeat size={15} />
-      </button>
-    ) : (
-      <button onClick={flip} style={{ background: INK_3, color: PAPER_DIM }} className={`rounded-full px-3 py-1.5 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap ${className}`}>
-        <Repeat size={14} /> {label}
-      </button>
-    );
-  }
+  // Greg's one login holds both views and flips by tapping the logo (no button here).
+  if (isTrainer) return null;
   if (!canLink || !other) return null;
 
   async function go() {
