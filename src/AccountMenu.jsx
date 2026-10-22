@@ -21,6 +21,7 @@ import ExperienceSheet from './features/experience/ExperienceSheet';
 import { useExperience } from './features/experience/useExperience';
 import { useInjuries, activeInjuries } from './features/injury/injuries';
 import StravaRow from './features/strava/StravaRow';
+import GoogleRow from './auth/GoogleRow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -776,6 +777,8 @@ function SettingsSection({ userId, onChangePassword, onPaymentInfo }) {
               <span style={{ background: PAPER, transform: autoStartRest ? 'translateX(16px)' : 'translateX(2px)' }} className="absolute top-0.5 w-5 h-5 rounded-full transition-transform" />
             </span>
           </button>
+
+          <GoogleRow />
 
           <StravaRow />
 
