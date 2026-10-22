@@ -2,7 +2,7 @@
 // and what needs Greg's attention. Uses the same rules as a client's
 // Birdseye (aerobic in moderate-equivalent minutes, resistance and
 // flexibility in days; yoga counts as both aerobic and flexibility).
-import { needsClearance } from '../screening/screening.js';
+import { needsClearance, clearanceReason } from '../screening/screening.js';
 import { COACH_ALERT_DAYS, calendarDaysBetween } from '../../lib/activityGap.js';
 
 export const DAY = 864e5;
@@ -109,10 +109,10 @@ export function buildAttention(clients, stats, now = new Date(), acks = {}) {
     const joinedDays = c.created_at ? Math.floor((now - new Date(c.created_at)) / DAY) : 0;
     const add = (level, kind, sig, text) => items.push({ id: c.id, level, kind, sig: String(sig), title: name, text });
     if (joinedDays < 7 && c.consented_at) add('new', 'newMember', 'joined', joinedDays === 0 ? 'Just joined today. Say hi!' : `Joined ${joinedDays} day${joinedDays === 1 ? '' : 's'} ago. Say hi!`);
-    if (s && s.result === 'stop_and_clearance' && !s.cleared_at) add('red', 'symptoms', s.result, 'Reported symptoms. Paused until a doctor clears them.');
+    if (s && s.result === 'stop_and_clearance' && !s.cleared_at) add('red', 'symptoms', s.result, `Reported symptoms. Paused until a doctor clears them.${clearanceReason(s) ? ` Why: ${clearanceReason(s)}.` : ''}`);
     if (st.feltOff) add('red', 'feltOff', +new Date(st.feltOff.at), `Felt off after a workout${st.feltOff.note ? `: ${st.feltOff.note}` : ''}`);
     if (c.membership_status === 'past_due') add('red', 'pastDue', 'past_due', 'Membership payment failed.');
-    if (s && s.result !== 'stop_and_clearance' && needsClearance(s)) add('amber', 'clearance', s.result, 'Needs a doctor’s okay before vigorous exercise.');
+    if (s && s.result !== 'stop_and_clearance' && needsClearance(s)) add('amber', 'clearance', s.result, `Needs a doctor’s okay before vigorous exercise.${clearanceReason(s) ? ` Why: ${clearanceReason(s)}.` : ''}`);
     if (!s && joinedDays >= 2) add('amber', 'healthCheck', 'none', 'Hasn’t finished the health check.');
     if (st.daysSince == null && joinedDays >= 3) add('amber', 'gap', 'none', 'Hasn’t logged a workout yet.');
     else if (st.daysSince != null && st.daysSince >= COACH_ALERT_DAYS) add('amber', 'gap', +new Date(st.lastAt), `${st.daysSince} days since the last workout.`);

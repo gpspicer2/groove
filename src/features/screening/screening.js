@@ -87,6 +87,18 @@ export function needsClearance(screening) {
   return Boolean(screening && screening.result !== 'clear' && !screening.cleared_at);
 }
 
+// Plain-words "why" behind a clearance result, for Greg's flags: what they reported, and whether they are active.
+export function clearanceReason(screening) {
+  if (!screening) return '';
+  const sym = labelsFor(SYMPTOMS, screening.symptoms);
+  const dis = screening.symptoms?.length ? [] : labelsFor(DISEASES, screening.diseases);
+  const parts = [];
+  if (sym.length) parts.push(`symptoms (${sym.join('; ')})`);
+  if (dis.length) parts.push(`known ${dis.length > 1 ? 'conditions' : 'condition'} (${dis.join('; ')})`);
+  if (!parts.length) return '';
+  return `${parts.join(' and ')}, ${screening.active ? 'currently active' : 'not currently active'}`;
+}
+
 export function labelsFor(list, keys = []) {
   return keys.map((k) => list.find((x) => x.key === k)?.label).filter(Boolean);
 }

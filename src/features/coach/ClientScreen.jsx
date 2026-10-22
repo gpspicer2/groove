@@ -8,7 +8,7 @@ import { Avatar, Stat, SectionTitle, WeekBars } from './CoachParts';
 import { goalsFor, timeAgo } from './stats';
 import { workoutTitle } from '../move/exerciseLibrary';
 import { activeInjuries, injuryLine } from '../injury/injuries';
-import { RESULT_COPY, needsClearance } from '../screening/screening';
+import { RESULT_COPY, needsClearance, clearanceReason } from '../screening/screening';
 import { ClientScreening, ClientHeartRate, ClientProgramLine, ClientBaseline, ProgramBuilder, ClientWorkouts } from './clientTools';
 
 const TABS = [['overview', 'Overview'], ['plan', 'Plan'], ['health', 'Health'], ['workouts', 'Workouts'], ['notes', 'Notes']];
@@ -107,7 +107,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
   const s = client.screening;
   const flags = [];
   if (stat.feltOff) flags.push([BRICK, `Felt off after a workout${stat.feltOff.note ? `: ${stat.feltOff.note}` : ''}`]);
-  if (s && needsClearance(s)) flags.push([s.result === 'stop_and_clearance' ? BRICK : AMBER, RESULT_COPY[s.result].banner]);
+  if (s && needsClearance(s)) flags.push([s.result === 'stop_and_clearance' ? BRICK : AMBER, `${RESULT_COPY[s.result].banner}${clearanceReason(s) ? ` Why: ${clearanceReason(s)}.` : ''}`]);
   activeInjuries(client.injuries).forEach((i) => flags.push([AMBER, `Injury: ${injuryLine(i)}`]));
   if (!s) flags.push([TEXT_SOFT, 'Health check not done yet.']);
   const since = client.created_at ? new Date(client.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : null;
