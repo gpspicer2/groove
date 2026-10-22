@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, Users, BookOpen, CreditCard } from './lib/icons';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { ViewToggle } from './auth/SwitchAccount';
 import { supabase } from './lib/supabaseClient';
-import { INK, INK_2, PAPER, TEXT_SOFT, PLUM } from './theme';
+import { INK, INK_2, PAPER_DIM, LIME, SKY, VIOLET, AMBER, ON_AMBER } from './theme';
+import SwipeTabs from './SwipeTabs';
 import AccountMenu from './AccountMenu';
 import Wordmark from './Wordmark';
 import { ArticleManager } from './features/coach/clientTools';
@@ -13,16 +13,16 @@ import Clients from './features/coach/Clients';
 import ClientScreen from './features/coach/ClientScreen';
 import Members from './features/coach/Members';
 
+// Same top tabs as the member app: tap or swipe between them.
 const TABS = [
-  ['today', 'Today', LayoutDashboard],
-  ['clients', 'Members', Users],
-  ['library', 'Learn', BookOpen],
-  ['billing', 'Billing', CreditCard],
+  ['today', 'Today', LIME],
+  ['clients', 'Members', SKY],
+  ['library', 'Learn', VIOLET],
+  ['billing', 'Billing', AMBER],
 ];
 
-// Greg's side of Groove. Built differently from the member app on purpose:
-// a dashboard that tells him who needs him, a members list with each
-// person's week at a glance, and a bottom bar instead of swipe tabs.
+// Greg's side of Groove. Same shell as the member app (tabs up top, swipe between them), with his own screens:
+// a dashboard that tells him who needs him, a members list with each person's week at a glance, Learn and Billing.
 export default function TrainerApp() {
   const { user, profile } = useAuth();
   const [tab, setTab] = useState('today');
@@ -84,65 +84,73 @@ export default function TrainerApp() {
   const selected = clients.find((c) => c.id === selectedId) || null;
   const firstName = (profile?.full_name || '').split(' ')[0] || 'Greg';
 
-  function open(id) { acknowledge(id); setSelectedId(id); setTab('clients'); window.scrollTo(0, 0); }
-  function goTab(key) { setSelectedId(null); setTab(key); window.scrollTo(0, 0); }
+  function open(id) { acknowledge(id); setSelectedId(id); setTab('clients'); }
+  function goTab(key) { if (key === tab || key === 'clients') setSelectedId(null); setTab(key); }
+
+  const scrollRef = useRef(null);
+  useEffect(() => { scrollRef.current?.scrollTo(0, 0); }, [selectedId]);
+  const activeIndex = TABS.findIndex(([key]) => key === tab);
+
+  const pageWrap = (key, node) => <div key={key} className="max-w-md mx-auto px-4 pb-10 pt-1">{node}</div>;
+  const todayEl = pageWrap('today', <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} onClientChanged={clientChanged} />);
+  const clientsEl = pageWrap('clients', selected ? (
+    <ClientScreen
+      client={selected}
+      stat={stats[selected.id]}
+      workouts={workouts}
+      trainerId={user.id}
+      onBack={() => setSelectedId(null)}
+      onClientChanged={clientChanged}
+      onClientRemoved={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setSelectedId(null); }}
+    />
+  ) : <Clients clients={clients} stats={stats} attention={attention} onOpenClient={open} />);
+  const libraryEl = pageWrap('library', <div className="-mx-4"><ArticleManager /></div>);
+  const billingEl = pageWrap('billing', <Members clients={clients} onClientChanged={clientChanged} />);
+  const needs = new Set(attention.map((a) => a.id)).size;
 
   return (
-    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh]">
-      <div className="max-w-md mx-auto px-4 pt-safe">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-3">
+    <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="h-[100svh] flex flex-col">
+      <div style={{ background: INK }} className="flex-none max-w-md mx-auto w-full px-4 pt-safe">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
           <div />
-          <Wordmark height={28} className="justify-self-center" />
+          <Wordmark height={30} className="justify-self-center" />
           <div className="justify-self-end flex items-center gap-2">
             <ViewToggle compact />
             <AccountMenu />
           </div>
         </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-4 pb-28 pt-2">
-        {loading ? (
-          <div className="py-32" aria-busy="true" />
-        ) : selected ? (
-          <ClientScreen
-            client={selected}
-            stat={stats[selected.id]}
-            workouts={workouts}
-            trainerId={user.id}
-            onBack={() => setSelectedId(null)}
-            onClientChanged={clientChanged}
-            onClientRemoved={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setSelectedId(null); }}
-          />
-        ) : tab === 'today' ? (
-          <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} onClientChanged={clientChanged} />
-        ) : tab === 'clients' ? (
-          <Clients clients={clients} stats={stats} attention={attention} onOpenClient={open} />
-        ) : tab === 'library' ? (
-          <div className="-mx-4"><ArticleManager /></div>
-        ) : (
-          <Members clients={clients} onClientChanged={clientChanged} />
-        )}
-      </div>
-
-      <nav style={{ background: INK_2, borderTop: `1px solid color-mix(in srgb, ${TEXT_SOFT} 22%, transparent)` }} className="fixed bottom-0 inset-x-0 z-40">
-        <div className="max-w-md mx-auto grid grid-cols-4 px-2 pt-1.5" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-          {TABS.map(([key, label, Icon]) => {
-            const active = tab === key && !(key !== 'clients' && selected);
+        <div className="flex gap-1.5 pb-4">
+          {TABS.map(([key, label, color]) => {
+            const active = tab === key;
             return (
-              <button key={key} onClick={() => goTab(key)} className="flex flex-col items-center gap-0.5 py-1.5 relative">
-                {active && <span style={{ background: PLUM }} className="absolute top-0 h-0.5 w-8 rounded-full" />}
-                <span className="relative">
-                  <Icon size={21} color={active ? PLUM : TEXT_SOFT} />
-                  {key === 'today' && attention.length > 0 && (
-                    <span style={{ background: PLUM, color: INK }} className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center">{attention.length}</span>
-                  )}
-                </span>
-                <span style={{ color: active ? PLUM : TEXT_SOFT }} className="text-xs font-medium">{label}</span>
+              <button
+                key={key}
+                onClick={() => goTab(key)}
+                style={{ background: active ? color : INK_2, color: active ? (key === 'billing' ? ON_AMBER : INK) : PAPER_DIM }}
+                className="flex-1 py-2.5 rounded-md text-sm font-medium transition-colors relative"
+              >
+                {label}
+                {key === 'today' && needs > 0 && (
+                  <span style={{ background: active ? INK : LIME, color: active ? LIME : INK }} className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold flex items-center justify-center">{needs}</span>
+                )}
               </button>
             );
           })}
         </div>
-      </nav>
+      </div>
+
+      <div ref={scrollRef} id="app-scroll" className="flex-1 min-h-0 overflow-y-auto">
+        {loading ? (
+          <div className="py-32" aria-busy="true" />
+        ) : (
+          <SwipeTabs
+            index={activeIndex}
+            onChangeIndex={(i) => setTab(TABS[i][0])}
+            scrollContainerRef={scrollRef}
+            pages={[todayEl, clientsEl, libraryEl, billingEl]}
+          />
+        )}
+      </div>
     </div>
   );
 }

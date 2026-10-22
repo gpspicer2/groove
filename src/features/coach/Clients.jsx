@@ -81,7 +81,7 @@ export default function Clients({ clients, stats, attention, onOpenClient }) {
                       <span className="truncate">{c.full_name || c.email}</span>
                       {level && <StatusDot level={level} />}
                     </span>
-                    {flagFor(c.id) && (
+                    {flagFor(c.id) && flagFor(c.id).kind !== 'gap' && (
                       <span style={{ color: levelFor(c.id) === 'red' ? BRICK : levelFor(c.id) === 'amber' ? AMBER : MOSS }} className="block text-sm font-medium">
                         {flagFor(c.id).kind === 'clearance' || flagFor(c.id).kind === 'symptoms' ? 'Health check needs your review' : flagFor(c.id).text}
                       </span>
