@@ -31,9 +31,10 @@ export default function CoachMessages() {
     <>
       {items.map((m) => (
         <div key={m.id} style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-4 text-center">
-          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold mb-1">Message From Greg</div>
+          <div style={{ color: LIME }} className="text-sm uppercase tracking-wide font-bold mb-1">A Note From Greg</div>
           <div style={{ color: PAPER }} className="text-base whitespace-pre-wrap">{m.body}</div>
-          <button onClick={() => seen(m.id)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-2">Got It</button>
+          <div style={{ color: TEXT_SOFT }} className="text-xs mt-2">Want to reach Greg? Tap Message Greg in your Account.</div>
+          <button onClick={() => seen(m.id)} style={{ color: TEXT_SOFT }} className="text-sm underline mt-1">Got It</button>
         </div>
       ))}
     </>

@@ -5,7 +5,7 @@ import { workoutTitle } from '../move/exerciseLibrary';
 import { Avatar, Stat, SectionTitle, StatusDot } from './CoachParts';
 import { timeAgo } from './stats';
 import { ClearButton } from './ClearanceCard';
-import MessageComposer from './MessageComposer';
+import MessageComposer, { SendWelcome } from './MessageComposer';
 
 export default function Today({ firstName, clients, stats, attention, workouts, onOpenClient, onClientChanged }) {
   const members = clients.length;
@@ -52,9 +52,9 @@ export default function Today({ firstName, clients, stats, attention, workouts, 
                 {c && g.items.some((a) => a.kind === 'newMember') && (
                   <div className="px-4 pb-3 -mt-1 pl-9">
                     {hiFor === g.id ? (
-                      <MessageComposer client={c} startOpen defaultText={`Hi ${(c.full_name || '').split(' ')[0]}! Welcome to Groove. `} onClose={() => setHiFor(null)} />
+                      <MessageComposer client={c} startOpen defaultText={`Hi ${(c.full_name || '').split(' ')[0]}! I see you're all set up. Welcome to Groove. `} onClose={() => setHiFor(null)} />
                     ) : (
-                      <button onClick={() => setHiFor(g.id)} style={{ background: INK_3, color: PAPER }} className="rounded-md px-4 py-2 text-sm font-medium">Say Hi</button>
+                      <SendWelcome client={c} onWrite={() => setHiFor(g.id)} />
                     )}
                   </div>
                 )}

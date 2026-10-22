@@ -60,3 +60,38 @@ export default function MessageComposer({ client, defaultText = '', startOpen = 
     </div>
   );
 }
+
+// One tap, nothing to type: a warm welcome note for someone who has just set up. They see it as a card on Birdseye.
+export function SendWelcome({ client, onWrite }) {
+  const key = `groove:welcomeSent:${client.id}`;
+  const [sent, setSent] = useState(() => { try { return localStorage.getItem(key) === '1'; } catch { return false; } });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const first = (client.full_name || '').split(' ')[0];
+
+  async function send() {
+    setBusy(true); setError('');
+    const body = `Hi ${first}! I see you're all set up. Welcome to Groove, so glad you're here. - Greg`;
+    const { error: err } = await supabase.from('messages').insert({ recipient_id: client.id, body });
+    if (err) {
+      setError(/relation|does not exist|schema cache/i.test(err.message) ? 'Messages are not set up yet. Run the messages SQL in Supabase.' : err.message);
+      setBusy(false);
+      return;
+    }
+    notifyMessage(client.id);
+    try { localStorage.setItem(key, '1'); } catch { /* storage blocked */ }
+    setSent(true); setBusy(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {sent ? (
+        <span style={{ color: TEXT_SOFT }} className="text-sm py-2">Welcome sent</span>
+      ) : (
+        <button onClick={send} disabled={busy} style={{ background: PLUM, color: INK }} className="rounded-md px-4 py-2 text-sm font-medium">{busy ? 'Sending…' : 'Send Welcome'}</button>
+      )}
+      <button onClick={onWrite} style={{ background: INK_3, color: PAPER }} className="rounded-md px-4 py-2 text-sm font-medium">Write a Note</button>
+      {error && <span style={{ color: BRICK }} className="text-sm block w-full">{error}</span>}
+    </div>
+  );
+}
