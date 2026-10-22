@@ -5,7 +5,7 @@ import { INK_2, INK_3, PAPER, TEXT_SOFT, LIME, BRICK } from '../../theme';
 
 // The Reminders switch in Account. Hidden until push is set up in Vercel.
 export default function NotificationsRow() {
-  const { user, isTrainer } = useAuth();
+  const { user, coachView } = useAuth();
   const [status, setStatus] = useState('loading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function NotificationsRow() {
     setBusy(false);
   }
 
-  const blurb = isTrainer
+  const blurb = coachView
     ? 'A morning summary of who needs you, and an alert when someone felt off.'
     : 'A nudge for planned workouts, and after 3 days without moving.';
 

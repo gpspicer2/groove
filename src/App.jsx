@@ -11,7 +11,7 @@ import { INK, TEXT_SOFT } from './theme';
 import { clearDeliveredNotifications } from './lib/push';
 
 function Shell() {
-  const { user, profile, isTrainer, loading, switching, recovering, finishRecovery } = useAuth();
+  const { user, profile, isTrainer, coachView, loading, switching, recovering, finishRecovery } = useAuth();
   // The opening logo stays up for at least a second and a half after the page starts loading, so it can be seen.
   const [minShown, setMinShown] = useState(false);
   useEffect(() => {
@@ -40,11 +40,11 @@ function Shell() {
 
   if (!user) return <AuthScreen />;
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
-  if (isTrainer) return <TrainerApp />;
-  // First run for clients: name, consent, then the health check, then the app.
-  if (!(profile.full_name || '').trim()) return <NameScreen />;
-  if (!profile.consented_at || rereadConsent) return <ConsentScreen onBackToHealthCheck={() => setRereadConsent(false)} />;
-  if (!profile.screening || screeningOpen) {
+  if (coachView) return <TrainerApp />;
+  // First run for clients (not for Greg's own member view): name, consent, then the health check, then the app.
+  if (!isTrainer && !(profile.full_name || '').trim()) return <NameScreen />;
+  if (!isTrainer && (!profile.consented_at || rereadConsent)) return <ConsentScreen onBackToHealthCheck={() => setRereadConsent(false)} />;
+  if (!isTrainer && (!profile.screening || screeningOpen)) {
     return <ScreeningFlow onSaving={() => setScreeningOpen(true)} onDone={() => setScreeningOpen(false)} onBack={profile.screening ? undefined : () => setRereadConsent(true)} />;
   }
   // The one-time app tour (new-client walkthrough) and the baseline

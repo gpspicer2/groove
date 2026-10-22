@@ -33,7 +33,7 @@ function RippleText({ text }) {
 }
 
 export default function ClientApp() {
-  const { user, profile, updateProfile, reloadProfile } = useAuth();
+  const { user, profile, updateProfile, reloadProfile, isTrainer } = useAuth();
   // Without a membership, Birdseye, Move and Journal are locked; Learn stays open.
   const locked = MEMBERSHIP_REQUIRED && !hasAccess(profile);
   // Opening the app mid-workout lands on Move (MoveTab writes this backup while a workout is active).
@@ -118,7 +118,7 @@ export default function ClientApp() {
   }
 
   const activeIndex = TABS.indexOf(tab);
-  const showTour = !profile.tour_done && !tourJustFinished;
+  const showTour = !isTrainer && !profile.tour_done && !tourJustFinished;
 
   // Coming back from Stripe, the payment takes a few seconds to arrive.
   const justPaid = new URLSearchParams(window.location.search).get('checkout') === 'success';

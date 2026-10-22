@@ -44,6 +44,14 @@ export function AuthProvider({ children }) {
   const [linked, setLinked] = useState(() => { const all = readLinked(); const ok = allowedOnly(all); if (Object.keys(ok).length !== Object.keys(all).length) writeLinked(ok); return ok; });
   // Set when someone arrives from a "reset your password" email link.
   const [recovering, setRecovering] = useState(false);
+  // One login can be both: Greg's account opens the coach view, and flips to his own member view (his workouts, goals,
+  // journal) without signing in anywhere else. Remembered per device.
+  const [memberView, setMemberViewState] = useState(() => { try { return localStorage.getItem('groove:viewMode') === 'member'; } catch { return false; } });
+  function setView(mode) {
+    const toMember = mode === 'member';
+    setMemberViewState(toMember);
+    try { localStorage.setItem('groove:viewMode', toMember ? 'member' : 'coach'); } catch { /* storage blocked */ }
+  }
   const profileRef = useRef(null);
   profileRef.current = profile;
 
@@ -98,7 +106,8 @@ export function AuthProvider({ children }) {
     params.delete('view');
     const qs = params.toString();
     window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
-    if (profile.role === 'trainer' || !canLinkEmail(profile.email)) return;
+    if (profile.role === 'trainer') { setView('coach'); return; }
+    if (!canLinkEmail(profile.email)) return;
     const coach = Object.entries(allowedOnly(readLinked())).find(([id, v]) => v.role === 'trainer' && id !== profile.id);
     if (coach) switchTo(coach[0]);
   }, [profile]);
@@ -168,6 +177,7 @@ export function AuthProvider({ children }) {
   async function signOut() {
     // Signing out ends this login for good, so forget its saved copy.
     if (session?.user) unlinkAccount(session.user.id);
+    setView('coach');
     return supabase.auth.signOut();
   }
 
@@ -185,6 +195,9 @@ export function AuthProvider({ children }) {
     // signs up is a client. Simple ownership check rather than an
     // invite-code system, since there's only ever one coach for now.
     isTrainer: profile?.role === 'trainer',
+    // Which screens to show: the coach view for Greg, unless he flipped to his own member view.
+    coachView: profile?.role === 'trainer' && !memberView,
+    setView,
     loading,
     switching,
     recovering,

@@ -47,7 +47,7 @@ export default function AccountMenu() {
 const GENDER_OPTIONS = ['Female', 'Male', 'Other'];
 
 function AccountModal({ onClose }) {
-  const { user, profile, updateProfile, isTrainer, signOut } = useAuth();
+  const { user, profile, updateProfile, isTrainer, coachView, signOut } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showMovements, setShowMovements] = useState(false);
   const [showInjuries, setShowInjuries] = useState(false);
@@ -109,7 +109,7 @@ function AccountModal({ onClose }) {
 
         <SwitchAccountSection />
 
-        {!isTrainer && (
+        {!coachView && !isTrainer && (
           <a
             href="sms:+16034754544"
             style={{ background: LIME, color: INK }}
@@ -119,7 +119,7 @@ function AccountModal({ onClose }) {
           </a>
         )}
 
-        {!isTrainer && (
+        {!coachView && (
           <PersonalDataSection
             userId={user.id}
             injuryCount={activeInjuries(inj.injuries).length}
@@ -129,7 +129,7 @@ function AccountModal({ onClose }) {
           />
         )}
 
-        {!isTrainer && (
+        {!coachView && (
           <SettingsSection
             userId={user.id}
             onChangePassword={() => setShowPassword(true)}
@@ -137,7 +137,7 @@ function AccountModal({ onClose }) {
           />
         )}
 
-        {isTrainer && <NotificationsRow />}
+        {coachView && <NotificationsRow />}
         {showExperience && <ExperienceSheet answers={exp.answers} gym={exp.experience?.gym} onSave={exp.save} onClose={() => setShowExperience(false)} />}
         {showInjuries && <InjurySheet injuries={inj.injuries} onSave={inj.save} onClose={() => setShowInjuries(false)} />}
 
@@ -149,13 +149,15 @@ function AccountModal({ onClose }) {
           >
             <LogOut size={16} /> Sign Out
           </button>
-          <button
-            onClick={() => setConfirmingDelete((v) => !v)}
-            style={{ color: BRICK }}
-            className="flex items-center justify-center gap-2 text-sm py-2.5"
-          >
-            <Trash2 size={16} /> Delete Account
-          </button>
+          {!isTrainer && (
+            <button
+              onClick={() => setConfirmingDelete((v) => !v)}
+              style={{ color: BRICK }}
+              className="flex items-center justify-center gap-2 text-sm py-2.5"
+            >
+              <Trash2 size={16} /> Delete Account
+            </button>
+          )}
         </div>
 
         {confirmingDelete && (
