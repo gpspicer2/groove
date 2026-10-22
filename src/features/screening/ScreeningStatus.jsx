@@ -9,9 +9,29 @@ import { RESULT_COPY, needsClearance } from './screening';
 export default function ScreeningStatus({ alwaysShow = false, inset = false, compact = false, bare = false }) {
   const { profile, updateProfile } = useAuth();
   const [retaking, setRetaking] = useState(false);
+  const [, setSeenTick] = useState(0);
   const screening = profile?.screening;
   if (!screening) return null;
   const pending = needsClearance(screening);
+  // Greg cleared this member himself: say so once, then put it away.
+  const seenKey = `groove:clearedSeen:${profile?.id}:${screening.cleared_at}`;
+  let seen = true;
+  try { seen = localStorage.getItem(seenKey) === '1'; } catch { /* storage blocked */ }
+  if (!pending && !alwaysShow && screening.cleared_by === 'coach' && !seen) {
+    return (
+      <div style={{ background: INK_2, borderTop: `2px solid ${TONE_COLOR.good}` }} className="rounded-lg px-5 py-4 text-center">
+        <div style={{ color: TONE_COLOR.good }} className="text-sm uppercase tracking-wide font-bold mb-1">Health Check</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm">Greg cleared you to exercise. Start light and build up gradually.</div>
+        <button
+          onClick={() => { try { localStorage.setItem(seenKey, '1'); } catch { /* storage blocked */ } setSeenTick((n) => n + 1); }}
+          style={{ color: TEXT_SOFT }}
+          className="text-sm underline mt-2"
+        >
+          Got It
+        </button>
+      </div>
+    );
+  }
   if (!pending && !alwaysShow) return null;
 
   const copy = RESULT_COPY[screening.result];

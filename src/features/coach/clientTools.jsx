@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useArmed } from '../../lib/useArmed';
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
+import { notifyCleared } from '../../lib/push';
 import { titleCase } from '../../lib/titleCase';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, BRICK, VIOLET } from '../../theme';
 import { BASELINE_SECTIONS } from '../baseline/baselineQuestions';
@@ -144,7 +145,9 @@ export function ClientScreening({ client, onClientChanged }) {
     setErr('');
     const next = on ? { ...s, cleared_at: new Date().toISOString(), cleared_by: 'coach' } : { ...s, cleared_at: null, cleared_by: null };
     const { error } = await supabase.from('profiles').update({ screening: next }).eq('id', client.id);
-    if (error) setErr(error.message); else onClientChanged?.(client.id, { screening: next });
+    if (error) { setErr(error.message); return; }
+    onClientChanged?.(client.id, { screening: next });
+    if (on) notifyCleared(client.id);
   }
   const fmt = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   if (!s) {

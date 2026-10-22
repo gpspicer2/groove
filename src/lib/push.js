@@ -78,6 +78,15 @@ export async function notifyNewMember() {
   } catch { /* the Today screen still shows them as just joined */ }
 }
 
+// Greg only: tells a member that he cleared them to exercise (the server checks it really is Greg, and sends the push).
+export async function notifyCleared(memberId) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch('/api/push/event', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ type: 'cleared', memberId }) });
+  } catch { /* the member still sees it on Birdseye next time they open Groove */ }
+}
+
 // Tells Greg right away that a member's health check needs his review (the server sends the push).
 export async function notifyScreening() {
   try {
