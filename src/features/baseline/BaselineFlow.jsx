@@ -234,6 +234,7 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
         />
       )}
       {question.hint && <div style={{ color: TEXT_SOFT }} className="text-xs text-center mt-1">{question.hint}</div>}
+      {question.withHeight && <HeightField value={allAnswers.height || ''} onChange={(v) => setAnswer('height', v)} />}
 
       {question.type === 'tel' && (
         <input
@@ -281,6 +282,29 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Height in feet and inches; saved as total inches in answers.height.
+function HeightField({ value, onChange }) {
+  const total = Number(value) || 0;
+  const [ft, setFt] = useState(total ? String(Math.floor(total / 12)) : '');
+  const [inch, setInch] = useState(total ? String(Math.round(total % 12)) : '');
+  function update(nextFt, nextIn) {
+    setFt(nextFt); setInch(nextIn);
+    const f = parseFloat(nextFt) || 0;
+    const i = parseFloat(nextIn) || 0;
+    onChange(f || i ? String(f * 12 + i) : '');
+  }
+  const box = { background: INK_3, color: PAPER };
+  return (
+    <div className="mt-3">
+      <label style={{ color: PAPER }} className="text-sm block mb-2 text-center">Height</label>
+      <div className="flex gap-2">
+        <input type="number" inputMode="numeric" value={ft} onChange={(e) => update(e.target.value, inch)} placeholder="ft" style={box} className="w-full min-w-0 rounded-md px-1 py-2.5 text-sm outline-none text-center" />
+        <input type="number" inputMode="numeric" value={inch} onChange={(e) => update(ft, e.target.value)} placeholder="in" style={box} className="w-full min-w-0 rounded-md px-1 py-2.5 text-sm outline-none text-center" />
+      </div>
     </div>
   );
 }

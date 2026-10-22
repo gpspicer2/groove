@@ -5,6 +5,9 @@ import Wordmark from '../Wordmark';
 import { isReturningDevice } from './AuthContext';
 import { Eye, EyeOff } from '../lib/icons';
 
+// "Continue with Google" shows only once Google sign-in is switched on (VITE_GOOGLE_LOGIN=true in Vercel).
+const GOOGLE_LOGIN = import.meta.env.VITE_GOOGLE_LOGIN === 'true';
+
 export default function AuthScreen({ recovering = false, onRecovered }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : isReturningDevice() ? 'signin' : 'signup'); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
@@ -25,6 +28,12 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
   const accent = mode === 'signup' ? SKY : PLUM;
   const TITLES = { signin: '', signup: 'Create your account', reset: 'Reset your password', newpassword: 'Choose a new password' };
   const SUBMIT = { signin: 'Sign in', signup: 'Sign up', reset: 'Email me a reset link', newpassword: 'Save password' };
+
+  async function handleGoogle() {
+    setError(''); setBusy(true);
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    if (error) { setError(error.message); setBusy(false); }
+  }
 
   function switchMode(next) { setMode(next); setError(''); setInfo(''); setConfirm(''); setShowPw(false); }
 
@@ -65,6 +74,15 @@ export default function AuthScreen({ recovering = false, onRecovered }) {
           <h1 style={{ color: accent, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium mb-3">
             {TITLES[mode]}
           </h1>
+        )}
+
+        {GOOGLE_LOGIN && (mode === 'signin' || mode === 'signup') && (
+          <>
+            <button type="button" onClick={handleGoogle} disabled={busy} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-3 text-sm font-medium mb-3">
+              Continue with Google
+            </button>
+            <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">or</div>
+          </>
         )}
 
         <form onSubmit={handleSubmit}>

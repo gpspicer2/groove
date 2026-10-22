@@ -10,7 +10,7 @@ export const BASELINE_SECTIONS = [
     questions: [
       { key: 'name', label: 'Preferred First and Last Name', type: 'text', required: true },
       { key: 'age', label: 'Age', type: 'age', required: true, half: true },
-      { key: 'bodyweight', label: 'Bodyweight (lb)', hint: 'For calorie estimates.', type: 'number', half: true },
+      { key: 'bodyweight', label: 'Bodyweight (lb)', hint: 'For calorie estimates.', type: 'number', half: true, withHeight: true },
       { key: 'phone', label: 'Phone', type: 'tel', required: true },
       {
         key: 'preferred_contact',

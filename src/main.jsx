@@ -15,7 +15,15 @@ function quietField(el) {
   if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
   if (['email', 'password'].includes(el.type) || el.dataset.keepAutofill) return;
   el.setAttribute('autocomplete', 'off');
-  el.setAttribute('autocorrect', 'off');
+  // Writing boxes (Q&A, journal, notes) keep the phone's autocorrect, "i'm" -> "I'm" and capital letters;
+  // short name / number fields stay plain so they aren't "fixed" into the wrong word.
+  if (el instanceof HTMLTextAreaElement) {
+    if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
+    el.setAttribute('autocorrect', 'on');
+    el.spellcheck = true;
+  } else {
+    el.setAttribute('autocorrect', 'off');
+  }
   el.setAttribute('data-lpignore', 'true');
   el.setAttribute('data-form-type', 'other');
   if (!el.hasAttribute('name')) el.setAttribute('name', `f-${Math.random().toString(36).slice(2, 8)}`);
