@@ -443,6 +443,11 @@ export function repsFor(name, reps) {
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
 export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
 
+// Lifts that are the same movement in a different setup (conventional, sumo and trap bar deadlifts) count as one
+// family: a suggested workout takes only one of them. Romanian and single-leg versions are a different hip-hinge
+// and stay separate.
+const liftFamily = (name) => (/Deadlift/i.test(name) && !/Romanian|Stiff|Single-Leg|Smith/i.test(name) ? 'deadlift' : null);
+
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
@@ -453,6 +458,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // active/collapsed exercise cards) downstream. Track what's already
   // picked and skip repeats.
   const usedNames = new Set();
+  const usedFamilies = new Set();
   const lists = muscleGroups.map((group) => {
     const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => !exclude.includes(e.name));
     const fresh = pool.filter((e) => !recentNames.includes(e.name));
@@ -471,11 +477,12 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   for (let round = 0; round < 8 && picked.length < target; round += 1) {
     for (const l of lists) {
       if (picked.length >= target) break;
-      while (l.at < l.ordered.length && usedNames.has(l.ordered[l.at].name)) l.at += 1;
+      while (l.at < l.ordered.length && (usedNames.has(l.ordered[l.at].name) || usedFamilies.has(liftFamily(l.ordered[l.at].name)))) l.at += 1;
       const ex = l.ordered[l.at];
       if (!ex) continue;
       l.at += 1;
       usedNames.add(ex.name);
+      if (liftFamily(ex.name)) usedFamilies.add(liftFamily(ex.name));
       picked.push({ ...ex, muscleGroup: l.group, sets: style === 'Strength' && !isCompound(ex.name) ? Math.min(3, styleConfig.sets ?? ex.sets) : styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
     }
   }
