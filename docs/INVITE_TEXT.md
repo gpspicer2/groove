@@ -30,7 +30,7 @@ Paste all of this as one message (link last, on its own line):
 
 ## The text (copy and paste)
 
-Hey! Most people don't like exercise, but almost everyone likes to move. That's the idea behind Groove, a movement app I built as an exercise physiologist and professor.
+Hey! Most people don't like exercise, but almost everyone likes to move. That's the idea behind Groove, a movement app I built as a professor and exercise physiologist.
 
 It's more than a workout log. It follows the same ACSM science I teach, adjusts to how your body feels that day (sore knee? tired?), shows you how to do every exercise, and keeps your journal completely private. And you get me: movement mentorship and education, to help you find movement you'll actually keep doing.
 
@@ -70,4 +70,4 @@ Hey! I built an app called Groove for people who don't love "exercise" but do lo
 
 ## Members sharing Groove (2026-10-24)
 
-Account > Invite a Friend sends: "Hey! I'm using Groove for movement tracking and guidance. It's built by Dr. Greg Spicer, an exercise physiologist and professor. Take a look:" and the `?invite` link. The link opens a welcome page (who Greg is, what Groove does, prices, a collapsed trainer comparison, an optional video) before sign-up. To add the video, put a YouTube link in the Vercel variable `VITE_INVITE_VIDEO` and redeploy.
+Account > Invite a Friend sends: "Hey! I'm using Groove for movement tracking and guidance. It's built by Dr. Greg Spicer, a professor and exercise physiologist. Take a look:" and the `?invite` link. The link opens a welcome page (who Greg is, what Groove does, prices, a collapsed trainer comparison, an optional video) before sign-up. To add the video, put a YouTube link in the Vercel variable `VITE_INVITE_VIDEO` and redeploy.
