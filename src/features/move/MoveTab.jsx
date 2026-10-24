@@ -4118,7 +4118,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           style={{ background: INK_3, color: PAPER_DIM }}
           className="w-full mt-1.5 rounded-md py-1.5 text-sm flex items-center justify-center gap-1.5"
         >
-          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : shownW(ref.weight)}×{refCount}
+          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : ref.weight}×{refCount}
         </button>
       )}
       {perSideEligible && (
