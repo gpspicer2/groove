@@ -404,6 +404,10 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     // Bump the lowest-priority pick rather than growing past MAX_EXERCISES, but never another anchor lift
     // or the squat variation (otherwise each anchor added would push out the one before it).
     // Prefer dropping from a muscle that has two or more picks, so no muscle loses its only exercise.
+    // The anchor replaces a same-family lift already picked (a machine chest press, say) instead of sitting beside it.
+    const sameFamily = (ex) => !keep.has(ex.name) && liftFamily(ex.name) === liftFamily(anchorName);
+    const twin = liftFamily(anchorName) ? (result.findIndex((ex) => sameFamily(ex) && ex.muscleGroup === group) >= 0 ? result.findIndex((ex) => sameFamily(ex) && ex.muscleGroup === group) : result.findIndex(sameFamily)) : -1;
+    if (twin >= 0) { result = [...result.slice(0, twin), ...result.slice(twin + 1), added]; continue; }
     const perMuscle = {};
     result.forEach((ex) => { perMuscle[ex.muscleGroup] = (perMuscle[ex.muscleGroup] || 0) + 1; });
     const droppable = (ex) => !keep.has(ex.name) && !SQUAT_PATTERN.test(ex.name);
@@ -443,10 +447,38 @@ export function repsFor(name, reps) {
 // Holds (Plank, Wall Sit) are timed ("30-60s"), so a training style's rep range doesn't apply to them.
 export const holdReps = (ex) => (/\d\s*s\b/i.test(String(ex?.reps || '')) ? ex.reps : null);
 
-// Lifts that are the same movement in a different setup (conventional, sumo and trap bar deadlifts) count as one
-// family: a suggested workout takes only one of them. Romanian and single-leg versions are a different hip-hinge
-// and stay separate.
-const liftFamily = (name) => (/Deadlift/i.test(name) && !/Romanian|Stiff|Single-Leg|Smith/i.test(name) ? 'deadlift' : null);
+// Lifts that are the same movement in a different setup (a bench press and a machine chest press, a lat pulldown and
+// pull-ups, three kinds of curl) count as one family. A suggested workout takes one lift per family while other families
+// are still available, so a session has variety; it only doubles up when a muscle has nothing else left to offer.
+// Deadlift variations are the exception: never two in one workout. Different families stay separate (a fly is not a press,
+// an incline press is not a flat one, a Romanian deadlift is not a deadlift).
+const FAMILY_RULES = [
+  ['deadlift', /Deadlift/i, /Romanian|Stiff|Single-Leg|Smith/i],
+  ['hinge', /Romanian|Good Morning/i],
+  ['incline-press', /Incline (Dumbbell )?Press|Incline Press/i],
+  ['dip', /^Dips$|Bench Dips/i],
+  ['push-up', /Push-Ups?$/i, /Pike|Scapular/i],
+  ['rear-delt', /Rear Delt|Face Pull/i],
+  ['fly', /Fly$/i, /Rear Delt/i],
+  ['bench', /Bench Press|Chest Press/i],
+  ['vertical-press', /Overhead Press|Arnold Press|Shoulder Press|Push Press|Pike Push-Up/i],
+  ['lateral', /Lateral Raise|Front Raise/i],
+  ['pulldown', /Pulldown|Pull-Up|Chin-Up/i, /Straight-Arm/i],
+  ['row', /\bRow\b/i],
+  ['squat', /Squat|Leg Press/i, /Split Squat/i],
+  ['lunge', /Lunge|Split Squat|Step-Up/i],
+  ['leg-curl', /Leg Curl|Hamstring Curl|Nordic/i],
+  ['hip-thrust', /Hip Thrust|Glute Bridge/i],
+  ['curl', /Curl/i, /Leg Curl|Hamstring Curl/i],
+  ['tricep', /Pushdown|Skull Crusher|Overhead Tricep|Kickback|Diamond/i],
+  ['calf', /Calf Raise/i],
+  ['plank', /Plank/i],
+  ['crunch', /Crunch|Leg Raise|Ab Wheel/i],
+];
+const liftFamily = (name) => {
+  for (const [id, yes, no] of FAMILY_RULES) if (yes.test(name) && !(no && no.test(name))) return id;
+  return null;
+};
 
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
@@ -474,13 +506,17 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   // A single-muscle day needs about five exercises and a two-muscle day six (ACSM/NSCA: several exercises and 2-4 sets
   // per major muscle group), so keep going round after round until that many are picked or the lists run dry.
   const target = Math.min(maxCount, Math.max(perGroup * muscleGroups.length, muscleGroups.length === 1 ? 5 : muscleGroups.length === 2 ? 6 : 0));
-  for (let round = 0; round < 8 && picked.length < target; round += 1) {
+  // Pass 1 takes only lifts from families not yet in the workout; pass 2 fills any gap with what is left.
+  for (const allowRepeat of [false, true]) for (let round = 0; round < 8 && picked.length < target; round += 1) {
     for (const l of lists) {
       if (picked.length >= target) break;
-      while (l.at < l.ordered.length && (usedNames.has(l.ordered[l.at].name) || usedFamilies.has(liftFamily(l.ordered[l.at].name)))) l.at += 1;
-      const ex = l.ordered[l.at];
-      if (!ex) continue;
-      l.at += 1;
+      // First choice: a lift whose family isn't in the workout yet. Failing that, anything left (but never a second deadlift).
+      const open = (e) => !usedNames.has(e.name);
+      let idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !usedFamilies.has(liftFamily(e.name)));
+      if (idx < 0 && allowRepeat) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && liftFamily(e.name) !== 'deadlift');
+      if (idx < 0) continue;
+      const ex = l.ordered[idx];
+      l.ordered.splice(idx, 1);
       usedNames.add(ex.name);
       if (liftFamily(ex.name)) usedFamilies.add(liftFamily(ex.name));
       picked.push({ ...ex, muscleGroup: l.group, sets: style === 'Strength' && !isCompound(ex.name) ? Math.min(3, styleConfig.sets ?? ex.sets) : styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
