@@ -4,7 +4,15 @@ export const MEMBERSHIP_PRICE = Number(import.meta.env.VITE_MEMBERSHIP_PRICE) ||
 export const MENTOR_PRICE = Number(import.meta.env.VITE_MENTOR_PRICE) || 94.99; // Groove (with Greg)
 export const PLANS = [
   { id: 'app', name: 'Groove', price: MEMBERSHIP_PRICE, line: 'Logging, goals, programs and learning tools' },
-  { id: 'mentor', name: 'Groove (with Greg)', price: MENTOR_PRICE, line: 'Everything in Groove, plus regular mentorship and check-ins with Greg' },
+  {
+    id: 'mentor', name: 'Groove (with Greg)', price: MENTOR_PRICE,
+    line: 'Everything in Groove, plus mentorship from a Ph.D. exercise physiologist',
+    bullets: [
+      'How movement helps every organ system, in plain words',
+      'Trained in exercise psychology and behavior change',
+      'A monthly 15-minute call and weekly notes on your progress',
+    ],
+  },
 ];
 export const money = (n) => `$${Number(n).toFixed(2)}`;
 

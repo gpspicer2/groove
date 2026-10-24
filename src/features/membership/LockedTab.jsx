@@ -35,6 +35,11 @@ export default function LockedTab({ children, showOverlay = true, showLibrary = 
               <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-semibold">{money(p.price)}<span style={{ color: TEXT_SOFT }} className="text-sm font-normal"> / month</span></span>
             </div>
             <p style={{ color: PAPER_DIM }} className="text-sm mb-2">{p.line}</p>
+            {p.bullets && (
+              <ul style={{ color: TEXT_SOFT }} className="text-sm mb-2 space-y-0.5">
+                {p.bullets.map((b) => <li key={b}>{b}</li>)}
+              </ul>
+            )}
             <button onClick={() => join(p.id)} disabled={!!busy} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium">
               {busy === p.id ? 'Opening Secure Checkout…' : pastDue || canceled ? `Update with ${p.name}` : `Join ${p.name}`}
             </button>

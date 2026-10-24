@@ -30,7 +30,7 @@ export default function GregBio({ onClose }) {
           </div>
           <div style={{ color: PAPER_DIM }} className="text-sm space-y-1.5 text-center">
             <p>
-              Greg is an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College, Greg studied evolutionary biology and animal behavior until a research mentor introduced exercise physiology. Greg went on to earn a master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of working with patients, athletes, and students, one thing keeps coming up:
+              Greg is an Assistant Professor of Exercise Science at Lasell University and a Senior Exercise Physiologist at Brigham and Women's Hospital. At Saint Anselm College, Greg studied evolutionary biology and animal behavior until a research mentor introduced exercise physiology. Greg went on to earn a master's and Ph.D. in it, studying how physical activity affects nearly every organ in the body. After years of working with patients, athletes, and students, and training in exercise psychology and behavior change, one thing keeps coming up:
               <b style={{ color: PAPER }} className="block text-[15px]">most people don't like exercise.</b>
             </p>
             <p>That's why Greg advocates for <b style={{ color: PAPER }}>movement</b>.</p>

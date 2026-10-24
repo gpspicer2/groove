@@ -33,7 +33,7 @@ export default function InviteWelcome({ onStart, onSignIn }) {
           <img src="/greg.jpg" alt="Dr. Greg Spicer" className="w-20 h-20 rounded-full object-cover mx-auto mb-3" />
           <h1 style={{ color: PLUM }} className="text-xl font-medium mb-1">Meet Dr. Greg Spicer</h1>
           <p style={{ color: PAPER_DIM }} className="text-sm mb-4">
-            A Ph.D. exercise physiologist and university professor who built Groove to make movement easier to start and easier to keep doing.
+            A Ph.D. exercise physiologist and professor with years of experience helping students, clients and athletes. Groove puts that expertise in your pocket.
           </p>
 
           {video && (
@@ -55,7 +55,7 @@ export default function InviteWelcome({ onStart, onSignIn }) {
             {free && <div style={{ color: SKY }} className="text-sm font-semibold mb-1">Join before {until} and it's free.</div>}
             <div style={{ color: PAPER }} className="text-sm"><b>Groove</b>: {money(MEMBERSHIP_PRICE)} a month</div>
             <div style={{ color: PAPER }} className="text-sm mt-1"><b>Groove (with Greg)</b>: {money(MENTOR_PRICE)} a month</div>
-            <div style={{ color: TEXT_SOFT }} className="text-xs">adds regular mentorship and check-ins with Greg</div>
+            <div style={{ color: TEXT_SOFT }} className="text-xs">adds mentorship from Greg: a monthly 15-minute call and weekly notes on your progress</div>
           </div>
 
           <button onClick={onStart} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-base font-medium mb-2">Get Started</button>
