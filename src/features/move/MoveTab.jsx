@@ -4807,6 +4807,10 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
           </button>
         </div>
         <div className="flex items-center gap-0.5">
+          {/* The same check as an aerobic card's: marks the whole warm-up done and opens the next exercise. */}
+          <button onClick={finishWarmup} style={{ color: isDone ? LIME : TEXT_SOFT }} className="p-2 -m-1" title="Finish the warm-up">
+            <Check size={14} />
+          </button>
           {onCollapse && (
             <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1" title="Collapse">
               <ChevronUp size={14} />
