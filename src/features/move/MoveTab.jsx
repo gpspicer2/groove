@@ -450,7 +450,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         plan: planExercises,
       }));
     } catch { /* storage blocked */ }
-  }, [activeWorkout, planExercises]);
+  }, [activeWorkout, planExercises, sets.length]); // logging a set also refreshes the stamp that sends a fresh open to Move
   useEffect(() => {
     if (loading || activeWorkoutId) { setLostBackup(null); return; }
     try {

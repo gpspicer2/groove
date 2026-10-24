@@ -40,7 +40,7 @@ export default function ClientApp() {
   const [tab, setTab] = useState(() => {
     try {
       const b = JSON.parse(localStorage.getItem('groove:liveBackup') || 'null');
-      if (b && Date.now() - b.savedAt < 12 * 3600 * 1000) return 'move';
+      if (b && Date.now() - b.savedAt < 24 * 3600 * 1000) return 'move';
     } catch { /* ignore */ }
     return 'birdseye';
   });
@@ -51,7 +51,7 @@ export default function ClientApp() {
   useEffect(() => { if (tab !== firstTab.current) touchedTab.current = true; }, [tab]);
   useEffect(() => {
     if (!user?.id) return;
-    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     supabase.from('workouts').select('id').is('completed_at', null).is('deleted_at', null)
       .gte('started_at', since).limit(1)
       .then(({ data }) => { if (data?.length && !touchedTab.current) setTab('move'); });
