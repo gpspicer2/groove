@@ -3,7 +3,7 @@ import Portal from '../../Portal';
 import { INK_2, PAPER, TEXT_SOFT, LIME, SKY, AMBER, VIOLET, BRICK, PLUM } from '../../theme';
 
 const COLORS = [LIME, SKY, AMBER, VIOLET, BRICK, PLUM];
-const FRESH_MS = 6 * 3600 * 1000; // only celebrate a goal finished just now
+const FRESH_MS = 24 * 3600 * 1000; // only celebrate a goal reached today or last night (older ones are marked quietly)
 const SHOW_MS = 4200;
 
 // Confetti and a short fading message when a weekly goal is reached. Each
