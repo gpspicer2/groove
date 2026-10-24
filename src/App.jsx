@@ -1,6 +1,6 @@
 import GrooveLoader from './GrooveLoader';
 import React, { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AuthProvider, useAuth, isReturningDevice } from './auth/AuthContext';
 import AuthScreen from './auth/AuthScreen';
 import ClientApp from './ClientApp';
 import TrainerApp from './TrainerApp';
@@ -26,8 +26,9 @@ function Shell() {
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
-  // Someone who opens a shared invite link sees the welcome page before sign-up.
-  const [invite, setInvite] = useState(() => { try { return new URLSearchParams(window.location.search).has('invite'); } catch { return false; } });
+  // The welcome page is the front door: anyone signed out sees it on a first visit to this phone, and on any shared invite link.
+  // Phones that have signed in before go straight to Sign in, with a quiet "What Is Groove?" link back to it.
+  const [invite, setInvite] = useState(() => { try { return new URLSearchParams(window.location.search).has('invite') || !isReturningDevice(); } catch { return false; } });
   const [startMode, setStartMode] = useState(undefined);
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);
@@ -43,7 +44,7 @@ function Shell() {
   }
 
   if (!user && invite) return <InviteWelcome onStart={() => { setStartMode('signup'); setInvite(false); }} onSignIn={() => { setStartMode('signin'); setInvite(false); }} />;
-  if (!user) return <AuthScreen initialMode={startMode} onBack={startMode ? () => { setStartMode(null); setInvite(true); } : undefined} />;
+  if (!user) return <AuthScreen initialMode={startMode} onBack={startMode ? () => { setStartMode(null); setInvite(true); } : undefined} onAbout={startMode ? undefined : () => setInvite(true)} />;
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
   if (coachView) return <TrainerApp />;
   // First run for clients (not for Greg's own member view): name, consent, then the health check, then the app.

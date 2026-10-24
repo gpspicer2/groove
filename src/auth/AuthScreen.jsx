@@ -6,7 +6,7 @@ import { isReturningDevice } from './AuthContext';
 import { ChevronLeft, Eye, EyeOff } from '../lib/icons';
 import GoogleG, { GOOGLE_LOGIN } from './GoogleG';
 
-export default function AuthScreen({ recovering = false, onRecovered, initialMode, onBack }) {
+export default function AuthScreen({ recovering = false, onRecovered, initialMode, onBack, onAbout }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : initialMode || (isReturningDevice() ? 'signin' : 'signup')); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -175,6 +175,9 @@ export default function AuthScreen({ recovering = false, onRecovered, initialMod
           >
             {mode === 'signin' ? "Don't have an account? Sign up" : mode === 'signup' ? 'Already have an account? Sign in' : 'Back to sign in'}
           </button>
+        )}
+        {onAbout && mode === 'signin' && (
+          <button onClick={onAbout} style={{ color: TEXT_SOFT }} className="w-full text-sm text-center py-1">What Is Groove?</button>
         )}
       </div>
     </div>
