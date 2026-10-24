@@ -3915,7 +3915,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     try { localStorage.setItem(sledKey, String(n)); } catch { /* storage unavailable */ }
   }
   const fromTotal = (v) => (f === 2 ? Math.max(0, Math.round((v - extra) / 2 / 2.5) * 2.5) : roundToFive(v));
-  const shownW = (w) => (f === 2 && w != null ? `${Math.round(((w - extra) / 2) * 10) / 10}/side` : (formatMoneyLikeWeight(w) ?? '—'));
+  // Always the total weight, the same number a logged set chip shows. (Per-side lives only in the weight box, with a Total line under it.)
+  const shownW = (w) => formatMoneyLikeWeight(w) ?? '—';
   function togglePerSide() {
     const next = !perSideOn;
     setPlates([]);
@@ -4117,7 +4118,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           style={{ background: INK_3, color: PAPER_DIM }}
           className="w-full mt-1.5 rounded-md py-1.5 text-sm flex items-center justify-center gap-1.5"
         >
-          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : (f === 2 ? shownW(ref.weight) : ref.weight)}×{refCount}
+          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : shownW(ref.weight)}×{refCount}
         </button>
       )}
       {perSideEligible && (
