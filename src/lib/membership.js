@@ -18,3 +18,7 @@ export function hasAccess(profile) {
 // Set VITE_REQUIRE_MEMBERSHIP=true in Vercel when you're ready to start
 // charging. Until then everyone keeps full access.
 export const MEMBERSHIP_REQUIRED = import.meta.env.VITE_REQUIRE_MEMBERSHIP === 'true';
+
+// Sign-ups before this moment are free (same cutoff as COMP_SIGNUPS_UNTIL in api/_lib/promo.js; change both).
+export const INVITE_PROMO_UNTIL = new Date('2026-10-29T23:59:00-04:00');
+export const invitePromoActive = () => Date.now() < INVITE_PROMO_UNTIL.getTime();

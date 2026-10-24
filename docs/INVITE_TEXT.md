@@ -67,3 +67,7 @@ Hey! I built an app called Groove for people who don't love "exercise" but do lo
 - Did they get through sign up, the consent screen, the health check and the tour without asking you for help?
 - Did they log a first workout on day one?
 - Which screen did they never open?
+
+## Members sharing Groove (2026-10-24)
+
+Account > Invite a Friend sends: "Hey! I'm using Groove for movement tracking and guidance. It's built by Dr. Greg Spicer, an exercise physiologist and professor. Take a look:" and the `?invite` link. The link opens a welcome page (who Greg is, what Groove does, prices, a collapsed trainer comparison, an optional video) before sign-up. To add the video, put a YouTube link in the Vercel variable `VITE_INVITE_VIDEO` and redeploy.

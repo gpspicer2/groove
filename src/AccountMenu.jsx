@@ -22,6 +22,7 @@ import { useExperience } from './features/experience/useExperience';
 import { useInjuries, activeInjuries } from './features/injury/injuries';
 import StravaRow from './features/strava/StravaRow';
 import GoogleRow from './auth/GoogleRow';
+import InviteRow from './features/invite/InviteRow';
 import { VO2maxEstimator, OneRMEstimator } from './features/baseline/FitnessEstimates';
 import Cropper from 'react-easy-crop';
 import { getCroppedImageBlob } from './lib/cropImage';
@@ -118,6 +119,8 @@ function AccountModal({ onClose }) {
             <MessageCircle size={18} /> Message Greg
           </a>
         )}
+
+        {!coachView && <InviteRow />}
 
         {!coachView && (
           <PersonalDataSection

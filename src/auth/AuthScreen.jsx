@@ -6,8 +6,8 @@ import { isReturningDevice } from './AuthContext';
 import { Eye, EyeOff } from '../lib/icons';
 import GoogleG, { GOOGLE_LOGIN } from './GoogleG';
 
-export default function AuthScreen({ recovering = false, onRecovered }) {
-  const [mode, setMode] = useState(recovering ? 'newpassword' : isReturningDevice() ? 'signin' : 'signup'); // 'signin' | 'signup' | 'reset' | 'newpassword'
+export default function AuthScreen({ recovering = false, onRecovered, initialMode }) {
+  const [mode, setMode] = useState(recovering ? 'newpassword' : initialMode || (isReturningDevice() ? 'signin' : 'signup')); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');

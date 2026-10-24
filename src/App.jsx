@@ -6,6 +6,7 @@ import ClientApp from './ClientApp';
 import TrainerApp from './TrainerApp';
 import ConsentScreen from './features/screening/ConsentScreen';
 import NameScreen from './features/screening/NameScreen';
+import InviteWelcome from './auth/InviteWelcome';
 import ScreeningFlow from './features/screening/ScreeningFlow';
 import { INK, TEXT_SOFT } from './theme';
 import { clearDeliveredNotifications } from './lib/push';
@@ -25,6 +26,9 @@ function Shell() {
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
+  // Someone who opens a shared invite link sees the welcome page before sign-up.
+  const [invite, setInvite] = useState(() => { try { return new URLSearchParams(window.location.search).has('invite'); } catch { return false; } });
+  const [startMode, setStartMode] = useState(undefined);
   // Keeps the screening on screen to show its result after it saves.
   const [screeningOpen, setScreeningOpen] = useState(false);
   // Lets someone step back from the first health question to re-read the consent.
@@ -38,7 +42,8 @@ function Shell() {
     );
   }
 
-  if (!user) return <AuthScreen />;
+  if (!user && invite) return <InviteWelcome onStart={() => { setStartMode('signup'); setInvite(false); }} onSignIn={() => { setStartMode('signin'); setInvite(false); }} />;
+  if (!user) return <AuthScreen initialMode={startMode} />;
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
   if (coachView) return <TrainerApp />;
   // First run for clients (not for Greg's own member view): name, consent, then the health check, then the app.
