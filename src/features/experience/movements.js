@@ -60,6 +60,7 @@ export const EXPERIENCE_GROUPS = [
   { title: 'Arms',
     items: [
       { id: 'bb_curl', label: 'Barbell Curl', info: 'Curl a barbell from your thighs up to your shoulders.', names: ['Barbell Curl'] },
+      { id: 'db_curl', label: 'Dumbbell Curl', info: 'Curl a dumbbell in each hand from your thighs up to your shoulders, palms facing up.', names: ['Dumbbell Curl'] },
       { id: 'hammer', label: 'Hammer Curl', info: 'Curl dumbbells with your palms facing each other, like holding a hammer.', names: ['Hammer Curl'] },
       { id: 'pushdown', label: 'Tricep Pushdown', info: 'Push a bar or rope down at a cable machine until your arms are straight.', names: ['Tricep Pushdown'] },
       { id: 'skull', label: 'Skull Crusher', info: 'Lie on a bench and bend only your elbows to lower a bar toward your forehead, then straighten.', names: ['Skull Crusher'] },

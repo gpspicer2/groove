@@ -202,6 +202,7 @@ export const EXERCISE_LIBRARY = {
   ],
   Biceps: [
     { name: 'Barbell Curl', sets: 3, reps: '8-12', equipment: 'barbell' },
+    { name: 'Dumbbell Curl', sets: 3, reps: '8-12', equipment: 'dumbbell' },
     { name: 'Incline Dumbbell Curl', sets: 3, reps: '10-15', equipment: 'dumbbell' }, // deep stretch at the bottom — good ROM pick
     { name: 'Hammer Curl', sets: 3, reps: '10-12', equipment: 'dumbbell' },
     { name: 'Concentration Curl', sets: 3, reps: '10-15', equipment: 'dumbbell' },
