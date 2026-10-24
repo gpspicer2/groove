@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play, TrendingUp } from '../../lib/icons';
+import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, Play, TrendingUp } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import ExperienceSheet from '../experience/ExperienceSheet';
@@ -4002,17 +4002,6 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     }
   }
 
-  // One-tap "Repeat": logs exactly the previous set again (this workout's last set, or last time's for the
-  // first set), even after the boxes were changed. Hidden when Log would do the very same thing.
-  const ref = mostRecentLogged || (last && last.weight != null ? last : null);
-  const refCount = ref ? (ref.durationSeconds ? `${ref.durationSeconds}s` : ref.reps != null ? `${ref.reps}` : null) : null;
-  const currentTotal = useBodyweight ? (bodyweight || 0) + (Number(weight) || 0) : Number(weight) * f + extra;
-  const sameAsInputs = ref && Number(ref.weight) === currentTotal && (byTime ? ref.durationSeconds === Number(seconds) : ref.reps === Number(reps) && !ref.durationSeconds) && Boolean(ref.isBodyweight) === useBodyweight;
-  const showRepeat = Boolean(ref) && refCount != null && !sameAsInputs && !(isBarbell && Number(ref.weight) < barLb);
-  function handleRepeat() {
-    onLog({ setNumber: nextSetNumber, weight: ref.weight, isBodyweight: Boolean(ref.isBodyweight), reps: ref.reps ?? null, durationSeconds: ref.durationSeconds ?? null, ...(mostRecentLogged ? { distance: mostRecentLogged.distance || null } : {}) });
-  }
-
   // One short line for target/last/suggested; units sit inside the boxes so
   // there is no label row above them.
   const rmTarget = targetLoad(style, oneRmFor(exercise.name));
@@ -4111,16 +4100,6 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           </button>
         )}
       </div>
-      {showRepeat && (
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleRepeat}
-          style={{ background: INK_3, color: PAPER_DIM }}
-          className="w-full mt-1.5 rounded-md py-1.5 text-sm flex items-center justify-center gap-1.5"
-        >
-          <RotateCcw size={13} /> Repeat {mostRecentLogged ? 'last set' : 'last time'} · {ref.isBodyweight ? bwLabel(ref.weight, bodyweight) : ref.weight}×{refCount}
-        </button>
-      )}
       {perSideEligible && (
         <div className="mt-1.5 flex flex-col items-center gap-1.5">
           {tipOn && (
