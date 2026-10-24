@@ -33,7 +33,7 @@ export default function InviteWelcome({ onStart, onSignIn }) {
           <img src="/greg.jpg" alt="Dr. Greg Spicer" className="w-20 h-20 rounded-full object-cover mx-auto mb-3" />
           <h1 style={{ color: PLUM }} className="text-xl font-medium mb-1">Meet Dr. Greg Spicer</h1>
           <p style={{ color: PAPER_DIM }} className="text-sm mb-4">
-            A Ph.D. exercise physiologist and professor with years of experience helping students, clients and athletes. Groove puts that expertise in your pocket.
+            An exercise physiologist and professor with a Ph.D. and years of experience helping students, clients and athletes. Groove puts that expertise in your pocket.
           </p>
 
           {video && (

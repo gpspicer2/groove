@@ -6,7 +6,7 @@ export const PLANS = [
   { id: 'app', name: 'Groove', price: MEMBERSHIP_PRICE, line: 'Logging, goals, programs and learning tools' },
   {
     id: 'mentor', name: 'Groove (with Greg)', price: MENTOR_PRICE,
-    line: 'Everything in Groove, plus mentorship from a Ph.D. exercise physiologist',
+    line: 'Everything in Groove, plus mentorship from an exercise physiologist with a Ph.D.',
     bullets: [
       'How movement helps every organ system, in plain words',
       'Trained in exercise psychology and behavior change',
