@@ -101,6 +101,19 @@ function valueFor(metric, opts, bucketWorkouts, bucketSets, bucketMeasures, body
   }
 }
 
+// For one exercise: the reps behind the number (the heaviest set's reps, the set an estimated max came from, or the totals).
+function detailFor(opts, bucketSets) {
+  const rows = bucketSets.filter((s) => isLift(s) && s.exercise_name === opts.exercise && Number(s.reps) > 0);
+  if (rows.length === 0) return null;
+  if (opts.exerciseBy === 'volume') return `${rows.length} ${rows.length === 1 ? 'set' : 'sets'} · ${rows.reduce((n, s) => n + Number(s.reps), 0)} reps`;
+  if (opts.exerciseBy === 'e1rm') {
+    const best = rows.reduce((a, s) => (epley(s) > epley(a) ? s : a), rows[0]);
+    return epley(best) > 0 ? `from ${Math.round(Number(best.weight) || 0)} × ${best.reps}` : null;
+  }
+  const top = Math.max(...rows.map((s) => Number(s.weight) || 0));
+  return `× ${Math.max(...rows.filter((s) => (Number(s.weight) || 0) === top).map((s) => Number(s.reps)))} reps`;
+}
+
 const fmt = (n) => (n == null ? '–' : Math.round(n).toLocaleString());
 
 // Least-squares line through the plotted points.
@@ -186,7 +199,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
       const wIds = new Set(ws.map((w) => w.id));
       const ss = data.sets.filter((s) => wIds.has(s.workout_id));
       const ms = data.measures.filter((m) => { const d = new Date(m.measured_at); return d >= b.start && d < b.end; });
-      return { ...b, value: valueFor(metric, opts, ws, ss, ms, bodyweight) };
+      return { ...b, value: valueFor(metric, opts, ws, ss, ms, bodyweight), detail: metric === 'exercise' ? detailFor(opts, ss) : null };
     });
   }, [data, range, weekStartDay, metric, chosenMuscle, muscleBy, chosenExercise, exerciseBy, profile?.bodyweight_lb]);
 
@@ -244,6 +257,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
             <div className="flex items-baseline gap-1.5 min-w-0">
               <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-3xl font-medium tabular-nums leading-none">{fmt(cur.value)}</span>
               <span style={{ color: TEXT_SOFT }} className="text-sm">{unit}</span>
+              {cur.detail && <span style={{ color: PAPER }} className="text-base font-medium whitespace-nowrap">{cur.detail}</span>}
               {delta != null && <span style={{ color: delta >= 0 ? LIME : TEXT_SOFT }} className="text-sm">{delta >= 0 ? '▲' : '▼'} {Math.abs(delta)}%</span>}
             </div>
             <div className="text-right text-sm leading-tight">
