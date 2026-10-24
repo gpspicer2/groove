@@ -13,7 +13,7 @@ function videoEmbed() {
 }
 
 const POINTS = [
-  ['Log Your Physical Activity', 'Every walk, lift, ride and stretch, with your weekly goals tracked for you.'],
+  ['Log Your Physical Activity', 'Every walk, lift, stretch, lawn mowed and wedding dance, with your weekly goals tracked for you.'],
   ['Plans Built on Science', 'Goals and programs follow American College of Sports Medicine guidelines.'],
   ['Learn as You Go', 'Short, plain explanations of why movement works.'],
 ];
