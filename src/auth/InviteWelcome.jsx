@@ -71,7 +71,7 @@ export default function InviteWelcome({ onStart, onSignIn }) {
           {showCompare ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
         </button>
         {showCompare && <img src="/invite-compare.png" alt="Personal trainer compared with Groove (with Greg)" className="w-full rounded-lg mt-2" />}
-        <p style={{ color: TEXT_SOFT }} className="text-xs text-center mt-4">Groove is general guidance, not medical advice.</p>
+        <p style={{ color: TEXT_SOFT }} className="text-xs text-center mt-4">Groove provides movement tracking and education, not medical advice.</p>
       </div>
     </div>
   );
