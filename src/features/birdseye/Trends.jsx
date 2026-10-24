@@ -115,18 +115,18 @@ function fitTrend(points) {
   return { slope, mean: my, first: points[0], last: points[n - 1], at: (i) => my + slope * (i - mx) };
 }
 
-export default function Trends({ userId, profile, active, weekStartDay = 'sunday', hideScale = false, embedded = false }) {
+export default function Trends({ userId, profile, active, weekStartDay = 'sunday', hideScale = false, embedded = false, focusExercise = '' }) {
   const [openState, setOpen] = useState(false);
   const open = embedded || openState; // embedded in the Progress card: always open, no card of its own
   const revealRef = useRevealOnOpen(embedded ? false : open);
   const [data, setData] = useState(null); // { workouts, sets, measures }
   const [error, setError] = useState('');
-  const [metric, setMetric] = useState(hideScale ? 'aerobic' : 'volume');
+  const [metric, setMetric] = useState(focusExercise ? 'exercise' : hideScale ? 'aerobic' : 'volume');
   const metrics = METRICS; // Weight Loss members still see bodyweight, just not as the headline (see the note under the chart)
   const [rangeId, setRangeId] = useState('8w');
   const [muscle, setMuscle] = useState('');
   const [muscleBy, setMuscleBy] = useState('weight'); // 'weight' | 'sets'
-  const [exercise, setExercise] = useState('');
+  const [exercise, setExercise] = useState(focusExercise || '');
   const [exerciseBy, setExerciseBy] = useState('top'); // 'top' | 'e1rm' | 'volume'
   const [picked, setPicked] = useState(null); // tapped point index
 
@@ -173,7 +173,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
     return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
   }, [data]);
   const chosenMuscle = muscles.includes(muscle) ? muscle : muscles[0] || '';
-  const chosenExercise = exercises.includes(exercise) ? exercise : exercises[0] || '';
+  const chosenExercise = focusExercise || (exercises.includes(exercise) ? exercise : exercises[0] || '');
 
   const range = RANGES.find((r) => r.id === rangeId);
   const series = useMemo(() => {
@@ -298,12 +298,19 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
   const panel = open && (
         <div className={`${embedded ? '' : 'mt-2.5 '}space-y-2 text-center`}>
           {hideScale && metric === 'bodyweight' && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Once a month is plenty. Day to day, the scale mostly shows water. Cardio minutes and strength tell you more.</div>}
+          {focusExercise ? (
+            <div className="flex items-center justify-between gap-2">
+              <Seg options={[{ id: 'top', label: 'Top' }, { id: 'e1rm', label: 'Max' }, { id: 'volume', label: 'Total' }]} value={exerciseBy} onChange={setExerciseBy} />
+              <Seg options={RANGES} value={rangeId} onChange={(v) => { setRangeId(v); setPicked(null); }} />
+            </div>
+          ) : (
           <div className="flex items-center gap-2">
             <select value={metric} onChange={(e) => { setMetric(e.target.value); setPicked(null); }} style={selectStyle} className={`${selectClass} flex-1`} aria-label="What to Track">
               {metrics.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
             <Seg options={RANGES} value={rangeId} onChange={(v) => { setRangeId(v); setPicked(null); }} />
           </div>
+          )}
 
           {metric === 'muscle' && muscles.length > 0 && (
             <div className="flex items-center gap-2">
@@ -313,7 +320,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
               <Seg options={[{ id: 'weight', label: 'Weight' }, { id: 'sets', label: 'Sets' }]} value={muscleBy} onChange={setMuscleBy} />
             </div>
           )}
-          {metric === 'exercise' && exercises.length > 0 && (
+          {metric === 'exercise' && !focusExercise && exercises.length > 0 && (
             <div className="flex items-center gap-2">
               <select value={chosenExercise} onChange={(e) => setExercise(e.target.value)} style={selectStyle} className={`${selectClass} flex-1`} aria-label="Exercise">
                 {exercises.map((m) => <option key={m} value={m}>{m}</option>)}

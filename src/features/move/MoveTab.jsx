@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play } from '../../lib/icons';
+import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, RotateCcw, Play, TrendingUp } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import ExperienceSheet from '../experience/ExperienceSheet';
@@ -14,6 +14,7 @@ import SwipeHint from '../../SwipeHint';
 import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
+import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
 import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
@@ -4272,6 +4273,7 @@ function ExerciseCard({
   const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const guide = guideFor(exercise.name);
   // Grip / handle / bar: chosen per set for Pull-Ups, otherwise once and kept for this workout (never carried to the next one).
   const variation = variationFor(exercise.name);
@@ -4318,13 +4320,15 @@ function ExerciseCard({
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
           <span className="flex items-center shrink-0">
-            {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="p-2 -m-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
+            {exercise.type === 'resistance' && <button onClick={() => setStatsOpen(true)} style={{ color: SKY }} className="p-2 -m-1" aria-label={`Your history: ${exercise.name}`}><TrendingUp size={16} /></button>}
+            {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="p-2 -m-1 ml-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
             <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 ml-1" title="Collapse">
               <ChevronUp size={16} />
             </button>
           </span>
         </div>
         {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={SKY} onClose={() => setGuideOpen(false)} />}
+        {statsOpen && <ExerciseStatsSheet name={exercise.name} onClose={() => setStatsOpen(false)} />}
 
         {showSettings && (
           <div style={{ background: INK_3 }} className="rounded-md px-3 py-2.5 mb-2.5 flex items-center justify-center gap-4">
@@ -4426,6 +4430,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const { armed, press } = useArmed();
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const guide = guideFor(exercise.name);
   const variation = variationFor(exercise.name);
   const lastLabel = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
@@ -4443,9 +4448,11 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">
           {exercise.name}
-          {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1 ml-0.5" aria-label={`How to: ${exercise.name}`}><Info size={15} /></button>}
+          <button onClick={() => setStatsOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1 ml-0.5" aria-label={`Your history: ${exercise.name}`}><TrendingUp size={15} /></button>
+          {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1" aria-label={`How to: ${exercise.name}`}><Info size={15} /></button>}
         </div>
         {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={SKY} onClose={() => setGuideOpen(false)} />}
+        {statsOpen && <ExerciseStatsSheet name={exercise.name} onClose={() => setStatsOpen(false)} />}
         {showSettings && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <button
@@ -5142,6 +5149,23 @@ function AerobicCard({ index, exercise, movementType = 'aerobic', loggedSets, on
 }
 
 // How to do an exercise: set up, move, what to watch, plus a few basics for its kind (lift, stretch or roll).
+// A lift's own history without leaving the workout: the same chart as Birdseye's Trends, locked to this exercise.
+function ExerciseStatsSheet({ name, onClose }) {
+  const { user, profile } = useAuth();
+  const sheet = useSwipeDown(onClose);
+  return (
+    <Portal>
+      <div style={{ background: 'rgba(0,0,0,0.6)' }} className="fixed inset-0 flex items-end md:items-center justify-center z-50" onClick={onClose}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+          <div style={{ color: PAPER }} className="text-base font-bold text-center mb-2">{name}</div>
+          <Trends embedded active userId={user?.id} profile={profile} weekStartDay={profile?.week_start_day || 'sunday'} focusExercise={name} />
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 function ExerciseGuideSheet({ name, guide, accent, onClose }) {
   const sheet = useSwipeDown(onClose);
   const row = (label, text) => (
