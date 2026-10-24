@@ -1,6 +1,6 @@
 // The link members share, and the text that goes with it. Opens the welcome page (see InviteWelcome) for new people.
 export const INVITE_URL = 'https://groove-rho.vercel.app/?invite';
-export const INVITE_TEXT = "Hey! I'm using Groove for movement tracking and guidance. It's built by Dr. Greg Spicer, a professor and exercise physiologist. Take a look:";
+export const INVITE_TEXT = "Hey! I'm using Groove for movement tracking and guidance. It's built by Dr. Greg Spicer, an exercise physiologist and professor. Take a look:";
 
 // Opens the phone's share sheet; falls back to copying the message. Returns 'shared' | 'copied' | 'failed'.
 export async function shareInvite() {
