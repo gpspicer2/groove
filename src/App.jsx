@@ -43,7 +43,7 @@ function Shell() {
   }
 
   if (!user && invite) return <InviteWelcome onStart={() => { setStartMode('signup'); setInvite(false); }} onSignIn={() => { setStartMode('signin'); setInvite(false); }} />;
-  if (!user) return <AuthScreen initialMode={startMode} />;
+  if (!user) return <AuthScreen initialMode={startMode} onBack={startMode ? () => { setStartMode(null); setInvite(true); } : undefined} />;
   if (recovering) return <AuthScreen recovering onRecovered={finishRecovery} />;
   if (coachView) return <TrainerApp />;
   // First run for clients (not for Greg's own member view): name, consent, then the health check, then the app.

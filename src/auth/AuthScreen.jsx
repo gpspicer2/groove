@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabaseClient';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, SKY, BRICK } from '../theme';
 import Wordmark from '../Wordmark';
 import { isReturningDevice } from './AuthContext';
-import { Eye, EyeOff } from '../lib/icons';
+import { ChevronLeft, Eye, EyeOff } from '../lib/icons';
 import GoogleG, { GOOGLE_LOGIN } from './GoogleG';
 
-export default function AuthScreen({ recovering = false, onRecovered, initialMode }) {
+export default function AuthScreen({ recovering = false, onRecovered, initialMode, onBack }) {
   const [mode, setMode] = useState(recovering ? 'newpassword' : initialMode || (isReturningDevice() ? 'signin' : 'signup')); // 'signin' | 'signup' | 'reset' | 'newpassword'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,6 +66,9 @@ export default function AuthScreen({ recovering = false, onRecovered, initialMod
   return (
     <div style={{ background: INK, fontFamily: 'Outfit, sans-serif' }} className="min-h-[100svh] flex items-start justify-center px-4 pt-[7svh]">
       <div style={{ background: INK_2, borderTop: `2px solid ${accent}` }} className="w-full max-w-sm rounded-lg px-6 py-6 text-center">
+        {onBack && mode !== 'newpassword' && (
+          <button onClick={onBack} style={{ color: TEXT_SOFT }} className="flex items-center gap-0.5 text-sm -mt-2 mb-2 -ml-2 py-1 pr-2"><ChevronLeft size={16} />Back</button>
+        )}
         {/* Compact on purpose: everything must fit above the phone keyboard. */}
         <Wordmark height={44} className="mb-4 mx-auto block" />
         {TITLES[mode] && (
