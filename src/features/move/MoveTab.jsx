@@ -16,7 +16,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -3399,6 +3399,36 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
   );
 }
 
+// Swap one dynamic warm-up drill for another: drills that go with the same muscles first, then every other drill.
+function DrillSwapSheet({ name, current, onPick, onClose }) {
+  const groups = Object.entries(DYNAMIC_WARMUP_LIBRARY);
+  const open = (d) => d !== name && !current.includes(d);
+  const similar = [...new Set(groups.filter(([, list]) => list.includes(name)).flatMap(([, list]) => list))].filter(open);
+  const rest = [...new Set(groups.flatMap(([, list]) => list))].filter((d) => open(d) && !similar.includes(d)).sort();
+  const row = (d) => (
+    <button key={d} onClick={() => onPick(d)} style={{ background: INK_3, color: PAPER }} className="w-full text-center rounded-md px-4 py-3 text-sm">{d}</button>
+  );
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+        <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
+        <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-3">
+            <div style={{ color: PAPER }} className="text-sm font-medium">Swap "{name}" for…</div>
+            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>
+          </div>
+          <div className="space-y-1">
+            {similar.length > 0 && <div style={{ color: VIOLET }} className="text-xs font-medium pt-1 pb-0.5 text-center">Similar Drills</div>}
+            {similar.map(row)}
+            {similar.length > 0 && rest.length > 0 && <div style={{ color: TEXT_SOFT }} className="text-xs font-medium pt-2 pb-0.5 text-center">More Drills</div>}
+            {rest.map(row)}
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 function MovementPicker({ label, group, setGroup, name, setName, location }) {
   const libraryOptions = filterByLocation(EXERCISE_LIBRARY[group] || [], location);
   return (
@@ -4640,6 +4670,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   const [editValue, setEditValue] = useState('');
   const [addingOther, setAddingOther] = useState(false);
   const [otherValue, setOtherValue] = useState('');
+  const [swapDrill, setSwapDrill] = useState(null);
 
   const rowRefs = useRef([]);
   const dragStateRef = useRef(null);
@@ -4846,7 +4877,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
                 <GripVertical size={12} />
               </button>
               <div className="flex-1 min-w-0">
-                <SwipeActions title={name} editLabel="Rename" onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
+                <SwipeActions title={name} onSwap={() => setSwapDrill(i)} editLabel="Rename" onEdit={() => startEdit(i)} onRemove={() => onRemoveDrill(i)}>
                   <button
                     onClick={() => toggle(name)}
                     style={{ background: INK_3, color: done ? TEXT_SOFT : PAPER }}
@@ -4866,6 +4897,14 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
           );
         })}
       </div>
+      {swapDrill !== null && exercise.drills[swapDrill] && (
+        <DrillSwapSheet
+          name={exercise.drills[swapDrill]}
+          current={exercise.drills}
+          onPick={(next) => { onRenameDrill(swapDrill, next); setSwapDrill(null); }}
+          onClose={() => setSwapDrill(null)}
+        />
+      )}
       {addingOther ? (
         <div className="flex items-center gap-1.5 mt-1.5">
           <input
