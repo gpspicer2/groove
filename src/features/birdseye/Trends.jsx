@@ -314,7 +314,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
           {hideScale && metric === 'bodyweight' && <div style={{ color: TEXT_SOFT }} className="text-[13px]">Once a month is plenty. Day to day, the scale mostly shows water. Cardio minutes and strength tell you more.</div>}
           {focusExercise ? (
             <div className="flex items-center justify-between gap-2">
-              <Seg options={[{ id: 'top', label: 'Top' }, { id: 'e1rm', label: 'Max' }, { id: 'volume', label: 'Total' }]} value={exerciseBy} onChange={setExerciseBy} />
+              <Seg options={[{ id: 'top', label: 'Top' }, { id: 'e1rm', label: 'Est. 1RM' }, { id: 'volume', label: 'Total' }]} value={exerciseBy} onChange={setExerciseBy} />
               <Seg options={RANGES} value={rangeId} onChange={(v) => { setRangeId(v); setPicked(null); }} />
             </div>
           ) : (
@@ -339,7 +339,7 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
               <select value={chosenExercise} onChange={(e) => setExercise(e.target.value)} style={selectStyle} className={`${selectClass} flex-1`} aria-label="Exercise">
                 {exercises.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
-              <Seg options={[{ id: 'top', label: 'Top' }, { id: 'e1rm', label: 'Max' }, { id: 'volume', label: 'Total' }]} value={exerciseBy} onChange={setExerciseBy} />
+              <Seg options={[{ id: 'top', label: 'Top' }, { id: 'e1rm', label: 'Est. 1RM' }, { id: 'volume', label: 'Total' }]} value={exerciseBy} onChange={setExerciseBy} />
             </div>
           )}
 
