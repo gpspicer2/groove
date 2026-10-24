@@ -16,7 +16,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -3316,6 +3316,31 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
       ? (FLEXIBILITY_LIBRARY[group] || [])
       : filterByLocation(EXERCISE_LIBRARY[group] || [], location)
   ).filter((e) => e.name !== exercise.name && !usedNames.includes(e.name));
+  // Strength lifts: the same movement in another setup (other deadlifts, other chest presses...) comes first, from any muscle
+  // group, then the rest of the muscle group's list.
+  const family = !isAerobic && !isFlex ? liftFamily(exercise.name) : null;
+  const related = family === 'deadlift' ? ['deadlift', 'hinge'] : family === 'hinge' ? ['hinge', 'deadlift'] : [family];
+  const similar = [];
+  if (family && group === exercise.muscleGroup) {
+    related.forEach((fam) => {
+      Object.entries(EXERCISE_LIBRARY).forEach(([g, list]) => {
+        filterByLocation(list, location).forEach((e) => {
+          if (liftFamily(e.name) === fam && e.name !== exercise.name && !usedNames.includes(e.name) && !similar.some((s) => s.name === e.name)) similar.push({ ...e, muscleGroup: g });
+        });
+      });
+    });
+  }
+  const rest = pool.filter((e) => !similar.some((s) => s.name === e.name));
+  const swapRow = (e, g) => (
+    <button
+      key={e.name}
+      onClick={() => onPick(isAerobic ? e : { ...e, muscleGroup: g })}
+      style={{ background: INK_3, color: PAPER }}
+      className="w-full text-center rounded-md px-4 py-3 text-sm"
+    >
+      {e.name}
+    </button>
+  );
 
   return (
     <Portal>
@@ -3345,16 +3370,10 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
           </div>
         ) : (
           <div className="space-y-1">
-            {pool.map((e) => (
-              <button
-                key={e.name}
-                onClick={() => onPick(isAerobic ? e : { ...e, muscleGroup: group })}
-                style={{ background: INK_3, color: PAPER }}
-                className="w-full text-center rounded-md px-4 py-3 text-sm"
-              >
-                {e.name}
-              </button>
-            ))}
+            {similar.length > 0 && <div style={{ color: SKY }} className="text-xs font-medium pt-1 pb-0.5 text-center">Similar Lifts</div>}
+            {similar.map((e) => swapRow(e, e.muscleGroup))}
+            {similar.length > 0 && rest.length > 0 && <div style={{ color: TEXT_SOFT }} className="text-xs font-medium pt-2 pb-0.5 text-center">More {group}</div>}
+            {rest.map((e) => swapRow(e, group))}
           </div>
         )}
         <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: `1px dashed ${INK_3}` }}>

@@ -475,7 +475,7 @@ const FAMILY_RULES = [
   ['plank', /Plank/i],
   ['crunch', /Crunch|Leg Raise|Ab Wheel/i],
 ];
-const liftFamily = (name) => {
+export const liftFamily = (name) => {
   for (const [id, yes, no] of FAMILY_RULES) if (yes.test(name) && !(no && no.test(name))) return id;
   return null;
 };
