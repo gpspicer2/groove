@@ -7,7 +7,7 @@ import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
-  GOALS, MODELS, GOAL_INFO, MODEL_INFO, isHybridGoal, goalEmoji, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
+  GOALS, MODELS, GOAL_INFO, MODEL_INFO, isHybridGoal, goalEmoji, programGoals, liftGoalsOf, hasCardio, hasGoal, blendInfo, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
   sessionsForWeek, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine, leadText, secondaryLine,
 } from './programs';
 import { useHr } from './ProgramCards';
@@ -68,26 +68,38 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
   const [whyNoScale, setWhyNoScale] = useState(false);
   const guideNow = guide || (hrOn ? 'hr' : 'rpe');
   const [step, setStep] = useState(initialStep || (program ? 'manage' : 'goal'));
-  const [goal, setGoal] = useState(program?.goal || null);
+  const [goals, setGoals] = useState(program ? programGoals(program) : []); // one or more: a blend mixes them
+  const goal = goals[0] || null;
+  const blend = goals.length > 1;
+  const hasLift = liftGoalsOf({ goals, goal }).length > 0;
+  const cardio = hasCardio({ goals, goal });
+  const onlyHyp = goals.length === 1 && goal === 'hypertrophy'; // the Undulating / Linear choice only applies to a solo hypertrophy program
+  function toggleGoal(id) {
+    const next = goals.includes(id) ? goals.filter((g) => g !== id) : [...goals, id];
+    setGoals(next);
+    setSplit(null);
+    if (!(next.length === 1 && next[0] === 'hypertrophy')) setModel(null);
+    if (next.some(isHybridGoal) && days < 4) { setDays(4); setWeekdays((w) => w.slice(0, 4)); }
+  }
   const [model, setModel] = useState(program?.model || null);
   const [days, setDays] = useState(program?.days || 3);
   const [split, setSplit] = useState(program?.split || null);
   const [weekdays, setWeekdays] = useState(hasChosenDays(program) ? program.weekdays : []);
 
   // Lifting programs ask once which lifts the member knows (Account > Lifting Preferences changes it later).
-  const nextAfterGoal = () => ((goal === 'strength' || goal === 'hypertrophy') && !exp.answered ? 'experience' : 'days');
-  const dayChoices = isHybridGoal(goal) ? [4, 5, 6] : [2, 3, 4, 5, 6];
-  const draftBase = { goal, model: goal === 'hypertrophy' ? (model || 'undulating') : null, days, startedAt: todayISO() };
+  const nextAfterGoal = () => (hasLift && !exp.answered ? 'experience' : 'days');
+  const dayChoices = cardio ? [4, 5, 6] : [2, 3, 4, 5, 6];
+  const draftBase = { goal, ...(blend ? { goals } : {}), model: onlyHyp ? (model || 'undulating') : null, days, startedAt: todayISO() };
   const options = goal ? splitOptions(draftBase) : [];
   const splitId = options.find((o) => o.id === split)?.id || options[0]?.id || null;
-  const draft = { ...draftBase, ...(isHybridGoal(goal) ? { guide: guideNow } : {}), split: splitId, weekdays: weekdays.length === days ? weekdays : null };
+  const draft = { ...draftBase, ...(cardio ? { guide: guideNow } : {}), split: splitId, weekdays: weekdays.length === days ? weekdays : null };
 
   async function start() {
     // Changing only the days or split keeps your place in the cycle; a new goal or method starts fresh.
-    const sameCycle = program && program.goal === draft.goal && (program.model || null) === (draft.model || null);
+    const sameCycle = program && JSON.stringify(programGoals(program)) === JSON.stringify(programGoals(draft)) && (program.model || null) === (draft.model || null);
     const next = { ...draft, startedAt: sameCycle ? program.startedAt : draft.startedAt };
     // Weight loss builds from what the member really does: their average cardio over the last 4 weeks.
-    if (isHybridGoal(next.goal)) next.startMinutes = sameCycle && program.startMinutes ? program.startMinutes : await recentWeeklyMinutes(userId);
+    if (hasCardio(next)) next.startMinutes = sameCycle && program.startMinutes ? program.startMinutes : await recentWeeklyMinutes(userId);
     await onSave(next);
     // Lifting days a week become the resistance goal on Birdseye.
     await supabase.from('profiles').update({ resistance_goal: resistanceDays(next), track_resistance_goal: true }).eq('id', userId);
@@ -132,10 +144,10 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{program.days} days a week{chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · {phaseLabel(program, week)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This Week</div>
                 <WeekList program={program} week={week} />
-                {isHybridGoal(program.goal) && (
+                {hasCardio(program) && (
                   <div className="mt-3 text-left">
                     {guideToggle(program.guide || (hrOn ? 'hr' : 'rpe'), (g) => { setGuide(g); onSave({ ...program, guide: g }); })}
-                    {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">About Weighing In</button>}
+                    {hasGoal(program, 'fat_loss') && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="text-sm underline">About Weighing In</button>}
                   </div>
                 )}
                 <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
@@ -151,21 +163,22 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
 
           {step === 'goal' && (
             <>
-              <div style={{ color: PAPER_DIM }} className="text-sm mb-2">What are you training for?</div>
+              <div style={{ color: PAPER_DIM }} className="text-sm mb-0.5">What are you training for?</div>
+              <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Pick one or more. More than one gives you a blend.</div>
               <div className="space-y-2">
                 {GOALS.map((g) => (
-                  <button key={g.id} onClick={() => { setGoal(g.id); if (g.id !== 'hypertrophy') setModel(null); if (isHybridGoal(g.id) && days < 4) { setDays(4); setWeekdays((w) => w.slice(0, 4)); } }} style={tile(goal === g.id)} className="w-full rounded-xl px-4 py-3">
+                  <button key={g.id} onClick={() => toggleGoal(g.id)} style={tile(goals.includes(g.id))} className="w-full rounded-xl px-4 py-3">
                     <div className="text-base font-medium">{goalEmoji(g.id, profile?.gender)} {g.label}</div>
                     <div style={{ opacity: 0.85 }} className="text-sm">{g.blurb}</div>
                   </button>
                 ))}
               </div>
-              {goal && <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-3">{GOAL_INFO[goal]}</div>}
+              {goal && <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2.5 text-sm mt-3">{blend ? blendInfo(goals) : GOAL_INFO[goal]}</div>}
               <div className="flex items-center justify-between mt-3">
                 {program ? back('manage') : <span />}
                 <button
                   disabled={!goal}
-                  onClick={() => setStep(goal === 'hypertrophy' ? 'model' : nextAfterGoal())}
+                  onClick={() => setStep(onlyHyp ? 'model' : nextAfterGoal())}
                   style={{ background: goal ? SKY : INK_3, color: goal ? INK : TEXT_SOFT }}
                   className="rounded-md px-6 py-2.5 text-sm font-medium"
                 >
@@ -199,7 +212,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               <div style={{ color: PAPER_DIM }} className="text-sm mb-2">Which lifts do you love, know, want to learn, or want to skip? Your program leans on your answers. Olympic lifts only appear if you say you know them.</div>
               <ExperienceForm answers={(expDraft || exp.answers)} onChange={setExpDraft} />
               <div className="flex items-center justify-between mt-1">
-                {back(goal === 'hypertrophy' ? 'model' : 'goal')}
+                {back(onlyHyp ? 'model' : 'goal')}
                 <div className="flex items-center gap-3">
                   <button onClick={async () => { await exp.save({ answers: {}, gym: exp.experience?.gym || {} }); setStep('days'); }} style={{ color: TEXT_SOFT }} className="text-sm py-2">Skip for Now</button>
                   <button onClick={async () => { await exp.save({ answers: Object.fromEntries(Object.entries(expDraft || {}).filter(([, v]) => v)), gym: exp.experience?.gym || {} }); setStep('days'); }} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
@@ -218,7 +231,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 ))}
               </div>
               <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">
-                {isHybridGoal(goal) ? `${resistanceDays(draft)} ${goal === 'fitness' ? 'full-body' : 'short'} strength days and ${cardioDays(draft)} cardio days a week` : 'Pick what you can keep up. Consistency beats ambition.'}
+                {cardio ? `${resistanceDays(draft)} ${blend ? 'lifting' : goal === 'fitness' ? 'full-body strength' : 'short strength'} days and ${cardioDays(draft)} cardio days a week` : 'Pick what you can keep up. Consistency beats ambition.'}
               </div>
               {options.length > 0 && (
                 <>
@@ -237,11 +250,11 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                   <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2 text-sm mb-3">{chosenSplit(draft).info}</div>
                 </>
               )}
-              {isHybridGoal(goal) && guideToggle(guideNow, setGuide)}
+              {cardio && guideToggle(guideNow, setGuide)}
               <WeekList program={draft} week={1} />
               <div style={{ color: TEXT_SOFT }} className="text-sm mt-2">Your resistance goal on Birdseye becomes {resistanceDays(draft)} day{resistanceDays(draft) === 1 ? '' : 's'} a week.</div>
               <div className="flex items-center justify-between mt-3">
-                {back(goal === 'hypertrophy' ? 'model' : 'goal')}
+                {back(onlyHyp ? 'model' : 'goal')}
                 <button onClick={() => setStep('weekdays')} style={{ background: SKY, color: INK }} className="rounded-md px-6 py-2.5 text-sm font-medium">Next</button>
               </div>
             </>

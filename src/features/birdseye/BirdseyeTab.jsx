@@ -554,7 +554,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
 
 
-        <Progress userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={program?.goal === 'fat_loss'} />
+        <Progress userId={userId} profile={profile} active={active} weekStartDay={weekStartDay} hideScale={(program?.goals || [program?.goal]).includes('fat_loss')} />
       </div>
 
       {showProgramSheet && <ProgramSheet userId={userId} program={program} onSave={saveProgram} onClose={() => setShowProgramSheet(false)} weekStartDay={weekStartDay} initialStep={programSheetStep} />}

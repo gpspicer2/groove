@@ -5,7 +5,7 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../..
 import { useAuth } from '../../auth/AuthContext';
 import NoScaleSheet from './NoScaleSheet';
 import { predictedMaxHR } from '../../lib/heartRate';
-import { GOALS, isHybridGoal, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
+import { GOALS, isHybridGoal, hasCardio, hasGoal, isBlend, programLabel, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
 export function useHr(program) {
@@ -23,7 +23,7 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
     if (!program) return null;
     const week = weekNumber(program, new Date(), weekStartDay);
     let r = 0; let a = 0; let cum = 0;
-    const weightLoss = isHybridGoal(program.goal); // cardio counted by minutes (weight loss and improve fitness)
+    const weightLoss = hasCardio(program); // cardio counted by minutes (weight loss and improve fitness)
     const moves = normalizeMoves(program, weekStartDay);
     const sessions = sessionsForWeek(program, week).map((s0) => {
       // A moved session shows the weekday it was moved to.
@@ -70,11 +70,11 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   const toggleCard = () => setCard((v) => { writeFlag(LS_CARD, !v); return !v; });
   const toggle = () => setOpen((v) => { writeFlag(LS_OPEN, !v); return !v; });
   const s = week.next;
-  const goal = (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label;
+  const goal = programLabel(program);
   const split = chosenSplit(program);
-  const model = program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
-  const exact = isHybridGoal(program.goal)
-    ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} strength days · heart-rate zones`
+  const model = !isBlend(program) && program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
+  const exact = hasCardio(program)
+    ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} ${isBlend(program) ? 'lifting' : 'strength'} days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
   const acc = s && s.kind !== 'aerobic' ? [secondaryLine(s), accessoryLine(s)].filter(Boolean).join(' · ') : '';
@@ -138,7 +138,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
         </div>
       )}
       <button onClick={toggle} style={{ color: SKY }} className="w-full text-center text-sm mt-2.5 py-0.5">{open ? 'Hide the whole week' : 'See the whole week'}</button>
-      {program.goal === 'fat_loss' && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">About Weighing In</button>}
+      {hasGoal(program, 'fat_loss') && <button onClick={() => setWhyNoScale(true)} style={{ color: TEXT_SOFT }} className="w-full text-center text-sm py-0.5 underline">About Weighing In</button>}
       {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">
@@ -185,7 +185,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
     <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-2.5 text-center">
       <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{(GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label} Program</span>
+        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{programLabel(program)} Program</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
       {/* Once everything is done the line at the bottom says so, so the count is only shown while sessions remain. */}

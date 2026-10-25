@@ -76,7 +76,7 @@ export function useProgramProgress(userId, program, active, refreshKey, weekStar
       setDone({ resistance: res.size, aerobic: aer.size, aerobicEq: Math.round(eq), inProgress });
     })();
     return () => { cancelled = true; };
-  }, [userId, program?.startedAt, program?.goal, active, refreshKey, weekStartDay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, program?.startedAt, program?.goal, (program?.goals || []).join(), active, refreshKey, weekStartDay]); // eslint-disable-line react-hooks/exhaustive-deps
   return done;
 }
 

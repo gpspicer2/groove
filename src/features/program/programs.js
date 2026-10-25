@@ -20,6 +20,30 @@ export const goalEmoji = (goal, gender) => {
 };
 export const isHybridGoal = (goal) => goal === 'fat_loss' || goal === 'fitness';
 
+// A program can blend several goals (program.goals); program.goal stays the first one so older code and older programs
+// keep working. Lifting goals (strength, hypertrophy) share the lifting days; a cardio goal (fat loss, fitness) adds the
+// cardio days and minutes.
+export const programGoals = (program) => (Array.isArray(program?.goals) && program.goals.length ? program.goals : program?.goal ? [program.goal] : []);
+export const isBlend = (program) => programGoals(program).length > 1;
+export const liftGoalsOf = (program) => programGoals(program).filter((g) => g === 'strength' || g === 'hypertrophy');
+export const cardioGoalOf = (program) => { const g = programGoals(program); return g.includes('fat_loss') ? 'fat_loss' : g.includes('fitness') ? 'fitness' : null; };
+export const hasCardio = (program) => cardioGoalOf(program) != null;
+export const hasGoal = (program, id) => programGoals(program).includes(id);
+// The short name on cards: the goal (Strength, Fat Loss...), or both names for a blend.
+export const programLabel = (program) => (isBlend(program) ? programTitle(program) : (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label);
+// A short plain description of a blend, shown when more than one goal is picked.
+export function blendInfo(goals) {
+  const lift = goals.filter((g) => g === 'strength' || g === 'hypertrophy');
+  const cardio = goals.includes('fat_loss') ? 'Fat Loss' : goals.includes('fitness') ? 'Improve Fitness' : null;
+  const parts = [];
+  if (lift.length === 2) parts.push('Your lifting days alternate between powerlifting-style strength days (squat, bench, deadlift) and muscle-building days.');
+  else if (lift[0] === 'strength') parts.push('Your lifting days are powerlifting-style strength days: squat, bench and deadlift.');
+  else if (lift[0] === 'hypertrophy') parts.push('Your lifting days are muscle-building days: sets of 6-12 across every muscle.');
+  if (cardio) parts.push(`Your cardio days follow ${goals.includes('fat_loss') && goals.includes('fitness') ? 'Fat Loss and Improve Fitness together' : cardio}: minutes build gently, in a heart-rate zone or by effort.`);
+  parts.push('Everything runs on one 4-week wave: three build weeks, then a lighter week.');
+  return parts.join(' ');
+}
+
 export const MODELS = [
   { id: 'undulating', label: 'Undulating', blurb: 'Heavy, moderate and light days mixed through every week.' },
   { id: 'linear', label: 'Linear', blurb: 'A steady build over weeks: lighter and higher reps first, then heavier.' },
@@ -141,7 +165,7 @@ export const SPLIT_OPTIONS = {
   ],
 };
 export function splitOptions(program) {
-  if (isHybridGoal(program.goal)) return [];
+  if (isBlend(program) || isHybridGoal(program.goal)) return [];
   if (program.goal === 'strength') {
     const p = POWER_SPLITS[program.days];
     return p ? [{ id: `pl${program.days}`, label: p.label, freq: p.freq, tag: 'Powerlifting', sessions: p.sessions, info: 'The squat, bench press and deadlift each get a heavy day, with a second lift and supporting work after. Days that train a lift a second time are lighter variations.' }] : [];
@@ -164,8 +188,13 @@ const FAT_LOSS = {
 };
 
 // Improve Fitness uses the same layouts (4-6 days: enough room for ACSM's cardio minutes plus two strength days).
-const HYBRID = { fat_loss: FAT_LOSS, fitness: FAT_LOSS };
-const hybridPlan = (program) => HYBRID[program.goal][program.days] || HYBRID[program.goal][4];
+// A blend with lifting goals and cardio gives lifting a bit more room (3 lifting days at 5 and 6 days a week).
+const BLEND_CARDIO = {
+  4: { seq: 'ARAR', days: [1, 2, 4, 5] },
+  5: { seq: 'RARAR', days: [1, 2, 3, 5, 6] },
+  6: { seq: 'RARARA', days: [1, 2, 3, 4, 6, 0] },
+};
+const hybridPlan = (program) => (isBlend(program) && liftGoalsOf(program).length > 0 && BLEND_CARDIO[program.days]) || FAT_LOSS[program.days] || FAT_LOSS[4];
 
 const DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 4, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -234,19 +263,24 @@ const CYCLES = {
 };
 
 export function cycleKey(program) {
+  if (isBlend(program)) return 'strength'; // blends run one 4-week frame: three build weeks, then a lighter one
   if (program.goal === 'hypertrophy') return program.model === 'linear' ? 'linear' : 'undulating';
   return program.goal;
 }
 export function cycleLength(program) { return CYCLES[cycleKey(program)].len; }
 
 export function programTitle(program) {
+  if (isBlend(program)) {
+    const gs = programGoals(program);
+    return gs.length > 2 ? 'Custom Blend' : gs.map((id) => GOALS.find((x) => x.id === id)?.label || id).join(' + ');
+  }
   const g = GOALS.find((x) => x.id === program.goal);
   if (program.goal === 'hypertrophy') return `${g.label} · ${program.model === 'linear' ? 'Linear' : 'Undulating'}`;
   return g.label;
 }
 
 export function resistanceDays(program) {
-  return isHybridGoal(program.goal) ? hybridPlan(program).seq.split('R').length - 1 : program.days;
+  return hasCardio(program) ? hybridPlan(program).seq.split('R').length - 1 : program.days;
 }
 
 // 1-based week number since the program started (weeks follow the member's week start).
@@ -272,8 +306,14 @@ const CARDIO_RULES = {
   fat_loss: { cap: WEEKLY_MINUTES_CAP, perDay: 60, growth: 1.1, light: 0.7 },
   fitness: { cap: 300, perDay: 90, growth: 1.05, light: 0.8 },
 };
+// Both cardio goals picked: the numbers sit halfway between the two.
+function cardioRules(program) {
+  const gs = programGoals(program).filter(isHybridGoal);
+  if (gs.length === 2) { const [a, b] = [CARDIO_RULES.fat_loss, CARDIO_RULES.fitness]; return { cap: (a.cap + b.cap) / 2, perDay: (a.perDay + b.perDay) / 2, growth: (a.growth + b.growth) / 2, light: (a.light + b.light) / 2 }; }
+  return CARDIO_RULES[gs[0]] || CARDIO_RULES.fat_loss;
+}
 export function weeklyMinutes(program, week) {
-  const r = CARDIO_RULES[program.goal] || CARDIO_RULES.fat_loss;
+  const r = cardioRules(program);
   const start = Math.max(60, Number(program.startMinutes) || 90);
   const cap = Math.max(start, Math.min(r.cap, cardioDays(program) * r.perDay));
   const pos = ((week - 1) % 4) + 1;
@@ -346,7 +386,64 @@ function flavored(main, label, goal) {
 
 // The sessions for one week, with the prescription for that week.
 export function sessionsForWeek(program, week) {
-  const key = cycleKey(program);
+  return isBlend(program) ? blendSessions(program, week) : plainSessions(program, week);
+}
+
+// The lift templates a goal contributes when it gets `n` of the week's lifting days.
+function templatesFor(goal, n) {
+  if (goal === 'strength') return n >= 2 ? POWER_SPLITS[Math.min(n, 6)].sessions : [PL.squatBench];
+  return n >= 2 ? (SPLIT_OPTIONS[Math.min(n, 6)] || SPLIT_OPTIONS[3])[0].sessions : [T.fullA];
+}
+
+// A blend: the lifting days are shared between the lifting goals (alternating strength and muscle-building days), and a
+// cardio goal adds its cardio days. One 4-week frame: three build weeks, then a lighter week.
+function blendSessions(program, week) {
+  const lift = liftGoalsOf(program);
+  if (lift.length === 0) { const cg = cardioGoalOf(program); return plainSessions({ ...program, goal: cg }, week, cg); } // Fat Loss + Improve Fitness
+  const cyc = CYCLES.strength;
+  const pos = cyclePosition(program, week);
+  const w = cyc.weeks[pos - 1];
+  const deload = w.phase === 'Deload';
+  const plan = hasCardio(program) ? hybridPlan(program) : null;
+  const seq = plan ? plan.seq : 'R'.repeat(program.days);
+  const days = hasChosenDays(program) ? orderedWeekdays(program.weekdays) : (plan ? plan.days : DAYS[program.days]);
+  const nR = seq.split('R').length - 1;
+  const counts = lift.length === 1 ? [nR] : [Math.ceil(nR / 2), nR - Math.ceil(nR / 2)];
+  const templates = lift.map((g, i) => templatesFor(g, counts[i]));
+  const order = [];
+  for (let k = 0; order.length < nR && k < 8; k += 1) lift.forEach((g, i) => { if (templates[i][k] && order.length < nR) order.push({ g, t: templates[i][k] }); });
+  const und = CYCLES.undulating;
+  const out = [];
+  let li = 0; let ai = 0; let hi = 0;
+  seq.split('').forEach((c, i) => {
+    const day = days[i];
+    if (c === 'A') { out.push(cardioSession(program, week, ai, cardioDays(program), day, deload)); ai += 1; return; }
+    const { g, t } = order[li];
+    let presc; let label = ''; let exercises; let mainCount;
+    if (g === 'strength') {
+      label = deload ? 'Deload' : t.volume ? 'Volume' : '';
+      let top = t.volume && !deload ? flavored(w.main, 'Light', 'strength') : w.main;
+      if (t.leads && t.leads[0] === LEAD.deadlift && top.sets > 3) top = { ...top, sets: Math.max(3, top.sets - 2) };
+      presc = { main: top, sec: w.sec || null, acc: w.acc || null };
+      exercises = cyc.exercises; mainCount = cyc.mainCount;
+    } else {
+      const d = deload ? und.deload : und.days[(hi + week - 1) % 3];
+      presc = { main: d.main, sec: null, acc: null };
+      label = d.label; hi += 1;
+      exercises = (t.groups || []).length <= 3 ? 7 : 6; mainCount = 0;
+    }
+    out.push({
+      id: `w${week}-r${li}`, kind: 'resistance', name: t.name + (g === 'hypertrophy' && label ? ` · ${label}` : ''),
+      shortName: t.name, groups: t.groups, style: g === 'strength' ? 'Strength' : 'Hypertrophy', day, label, goal: g,
+      presc: presc.main, sec: presc.sec, acc: presc.acc, leads: t.leads || null, exercises, mainCount, phase: deload ? 'Deload' : 'Build',
+    });
+    li += 1;
+  });
+  return out;
+}
+
+function plainSessions(program, week, keyOverride) {
+  const key = keyOverride || cycleKey(program);
   const cyc = CYCLES[key];
   const pos = cyclePosition(program, week);
   const deload = pos === cyc.len && (key !== 'undulating' ? cyc.weeks[pos - 1].phase === 'Deload' : true);
