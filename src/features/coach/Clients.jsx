@@ -20,7 +20,7 @@ function memberBadge(c) {
   return null;
 }
 
-export default function Clients({ clients, stats, attention, onOpenClient }) {
+export default function Clients({ clients, stats, attention, onOpenClient, selfId }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const attentionIds = new Set(attention.map((a) => a.id));
@@ -78,7 +78,7 @@ export default function Clients({ clients, stats, attention, onOpenClient }) {
                   <Avatar client={c} />
                   <span className="flex-1 min-w-0">
                     <span style={{ color: PAPER }} className="flex items-center gap-2 text-base font-semibold">
-                      <span className="truncate">{c.full_name || c.email}</span>
+                      <span className="truncate">{c.full_name || c.email}{c.id === selfId && ' (You)'}</span>
                       {level && <StatusDot level={level} />}
                     </span>
                     {flagFor(c.id) && flagFor(c.id).kind !== 'gap' && (

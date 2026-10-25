@@ -33,7 +33,7 @@ export default function TrainerApp() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data: clientRows } = await supabase.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
+    const { data: clientRows } = await supabase.from('profiles').select('*').or(`role.eq.client,id.eq.${user.id}`).order('created_at', { ascending: false });
     const list = clientRows || [];
     setClients(list);
     const ids = list.map((c) => c.id);
@@ -47,7 +47,7 @@ export default function TrainerApp() {
       setSets(s.data || []);
     }
     setLoading(false);
-  }, []);
+  }, [user.id]);
 
   useEffect(() => { load(); }, [load]);
   // Refresh when Greg comes back to the app.
@@ -66,11 +66,14 @@ export default function TrainerApp() {
   const [acks, setAcks] = useState(() => {
     try { return JSON.parse(localStorage.getItem(ackKey) || '{}'); } catch { return {}; }
   });
+  // Greg's own login is listed in Members (so he can see his own week) but is left out of everything about OTHER people:
+  // the needs-attention list, Today's stats and activity, and Billing.
+  const members = clients.filter((c) => c.id !== user.id);
   const stats = computeMemberStats(clients, workouts, sets);
-  const attention = buildAttention(clients, stats, new Date(), acks);
+  const attention = buildAttention(members, stats, new Date(), acks);
   function acknowledge(id) {
     const mine = {};
-    buildAttention(clients, stats, new Date(), {}).filter((i) => i.id === id).forEach((i) => { mine[i.kind] = i.sig; });
+    buildAttention(members, stats, new Date(), {}).filter((i) => i.id === id).forEach((i) => { mine[i.kind] = i.sig; });
     if (Object.keys(mine).length === 0) return;
     setAcks((prev) => {
       const next = { ...prev, [id]: { ...(prev[id] || {}), ...mine } };
@@ -92,7 +95,7 @@ export default function TrainerApp() {
   const activeIndex = TABS.findIndex(([key]) => key === tab);
 
   const pageWrap = (key, node) => <div key={key} className="max-w-md mx-auto px-4 pb-10 pt-1">{node}</div>;
-  const todayEl = pageWrap('today', <Today firstName={firstName} clients={clients} stats={stats} attention={attention} workouts={workouts} onOpenClient={open} onClientChanged={clientChanged} />);
+  const todayEl = pageWrap('today', <Today firstName={firstName} clients={members} stats={stats} attention={attention} workouts={workouts.filter((w) => w.user_id !== user.id)} onOpenClient={open} onClientChanged={clientChanged} />);
   const clientsEl = pageWrap('clients', selected ? (
     <ClientScreen
       client={selected}
@@ -103,9 +106,9 @@ export default function TrainerApp() {
       onClientChanged={clientChanged}
       onClientRemoved={(id) => { setClients((prev) => prev.filter((c) => c.id !== id)); setSelectedId(null); }}
     />
-  ) : <Clients clients={clients} stats={stats} attention={attention} onOpenClient={open} />);
+  ) : <Clients clients={clients} selfId={user.id} stats={stats} attention={attention} onOpenClient={open} />);
   const libraryEl = pageWrap('library', <div className="-mx-4"><ArticleManager /></div>);
-  const billingEl = pageWrap('billing', <Members clients={clients} onClientChanged={clientChanged} />);
+  const billingEl = pageWrap('billing', <Members clients={members} onClientChanged={clientChanged} />);
   const needs = new Set(attention.map((a) => a.id)).size;
 
   return (

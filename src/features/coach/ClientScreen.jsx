@@ -140,7 +140,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       {tab === 'overview' && (
         <div>
           <ClearanceCard client={client} onClientChanged={onClientChanged} />
-          <MessageComposer client={client} />
+          {client.id !== trainerId && <MessageComposer client={client} />}
           <div style={{ background: INK_2 }} className="rounded-2xl px-4 py-3.5">
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">This Week</div>
             <WeekBars client={client} week={stat.week} unitless />
@@ -191,7 +191,7 @@ export default function ClientScreen({ client, stat, workouts, trainerId, onBack
       {tab === 'workouts' && <ClientWorkouts clientId={client.id} />}
       {tab === 'notes' && <CoachNotes clientId={client.id} />}
 
-      <RemoveMember client={client} onRemoved={() => onClientRemoved(client.id)} />
+      {client.id !== trainerId && <RemoveMember client={client} onRemoved={() => onClientRemoved(client.id)} />}
     </div>
   );
 }
