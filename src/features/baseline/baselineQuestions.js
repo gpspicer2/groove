@@ -54,7 +54,8 @@ export const BASELINE_SECTIONS = [
       {
         key: 'coaching_style',
         label: 'Preferred Mentorship Style',
-        type: 'radio',
+        hint: 'Pick any that fit.',
+        type: 'multi', // several can be picked; saved as one string joined with " | "
         options: ['Gentle', 'Detailed (down to every last rep)', 'Authoritative (drop and give me 20)', 'Educational', 'Other (e.g., a mix of a couple styles — please explain)'],
       },
       {

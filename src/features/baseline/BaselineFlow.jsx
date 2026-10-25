@@ -192,7 +192,12 @@ function groupQuestions(questions) {
 
 function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
   const otherKey = `${question.key}_other`;
-  const isOtherSelected = question.type === 'radio' && value.startsWith('Other');
+  const picked = question.type === 'multi' ? String(value || '').split(' | ').filter(Boolean) : [];
+  const isOtherSelected = (question.type === 'radio' && value.startsWith('Other')) || (question.type === 'multi' && picked.some((p) => p.startsWith('Other')));
+  function toggleMulti(opt) {
+    const next = picked.includes(opt) ? picked.filter((p) => p !== opt) : [...picked, opt];
+    onChange(next.join(' | '));
+  }
 
   return (
     <div>
@@ -250,6 +255,37 @@ function QuestionField({ question, value, onChange, allAnswers, setAnswer }) {
 
       {question.type === 'age' && (
         <AgePicker value={value} onChange={onChange} />
+      )}
+
+      {question.type === 'multi' && (
+        <>
+          <div className="flex flex-wrap justify-center gap-2">
+            {question.options.map((opt) => {
+              const selected = picked.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleMulti(opt)}
+                  style={{ background: selected ? PLUM : INK_3, color: selected ? INK : PAPER_DIM }}
+                  className="text-center rounded-md px-3.5 py-2 text-sm"
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {isOtherSelected && (
+            <textarea
+              value={allAnswers[otherKey] || ''}
+              onChange={(e) => setAnswer(otherKey, e.target.value)}
+              rows={2}
+              placeholder="Please explain…"
+              style={{ background: INK_3, color: PAPER }}
+              className="w-full rounded-md px-3 py-2.5 text-sm outline-none resize-none mt-2"
+            />
+          )}
+        </>
       )}
 
       {question.type === 'radio' && (
