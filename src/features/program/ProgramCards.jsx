@@ -188,23 +188,18 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
   const next = week.next;
   const today = new Date().getDay();
   return (
-    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-2.5 text-center">
+    <div style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-4 py-2 text-center">
       <div className="flex items-center justify-between">
         <span className="w-5" />
-        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{programLabel(program)} Program</span>
+        <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{programLabel(program)} Program{(next || week.minutes) ? <span style={{ color: TEXT_SOFT }} className="text-sm normal-case tracking-normal font-normal"> · {week.doneCount}/{week.sessions.length}</span> : null}</span>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
       </div>
-      {/* Once everything is done the line at the bottom says so, so the count is only shown while sessions remain. */}
-      {(next || week.minutes) && (
-        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5">{week.doneCount} of {week.sessions.length} done this week{week.minutes ? ` · ${week.minutes.done}/${week.minutes.target} cardio min` : ''}</div>
-      )}
-      {!next && !week.minutes && <div className="mb-1.5" />}
       {!hasChosenDays(program) && onPickDays && (
-        <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2 text-sm font-medium mb-2">
+        <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-1.5 text-sm font-medium mb-1.5">
           Pick your training days
         </button>
       )}
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 mt-1">
         {week.sessions.map((s) => {
           const isNext = next && next.id === s.id;
           return (
@@ -219,12 +214,12 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
         })}
       </div>
       {next ? (
-        <div className="flex items-center justify-between gap-3 text-left mt-2">
+        <div className="flex items-center justify-between gap-3 text-left mt-1.5">
           <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? (next.zone || next.run ? `${next.name} ${next.minutes} min` : 'Cardio') : next.name}</div>
           {next.inProgress ? (
             <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In Progress</span>
           ) : (
-            <button onClick={() => onStart(next)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3.5 py-1.5 text-sm font-medium inline-flex items-center gap-1.5">
+            <button onClick={() => onStart(next)} style={{ background: LIME, color: INK }} className="shrink-0 rounded-md px-3 py-1 text-sm font-medium inline-flex items-center gap-1.5">
               <Play size={14} /> Start
             </button>
           )}
