@@ -1,7 +1,7 @@
 import { estimateKcal } from '../../lib/calories';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, Trees, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, Trees, PersonStanding, Footprints, Timer, Plus, Minus, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -90,7 +90,6 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [trackAerobicGoal, setTrackAerobicGoal] = useState(true);
   const [trackResistanceGoal, setTrackResistanceGoal] = useState(true);
   const [editingGoals, setEditingGoals] = useState(false);
-  const [goalHelp, setGoalHelp] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [kcalByWorkout, setKcalByWorkout] = useState({});
   const [plans, setPlans] = useState([]); // planned workouts from the last 14 days on
@@ -518,11 +517,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
         <div data-tour="birdseye-goals" style={{ background: INK_2, borderTop: `2px solid ${LIME}` }} className="rounded-lg px-5 py-2.5">
           <div className="flex items-center justify-between mb-0.5">
-            <span />
-            <span style={{ color: TEXT_SOFT }} className="text-base uppercase tracking-wide">Weekly Goals</span>
-            <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
-              <Pencil size={14} />
-            </button>
+            <button onClick={() => setEditingGoals(true)} style={{ color: TEXT_SOFT }} className="mx-auto text-base uppercase tracking-wide underline underline-offset-4 decoration-1">Weekly Goals</button>
           </div>
 
           {trackedGoals.length === 0 && (
@@ -556,7 +551,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           )}
           {/* First-timers (nothing logged yet) get a friendly way into setting their goals. */}
           {workouts.length === 0 && trackedGoals.length > 0 && (
-            <FirstTimeHint id="goals" userId={userId} label="Where Did These Come From?" color={LIME} onOpen={() => setGoalHelp(true)} className="mt-1" />
+            <FirstTimeHint id="goals" userId={userId} label="Where Did These Come From?" color={LIME} onOpen={() => setGoalInfo('Aerobic')} className="mt-1" />
           )}
           {/* The nudge lives inside this card (not a card of its own) so the calendar stays higher on the screen. */}
           {insight && intakeDone && (
@@ -617,16 +612,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         />
       )}
 
-      {goalHelp && (
-        <GoalHelpSheet
-          onSetGoals={() => { setGoalHelp(false); setEditingGoals(true); }}
-          onScience={() => { setGoalHelp(false); onOpenScientificSupport && onOpenScientificSupport(); }}
-          onClose={() => setGoalHelp(false)}
-        />
-      )}
       {goalInfo && (
         <GoalInfo
-          mode={goalInfo}
+          mode={goalInfo} modes={trackedGoals.map((g) => g.mode)} onPick={setGoalInfo}
           onChange={() => { setGoalInfo(null); setEditingGoals(true); }}
           onLearn={() => { setGoalInfo(null); onOpenScientificSupport && onOpenScientificSupport(); }}
           onClose={() => setGoalInfo(null)}
@@ -1122,40 +1110,3 @@ function DayChoicePopup({ day, count, plans = [], onStartPlan, onPlanned, onView
 
 // "Where Did These Come From?" for first-time members (their goals load automatically): what the three weekly goals mean in
 // plain words (from ACSM), and a way to change them or read more under Learn > Guides > Scientific Support.
-function GoalHelpSheet({ onSetGoals, onScience, onClose }) {
-  const sheet = useSwipeDown(onClose);
-  const rows = [
-    { icon: Activity, color: MOSS, name: 'Aerobic', text: '150 minutes a week of moderate activity. Walking, cycling, and dancing all count, and hard minutes count double.' },
-    { icon: Dumbbell, color: SKY, name: 'Resistance', text: 'At least 2 days a week of strength work for your major muscles. Bodyweight moves count.' },
-    { icon: PersonStanding, color: BRICK, name: 'Flexibility', text: '2 or 3 days a week of stretching or yoga.' },
-  ];
-  return (
-    <Portal>
-      <div style={{ background: 'rgba(0,0,0,0.5)' }} className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="w-full max-w-md rounded-t-2xl px-5 py-4 max-h-[92vh] overflow-y-auto text-center" onClick={(e) => e.stopPropagation()}>
-          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
-          <div className="flex items-center justify-between mb-1">
-            <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">Where Your Goals Come From</h2>
-            <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
-          </div>
-          <div style={{ color: PAPER_DIM }} className="text-sm mb-3">These loaded automatically from ACSM, a leading sports medicine organization. A good place to aim, and you can change them any time.</div>
-          <div className="space-y-2 mb-3">
-            {rows.map(({ icon: Icon, color, name, text }) => (
-              <div key={name} style={{ background: INK_3 }} className="rounded-md px-3 py-2.5">
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Icon size={15} color={color} />
-                  <span style={{ color: PAPER }} className="text-base font-medium">{name}</span>
-                </div>
-                <div style={{ color: PAPER_DIM }} className="text-sm">{text}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">Just starting? Two strength days is plenty. Add a third when it feels easy.</div>
-          <button onClick={onSetGoals} style={{ background: LIME, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mb-2">Change My Goals</button>
-          <button onClick={onScience} style={{ color: TEXT_SOFT }} className="w-full text-sm underline py-1.5">Read the Scientific Support</button>
-        </div>
-      </div>
-    </Portal>
-  );
-}

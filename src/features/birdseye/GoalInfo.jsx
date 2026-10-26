@@ -10,13 +10,13 @@ export const GOAL_INFO_TEXT = {
   Aerobic: {
     icon: Activity, color: MOSS, title: 'Aerobic',
     what: 'Minutes of movement that raise your heart rate: walking, cycling, dancing, mowing the lawn, a run. Moderate minutes count once, vigorous minutes count double.',
-    why: '150 minutes a week of moderate activity is the amount major health organizations (ACSM, the CDC and the World Health Organization) point to. Studies link it to a lower risk of heart disease, diabetes and early death, and most of that benefit shows up by about 150 minutes. Light activity is real movement but does not count toward this number.',
+    why: 'The Physical Activity Guidelines for Americans (2nd edition) say adults should get at least 150 to 300 minutes a week of moderate activity, or 75 to 150 of vigorous, and that even modest increases help the least active people most. Groove starts you at 150, the low end, and your own number can grow. Light activity is real movement but does not count toward this number.',
     looks: 'About 30 minutes, 5 days a week. Or 10 minutes here and there: a brisk walk after dinner, the stairs, a bike ride with a friend. Everyday life counts, and so does a weekend hike.',
   },
   Resistance: {
     icon: Dumbbell, color: SKY, title: 'Resistance',
     what: 'Days you challenge your muscles: lifting, bands, or your own bodyweight.',
-    why: 'ACSM recommends strength work for every major muscle group at least 2 days a week. It protects muscle and bone as you age, helps blood sugar and keeps everyday tasks easy. New members start at 2 days because that is the proven minimum, and you add a third when it feels easy.',
+    why: 'The Physical Activity Guidelines for Americans and ACSM recommend muscle-strengthening on 2 or more days a week for every major muscle group. It protects muscle and bone as you age, helps blood sugar and keeps everyday tasks easy. New members start at 2 days because that is the proven minimum, and you add a third when it feels easy.',
     looks: 'Two shorter sessions, like a full-body workout on Tuesday and Saturday. It counts days, not workouts, so two sessions in one day count once.',
   },
   Flexibility: {
@@ -28,7 +28,7 @@ export const GOAL_INFO_TEXT = {
   Balance: {
     icon: Footprints, color: VIOLET, title: 'Balance',
     what: 'Days you practice balance: Tai Chi, single-leg work or other balance training.',
-    why: 'ACSM recommends balance and agility practice at least 2 days a week for adults 65 and older, because it helps prevent falls. It is off by default for everyone else, so turn it on if it appeals to you.',
+    why: 'The Physical Activity Guidelines for Americans advise older adults to include balance training along with aerobic and strength work, and ACSM suggests at least 2 days a week, because it helps prevent falls. It is off by default for everyone else, so turn it on if it appeals to you.',
     looks: 'Standing on one foot while you brush your teeth, a Tai Chi class, or a balance drill at the end of a workout.',
   },
   Nature: {
@@ -39,7 +39,7 @@ export const GOAL_INFO_TEXT = {
   },
 };
 
-export default function GoalInfo({ mode, onChange, onLearn, onClose }) {
+export default function GoalInfo({ mode, modes = [], onPick, onChange, onLearn, onClose }) {
   const sheet = useSwipeDown(onClose);
   const g = GOAL_INFO_TEXT[mode];
   if (!g) return null;
@@ -60,6 +60,11 @@ export default function GoalInfo({ mode, onChange, onLearn, onClose }) {
             <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium flex items-center gap-1.5"><Icon size={18} color={g.color} /> {g.title} Goal</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
+          {modes.length > 1 && (
+            <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+              {modes.map((m) => <button key={m} onClick={() => onPick(m)} style={{ background: m === mode ? g.color : INK_3, color: m === mode ? INK : PAPER_DIM }} className="rounded-full px-3 py-1 text-sm font-medium">{m}</button>)}
+            </div>
+          )}
           <Section label="What It Is">{g.what}</Section>
           <Section label="Why This Number">{g.why}</Section>
           <Section label="What It Can Look Like">{g.looks}</Section>
