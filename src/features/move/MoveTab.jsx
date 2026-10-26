@@ -1037,13 +1037,16 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   }
 
   // Turn a standing exercise into a superset after the workout has started.
-  function pairExisting(i) {
+  // Pair the lift at i with another lift already in the workout (the next one by default); the partner moves up to sit right after it.
+  function pairExisting(i, j = i + 1) {
     setPlanExercises((prev) => {
-      const a = prev[i]; const b = prev[i + 1];
-      if (!a || !b || a.supersetId || b.supersetId || a.type !== 'resistance' || b.type !== 'resistance') return prev;
+      const a = prev[i]; const b = prev[j];
+      if (!a || !b || i === j || a.supersetId || b.supersetId || a.type !== 'resistance' || b.type !== 'resistance') return prev;
       const id = uid();
-      const n = [...prev];
-      n[i] = { ...a, supersetId: id }; n[i + 1] = { ...b, supersetId: id };
+      const n = prev.filter((_, k) => k !== j);
+      const ai = n.indexOf(a);
+      n[ai] = { ...a, supersetId: id };
+      n.splice(ai + 1, 0, { ...b, supersetId: id });
       return n;
     });
   }
@@ -3054,7 +3057,9 @@ function ActiveWorkout({
         <PairChooser
           exercise={exercises[pairIndex]}
           next={exercises[pairIndex + 1] && exercises[pairIndex + 1].type === 'resistance' && !exercises[pairIndex + 1].supersetId ? exercises[pairIndex + 1] : null}
+          others={exercises.map((e, k) => ({ e, k })).filter(({ e, k }) => k !== pairIndex && k !== pairIndex + 1 && e.type === 'resistance' && !e.supersetId && e.muscleGroup !== 'Warm-up')}
           onNext={() => { onPairExisting(pairIndex); setActiveGroupKey(null); setPairIndex(null); }}
+          onPickExisting={(k) => { onPairExisting(pairIndex, k); setActiveGroupKey(null); setPairIndex(null); }}
           onOther={() => setPairPicking(true)}
           onCardio={(name) => { onPairCardio(pairIndex, name); setActiveGroupKey(null); setPairIndex(null); }}
           onClose={() => setPairIndex(null)}
@@ -3271,9 +3276,10 @@ function EditBurstModal({ set, onSave, onRemove, onClose }) {
 }
 
 // "Make it a superset": pair this exercise with the next one in the list, or add another to go with it.
-function PairChooser({ exercise, next, onNext, onOther, onCardio, onClose }) {
+function PairChooser({ exercise, next, others = [], onNext, onPickExisting, onOther, onCardio, onClose }) {
   const sheet = useSwipeDown(onClose);
   const [cardio, setCardio] = useState(false);
+  const [listing, setListing] = useState(false);
   const [custom, setCustom] = useState('');
   const btn = 'w-full rounded-md py-3 text-sm font-medium mb-2';
   return (
@@ -3297,11 +3303,22 @@ function PairChooser({ exercise, next, onNext, onOther, onCardio, onClose }) {
               </div>
             </>
           ) : (
+          listing ? (
+            <>
+              <div style={{ color: TEXT_SOFT }} className="text-sm mb-2">Pick one from your workout</div>
+              <div className="max-h-[45vh] overflow-y-auto">
+                {others.map(({ e, k }) => <button key={k} onClick={() => onPickExisting(k)} style={{ background: INK_3, color: PAPER }} className={btn}>{e.name}</button>)}
+              </div>
+              <button onClick={() => setListing(false)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1">Back</button>
+            </>
+          ) : (
           <>
           {next && <button onClick={onNext} style={{ background: INK_3, color: PAPER }} className={btn}>{next.name} (next in your list)</button>}
-          <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>Another Exercise</button>
+          {others.length > 0 && <button onClick={() => setListing(true)} style={{ background: INK_3, color: PAPER }} className={btn}>Another From Your Workout</button>}
+          <button onClick={onOther} style={{ background: INK_3, color: PAPER }} className={btn}>A New Exercise</button>
           <button onClick={() => setCardio(true)} style={{ background: INK_3, color: PAPER }} className={btn}>A cardio burst (jump rope, bike...)</button>
           </>
+          )
           )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
         </div>
