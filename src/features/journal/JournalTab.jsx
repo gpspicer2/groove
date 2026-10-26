@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useArmed } from '../../lib/useArmed';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import SwipeHint from '../../SwipeHint';
-import { ChevronLeft, ChevronRight, X, Lock, Check, Pencil, Trash2 } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, X, Lock, Check, Trash2 } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../auth/AuthContext';
 import { workoutTitle, shortWorkoutTitle } from '../move/exerciseLibrary';
@@ -201,7 +201,7 @@ function JournalEntryRow({ entry, onEdit, onDelete }) {
                 style={{ background: AMBER, color: ON_AMBER }}
                 className="w-full flex items-center justify-center gap-2 rounded-md py-3 text-sm font-medium mb-2"
               >
-                <Pencil size={16} /> Edit Entry
+                Edit Entry
               </button>
               <button
                 onClick={() => arm.press('sheet', () => { setShowActions(false); onDelete(); })}

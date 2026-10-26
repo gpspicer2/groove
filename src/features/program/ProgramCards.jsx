@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Check, Pencil, Play, ListChecks, ChevronDown, ChevronUp } from '../../lib/icons';
+import { Check, Play, ListChecks, ChevronDown, ChevronUp } from '../../lib/icons';
 import { useProgramProgress } from './useProgram';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../../theme';
 import { useAuth } from '../../auth/AuthContext';
@@ -90,7 +90,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
       <div className="flex items-center justify-between text-center">
         <button onClick={toggleCard} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={card ? 'Hide program details' : 'Show program details'}>{card ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
         <button onClick={toggleCard} style={{ color: SKY }} className="text-lg uppercase tracking-wide font-bold">{goal} Program</button>
-        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
+        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1" aria-label="Manage program">Edit</button>
       </div>
       {card && (<>
       <div style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</div>
@@ -192,7 +192,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
       <div className="flex items-center justify-between">
         <span className="w-5" />
         <span style={{ color: LIME }} className="text-base uppercase tracking-wide font-bold">{programLabel(program)} Program{(next || week.minutes) ? <span style={{ color: TEXT_SOFT }} className="text-sm normal-case tracking-normal font-normal"> · {week.doneCount}/{week.sessions.length}</span> : null}</span>
-        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Manage program"><Pencil size={14} /></button>
+        <button onClick={onManage} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1" aria-label="Manage program">Edit</button>
       </div>
       {!hasChosenDays(program) && onPickDays && (
         <button onClick={onPickDays} style={{ background: LIME, color: INK }} className="w-full rounded-md py-1.5 text-sm font-medium mb-1.5">

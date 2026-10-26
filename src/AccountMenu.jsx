@@ -3,7 +3,7 @@ import ScreeningStatus from './features/screening/ScreeningStatus';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRevealOnOpen } from './lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from './lib/swipeDown';
-import { User, X, LogOut, Trash2, ChevronRight, Plus, Pencil, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
+import { User, X, LogOut, Trash2, ChevronRight, Plus, RotateCcw, ChevronDown, ChevronUp, Info, MessageCircle, Camera } from './lib/icons';
 import { useAuth } from './auth/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { deleteAccount, startCheckout, openBillingPortal } from './lib/api';
@@ -519,7 +519,7 @@ function MovementsModal({ onClose }) {
               ) : (
                 <span style={{ color: PAPER }} className="flex-1 text-sm">{m.replace(/^flex:/, '')}{m.startsWith('flex:') && <span style={{ color: TEXT_SOFT }}> · flexibility</span>}</span>
               )}
-              <button onClick={() => startEdit(i)} style={{ color: TEXT_SOFT }} className="p-1.5 -m-1"><Pencil size={14} /></button>
+              <button onClick={() => startEdit(i)} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2 p-1.5 -m-1">Edit</button>
               <button onClick={() => removeMovement(m)} style={{ color: TEXT_SOFT }} className="p-1.5 -m-1"><X size={14} /></button>
             </div>
           ))}
