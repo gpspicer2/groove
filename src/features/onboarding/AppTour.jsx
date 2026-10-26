@@ -24,7 +24,7 @@ const STEPS = [
   },
   {
     tab: 'birdseye', selector: '[data-tour="tab-birdseye"]', pos: 'top', color: LIME, title: 'Birdseye',
-    body: "Your overview: weekly goals, a calendar for logging and planning workouts, your training program once you start one, and your progress over time.",
+    body: "Your overview: weekly goals (including 120 minutes a week in nature, which any outdoor workout counts toward), a calendar for logging and planning workouts, your training program once you start one, and your progress over time.",
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',

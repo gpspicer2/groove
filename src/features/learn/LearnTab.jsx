@@ -50,7 +50,7 @@ function mapArticle(row) {
 // sinks to the bottom. A title match beats a summary match; everything else keeps
 // the database order (pinned, then newest). The sort runs once on load, so every
 // list (favorites, categories, search) inherits it. No SQL needed.
-const PROMO_ORDER = [/born to\s*\*?exercise|meant to\s*\*?(exercise|move)/i, /track|data|measure|log/i, /journal|reflect|writ/i];
+const PROMO_ORDER = [/born to\s*\*?exercise|meant to\s*\*?(exercise|move)/i, /track|data|measure|log/i, /journal|reflect|writ/i, /nature|outdoor|outside/i];
 const DANCE = /danc|zumba|salsa|ballet/i;
 function promoRank(a) {
   const t = a.title.replace(/\*/g, '');

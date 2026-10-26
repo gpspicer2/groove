@@ -55,7 +55,7 @@ export const AEROBIC_ACTIVITIES_QUICK = [
 // rather than sets and reps. A client's own typed-in additions are
 // appended alongside these (see profiles.custom_activities).
 export const LIFESTYLE_ACTIVITIES = [
-  'Walking', 'Jogging', 'Cycling', 'Hiking', 'Swimming', 'Yoga', 'Dancing', 'Gardening', 'Yard Work',
+  'Walking', 'Jogging', 'Cycling', 'Hiking', 'Time in Nature', 'Swimming', 'Yoga', 'Dancing', 'Gardening', 'Yard Work',
   'Pickleball', 'Basketball', 'Tennis', 'Soccer', 'Volleyball', 'Golf',
 ];
 

@@ -1,7 +1,7 @@
 import { estimateKcal } from '../../lib/calories';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Dumbbell, Activity, Trees, PersonStanding, Footprints, Timer, Plus, Minus, Pencil, X, Info, Check } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -31,6 +31,12 @@ import { ProgramWeekCard, MoveProgramLink, useProgramWeek } from '../program/Pro
 import MuscleBalance from './MuscleBalance';
 import TailoredTips from '../screening/TailoredTips';
 import { BALANCE_ACTIVITIES } from '../move/exerciseLibrary';
+import { NATURE_GOAL_MINUTES, natureBaseFromSets, natureMinutes } from './nature';
+
+const natureKey = (id) => `groove:nature:${id}`;
+function readNature(id) {
+  try { return JSON.parse(localStorage.getItem(natureKey(id)) || 'null') || {}; } catch { return {}; }
+}
 
 function daysBetween(a, b) {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -92,6 +98,9 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const [trackBalanceGoal, setTrackBalanceGoal] = useState(false);
   const [balanceGoal, setBalanceGoal] = useState(2);
   const [balanceWorkoutIds, setBalanceWorkoutIds] = useState(new Set());
+  const [trackNature, setTrackNature] = useState(() => readNature(userId).track !== false);
+  const [natureGoal, setNatureGoal] = useState(() => readNature(userId).minutes || NATURE_GOAL_MINUTES);
+  const [natureBase, setNatureBase] = useState({});
 
   // Strava brought in new workouts: reload.
   useEffect(() => {
@@ -102,10 +111,10 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   }, []);
   async function loadAll() {
     const [workoutsRes, baselineRes, profileRes, setsRes] = await Promise.all([
-      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
+      supabase.from('workouts').select('id, started_at, completed_at, muscle_groups, activities, movement_mode, location, external_id').eq('user_id', userId).is('deleted_at', null).order('started_at', { ascending: false }),
       supabase.from('baseline_responses').select('fitness_assessment, form_answers, submitted_at').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('age, resting_hr_bpm, max_hr_bpm, prescribed_hr_zone, resistance_goal, aerobic_goal, aerobic_goal_minutes, flexibility_goal, track_flexibility_goal, track_aerobic_goal, track_resistance_goal, bodyweight_lb').eq('id', userId).maybeSingle(),
-      supabase.from('workout_sets').select('workout_id, exercise_name, muscle_group, distance, movement_type, light_minutes, moderate_minutes, vigorous_minutes').eq('user_id', userId),
+      supabase.from('workout_sets').select('workout_id, exercise_name, muscle_group, distance, movement_type, light_minutes, moderate_minutes, vigorous_minutes, duration_seconds').eq('user_id', userId),
     ]);
     // Plans load on their own so a hiccup there never blocks the rest of Birdseye.
     const planRes = await supabase.from('planned_workouts').select('*').eq('user_id', userId).gte('planned_for', dateInputValue(new Date(Date.now() - 14 * 864e5))).order('planned_for', { ascending: true });
@@ -115,6 +124,12 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     if (!balRes.error && balRes.data) {
       setTrackBalanceGoal(balRes.data.track_balance_goal === true);
       setBalanceGoal(balRes.data.balance_goal || 2);
+    }
+    // Nature goal columns also load on their own (a copy lives on this device until the SQL is run).
+    const natRes = await supabase.from('profiles').select('track_nature_goal, nature_goal_minutes').eq('id', userId).maybeSingle();
+    if (!natRes.error && natRes.data) {
+      if (natRes.data.track_nature_goal != null) setTrackNature(natRes.data.track_nature_goal !== false);
+      if (natRes.data.nature_goal_minutes) setNatureGoal(natRes.data.nature_goal_minutes);
     }
     const firstError = workoutsRes.error || baselineRes.error || profileRes.error || setsRes.error;
     setLoadError(firstError ? `Couldn't load your data: ${firstError.message}` : '');
@@ -170,6 +185,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     const kcalMap = {};
     Object.keys(byWorkout).forEach((id) => { kcalMap[id] = estimateKcal(byWorkout[id], bw); });
     setKcalByWorkout(kcalMap);
+    setNatureBase(natureBaseFromSets(setRows));
     setWorkoutTypes(types);
     setAerobicMinutesByWorkout(aerobicMinutes);
     setLiftSetRows((setRows || []).filter((s) => (s.movement_type || 'resistance') === 'resistance' && s.muscle_group && s.muscle_group !== 'Warm-up'));
@@ -232,7 +248,15 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     await supabase.from('profiles').update({ aerobic_goal_minutes: clamped }).eq('id', userId);
   }
 
+  function saveNature(patch) {
+    const cur = { track: trackNature, minutes: natureGoal, ...patch };
+    try { localStorage.setItem(natureKey(userId), JSON.stringify(cur)); } catch { /* storage blocked */ }
+    if ('track' in patch) setTrackNature(patch.track);
+    if ('minutes' in patch) setNatureGoal(patch.minutes);
+    supabase.from('profiles').update({ track_nature_goal: cur.track, nature_goal_minutes: cur.minutes }).eq('id', userId).then(() => {}); // quietly ignored until the columns exist
+  }
   async function setGoalTracked(mode, next) {
+    if (mode === 'Nature') { saveNature({ track: next }); return; }
     const field = mode === 'Aerobic' ? 'track_aerobic_goal' : mode === 'Resistance' ? 'track_resistance_goal' : mode === 'Balance' ? 'track_balance_goal' : 'track_flexibility_goal';
     if (mode === 'Balance') setTrackBalanceGoal(next);
     else if (mode === 'Aerobic') setTrackAerobicGoal(next);
@@ -326,6 +350,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
   const aerobicThisWeek = workoutsThisWeek.filter(hasAerobic).length;
   const flexibilityThisWeek = distinctDays(workoutsThisWeek.filter(hasFlexibility));
   const balanceThisWeek = distinctDays(workoutsThisWeek.filter(hasBalance));
+  const natureThisWeek = workoutsThisWeek.reduce((sum, w) => sum + natureMinutes(w, natureBase), 0);
 
   // ACSM phrases the aerobic guideline in moderate-equivalent minutes —
   // vigorous minutes count double — not a session count, so that's the
@@ -428,6 +453,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
     trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
     trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: PersonStanding, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
     trackBalanceGoal && { mode: 'Balance', label: 'Balance', icon: Footprints, color: VIOLET, count: balanceThisWeek, goal: balanceGoal, planned: 0, field: 'balance_goal' },
+    trackNature && { mode: 'Nature', label: 'Nature', icon: Trees, color: LIME, count: natureThisWeek, goal: natureGoal, planned: 0, unit: 'min' },
   ].filter(Boolean);
 
   return (
@@ -503,7 +529,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
           )}
           {trackedGoals.map((g) => (
             <GoalRow
-              key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} planned={g.planned}
+              key={g.mode} label={g.label} icon={g.icon} color={g.color} count={g.count} goal={g.goal} planned={g.planned} unit={g.unit}
               active={active}
               extra={g.mode === 'Resistance' && liftsThisWeek.length > 0 ? <MuscleBalance bare sets={liftsThisWeek} /> : null}
               onEdit={() => setEditingGoals(true)}
@@ -586,12 +612,14 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       )}
       {editingGoals && (
         <EditGoalsModal
-          tracked={{ Aerobic: trackAerobicGoal, Resistance: trackResistanceGoal, Flexibility: trackFlexibilityGoal, Balance: trackBalanceGoal }}
+          tracked={{ Aerobic: trackAerobicGoal, Resistance: trackResistanceGoal, Flexibility: trackFlexibilityGoal, Balance: trackBalanceGoal, Nature: trackNature }}
           goals={{ Aerobic: aerobicGoal, Resistance: resistanceGoal, Flexibility: flexibilityGoal, Balance: balanceGoal }}
           onToggle={setGoalTracked}
           onChangeGoal={(mode, v) => saveGoal(mode === 'Aerobic' ? 'aerobic_goal' : mode === 'Resistance' ? 'resistance_goal' : mode === 'Balance' ? 'balance_goal' : 'flexibility_goal', v)}
           aerobicGoalMinutes={aerobicGoalMinutes}
           onChangeAerobicMinutes={saveAerobicGoalMinutes}
+          natureMinutes={natureGoal}
+          onChangeNatureMinutes={(v) => saveNature({ minutes: Math.max(15, Math.min(600, v)) })}
           onClose={() => setEditingGoals(false)}
         />
       )}
@@ -602,12 +630,13 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
 const ACSM_AEROBIC_MINIMUM = 150;
 
-function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMinutes, onChangeAerobicMinutes, onClose }) {
+function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMinutes, onChangeAerobicMinutes, natureMinutes: natureGoalMin, onChangeNatureMinutes, onClose }) {
   const MODES = [
     { mode: 'Aerobic', icon: Activity, color: MOSS },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
     { mode: 'Flexibility', icon: PersonStanding, color: BRICK },
     { mode: 'Balance', icon: Footprints, color: VIOLET },
+    { mode: 'Nature', icon: Trees, color: LIME },
   ];
   const [confirmingLow, setConfirmingLow] = useState(null); // the value they tried to set below the ACSM floor
   const sheet = useSwipeDown(onClose);
@@ -631,6 +660,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
             {MODES.map(({ mode, icon: Icon, color }) => {
               const active = tracked[mode];
               const isAerobic = mode === 'Aerobic';
+              const isNature = mode === 'Nature';
               return (
                 <div key={mode} style={{ background: INK_3 }} className="rounded-md px-4 py-3">
                   <div className="flex items-center justify-between">
@@ -647,17 +677,17 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
                     {active && (
                       <span className="flex items-center gap-2">
                         <button
-                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes - 15) : onChangeGoal(mode, goals[mode] - 1))}
+                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes - 15) : isNature ? onChangeNatureMinutes(natureGoalMin - 15) : onChangeGoal(mode, goals[mode] - 1))}
                           style={{ color: TEXT_SOFT }}
                           className="p-1 -m-1"
                         >
                           <Minus size={13} />
                         </button>
                         <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium w-14 text-center">
-                          {isAerobic ? `${aerobicGoalMinutes} min` : goals[mode]}
+                          {isAerobic ? `${aerobicGoalMinutes} min` : isNature ? `${natureGoalMin} min` : goals[mode]}
                         </span>
                         <button
-                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes + 15) : onChangeGoal(mode, goals[mode] + 1))}
+                          onClick={() => (isAerobic ? requestAerobicChange(aerobicGoalMinutes + 15) : isNature ? onChangeNatureMinutes(natureGoalMin + 15) : onChangeGoal(mode, goals[mode] + 1))}
                           style={{ color: TEXT_SOFT }}
                           className="p-1 -m-1"
                         >
@@ -669,6 +699,11 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
                   {mode === 'Balance' && (
                     <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
                       Tai Chi and balance work. ACSM suggests 2+ days a week for adults 65+.
+                    </div>
+                  )}
+                  {isNature && (
+                    <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
+                      Time outdoors. Research links 120+ minutes a week to better health. Outdoor workouts count here too.
                     </div>
                   )}
                   {isAerobic && active && (
@@ -707,7 +742,7 @@ function EditGoalsModal({ tracked, goals, onToggle, onChangeGoal, aerobicGoalMin
   );
 }
 
-function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, extra }) {
+function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, unit, aerobic, extra }) {
   // Edit or stop tracking a goal from the pencil in the Weekly Goals header. (Rows used to reveal buttons on
   // a left swipe, which is also the swipe to Move, so goals were getting edited by accident.)
   const [view, setView] = useState('minutes'); // 'minutes' | 'sessions' — aerobic only
@@ -738,7 +773,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, aerobic, 
             {displayPlanned > 0 && (
               <span className="groove-plan-pulse" style={{ color, borderBottom: `1.5px dashed ${color}` }}> +{displayPlanned}</span>
             )}
-            {' '}/ {displayGoal}{showingMinutes ? ' min' : ''}
+            {' '}/ {displayGoal}{showingMinutes || unit ? ' min' : ''}
           </span>
         </span>
       </button>

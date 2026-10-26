@@ -484,3 +484,7 @@ alter table public.profiles add column if not exists injuries jsonb;
 
 -- Lifting experience survey (Account > Lifting experience): which lifts a member knows, wants to learn or wants skipped.
 alter table public.profiles add column if not exists movement_experience jsonb;
+
+-- Nature goal (optional: the app keeps a copy on each phone until this is run)
+alter table public.profiles add column if not exists track_nature_goal boolean default true;
+alter table public.profiles add column if not exists nature_goal_minutes smallint default 120;
