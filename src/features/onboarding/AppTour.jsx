@@ -28,7 +28,7 @@ const STEPS = [
   },
   {
     tab: 'move', selector: '[data-tour="tab-move"]', pos: 'top', color: SKY, title: 'Move',
-    body: "Log any workout, today or a past day: resistance, aerobic, flexibility, or mixed. Or build a training program (Strength, Hypertrophy, Fat Loss or Improve Fitness, or a blend of more than one) and Move lays out your week. Add cardio or stretches any time, and tell us how it felt after.",
+    body: "Log any workout, today or a past day: resistance, aerobic, flexibility, or mixed. Or build a training program (Strength, Hypertrophy, Fat Loss or Improve Fitness, or a blend of more than one, or Train for a Race from a 5K to a marathon) and Move lays out your week. Add cardio or stretches any time, and tell us how it felt after.",
   },
   {
     tab: 'journal', selector: '[data-tour="tab-journal"]', pos: 'top', color: AMBER, title: 'Journal',

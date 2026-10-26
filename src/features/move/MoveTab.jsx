@@ -571,8 +571,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       setSelectedLocation(completedWorkouts[0]?.location || 'The Great Outdoors');
       setMovementMode('Aerobic');
       // Heart-rate cardio (weight loss) leaves the activity up to the member; older cardio days still suggest a walk.
-      setSelectedActivities((prev) => (sess.zone ? [] : prev.length ? prev : ['Walking']));
-      setAerobicSession(sess.zone ? sess : null);
+      setSelectedActivities((prev) => (sess.run ? ['Outdoor Run'] : sess.zone ? [] : prev.length ? prev : ['Walking']));
+      setAerobicSession(sess.zone || sess.run ? sess : null);
       setSelectedGroups([]);
       setSelectedStyle('');
       setProgramSession(null);
@@ -924,7 +924,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setProgramSession(null);
     if (aerobicSession && usesAerobic) {
       const z = aerobicSession.zone;
-      try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Program', name: aerobicSession.name, aerobic: { minutes: aerobicSession.minutes, zone: z.label, zoneText: zoneText(z, hrNow), intervals: aerobicSession.intervals ? intervalLine(aerobicSession) : null, hardText: aerobicSession.intervals ? zoneText(z, hrNow) : null, easyText: aerobicSession.easyZone ? zoneText(aerobicSession.easyZone, hrNow) : null } })); } catch { /* storage blocked */ }
+      if (aerobicSession.run) {
+        try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Program', name: aerobicSession.name, aerobic: { minutes: aerobicSession.minutes, run: true, line: aerobicSession.runLine, paceLabel: aerobicSession.paceLabel, paceText: aerobicSession.paceText } })); } catch { /* storage blocked */ }
+      } else try { localStorage.setItem(`groove:programSession:${data.id}`, JSON.stringify({ program: program ? programTitle(program) : 'Program', name: aerobicSession.name, aerobic: { minutes: aerobicSession.minutes, zone: z.label, zoneText: zoneText(z, hrNow), intervals: aerobicSession.intervals ? intervalLine(aerobicSession) : null, hardText: aerobicSession.intervals ? zoneText(z, hrNow) : null, easyText: aerobicSession.easyZone ? zoneText(aerobicSession.easyZone, hrNow) : null } })); } catch { /* storage blocked */ }
     }
     setAerobicSession(null);
     if (movementMode === 'Combined' && combinedLayout) {
@@ -1487,9 +1489,13 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         {aerobicSession && movementMode === 'Aerobic' && !planning && (
           <div style={{ background: INK_2, borderLeft: `3px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2 text-left">
             <div style={{ color: PAPER }} className="text-sm font-medium">{aerobicSession.name} · {aerobicSession.minutes} min</div>
-            <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{aerobicSession.zone.label} · {zoneText(aerobicSession.zone, hrNow)}{aerobicSession.intervals ? ` (easy ${zoneText(aerobicSession.easyZone, hrNow)})` : ''}</div>
-            {aerobicSession.intervals && <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{intervalLine(aerobicSession)}</div>}
-            <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">Pick any activity you enjoy that keeps you in this range.</div>
+            {aerobicSession.run ? (
+              <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{aerobicSession.runLine}</div>
+            ) : (<>
+              <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{aerobicSession.zone.label} · {zoneText(aerobicSession.zone, hrNow)}{aerobicSession.intervals ? ` (easy ${zoneText(aerobicSession.easyZone, hrNow)})` : ''}</div>
+              {aerobicSession.intervals && <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">{intervalLine(aerobicSession)}</div>}
+              <div style={{ color: TEXT_SOFT }} className="text-sm leading-snug">Pick any activity you enjoy that keeps you in this range.</div>
+            </>)}
           </div>
         )}
         <StartWorkout
@@ -2249,6 +2255,7 @@ function workoutGuide(workout) {
       const m = JSON.parse(raw);
       if (m.aerobic) {
         const a = m.aerobic;
+        if (a.run) return { title: `${m.program} · ${m.name}`, lines: [a.line, `About ${a.minutes} min. Log your run when you finish.`] };
         const lines = [`${a.minutes} min · ${a.zone} · ${a.zoneText}`];
         if (a.intervals) lines.push(`${a.intervals} (hard ${a.hardText}${a.easyText ? `, easy ${a.easyText}` : ''})`);
         lines.push('Any activity you enjoy that keeps you in this range.');

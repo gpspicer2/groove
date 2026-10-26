@@ -1,5 +1,6 @@
 import { startOfWeek } from '../../lib/week.js';
 import { karvonenBpm } from '../../lib/heartRate.js';
+import { raceSessionsForWeek, racePhaseLabel, raceTitle, daysToRace } from './race.js';
 
 // Self-guided training programs: pick a goal (and for hypertrophy a method),
 // say how many days a week you can train, and the week is laid out for you.
@@ -18,6 +19,8 @@ export const goalEmoji = (goal, gender) => {
   if (goal === 'strength') return gender === 'Female' ? '🏋️‍♀️' : gender === 'Male' ? '🏋️‍♂️' : '🏋️';
   return g ? g.emoji : '';
 };
+// A race program (program.goal === 'race', details in program.race) is its own engine in race.js.
+export const isRace = (program) => program?.goal === 'race' && !!program.race;
 export const isHybridGoal = (goal) => goal === 'fat_loss' || goal === 'fitness';
 
 // A program can blend several goals (program.goals); program.goal stays the first one so older code and older programs
@@ -30,7 +33,7 @@ export const cardioGoalOf = (program) => { const g = programGoals(program); retu
 export const hasCardio = (program) => cardioGoalOf(program) != null;
 export const hasGoal = (program, id) => programGoals(program).includes(id);
 // The short name on cards: the goal (Strength, Fat Loss...), or both names for a blend.
-export const programLabel = (program) => (isBlend(program) ? programTitle(program) : (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label);
+export const programLabel = (program) => (isRace(program) ? raceTitle(program) : isBlend(program) ? programTitle(program) : (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label);
 // A short plain description of a blend, shown when more than one goal is picked.
 export function blendInfo(goals) {
   const lift = goals.filter((g) => g === 'strength' || g === 'hypertrophy');
@@ -165,7 +168,7 @@ export const SPLIT_OPTIONS = {
   ],
 };
 export function splitOptions(program) {
-  if (isBlend(program) || isHybridGoal(program.goal)) return [];
+  if (isBlend(program) || isHybridGoal(program.goal) || isRace(program)) return [];
   if (program.goal === 'strength') {
     const p = POWER_SPLITS[program.days];
     return p ? [{ id: `pl${program.days}`, label: p.label, freq: p.freq, tag: 'Powerlifting', sessions: p.sessions, info: 'The squat, bench press and deadlift each get a heavy day, with a second lift and supporting work after. Days that train a lift a second time are lighter variations.' }] : [];
@@ -267,9 +270,10 @@ export function cycleKey(program) {
   if (program.goal === 'hypertrophy') return program.model === 'linear' ? 'linear' : 'undulating';
   return program.goal;
 }
-export function cycleLength(program) { return CYCLES[cycleKey(program)].len; }
+export function cycleLength(program) { if (isRace(program)) return program.race.weeks; return CYCLES[cycleKey(program)].len; }
 
 export function programTitle(program) {
+  if (isRace(program)) return raceTitle(program);
   if (isBlend(program)) {
     const gs = programGoals(program);
     return gs.length > 2 ? 'Custom Blend' : gs.map((id) => GOALS.find((x) => x.id === id)?.label || id).join(' + ');
@@ -280,6 +284,7 @@ export function programTitle(program) {
 }
 
 export function resistanceDays(program) {
+  if (isRace(program)) return program.race.strength || 0;
   return hasCardio(program) ? hybridPlan(program).seq.split('R').length - 1 : program.days;
 }
 
@@ -290,6 +295,7 @@ export function weekNumber(program, today = new Date(), weekStartDay = 'sunday')
   return Math.max(1, Math.round((now - start) / (7 * 864e5)) + 1);
 }
 export function cyclePosition(program, week) {
+  if (isRace(program)) return Math.min(week, program.race.weeks);
   return ((week - 1) % cycleLength(program)) + 1;
 }
 
@@ -386,6 +392,7 @@ function flavored(main, label, goal) {
 
 // The sessions for one week, with the prescription for that week.
 export function sessionsForWeek(program, week) {
+  if (isRace(program)) return raceSessionsForWeek(program, week);
   return isBlend(program) ? blendSessions(program, week) : plainSessions(program, week);
 }
 
@@ -498,6 +505,7 @@ function plainSessions(program, week, keyOverride) {
 }
 
 export function phaseLabel(program, week) {
+  if (isRace(program)) return racePhaseLabel(program, week);
   const key = cycleKey(program);
   const cyc = CYCLES[key];
   const pos = cyclePosition(program, week);
@@ -507,6 +515,7 @@ export function phaseLabel(program, week) {
 
 const dash = (s) => String(s).replace('-', '–');
 export function prescriptionLine(s, hr) {
+  if (s.run) return `about ${s.minutes} min · ${s.paceLabel} ${s.paceText}`;
   if (s.kind === 'aerobic') return s.zone ? `${s.minutes} min · ${s.zone.label} · ${zoneText(s.zone, hr)}` : `${s.minutes} min · RPE ${dash(s.rpe)}`;
   const p = s.presc;
   const main = `${p.sets} × ${dash(p.reps)} · RPE ${dash(p.rpe)} · rest ${dash(p.rest)}`;
@@ -542,6 +551,7 @@ function naturalDate(program, week, day, weekStartDay) {
 export function normalizeMoves(program, weekStartDay = 'sunday', change = null) {
   const moves = { ...(program.moves || {}) };
   if (change) moves[change.id] = change.date;
+  if (isRace(program)) return moves; // run days are not interchangeable (long run, hard days), so keep each where it was put
   const weeks = new Set(Object.keys(moves).map((id) => Number((id.match(/^w(\d+)-/) || [])[1])).filter(Boolean));
   weeks.forEach((week) => {
     const sessions = sessionsForWeek(program, week);
@@ -559,6 +569,7 @@ export function normalizeMoves(program, weekStartDay = 'sunday', change = null) 
 
 export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set(), horizonDays = 84) {
   if (!hasChosenDays(program)) return [];
+  if (isRace(program)) horizonDays = Math.max(horizonDays, daysToRace(program.race) + 2);
   const out = [];
   const placed = new Set();
   const pad = (n) => String(n).padStart(2, '0');
@@ -572,7 +583,7 @@ export function programPlans(program, weekStartDay = 'sunday', doneIds = new Set
     planned_for: dateStr,
     title: sess.name,
     notes: null,
-    details: sess.kind === 'aerobic' ? { kind: 'aerobic', minutes: sess.minutes } : { kind: 'resistance' },
+    details: sess.kind === 'aerobic' ? { kind: 'aerobic', minutes: sess.minutes, ...(sess.run ? { run: true } : {}) } : { kind: 'resistance' },
     programSession: sess,
   });
   for (let i = 0; i < horizonDays; i += 1) {

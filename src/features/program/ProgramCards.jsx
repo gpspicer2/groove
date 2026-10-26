@@ -5,7 +5,8 @@ import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME } from '../..
 import { useAuth } from '../../auth/AuthContext';
 import NoScaleSheet from './NoScaleSheet';
 import { predictedMaxHR } from '../../lib/heartRate';
-import { GOALS, isHybridGoal, hasCardio, hasGoal, isBlend, programLabel, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
+import { daysToRace, RACES } from './race';
+import { GOALS, isRace, isHybridGoal, hasCardio, hasGoal, isBlend, programLabel, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
 export function useHr(program) {
@@ -22,7 +23,7 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
   return useMemo(() => {
     if (!program) return null;
     const week = weekNumber(program, new Date(), weekStartDay);
-    let r = 0; let a = 0; let cum = 0;
+    let r = 0; let a = 0; let cum = 0; let ru = 0;
     const weightLoss = hasCardio(program); // cardio counted by minutes (weight loss and improve fitness)
     const moves = normalizeMoves(program, weekStartDay);
     const sessions = sessionsForWeek(program, week).map((s0) => {
@@ -30,7 +31,7 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
       const s = moves[s0.id] ? { ...s0, day: new Date(`${moves[s0.id]}T12:00:00`).getDay() } : s0;
       // Weight loss cardio counts by minutes, so any mix of activities and session lengths fills the week.
       if (s.kind === 'aerobic' && weightLoss) { cum += s.minutes; return { ...s, done: done.aerobicEq >= cum * 0.9 }; }
-      const isDone = s.kind === 'aerobic' ? a++ < done.aerobic : r++ < done.resistance;
+      const isDone = s.run ? ru++ < done.runs : s.kind === 'aerobic' ? a++ < done.aerobic : r++ < done.resistance;
       return { ...s, done: isDone };
     });
     const next = sessions.find((s) => !s.done) || null;
@@ -41,6 +42,7 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
 }
 
 function sessionDetail(s, hr) {
+  if (s.run) return prescriptionLine(s);
   if (s.kind === 'aerobic') return s.zone ? prescriptionLine(s, hr) : `${s.minutes} min · RPE 5–6 · easy, steady pace`;
   return `${s.exercises} exercises · ${prescriptionLine(s)}`;
 }
@@ -49,6 +51,7 @@ function sessionDetail(s, hr) {
 // Start, and one line of progress (sessions this week, pounds lifted since the program began).
 // One line about what a session trains: the muscles, plus the day's flavor when it has one (Heavy, Light...).
 function sessionBlurb(x) {
+  if (x.run) return x.runLine;
   if (x.kind === 'aerobic') return x.zone ? (x.intervals ? intervalLine(x) : 'Any activity you enjoy that keeps you in this range') : 'Cardio · steady, easy pace';
   const parts = leadText(x) || [...new Set(x.groups || [])].join(', ');
   return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts}`;
@@ -73,7 +76,10 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   const goal = programLabel(program);
   const split = chosenSplit(program);
   const model = !isBlend(program) && program.goal === 'hypertrophy' ? (program.model === 'linear' ? 'Linear' : 'Undulating') : null;
-  const exact = hasCardio(program)
+  const race = isRace(program) ? program.race : null;
+  const exact = race
+    ? `${RACES[race.distance].label} on ${new Date(`${race.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${daysToRace(race) > 0 ? `${daysToRace(race)} days to go` : daysToRace(race) === 0 ? 'race day!' : 'race complete'}`
+    : hasCardio(program)
     ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} ${isBlend(program) ? 'lifting' : 'strength'} days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
@@ -90,7 +96,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
       <div style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</div>
       <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-1">
         <span className="truncate">{week.label}</span>
-        <span className="shrink-0">{week.minutes ? `${week.minutes.done} of ${week.minutes.target} min this week` : `${lifted.toLocaleString()} lb lifted`}</span>
+        <span className="shrink-0">{week.minutes ? `${week.minutes.done} of ${week.minutes.target} min this week` : race ? `${week.doneCount} of ${week.sessions.length} done` : `${lifted.toLocaleString()} lb lifted`}</span>
       </div>
       <div className="flex gap-1.5 mt-2">
         {week.sessions.map((x) => {
@@ -123,7 +129,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
         </div>
       ) : (
         <div className="mt-2">
-          <div style={{ color: PAPER_DIM }} className="text-sm text-center">All {week.sessions.length} sessions done this week. Nice work!</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm text-center">{week.sessions.length === 0 ? 'The race is behind you. Great work! Tap the pencil to start something new.' : `All ${week.sessions.length} sessions done this week. Nice work!`}</div>
           {flex && (
             <div style={{ background: INK_3 }} className="flex items-center justify-between gap-3 rounded-md px-3 py-2 mt-2">
               <div className="min-w-0">
@@ -156,7 +162,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
             ))}
           </div>
           <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug mt-2.5">
-            {split ? `${split.freq}. ` : ''}The plan repeats every {len} weeks; the last week of each round is a lighter deload.
+            {split ? `${split.freq}. ` : ''}{race ? 'Weekly mileage builds with a lighter week every few weeks, then tapers before race day.' : `The plan repeats every ${len} weeks; the last week of each round is a lighter deload.`}
             {program.startedAt ? ` Started ${new Date(`${program.startedAt}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : ''}
           </div>
         </div>
@@ -214,7 +220,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
       </div>
       {next ? (
         <div className="flex items-center justify-between gap-3 text-left mt-2">
-          <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? (next.zone ? `${next.name} ${next.minutes} min` : 'Cardio') : next.name}</div>
+          <div style={{ color: PAPER }} className="min-w-0 truncate text-sm font-medium">Next: {DAY_NAMES[next.day]} · {next.kind === 'aerobic' ? (next.zone || next.run ? `${next.name} ${next.minutes} min` : 'Cardio') : next.name}</div>
           {next.inProgress ? (
             <span style={{ color: LIME }} className="shrink-0 text-sm font-medium">In Progress</span>
           ) : (
@@ -224,7 +230,7 @@ export function ProgramWeekCard({ program, week, onStart, onManage, onPickDays }
           )}
         </div>
       ) : (
-        <div style={{ color: PAPER_DIM }} className="text-sm mt-1.5">All {week.sessions.length} sessions done this week. Nice work!</div>
+        <div style={{ color: PAPER_DIM }} className="text-sm mt-1.5">{week.sessions.length === 0 ? 'The race is behind you. Great work!' : `All ${week.sessions.length} sessions done this week. Nice work!`}</div>
       )}
     </div>
   );
