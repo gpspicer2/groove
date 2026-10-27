@@ -99,6 +99,6 @@ export function clearanceReason(screening) {
   return `${parts.join(' and ')}, ${screening.active ? 'currently active' : 'not currently active'}`;
 }
 
-export function labelsFor(list, keys = []) {
-  return keys.map((k) => list.find((x) => x.key === k)?.label).filter(Boolean);
+export function labelsFor(list, keys) {
+  return (keys || []).map((k) => list.find((x) => x.key === k)?.label).filter(Boolean);
 }

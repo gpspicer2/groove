@@ -784,7 +784,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, unit, aer
             <span style={{ color: PAPER_DIM }} className="text-sm">{label}</span>
             {(aerobic || extra) && (expanded ? <ChevronUp size={13} color={TEXT_SOFT} /> : <ChevronDown size={13} color={TEXT_SOFT} />)}
           </button>
-          {onInfo && <button onClick={onInfo} style={{ color: TEXT_SOFT }} className="p-1 -m-0.5" aria-label={`About the ${label} goal`}><Info size={14} /></button>}
+          {onInfo && <button onClick={onInfo} style={{ color: TEXT_SOFT }} className="p-2 -m-1.5" aria-label={`About the ${label} goal`}><Info size={14} /></button>}
         </span>
         <span className="flex items-center gap-1.5">
           <span style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-sm font-medium">
