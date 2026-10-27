@@ -461,7 +461,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
 
   const trackedCount = [trackAerobicGoal, trackResistanceGoal, trackFlexibilityGoal, trackBalanceGoal].filter(Boolean).length;
   const trackedGoals = [
-    trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: MOSS, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
+    trackAerobicGoal && { mode: 'Aerobic', label: 'Aerobic', icon: Activity, color: PLUM, count: aerobicThisWeek, goal: aerobicGoal, planned: plannedAerobicSessions, field: 'aerobic_goal' },
     trackResistanceGoal && { mode: 'Resistance', label: 'Resistance', icon: Dumbbell, color: SKY, count: resistanceThisWeek, goal: resistanceGoal, planned: plannedResistance, field: 'resistance_goal' },
     trackFlexibilityGoal && { mode: 'Flexibility', label: 'Flexibility', icon: PersonStanding, color: BRICK, count: flexibilityThisWeek, goal: flexibilityGoal, planned: plannedFlexibility, field: 'flexibility_goal' },
     trackBalanceGoal && { mode: 'Balance', label: 'Balance', icon: Footprints, color: VIOLET, count: balanceThisWeek, goal: balanceGoal, planned: 0, field: 'balance_goal' },
@@ -644,7 +644,7 @@ const ACSM_AEROBIC_MINIMUM = 150;
 
 function EditGoalsModal({ order, onMove, tracked, goals, onToggle, onChangeGoal, aerobicGoalMinutes, onChangeAerobicMinutes, natureMinutes: natureGoalMin, onChangeNatureMinutes, onClose }) {
   const ALL = [
-    { mode: 'Aerobic', icon: Activity, color: MOSS },
+    { mode: 'Aerobic', icon: Activity, color: PLUM },
     { mode: 'Resistance', icon: Dumbbell, color: SKY },
     { mode: 'Flexibility', icon: PersonStanding, color: BRICK },
     { mode: 'Balance', icon: Footprints, color: VIOLET },
@@ -969,7 +969,7 @@ function WorkoutCalendar({ userId, workouts, hasResistance, hasAerobic, hasFlexi
               <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
               {hasAny || dayPlans.length > 0 ? (
                 <span className="flex items-center gap-0.5">
-                  {a && <Activity size={10} color={MOSS} />}
+                  {a && <Activity size={10} color={PLUM} />}
                   {r && <Dumbbell size={10} color={SKY} />}
                   {f && <PersonStanding size={10} color={BRICK} />}
                   {dayPlans.length > 0 && <PlannedMark plans={dayPlans} past={day < now && !isToday} />}
@@ -1045,7 +1045,7 @@ function WorkoutCalendar({ userId, workouts, hasResistance, hasAerobic, hasFlexi
 function PlannedMark({ plans, past = false }) {
   const kinds = new Set();
   plans.forEach((p) => planKinds(p).forEach((k) => kinds.add(k)));
-  const icon = { aerobic: [Activity, MOSS], resistance: [Dumbbell, SKY], flexibility: [PersonStanding, BRICK] };
+  const icon = { aerobic: [Activity, PLUM], resistance: [Dumbbell, SKY], flexibility: [PersonStanding, BRICK] };
   return (
     <>
       {[...kinds].map((k) => {

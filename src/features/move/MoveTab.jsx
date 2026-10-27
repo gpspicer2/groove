@@ -16,7 +16,7 @@ import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
 import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER, PLUM } from '../../theme';
 import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
@@ -151,7 +151,7 @@ function historyKinds(w, workoutSets) {
   const aerobic = mode === 'Aerobic' || mode === 'Combined' || t.has('aerobic') || (mode !== 'Flexibility' && mode !== 'Resistance' && (w.activities || []).length > 0);
   const flexibility = mode === 'Flexibility' || t.has('flexibility');
   return [
-    aerobic && { key: 'a', Icon: Activity, color: MOSS, label: 'Aerobic' },
+    aerobic && { key: 'a', Icon: Activity, color: PLUM, label: 'Aerobic' },
     resistance && { key: 'r', Icon: Dumbbell, color: SKY, label: 'Resistance' },
     flexibility && { key: 'f', Icon: PersonStanding, color: BRICK, label: 'Flexibility' },
   ].filter(Boolean);

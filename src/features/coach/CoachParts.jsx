@@ -58,7 +58,7 @@ export function WeekBars({ client, week, unitless = false }) {
   const g = goalsFor(client);
   return (
     <div className="flex gap-3">
-      {g.trackAerobic && <MiniBar label="Aero" value={week.aerobic} goal={g.aerobic} color={MOSS} unit={unitless ? '' : 'm'} />}
+      {g.trackAerobic && <MiniBar label="Aero" value={week.aerobic} goal={g.aerobic} color={PLUM} unit={unitless ? '' : 'm'} />}
       {g.trackResistance && <MiniBar label="Resist" value={week.resistance} goal={g.resistance} color={SKY} />}
       {g.trackFlexibility && <MiniBar label="Flex" value={week.flexibility} goal={g.flexibility} color={BRICK} />}
     </div>

@@ -2,13 +2,13 @@ import React from 'react';
 import Portal from '../../Portal';
 import { X, Activity, Dumbbell, PersonStanding, Footprints, Trees } from '../../lib/icons';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
-import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK, VIOLET } from '../../theme';
+import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, PLUM, BRICK, VIOLET } from '../../theme';
 
 // What each weekly goal means, why Groove pre-sets it where it does, and what meeting it can look like.
 // Plain words on purpose; the Learn tab (Guides > Scientific Support) has the sources.
 export const GOAL_INFO_TEXT = {
   Aerobic: {
-    icon: Activity, color: MOSS, title: 'Aerobic',
+    icon: Activity, color: PLUM, title: 'Aerobic',
     what: 'Minutes of movement that raise your heart rate: walking, cycling, dancing, mowing the lawn, a run. Moderate minutes count once, vigorous minutes count double.',
     why: 'The Physical Activity Guidelines for Americans (2nd edition) say adults should get at least 150 to 300 minutes a week of moderate activity, or 75 to 150 of vigorous, and that even modest increases help the least active people most. Groove starts you at 150, the low end, and your own number can grow. Light activity is real movement but does not count toward this number.',
     looks: 'About 30 minutes, 5 days a week. Or 10 minutes here and there: a brisk walk after dinner, the stairs, a bike ride with a friend. Everyday life counts, and so does a weekend hike.',

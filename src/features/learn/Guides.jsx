@@ -5,7 +5,7 @@ import { useRevealOnOpen } from '../../lib/reveal';
 import { predictedMaxHR, computeHrZones } from '../../lib/heartRate';
 import MetBrowser from '../../MetBrowser';
 import FitnessAssessmentFlow from '../baseline/FitnessAssessmentFlow';
-import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, MOSS, AMBER, BRICK, VIOLET } from '../../theme';
+import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, MOSS, PLUM, AMBER, BRICK, VIOLET } from '../../theme';
 
 // Learn > Guides: the two reference cards that used to sit at the bottom of Birdseye. Scientific Support is your
 // individual prescription (from your goals, heart rate and Greg's zone) plus the ACSM guidelines behind it; Movement
@@ -103,7 +103,7 @@ function ScienceStrategy({ assessmentDone, onStartAssessment, resistanceGoal, ae
 
           <div>
             <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span style={{ color: MOSS }} className="text-lg font-bold">Aerobic</span>{infoBtn('Aerobic')}
+              <span style={{ color: PLUM }} className="text-lg font-bold">Aerobic</span>{infoBtn('Aerobic')}
             </div>
             <p style={{ color: TEXT_SOFT }} className="text-sm mb-1">
               {aerobicGoalMinutes} min/week of moderate-intensity activity, over 3+ days. Vigorous minutes count double.
