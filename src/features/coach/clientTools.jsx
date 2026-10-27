@@ -16,6 +16,8 @@ import { programTitle, weekNumber } from '../program/programs';
 
 // The coach's detail tools, used by the client screen and the Library tab.
 
+const fmt = (iso) => (iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
+
 export function ArticleManager() {
   const arm = useArmed();
   const [articles, setArticles] = useState([]);
