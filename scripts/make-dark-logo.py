@@ -59,16 +59,27 @@ def neon(path, out, glow=True):
         idx = ndimage.distance_transform_edt(~interior, return_distances=False, return_indices=True)
         keep_wheel = wheel.copy()
         out_rgb = np.where(keep_wheel[..., None], out_rgb, out_rgb[idx[0], idx[1]])
-    # Built at 2x so phones (which show the logo at 2-3x pixel density) get smooth edges instead of
+    # Built at 4x so phones (which show the logo at 2-3x pixel density) get smooth edges instead of
     # the stair-steps of a small, hard-edged mask: the mask is enlarged, softened, then re-sharpened
     # with a narrow smoothstep, which rounds the staircase into a clean anti-aliased contour.
-    Z = 2
+    Z = 4
     def up(arr, order=3):
         return ndimage.zoom(arr, (Z, Z) + (1,) * (arr.ndim - 2), order=order, mode='nearest')
-    big = np.clip(up(ndimage.gaussian_filter(mask.astype(float), 0.5)), 0, 1)
-    big = ndimage.gaussian_filter(big, 3.0)
-    t = np.clip((big - 0.5) / 0.22 + 0.5, 0, 1)
-    soft_big = t * t * (3 - 2 * t)
+    # Thick shapes (letters, limbs) carry slow wobbles from the small source, so they get a much wider
+    # smoothing than thin ones (sun rays, heartbeat line), which would otherwise shrink away.
+    def clean(m, sigma):
+        b = np.clip(up(ndimage.gaussian_filter(m.astype(float), 0.5)), 0, 1)
+        b = ndimage.gaussian_filter(b, sigma)
+        t = np.clip((b - 0.5) / 0.22 + 0.5, 0, 1)
+        return t * t * (3 - 2 * t)
+    # The runner is a plain silhouette, so it takes the wide smoothing; the other letters carry fine
+    # detail (trees, barbell plates, heartbeat) and get a gentler one.
+    runner_zone = (xx >= 200) & (xx <= 392)
+    g_zone = xx < 200
+    wide = clean(mask & runner_zone, 11.0)
+    mid = clean(mask & g_zone, 8.5)
+    gentle = clean(mask & ~runner_zone & ~g_zone, 6.5)
+    soft_big = np.maximum(np.maximum(wide, mid), gentle)
     wheel_big = np.kron(wheel, np.ones((Z, Z), dtype=bool))
     alpha_big = np.clip(up(alpha), 0, 1)
     # the wheel's rim gets the same clean edge; its thin spokes and hub keep their own softness
@@ -76,7 +87,7 @@ def neon(path, out, glow=True):
     solid = alpha > 0.5
     rim_only = wheel & ndimage.binary_opening(solid, structure=np.ones((5, 5))) & (((xx - 487.5) / 55.0) ** 2 + ((yy - 116.0) / 60.0) ** 2 > 1)
     rim_big = np.clip(up(ndimage.gaussian_filter(rim_only.astype(float), 0.5)), 0, 1)
-    rim_big = ndimage.gaussian_filter(rim_big, 3.0)
+    rim_big = ndimage.gaussian_filter(rim_big, 9.0)
     rt = np.clip((rim_big - 0.5) / 0.22 + 0.5, 0, 1)
     rim_big = rt * rt * (3 - 2 * rt)
     far_from_rim = ~np.kron(ndimage.binary_dilation(rim_only, iterations=2), np.ones((Z, Z), dtype=bool))
