@@ -2243,6 +2243,17 @@ function StartWorkout({
           {planning ? '📅 Save Plan' : <>🪩 Log Workout{startEmoji}</>}
         </button>
       )}
+      {!showProgramOffer && !canStart && (
+        <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1.5">
+          {!selectedLocation ? 'First, pick where you are moving.'
+            : !movementMode ? 'Next, pick a type of workout.'
+            : movementMode === 'Aerobic' ? 'Pick an activity to get started.'
+            : movementMode === 'Flexibility' ? 'Pick a muscle or an activity to get started.'
+            : selectedGroups.length === 0 ? 'Pick at least one muscle to get started.'
+            : !selectedStyle ? 'Pick a goal to get started.'
+            : movementMode === 'Combined' && !combinedLayout ? 'Pick how to mix them to get started.' : ''}
+        </div>
+      )}
     </div>
   );
 }
@@ -2390,6 +2401,7 @@ function ActiveWorkout({
   const groupRefs = useRef([]);
   const dragStateRef = useRef(null);
   const [draggingIndex, setDraggingIndex] = useState(null);
+  const [reorder, setReorder] = useState(false); // drag handles only show while reordering
   const [dragOffsetY, setDragOffsetY] = useState(0);
 
   // React attaches its synthetic touchstart/touchmove listeners as
@@ -2642,7 +2654,7 @@ function ActiveWorkout({
         </div>
       )}
 
-      <SwipeHint id="exercises">Tip: tap the ⋯ on an exercise to swap, move, or remove it — or drag the dots to reorder.</SwipeHint>
+      <SwipeHint id="exercises">Tip: tap the ⋯ on an exercise to swap or remove it, or tap Reorder to drag them around.</SwipeHint>
       <div className="space-y-3 mb-4">
         {canQuickAddAerobic && !addMenuOpen && groups.length > 0 && !isAerobicGroup(groups[0]) && (
           <QuickAerobicButton
@@ -2670,6 +2682,11 @@ function ActiveWorkout({
               {warmupEndGi + 1} {warmupEndGi === 0 ? 'part' : 'parts'} {warmupShown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </span>
           </button>
+        )}
+        {groups.length > 2 && (
+          <div className="flex justify-end -mb-1">
+            <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>
+          </div>
         )}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
@@ -2847,7 +2864,7 @@ function ActiveWorkout({
                 }}
                 className="flex items-stretch gap-1"
               >
-                <button
+                {reorder && <button
                   data-no-swipe
                   onTouchStart={(e) => handleDragStart(e, gi)}
                   style={{
@@ -2869,7 +2886,7 @@ function ActiveWorkout({
                   title="Drag to reorder"
                 >
                   <GripVertical size={14} />
-                </button>
+                </button>}
                 <div className="flex-1 min-w-0 space-y-3">
                   {card}
                   {showRest && <RestBanner />}
@@ -4214,8 +4231,10 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 // Options for an exercise row, behind a visible "..." button (it used to be a left swipe, which fought with
 // swiping between tabs and was hard to discover): Swap, Move up / down, Edit, Remove.
 // `menuSide` is where the button sits: right on a collapsed row, left on an open card.
-function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Make a Superset', onEdit, editLabel = 'Edit Settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, menuSide = 'right', menuClass }) {
+function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Make a Superset', onEdit, editLabel = 'Edit Settings', onRemove, onUndo, onNever, onMoveUp, onMoveDown, onHistory, menuSide = 'right', menuClass }) {
   const [open, setOpen] = useState(false);
+  const [more, setMore] = useState(false); // the rarely used actions stay folded until asked for
+  const hasMore = Boolean(onNever || onEdit || onMoveUp || onMoveDown);
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
   const close = () => setOpen(false);
@@ -4245,10 +4264,14 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
                 {onUndo && row('undo', 'Not Finished Yet', Check, LIME, () => { close(); onUndo(); })}
                 {onSwap && row('swap', 'Swap', Replace, LIME, () => { close(); onSwap(); })}
                 {onSuperset && row('superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); })}
-                {onNever && row('never', 'Never Suggest', Replace, TEXT_SOFT, () => { close(); onNever(); })}
-                {onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
-                {onMoveUp && row('up', 'Move Up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}
-                {onMoveDown && row('down', 'Move Down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}
+                {onHistory && row('history', 'Your History', TrendingUp, SKY, () => { close(); onHistory(); })}
+                {hasMore && !more && (
+                  <button onClick={() => setMore(true)} style={{ color: TEXT_SOFT }} className="col-span-2 text-sm py-1.5 flex items-center justify-center gap-1">More Options <ChevronDown size={14} /></button>
+                )}
+                {more && onNever && row('never', 'Never Suggest', Replace, TEXT_SOFT, () => { close(); onNever(); })}
+                {more && onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
+                {more && onMoveUp && row('up', 'Move Up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}
+                {more && onMoveDown && row('down', 'Move Down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}
                 <button
                   onClick={() => arm.press('remove', () => { close(); onRemove(); })}
                   data-armed={arm.armed === 'remove'}
@@ -4316,7 +4339,7 @@ function ExerciseCard({
   }
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSuperset} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSuperset} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onUndo={onUndo} onNever={onNever} onMoveUp={onMoveUp} onMoveDown={onMoveDown} onHistory={exercise.type === 'resistance' ? () => setStatsOpen(true) : null}>
       <div style={{ background: isDone ? DONE_BG : INK_2, borderLeft: `3px solid ${isDone ? LIME : SKY}` }} className="rounded-md px-4 py-2.5 groove-ease-in">
         <div className="flex items-center justify-between mb-1">
           <span className="w-6 shrink-0" aria-hidden="true" />
@@ -4324,8 +4347,7 @@ function ExerciseCard({
             <span style={{ color: TEXT_SOFT }} className="font-medium">{index}.</span> {exercise.name}{isDone && ' ✅'}
           </span>
           <span className="flex items-center shrink-0">
-            {exercise.type === 'resistance' && <button onClick={() => setStatsOpen(true)} style={{ color: SKY }} className="p-2 -m-1" aria-label={`Your history: ${exercise.name}`}><TrendingUp size={16} /></button>}
-            {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="p-2 -m-1 ml-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
+            {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="p-2 -m-1" aria-label={`How to: ${exercise.name}`}><Info size={16} /></button>}
             <button onClick={onCollapse} style={{ color: TEXT_SOFT }} className="p-2 -m-1 ml-1" title="Collapse">
               <ChevronUp size={16} />
             </button>
@@ -4448,11 +4470,10 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const [byTime, setByTime] = useState(isHoldExercise(exercise));
 
   return (
-    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split Superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove}>
+    <SwipeActions title={exercise.name} menuSide="left" onSwap={onOpenSwap} onSuperset={onSplit} supersetLabel="Split Superset" onUndo={onUndo} onEdit={() => setShowSettings((v) => !v)} onRemove={onRemove} onHistory={() => setStatsOpen(true)}>
       <div>
         <div style={{ color: PAPER }} className="text-base font-bold text-center mb-1 px-8">
           {exercise.name}
-          <button onClick={() => setStatsOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1 ml-0.5" aria-label={`Your history: ${exercise.name}`}><TrendingUp size={15} /></button>
           {guide && <button onClick={() => setGuideOpen(true)} style={{ color: SKY }} className="inline-flex align-middle p-1.5 -my-1" aria-label={`How to: ${exercise.name}`}><Info size={15} /></button>}
         </div>
         {guideOpen && guide && <ExerciseGuideSheet name={exercise.name} guide={guide} accent={SKY} onClose={() => setGuideOpen(false)} />}
