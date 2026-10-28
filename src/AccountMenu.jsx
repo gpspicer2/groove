@@ -120,7 +120,7 @@ function AccountModal({ onClose }) {
           </a>
         )}
 
-        {!coachView && <InviteRow />}
+        <InviteRow />
 
         {!coachView && (
           <PersonalDataSection
