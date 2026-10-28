@@ -41,9 +41,10 @@ export function useProgramWeek(userId, program, active, refreshKey, weekStartDay
   }, [program, done.resistance, done.aerobic, done.aerobicEq, done.inProgress, weekStartDay]);
 }
 
-function sessionDetail(s, hr) {
+function sessionDetail(s, hr, short = false) {
   if (s.run) return prescriptionLine(s);
   if (s.kind === 'aerobic') return s.zone ? prescriptionLine(s, hr) : `${s.minutes} min · RPE 5–6 · easy, steady pace`;
+  if (short) return prescriptionLine(s).replace(/ · rest .*$/, ''); // the card shows sets, reps and effort; exercises and rest live under the whole week
   return `${s.exercises} exercises · ${prescriptionLine(s)}`;
 }
 
@@ -54,7 +55,7 @@ function sessionBlurb(x) {
   if (x.run) return x.runLine;
   if (x.kind === 'aerobic') return x.zone ? (x.intervals ? intervalLine(x) : 'Any activity you enjoy that keeps you in this range') : 'Cardio · steady, easy pace';
   const parts = leadText(x) || [...new Set(x.groups || [])].join(', ');
-  return `${x.label && !/Deload/.test(x.name) ? `${x.label} · ` : ''}${parts}`;
+  return `${x.label && !/Deload/.test(x.name) && !x.name.includes(x.label) ? `${x.label} · ` : ''}${parts}`;
 }
 
 const LS_OPEN = 'groove:programOpen'; // the whole-week list
@@ -83,20 +84,18 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
     ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} ${isBlend(program) ? 'lifting' : 'strength'} days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
   const today = new Date().getDay();
-  const acc = s && s.kind !== 'aerobic' ? [secondaryLine(s), accessoryLine(s)].filter(Boolean).join(' · ') : '';
   const len = cycleLength(program);
   return (
     <div style={{ background: INK_2, borderTop: `2px solid ${SKY}` }} className="rounded-lg px-4 py-2.5 mb-2">
-      <div className="flex items-center justify-between text-center">
+      <div className="flex items-center justify-between gap-2 text-center">
         <button onClick={toggleCard} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label={card ? 'Hide program details' : 'Show program details'}>{card ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-        <button onClick={toggleCard} style={{ color: SKY }} className="text-lg uppercase tracking-wide font-bold">{goal} Program</button>
+        <button onClick={toggleCard} style={{ color: SKY }} className="text-base uppercase tracking-wide font-bold">{goal} Program</button>
         <button onClick={onManage} style={{ color: TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1" aria-label="Manage program">Edit</button>
       </div>
       {card && (<>
-      <div style={{ color: TEXT_SOFT }} className="block w-full text-center text-[13px] leading-snug">{exact}</div>
       <div style={{ color: TEXT_SOFT }} className="flex items-baseline justify-between gap-3 text-sm mt-1">
         <span className="truncate">{week.label}</span>
-        <span className="shrink-0">{week.minutes ? `${week.minutes.done} of ${week.minutes.target} min this week` : race ? `${week.doneCount} of ${week.sessions.length} done` : `${lifted.toLocaleString()} lb lifted`}</span>
+        {(week.minutes || race) && <span className="shrink-0">{week.minutes ? `${week.minutes.done} of ${week.minutes.target} min this week` : `${week.doneCount} of ${week.sessions.length} done`}</span>}
       </div>
       <div className="flex gap-1.5 mt-2">
         {week.sessions.map((x) => {
@@ -117,7 +116,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
           <div className="min-w-0">
             <div style={{ color: PAPER }} className="text-base font-medium truncate">{s.name}</div>
             <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(s)}</div>
-            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s, hr)}{acc ? ` · ${acc}` : ''}</div>
+            <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(s, hr, true)}</div>
           </div>
           {s.inProgress ? (
             <span style={{ color: SKY }} className="shrink-0 text-sm font-medium">In Progress</span>
@@ -148,6 +147,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
       {whyNoScale && <NoScaleSheet onClose={() => setWhyNoScale(false)} />}
       {open && (
         <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-2 pt-2.5">
+          <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug text-center mb-2">{exact}{!week.minutes && !race ? ` · ${lifted.toLocaleString()} lb lifted so far` : ''}</div>
           <div style={{ color: TEXT_SOFT }} className="text-[13px] uppercase tracking-wide mb-1.5">This Week</div>
           <div className="space-y-1.5">
             {week.sessions.map((x) => (
@@ -157,6 +157,7 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
                   <div style={{ color: x.done ? TEXT_SOFT : PAPER }} className="text-sm font-medium flex items-center gap-1.5">{x.name}{x.done && <Check size={12} />}</div>
                   <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionBlurb(x)}</div>
                   <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{sessionDetail(x, hr)}</div>
+                  {x.kind !== 'aerobic' && [secondaryLine(x), accessoryLine(x)].filter(Boolean).length > 0 && <div style={{ color: TEXT_SOFT }} className="text-[13px] leading-snug">{[secondaryLine(x), accessoryLine(x)].filter(Boolean).join(' · ')}</div>}
                 </div>
               </div>
             ))}
