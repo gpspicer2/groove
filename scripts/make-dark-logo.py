@@ -25,7 +25,7 @@ PALETTE = [
 ]
 
 
-def neon(path, out, glow=True):
+def neon(path, out, glow=True, x0=0):
     im = Image.open(PUBLIC + path).convert('RGBA')
     a = np.asarray(im).astype(float)
     alpha = a[..., 3] / 255.0
@@ -74,9 +74,20 @@ def neon(path, out, glow=True):
         return t * t * (3 - 2 * t)
     # The runner is a plain silhouette, so it takes the wide smoothing; the other letters carry fine
     # detail (trees, barbell plates, heartbeat) and get a gentler one.
-    runner_zone = (xx >= 200) & (xx <= 392)
-    g_zone = xx < 200
-    wide = clean(mask & runner_zone, 11.0)
+    gx = xx + x0  # position in the full logo (the runner file is a crop)
+    runner_zone = (gx >= 200) & (gx <= 392)
+    g_zone = gx < 200
+    # shave the little hump the artwork has on the runner's shoulder line so the shoulders read flat
+    run = mask.copy()
+    top = 54.0 + (gx - 204 - 54) * (1.0 / 56.0)
+    run &= ~((gx >= 204 + 50) & (gx <= 204 + 112) & (yy < top) & (yy > 51))
+    # the back arm's underside meets the torso in a flat shelf with a knob at its end, which makes the
+    # shoulder look out of joint; fill it with a soft slope so the arm flows into the body
+    from PIL import ImageDraw
+    fill = Image.new('L', (mask.shape[1], mask.shape[0]), 0)
+    ImageDraw.Draw(fill).polygon([(204 - x0 + x / 4, y / 4) for x, y in [(215, 296), (326, 296), (300, 352), (262, 332), (235, 314)]], fill=255)
+    run |= np.asarray(fill) > 0
+    wide = clean(run & runner_zone, 8.0)
     mid = clean(mask & g_zone, 8.5)
     gentle = clean(mask & ~runner_zone & ~g_zone, 6.5)
     soft_big = np.maximum(np.maximum(wide, mid), gentle)
@@ -111,4 +122,4 @@ def neon(path, out, glow=True):
 
 neon('wordmark.png', 'wordmark-dark.png')
 neon('wordmark-still.png', 'wordmark-still-dark.png')
-neon('wordmark-runner.png', 'wordmark-runner-dark.png', glow=False)
+neon('wordmark-runner.png', 'wordmark-runner-dark.png', glow=False, x0=204)
