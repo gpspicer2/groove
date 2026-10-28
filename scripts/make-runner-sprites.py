@@ -25,7 +25,7 @@ HEAD = (119.55, 28.85, 22)
 TORSO = [(100.5, 71.5), (74.9, 135.8)]; TORSO_W = 37.5
 # One smooth shoulder/neck shape that stays inside the body, so the rounded arm joints never poke out as bumps.
 SHOULDERS = [(80, 68), (86, 57), (100, 52.5), (115, 55), (124, 63), (123, 76), (100, 86), (82, 82)]
-ARM_B = [(76.0, 66.0), (50.0, 68.5), (37.5, 94.5)]; ARM_B_W = 17.0   # shoulder, elbow, hand (the dark logo draws the back arm as one straight limb from here)
+ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5   # shoulder, elbow, hand (fix-runner-arm.py draws the logo's back arm from the same points)
 ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
 LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
 LEG_F = [(128.5, 161.0), (127.0, 208.0), (149.75, 211.5)]; LEG_F_W = 25.0   # knee, ankle, toe
@@ -47,6 +47,7 @@ def pt(c, length, theta):
 LEG_T = [0, .17, .33, .5, .75, 1.0]
 LEG_THIGH = [68, 50, 10, -42, -5, 68]     # thigh angle from straight down, forward +
 LEG_FLEX = [68, 25, 5, 0, 105, 68]        # knee bend (shin falls behind the thigh)
+LEG_FLEN = [1, 1, 1, .1, .8, 1]            # foot length factor: the toe-off foot is in line with the shin, so it is drawn short
 LEG_FOOT = [81, 75, 81, 0, 40, 81]        # foot angle relative to the shin (0 = straight on)
 THIGH_LEN, SHIN_LEN, FOOT_LEN = 50.7, 46.7, 23.0
 HIP_X = HIP
@@ -56,17 +57,8 @@ def leg_pose(u):
     th = float(np.interp(u, LEG_T, LEG_THIGH)); fl = float(np.interp(u, LEG_T, LEG_FLEX)); ft = float(np.interp(u, LEG_T, LEG_FOOT))
     knee = pt(HIP, THIGH_LEN, th)
     ankle = pt(knee, SHIN_LEN, th - fl)
-    toe = pt(ankle, FOOT_LEN, th - fl + ft)
+    toe = pt(ankle, FOOT_LEN * float(np.interp(u, LEG_T, LEG_FLEN)), th - fl + ft)
     return knee, ankle, toe
-
-def arm_pose_back(shoulder, u):
-    # the back arm is nearly straight at rest (matching the logo), swinging ~45 deg either way with a slight bend
-    ph = 2 * math.pi * (u + 0.3375)
-    theta = -30.0 + 45.0 * math.cos(ph)
-    bend = 12.0 + 12.0 * math.cos(ph)
-    elbow = pt(shoulder, 23.95, theta)
-    hand = pt(elbow, 23.95, theta + bend)
-    return elbow, hand
 
 def arm_pose(shoulder, upper_len, fore_len, u, base_phase):
     # upper-arm angle swings between 31.7 (forward) and -85.4 (back); elbow flexes
@@ -96,7 +88,7 @@ def frame(color, t):
     d.polygon([tf(p) for p in [(30, 0), (150, 0), (150, 54.5), (30, 54.5)]], fill=(0, 0, 0, 0))
     cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     # arms (back arm half a cycle behind the front arm)
-    elbow, hand = arm_pose_back(ARM_B[0], t); line([ARM_B[0], elbow, hand], ARM_B_W)
+    elbow, hand = arm_pose(ARM_B[0], 37.6, 26.6, t, 0.5); line([ARM_B[0], elbow, hand], ARM_B_W)
     elbow, hand = arm_pose(ARM_F[0], 48.5, 33.5, t, 0.0); line([ARM_F[0], elbow, hand], ARM_F_W)
     # legs: the front leg starts at knee-drive, the back leg half a cycle later
     kb, ab, tb = leg_pose(t + 0.5); line([HIP, kb, ab, tb], LEG_B_W)
@@ -109,3 +101,15 @@ for sfx, color in COLORS.items():
         sheet.paste(frame(color + (255,), i / N), (0, i * FH * OUT))
     path = f'public/runner-sprites{sfx}.png'
     sheet.save(path, optimize=True); print(path, sheet.size)
+
+# The resting runner in the logo is frame 0 of the stride, drawn from the same round-ended limbs, so the
+# logo is clean at any size and the first stride frame matches it exactly (the artwork's own shoulder
+# was a slab that looked out of joint). Written at 4x for the light logo; make-dark-logo.py recolors it.
+import numpy as np
+f0 = frame(COLORS[''] + (255,), 0).crop((MX * OUT, MY * OUT, (MX + W) * OUT, (MY + H) * OUT))
+f0.save('public/wordmark-runner.png'); print('public/wordmark-runner.png', f0.size)
+logo = Image.open('public/wordmark.png').convert('RGBA')
+arr = np.asarray(logo).copy(); arr[:, 200:392, 3] = 0
+logo = Image.fromarray(arr, 'RGBA')
+logo.alpha_composite(f0.resize((W, H), Image.LANCZOS), (204, 0))
+logo.save('public/wordmark.png')
