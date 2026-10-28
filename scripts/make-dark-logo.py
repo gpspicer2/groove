@@ -59,18 +59,38 @@ def neon(path, out, glow=True):
         idx = ndimage.distance_transform_edt(~interior, return_distances=False, return_indices=True)
         keep_wheel = wheel.copy()
         out_rgb = np.where(keep_wheel[..., None], out_rgb, out_rgb[idx[0], idx[1]])
-    soft = ndimage.gaussian_filter(mask.astype(float), 0.4)  # anti-aliased edge
-    soft = np.where(wheel, alpha, soft)
-    layer = np.dstack([out_rgb, soft * 255]).astype(np.uint8)
-    core = Image.fromarray(layer, 'RGBA')
+    # Built at 2x so phones (which show the logo at 2-3x pixel density) get smooth edges instead of
+    # the stair-steps of a small, hard-edged mask: the mask is enlarged, softened, then re-sharpened
+    # with a narrow smoothstep, which rounds the staircase into a clean anti-aliased contour.
+    Z = 2
+    def up(arr, order=3):
+        return ndimage.zoom(arr, (Z, Z) + (1,) * (arr.ndim - 2), order=order, mode='nearest')
+    big = np.clip(up(ndimage.gaussian_filter(mask.astype(float), 0.5)), 0, 1)
+    big = ndimage.gaussian_filter(big, 3.0)
+    t = np.clip((big - 0.5) / 0.22 + 0.5, 0, 1)
+    soft_big = t * t * (3 - 2 * t)
+    wheel_big = np.kron(wheel, np.ones((Z, Z), dtype=bool))
+    alpha_big = np.clip(up(alpha), 0, 1)
+    # the wheel's rim gets the same clean edge; its thin spokes and hub keep their own softness
+    # (the rim is what survives an opening that is wider than a spoke)
+    solid = alpha > 0.5
+    rim_only = wheel & ndimage.binary_opening(solid, structure=np.ones((5, 5))) & (((xx - 487.5) / 55.0) ** 2 + ((yy - 116.0) / 60.0) ** 2 > 1)
+    rim_big = np.clip(up(ndimage.gaussian_filter(rim_only.astype(float), 0.5)), 0, 1)
+    rim_big = ndimage.gaussian_filter(rim_big, 3.0)
+    rt = np.clip((rim_big - 0.5) / 0.22 + 0.5, 0, 1)
+    rim_big = rt * rt * (3 - 2 * rt)
+    far_from_rim = ~np.kron(ndimage.binary_dilation(rim_only, iterations=2), np.ones((Z, Z), dtype=bool))
+    soft_big = np.where(wheel_big, np.maximum(rim_big, alpha_big * far_from_rim), soft_big)
+    rgb_big = np.clip(up(out_rgb, order=0), 0, 255)
+    core = Image.fromarray(np.dstack([rgb_big, soft_big * 255]).astype(np.uint8), 'RGBA')
     if not glow:
         core.save(PUBLIC + out)
         return
-    pad = 14
-    canvas = Image.new('RGBA', (core.width, core.height), (0, 0, 0, 0))
-    wide = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 4) * 255 * 0.16]).astype(np.uint8), 'RGBA')
-    tight = Image.fromarray(np.dstack([out_rgb, ndimage.gaussian_filter(mask.astype(float), 1.2) * 255 * 0.22]).astype(np.uint8), 'RGBA')
-    inner_wheel = ((xx - 487.5) / 76.0) ** 2 + ((yy - 116.0) / 83.0) ** 2 < 1
+    mask_big = (soft_big > 0.5) & ~wheel_big | (wheel_big & (alpha_big > 0.5))
+    canvas = Image.new('RGBA', core.size, (0, 0, 0, 0))
+    wide = Image.fromarray(np.dstack([rgb_big, ndimage.gaussian_filter(mask_big.astype(float), 4 * Z) * 255 * 0.16]).astype(np.uint8), 'RGBA')
+    tight = Image.fromarray(np.dstack([rgb_big, ndimage.gaussian_filter(mask_big.astype(float), 1.2 * Z) * 255 * 0.22]).astype(np.uint8), 'RGBA')
+    inner_wheel = np.kron(((xx - 487.5) / 76.0) ** 2 + ((yy - 116.0) / 83.0) ** 2 < 1, np.ones((Z, Z), dtype=bool))
     for glow_img in (wide, tight):
         arr = np.array(glow_img); arr[inner_wheel, 3] = 0
         canvas.alpha_composite(Image.fromarray(arr, 'RGBA'))
