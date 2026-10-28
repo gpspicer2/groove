@@ -3,6 +3,7 @@ import { Search, ChevronRight } from '../../lib/icons';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, BRICK, AMBER, MOSS } from '../../theme';
 import { Avatar, WeekBars, StatusDot } from './CoachParts';
 import { COACH_ALERT_DAYS } from '../../lib/activityGap';
+import CoachInvite from '../invite/CoachInvite';
 
 const FILTERS = [
   ['all', 'All'],
@@ -39,6 +40,7 @@ export default function Clients({ clients, stats, attention, onOpenClient, selfI
 
   return (
     <div>
+      <CoachInvite />
       <div style={{ background: INK_2 }} className="rounded-2xl flex items-center gap-2 px-4 py-3 mb-3">
         <Search size={16} color={TEXT_SOFT} />
         <input
