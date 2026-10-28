@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from '../lib/icons';
 import Wordmark from '../Wordmark';
-import { MEMBERSHIP_PRICE, MENTOR_PRICE, money, invitePromoActive } from '../lib/membership';
+import { invitePromoActive } from '../lib/membership';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, PLUM, SKY } from '../theme';
 
 // Optional intro video: set VITE_INVITE_VIDEO to a YouTube link (or video id) in Vercel and it appears here.
@@ -52,9 +52,9 @@ export default function InviteWelcome({ onStart, onSignIn }) {
 
           <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-4">
             {free && <div style={{ color: SKY }} className="text-sm font-semibold mb-1">Free to join right now.</div>}
-            <div style={{ color: PAPER }} className="text-sm"><b>Groove</b>: {money(MEMBERSHIP_PRICE)} a month</div>
-            <div style={{ color: PAPER }} className="text-sm mt-1"><b>Groove (with Greg)</b>: {money(MENTOR_PRICE)} a month</div>
-            <div style={{ color: TEXT_SOFT }} className="text-xs">adds mentorship from Greg: a monthly 15-minute call and weekly notes on your progress</div>
+            <div style={{ color: PAPER }} className="text-sm"><b>Groove</b>: the app, with your goals, programs and tidbits</div>
+            <div style={{ color: PAPER }} className="text-sm mt-1"><b>Groove (with Greg)</b>: adds mentorship</div>
+            <div style={{ color: TEXT_SOFT }} className="text-xs">a monthly 15-minute call and weekly notes on your progress from Greg</div>
           </div>
 
           <button onClick={onStart} style={{ background: PLUM, color: INK }} className="w-full rounded-md py-3 text-base font-medium mb-2">Get Started</button>
