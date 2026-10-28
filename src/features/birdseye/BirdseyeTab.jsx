@@ -21,7 +21,7 @@ import { buildRecap, dayKey } from './weekly';
 import { CLIENT_NUDGE_DAYS, calendarDaysBetween } from '../../lib/activityGap';
 import { RecapCard, TodayPlanCard } from './WeekCards';
 import Progress from './Progress';
-import FirstTimeHint from '../onboarding/FirstTimeHint';
+import FirstTimeHint, { hintDismissed } from '../onboarding/FirstTimeHint';
 import { distinctDays } from '../../lib/days';
 import GoalCelebration from './GoalCelebration';
 import { useProgram } from '../program/useProgram';
@@ -570,6 +570,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
         )}
 
         <WorkoutCalendar
+          suppressHint={workouts.length === 0 && trackedGoals.length > 0 && !hintDismissed('goals', userId)}
           userId={userId}
           dataTour="birdseye-calendar"
           workouts={workouts}
@@ -887,7 +888,7 @@ function buildInsight({ resistanceThisWeek, aerobicMinutesThisWeek, resistanceGo
   return null;
 }
 
-function WorkoutCalendar({ userId, workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onMovePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
+function WorkoutCalendar({ suppressHint, userId, workouts, hasResistance, hasAerobic, hasFlexibility, onOpenWorkout, onLogOnDate, plans = [], onSavePlan, onDeletePlan, onMovePlan, onPlanDetails, onStartPlan, weekStartDay, dataTour }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [choiceDay, setChoiceDay] = useState(null); // a day that already has workouts
   const [plannedDay, setPlannedDay] = useState(null); // a day with planned workouts
@@ -982,7 +983,7 @@ function WorkoutCalendar({ userId, workouts, hasResistance, hasAerobic, hasFlexi
         })}
       </div>
       {/* First-timers (no plans yet) get a one-tap way to plan tomorrow; it hides itself once a plan exists. */}
-      {plans.length === 0 && workouts.length < 3 && (
+      {!suppressHint && plans.length === 0 && workouts.length < 3 && (
         <FirstTimeHint
           id="plan"
           userId={userId}

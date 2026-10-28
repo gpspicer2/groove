@@ -1581,8 +1581,6 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                       </div>
                       <div style={{ color: TEXT_SOFT }} className="text-[13px] truncate">
                         {dayLabel(date)} · {workoutSummary(workoutSets, exerciseNames.length).replace(/(\d+) exercises?/, '$1 ex')}
-                        {total > 0 && ` · ${Math.round(total).toLocaleString()} lb`}
-                        {kcal > 0 && ` · ${kcal} kcal`}
                       </div>
                     </div>
                     {expanded ? <ChevronUp size={16} color={TEXT_SOFT} /> : <ChevronDown size={16} color={TEXT_SOFT} />}
@@ -1591,6 +1589,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                     <div style={{ borderTop: `1px dashed ${INK_3}` }} className="mt-3 pt-3 space-y-3">
                       <div style={{ color: TEXT_SOFT }} className="text-sm text-center">
                         {workoutTitle(w.muscleGroups, w.activities)}{w.location && ` · ${w.location}`}
+                        {(total > 0 || kcal > 0) && <div>{[total > 0 && `${Math.round(total).toLocaleString()} lb lifted`, kcal > 0 && `about ${kcal} kcal`].filter(Boolean).join(' · ')}</div>}
                       </div>
                       {exerciseNames.map((name) => {
                         const exSets = workoutSets.filter((s) => s.exerciseName === name);
@@ -1794,6 +1793,9 @@ function StartWorkout({
   const needsActivities = movementMode === 'Aerobic';
   const needsFlexActivities = movementMode === 'Flexibility';
   const needsStyle = movementMode === 'Resistance' || movementMode === 'Combined';
+  // Once muscles and a goal are both picked, they fold into two chips (tap one to change), like location and type above.
+  const [editSel, setEditSel] = useState(false);
+  const foldedSel = needsStyle && Boolean(selectedStyle) && selectedGroups.length > 0 && !editSel && !planning;
 
   const styleMissing = attemptedStart && needsStyle && !selectedStyle;
   const groupsMissing = attemptedStart && needsGroups && selectedGroups.length === 0 && !(movementMode === 'Flexibility' && selectedFlexActivities.length > 0);
@@ -2116,7 +2118,14 @@ function StartWorkout({
         </>
       )}
 
-      {selectedLocation && !showProgramOffer && needsGroups && (
+      {selectedLocation && !showProgramOffer && foldedSel && (
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-3 mt-1">
+          <button onClick={() => setEditSel(true)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3 py-1.5 text-sm font-medium max-w-full truncate">{selectedGroups.length > 3 ? `${selectedGroups.slice(0, 3).join(', ')} +${selectedGroups.length - 3}` : selectedGroups.join(', ')}</button>
+          <button onClick={() => setEditSel(true)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3 py-1.5 text-sm font-medium">{STYLE_EMOJI[selectedStyle]} {selectedStyle}</button>
+        </div>
+      )}
+
+      {selectedLocation && !showProgramOffer && needsGroups && !foldedSel && (
         <>
           {(() => {
             const foldable = movementMode === 'Flexibility';
@@ -2161,7 +2170,7 @@ function StartWorkout({
         </>
       )}
 
-      {selectedLocation && needsStyle && (
+      {selectedLocation && needsStyle && !foldedSel && (
         <>
           <div ref={styleHeadingRef} style={{ color: styleMissing ? BRICK : PAPER }} className="text-base font-medium text-center mb-2 mt-2">
             What's the goal?{styleMissing ? ' Pick one to continue' : ''}
@@ -2172,7 +2181,7 @@ function StartWorkout({
               return (
                 <button
                   key={style}
-                  onClick={() => onSelectStyle(style)}
+                  onClick={() => { onSelectStyle(style); setEditSel(false); }}
                   style={{
                     background: selected ? SKY : INK_3,
                     outline: styleMissing ? `1.5px solid ${BRICK}` : 'none',
@@ -2913,14 +2922,16 @@ function ActiveWorkout({
           <div style={{ background: INK_2 }} className="rounded-md px-4 py-3 mb-4 groove-ease-in">
             <div style={{ color: TEXT_SOFT }} className="text-sm mb-2 text-center">Add what to your workout?</div>
             <div className="space-y-2">
-              <button onClick={() => setAddMode('aerobic')} style={{ background: INK_3, color: AMBER }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Aerobic
-              </button>
+              {(!lifts || serialBlock || workout.movementMode === 'Resistance') && (
+                <button onClick={() => { if (serialBlock || workout.movementMode === 'Resistance') { closeAddForm(); setSerialAeroOpen(true); } else setAddMode('aerobic'); }} style={{ background: INK_3, color: AMBER }} className="w-full rounded-md py-2.5 text-sm font-medium">
+                  Aerobic
+                </button>
+              )}
               <button onClick={() => setAddMode('resistance-choice')} style={{ background: INK_3, color: SKY }} className="w-full rounded-md py-2.5 text-sm font-medium">
                 Resistance
               </button>
               <button onClick={() => setAddMode('flexibility')} style={{ background: INK_3, color: BRICK }} className="w-full rounded-md py-2.5 text-sm font-medium">
-                Flexibility
+                {lifts ? 'Stretch' : 'Flexibility'}
               </button>
               <button onClick={closeAddForm} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">
                 Cancel
@@ -3022,34 +3033,14 @@ function ActiveWorkout({
           </button>
         </div>
       ) : (
-        // One row of add buttons side by side instead of a stack.
-        <div className="flex gap-2 mb-4">
-          {(serialBlock || workout.movementMode === 'Resistance') && (
-            <button
-              onClick={() => setSerialAeroOpen(true)}
-              style={{ background: INK_2, color: AMBER, borderLeft: `3px solid ${AMBER}` }}
-              className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
-            >
-              <Plus size={13} /> Aerobic
-            </button>
-          )}
-          <button
-            onClick={() => (lifts ? setSplitAddOpen(true) : setAddMenuOpen(true))}
-            style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
-            className="flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1"
-          >
-            <Plus size={13} /> {lifts ? 'Resistance' : 'Add to Workout'}
-          </button>
-          {(lifts || workout.movementMode === 'Flexibility') && (
-          <button
-            onClick={() => { setAddMode('flexibility'); setAddMenuOpen(true); setSplitAddOpen(false); }}
-            style={{ background: INK_2, color: BRICK, borderLeft: `3px solid ${BRICK}` }}
-            className={`${workout.movementMode === 'Flexibility' ? 'order-first ' : ''}flex-1 min-w-0 rounded-md py-2.5 px-1 text-sm font-medium flex items-center justify-center gap-1`}
-          >
-            <Plus size={13} /> Stretch
-          </button>
-          )}
-        </div>
+        // One quiet Add button; it opens Aerobic / Resistance / Stretch so the bottom of the workout stays clean.
+        <button
+          onClick={() => { setAddMode(null); setAddMenuOpen(true); }}
+          style={{ background: INK_2, color: SKY, borderLeft: `3px solid ${SKY}` }}
+          className="w-full rounded-md py-2.5 px-1 mb-4 text-sm font-medium flex items-center justify-center gap-1"
+        >
+          <Plus size={13} /> Add to Workout
+        </button>
       )}
 
       <button
