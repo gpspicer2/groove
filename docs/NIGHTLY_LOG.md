@@ -1,5 +1,10 @@
 # Nightly Log
 
+## 2026-10-28
+**Fixed:** nothing needed. No new code landed since last night's fixes.
+
+**Checked, all good:** no undefined names (lint), 12 api functions, every coach and member screen loads with no errors in light and dark, 1,200 program weeks and all race plans clean.
+
 ## 2026-10-27 (first night the sweep really ran)
 **Fixed**
 - Coach Health tab went blank (a missing date formatter). Fixed this evening, already live.
