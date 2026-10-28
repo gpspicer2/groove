@@ -18,8 +18,15 @@ const LONG_PRESS_MS = 550;
 // bundle really was fully selected.
 const BUNDLE_DEFS = { Legs: LEGS_BUNDLE, Arms: ARMS_BUNDLE };
 
+// Everyday choices stay up front; the finer-grained muscles (quads, hamstrings, glutes, biceps, triceps) fold under one link.
+const SPECIFIC_GROUPS = ['Quadriceps', 'Hamstrings', 'Glutes', 'Biceps', 'Triceps'];
+const MAIN_GROUPS = MUSCLE_GROUPS.filter((g) => !SPECIFIC_GROUPS.includes(g));
+
 export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
   const [active, setActive] = useState(new Set());
+  const [showSpecificOpen, setShowSpecificOpen] = useState(false);
+  const anySpecific = SPECIFIC_GROUPS.some((g) => selectedGroups.includes(g)); // never hide a chip that is already picked
+  const showSpecific = showSpecificOpen || anySpecific;
 
   useEffect(() => {
     setActive((prev) => {
@@ -92,7 +99,7 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
             </button>
           );
         })}
-        {MUSCLE_GROUPS.map((group) => {
+        {MAIN_GROUPS.map((group) => {
           const selected = BUNDLE_DEFS[group] ? active.has(group) : selectedGroups.includes(group);
           return (
             <button
@@ -106,6 +113,28 @@ export function MuscleGroupPicker({ selectedGroups, onToggleGroup }) {
           );
         })}
       </div>
+      {showSpecific ? (
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+        {SPECIFIC_GROUPS.map((group) => {
+          const selected = BUNDLE_DEFS[group] ? active.has(group) : selectedGroups.includes(group);
+          return (
+            <button
+              key={group}
+              onClick={() => handleGroupClick(group)}
+              style={{ background: selected ? SKY : INK_3, color: selected ? INK : PAPER_DIM }}
+              className="px-2.5 py-1.5 rounded-full text-sm font-medium"
+            >
+              {group}
+            </button>
+          );
+        })}
+        </div>
+      ) : null}
+      {!anySpecific && (
+        <button onClick={() => setShowSpecificOpen((v) => !v)} style={{ color: TEXT_SOFT }} className="w-full text-sm py-1 flex items-center justify-center gap-1">
+          {showSpecificOpen ? 'Fewer Muscles' : 'More Specific Muscles'}
+        </button>
+      )}
     </>
   );
 }
