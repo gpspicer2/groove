@@ -52,7 +52,7 @@ export default function InviteWelcome({ onStart, onSignIn }) {
 
           <div style={{ background: INK_3 }} className="rounded-md px-4 py-3 mb-4">
             {free && <div style={{ color: SKY }} className="text-sm font-semibold mb-1">Free to join right now.</div>}
-            <div style={{ color: PAPER }} className="text-sm"><b>Groove</b>: the app, with your goals, programs and tidbits</div>
+            <div style={{ color: PAPER }} className="text-sm"><b>Groove</b>: the app, with your goals, programs and learning tidbits from peer-reviewed research</div>
             <div style={{ color: PAPER }} className="text-sm mt-1"><b>Groove (with Greg)</b>: adds mentorship</div>
             <div style={{ color: TEXT_SOFT }} className="text-xs">a monthly 15-minute call and weekly notes on your progress from Greg</div>
           </div>

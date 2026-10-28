@@ -193,7 +193,7 @@ export default function LearnTab({ request = null, onConsumeRequest }) {
 
       <div className="flex justify-center mb-3">
         <div style={{ background: INK_2 }} className="inline-flex rounded-full p-0.5">
-          {[{ id: 'tidbits', label: 'Tidbits' }, { id: 'guides', label: 'Guides' }].map((t) => (
+          {[{ id: 'tidbits', label: 'Research' }, { id: 'guides', label: 'Guides' }].map((t) => (
             <button
               key={t.id}
               onClick={() => { setSection(t.id); setOpenSupport(false); }}
@@ -205,6 +205,7 @@ export default function LearnTab({ request = null, onConsumeRequest }) {
           ))}
         </div>
       </div>
+      {section !== 'guides' && <div style={{ color: TEXT_SOFT }} className="text-sm text-center -mt-1 mb-3">Learning tidbits from peer-reviewed scientific literature</div>}
 
       {section === 'guides' ? <Guides userId={user?.id} openSupport={openSupport} /> : (<>
       <div className="flex items-center gap-2 mb-2">

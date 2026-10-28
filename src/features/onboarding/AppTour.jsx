@@ -36,7 +36,7 @@ const STEPS = [
   },
   {
     tab: 'learn', selector: '[data-tour="tab-learn"]', pos: 'top', color: VIOLET, title: 'Learn',
-    body: "Tidbits: short reads on movement and sticking with it. Guides: Scientific Support for your plan, and a library of everyday activities.",
+    body: "Research: learning tidbits from peer-reviewed scientific literature. Guides: Scientific Support for your plan, and a library of everyday activities.",
   },
   {
     tab: 'birdseye', selector: '[data-tour="account-button"]', pos: 'top', color: PLUM, noTabs: true, title: 'Your Account',
