@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 W, H = 186, 231          # the runner image's own pixels
 N = 12                   # frames per stride cycle
 SS = 4                   # supersampling for smooth edges
-OUT = 1                  # output pixels per runner pixel (he's only ~35-60 px tall on screen,
+OUT = 4                  # output pixels per runner pixel (he's only ~35-60 px tall on screen,
                          # and phones scale big images down roughly, so keep the strip small)
 MX, MY = 70, 40          # margin around the runner box (limbs swing outside it)
 FW, FH = W + 2 * MX, H + 2 * MY
@@ -25,7 +25,7 @@ HEAD = (119.55, 28.85, 22)
 TORSO = [(100.5, 71.5), (74.9, 135.8)]; TORSO_W = 37.5
 # One smooth shoulder/neck shape that stays inside the body, so the rounded arm joints never poke out as bumps.
 SHOULDERS = [(80, 68), (86, 57), (100, 52.5), (115, 55), (124, 63), (123, 76), (100, 86), (82, 82)]
-ARM_B = [(87.5, 65.5), (50.0, 68.5), (34.5, 90.1)]; ARM_B_W = 18.5   # shoulder, elbow, hand
+ARM_B = [(76.0, 66.0), (50.0, 68.5), (37.5, 94.5)]; ARM_B_W = 17.0   # shoulder, elbow, hand (the dark logo draws the back arm as one straight limb from here)
 ARM_F = [(114.0, 69.0), (139.5, 110.25), (163.6, 87.0)]; ARM_F_W = 20.5
 LEG_B = [(48.5, 177.7), (16.9, 211.6)]; LEG_B_W = 24.4        # knee, ankle
 LEG_F = [(128.5, 161.0), (127.0, 208.0), (149.75, 211.5)]; LEG_F_W = 25.0   # knee, ankle, toe
@@ -59,6 +59,15 @@ def leg_pose(u):
     toe = pt(ankle, FOOT_LEN, th - fl + ft)
     return knee, ankle, toe
 
+def arm_pose_back(shoulder, u):
+    # the back arm is nearly straight at rest (matching the logo), swinging ~45 deg either way with a slight bend
+    ph = 2 * math.pi * (u + 0.3375)
+    theta = -30.0 + 45.0 * math.cos(ph)
+    bend = 12.0 + 12.0 * math.cos(ph)
+    elbow = pt(shoulder, 23.95, theta)
+    hand = pt(elbow, 23.95, theta + bend)
+    return elbow, hand
+
 def arm_pose(shoulder, upper_len, fore_len, u, base_phase):
     # upper-arm angle swings between 31.7 (forward) and -85.4 (back); elbow flexes
     # more on the forward swing. base_phase 0 = front arm, 0.5 = back arm.
@@ -87,7 +96,7 @@ def frame(color, t):
     d.polygon([tf(p) for p in [(30, 0), (150, 0), (150, 54.5), (30, 54.5)]], fill=(0, 0, 0, 0))
     cx, cy = tf(HEAD[:2]); r = HEAD[2] * SS; d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
     # arms (back arm half a cycle behind the front arm)
-    elbow, hand = arm_pose(ARM_B[0], 37.6, 26.6, t, 0.5); line([ARM_B[0], elbow, hand], ARM_B_W)
+    elbow, hand = arm_pose_back(ARM_B[0], t); line([ARM_B[0], elbow, hand], ARM_B_W)
     elbow, hand = arm_pose(ARM_F[0], 48.5, 33.5, t, 0.0); line([ARM_F[0], elbow, hand], ARM_F_W)
     # legs: the front leg starts at knee-drive, the back leg half a cycle later
     kb, ab, tb = leg_pose(t + 0.5); line([HIP, kb, ab, tb], LEG_B_W)
