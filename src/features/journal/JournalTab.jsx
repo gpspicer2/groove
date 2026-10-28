@@ -62,6 +62,7 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request, loading]);
 
+  const [shown, setShown] = useState(3); // like Move's history: three to start, five more per Show More
   const [editingEntry, setEditingEntry] = useState(null);
 
   function addEntry(entry) {
@@ -126,9 +127,12 @@ export default function JournalTab({ active = true, request = null, onConsumeReq
         ) : (
           <div className="space-y-2">
             <SwipeHint id="journal">Tip: tap an entry to edit or delete it.</SwipeHint>
-            {entries.map((e) => (
+            {entries.slice(0, shown).map((e) => (
               <JournalEntryRow key={e.id} entry={e} onEdit={() => setEditingEntry(e)} onDelete={() => deleteEntry(e.id)} />
             ))}
+            {entries.length > shown && (
+              <button onClick={() => setShown((n) => n + 5)} style={{ color: AMBER }} className="w-full text-sm py-2 text-center underline">Show More</button>
+            )}
           </div>
         )}
       </div>

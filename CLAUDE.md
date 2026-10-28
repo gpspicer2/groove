@@ -142,6 +142,8 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 - Journal rows show a two-line recap of what was written (`entrySummary` in JournalTab, built on the phone, never sent anywhere): mood/energy, then Good / Hard / Next, or the first lines of a plain entry; reflections read "After <workout>". Journal writing boxes, row titles and prompts are 16 px (`text-base`; small gray hints stay `text-sm`). Card and section titles got a font bump (program cards `text-lg`, section headers like Weekly Goals, History, Past entries, Your Fitness `text-base`); small field labels stay small.
 
+- Journal Past Entries show 3 to start, then 5 more per Show More (amber), like Move's history.
+
 - Journal row titles use `shortWorkoutTitle` (first two muscles in the order chosen, then +N), same as Move history.
 
 - Loading screen (`GrooveLoader.jsx`): just the GROOVE logo (neon version in dark mode) fading in softly; shown only on the full-screen app-open load, about a third of the way down at ~300 px wide with side margins, and kept up for at least 1.5 s after the page starts (`minShown` in App.jsx) so it can be seen; the tabs load blank beneath the header logo (a second logo there looked like a duplicate, off to the left). Tried a per-letter hop and a smooth wave first; Greg found them choppy / too quick to enjoy and asked for the plain logo. If animating it again, move every letter or none.
