@@ -3969,7 +3969,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // working-set rep range. Weight/reps then carry over set-to-set, so a
   // straight set of identical sets is just repeated taps of "Log set"
   // with no adjustment needed.
-  const startWeight = useBodyweight
+  const startWeightBase = useBodyweight
     ? (mostRecentLogged?.isBodyweight ? Math.max(0, (mostRecentLogged.weight ?? 0) - (bodyweight || 0)) : 0)
     : (mostRecentLogged?.weight ?? suggestion?.weight ?? last?.weight ?? null);
   // A barbell weighs 45 lb on its own, so a barbell lift is never lighter.
@@ -3984,6 +3984,20 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const ezCapable = /curl|extension|skull/i.test(exercise.name || '');
   const barLb = ezBar ? EZ_BAR_LB : ezCapable && !variantKey ? 0 : BARBELL_MIN_LB;
   const barbellFloor = isBarbell && !useBodyweight ? barLb : 0;
+  // Free weights (barbell, dumbbell, kettlebell) open with a lighter warm-up set based on what the lifter has been working
+  // with; the later sets go to the working weight. Machines, cables, bodyweight and holds just start at the working weight.
+  const freeWeight = !useBodyweight && !byTime && (isBarbell || /dumbbell|kettlebell/i.test(exercise.name || '') || exercise.equipment === 'dumbbell');
+  const workingW = suggestion?.weight ?? last?.weight ?? null;
+  const warmW = (() => {
+    if (!freeWeight || !(workingW > 0)) return null;
+    if (isBarbell) return workingW <= barLb + 10 ? null : Math.max(barLb, roundToFive(workingW * 0.5));
+    return workingW < 20 ? null : Math.max(5, roundToFive(workingW * 0.5));
+  })();
+  const warmReps = style === 'Strength' ? 5 : 8;
+  // The warm-up set is the first set of the exercise; once it is logged, set 2 goes to the working weight.
+  const warmDone = warmW != null && mostRecentLogged && mostRecentLogged.setNumber === 1 && (mostRecentLogged.weight ?? 0) < workingW * 0.8;
+  const warmNow = warmW != null && !mostRecentLogged;
+  const startWeight = warmNow ? warmW : warmDone ? workingW : startWeightBase;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
   const plateName = /plate.?loaded|smith|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
@@ -4015,6 +4029,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // Always the total weight, the same number a logged set chip shows. (Per-side lives only in the weight box, with a Total line under it.)
   const shownW = (w) => formatMoneyLikeWeight(w) ?? '—';
   function togglePerSide() {
+    weightTouched.current = true;
     const next = !perSideOn;
     setPlates([]);
     setPerSideOn(next);
@@ -4042,7 +4057,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     setWeight(Math.max(isBarbell && !useBodyweight && f === 1 ? barLb : 0, base));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variantKey]);
-  const [reps, setReps] = useState(mostRecentLogged?.reps ?? 8);
+  const [reps, setReps] = useState(warmNow ? warmReps : warmDone ? (last?.reps ?? 8) : (mostRecentLogged?.reps ?? 8));
   const repsRef = useRef(null);
   const jumpTimer = useRef(null);
   useEffect(() => () => clearTimeout(jumpTimer.current), []);
@@ -4057,11 +4072,13 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     try { localStorage.setItem('groove:plateTip', '1'); } catch { /* storage unavailable */ }
   }
   function addPlate(pl) {
+    weightTouched.current = true;
     setPlates((p) => [...p, pl]);
     setWeight((w) => Math.round(((Number(w) || 0) + pl) * 10) / 10);
     if (tipOn) dismissTip();
   }
   function undoPlate() {
+    weightTouched.current = true;
     if (plates.length > 0) {
       const last = plates[plates.length - 1];
       setPlates((p) => p.slice(0, -1));
@@ -4071,6 +4088,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     }
   }
   function weightTyped(v) {
+    weightTouched.current = true;
     setPlates([]);
     setWeight(v === '' ? '' : Number(v));
     clearTimeout(jumpTimer.current);
@@ -4088,8 +4106,27 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const lockedAwake = useRef(false); // only release the screen lock if this timer took it
   useEffect(() => () => { if (lockedAwake.current) keepAwake(false); }, []);
 
+  // History can arrive after the card first draws; until the weight box is touched, keep it on the warm-up weight.
+  const weightTouched = useRef(false);
+  useEffect(() => {
+    if (!warmNow || weightTouched.current) return;
+    setWeight(Math.max(f === 1 ? barbellFloor : 0, fromTotal(warmW)));
+    setReps(warmReps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warmNow, warmW]);
+  // Right after the warm-up set is logged, the next set starts at the working weight.
+  const warmLogged = useRef(false);
+  useEffect(() => {
+    if (!warmLogged.current || nextSetNumber < 2) return;
+    warmLogged.current = false;
+    if (workingW > 0) setWeight(Math.max(f === 1 ? barbellFloor : 0, fromTotal(workingW)));
+    setReps(last?.reps ?? 8);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextSetNumber]);
+
   function handleLog() {
     if (belowBarbell) return;
+    if (warmNow && nextSetNumber === 1 && (Number(weight) || 0) * f + extra < workingW * 0.8) warmLogged.current = true;
     setPlates([]);
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
     if (useBodyweight) {
@@ -4106,7 +4143,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     `Target ${exercise.sets}×${exercise.reps}`,
     rmTarget && `Aim ${rmTarget.low}–${rmTarget.high} lb`,
     last && `Last ${last.isBodyweight ? bwLabel(last.weight, bodyweight) : shownW(last.weight)}×${last.durationSeconds ? `${last.durationSeconds}s` : (last.reps ?? '—')}`,
-    suggestion && `Try ${shownW(suggestion.weight)}`,
+    warmNow ? `Warm-up set, then ${shownW(workingW)}` : suggestion && `Try ${shownW(suggestion.weight)}`,
   ].filter(Boolean);
 
   const boxClass = 'w-full rounded-md pl-1.5 pr-7 py-2.5 text-base outline-none text-center';
