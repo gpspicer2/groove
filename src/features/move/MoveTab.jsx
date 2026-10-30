@@ -42,6 +42,16 @@ import { useExperience } from '../experience/useExperience';
 import { blockedByExperience, knowsLift, lovedLifts } from '../experience/movements';
 
 // Whether a workout was started as a clean slate (remembered on this device).
+// The reps to carry over when one lift takes another's place. A hold (Plank, Wall Sit: "30-45s", logged by seconds) must
+// not pass its time target to a normal lift (a chin-up asking for 30 seconds), nor a rep range to a hold.
+function repsAfterSwap(name, oldReps, style) {
+  const lib = Object.values(EXERCISE_LIBRARY).flat().find((e) => e.name === name);
+  const newHold = holdReps(lib);
+  if (newHold) return newHold;
+  if (holdReps({ reps: oldReps })) return STYLE_CONFIG[style]?.reps ? repsFor(name, STYLE_CONFIG[style].reps) : (lib?.reps || '8-12');
+  return oldReps;
+}
+
 function isCleanSlateWorkout(id) {
   try { return Boolean(id) && localStorage.getItem(`groove:cleanSlate:${id}`) === '1'; } catch { return false; }
 }
@@ -1007,7 +1017,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const ex = planExercises[index];
     setPlanExercises((prev) =>
       prev.map((e, i) => (i === index
-        ? { ...e, name: next.name, ...(next.muscleGroup ? { muscleGroup: next.muscleGroup } : {}), sets: ex.type === 'flexibility' ? (next.sets ?? ex.sets) : ex.sets, reps: ex.type === 'flexibility' ? (next.reps ?? ex.reps) : ex.reps }
+        ? { ...e, name: next.name, ...(next.muscleGroup ? { muscleGroup: next.muscleGroup } : {}), sets: ex.type === 'flexibility' ? (next.sets ?? ex.sets) : ex.sets, reps: ex.type === 'flexibility' ? (next.reps ?? ex.reps) : repsAfterSwap(next.name, ex.reps, activeWorkout?.style) }
         : e))
     );
   }
@@ -1040,7 +1050,16 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     if (generated.length === 0) return;
     let next = generated;
-    if (prog) next = generated.slice(0, Math.max(0, oldLifts.length - keep)).map((ex, i) => { const o = oldLifts[keep + i]; return o ? { ...ex, sets: o.sets, reps: o.reps, targetNote: o.targetNote } : ex; });
+    if (prog) {
+      // Reuse the session's prescription from its normal (rep-counted) lifts; a hold keeps its own seconds target.
+      const rx = oldLifts.slice(keep).filter((o) => !holdReps(o));
+      let n = 0;
+      next = generated.slice(0, Math.max(0, oldLifts.length - keep)).map((ex) => {
+        if (holdReps(ex) || rx.length === 0) return ex;
+        const o = rx[Math.min(n, rx.length - 1)]; n += 1;
+        return { ...ex, sets: o.sets, reps: o.reps, targetNote: o.targetNote };
+      });
+    }
     next = [...keptLifts, ...next];
     const queue = ready.tired && !prog ? next.map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) })) : next;
     setPlanExercises((prev) => {
@@ -1094,7 +1113,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       const a = prev[i];
       if (!a || a.supersetId) return prev;
       const id = uid();
-      const partner = { name: pick.name, muscleGroup: pick.muscleGroup || a.muscleGroup, type: 'resistance', supersetId: id, sets: a.sets, reps: a.reps };
+      const partner = { name: pick.name, muscleGroup: pick.muscleGroup || a.muscleGroup, type: 'resistance', supersetId: id, sets: a.sets, reps: repsAfterSwap(pick.name, a.reps, activeWorkout?.style) };
       const n = [...prev];
       n[i] = { ...a, supersetId: id };
       n.splice(i + 1, 0, partner);
