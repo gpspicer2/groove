@@ -1027,13 +1027,22 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       ...sets.filter((y) => y.workoutId === x.id && y.movementType !== 'aerobic' && y.movementType !== 'flexibility').map((y) => y.exerciseName),
       ...(x.plan || []).filter((e) => e && e.type === 'resistance').map((e) => e.name),
     ]);
-    const current = planExercises.filter((e) => e.type === 'resistance').map((e) => e.name);
+    const oldLifts = planExercises.filter((e) => e.type === 'resistance');
+    const current = oldLifts.map((e) => e.name);
+    // A program session keeps its sets, reps and number of lifts (and a strength day keeps its named main lifts).
+    let prog = null;
+    try { prog = JSON.parse(localStorage.getItem(`groove:programSession:${w.id}`) || 'null'); } catch { /* */ }
+    const keep = prog ? (w.style === 'Strength' ? Math.min(oldLifts.length, prog.mainCount || 2) : 0) : 0;
     const blocked = [...hidden, ...avoidForAreas([...(ready.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
     // Today's lifts count as "recent" so none of them come straight back (most recent first), unless a muscle has nothing else.
-    const next = generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, blocked, ready.tired ? 4 : undefined, lovedLifts(experience.answers))
+    const keptLifts = oldLifts.slice(0, keep);
+    const generated = generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name)], prog ? oldLifts.length + 3 : ready.tired ? 4 : undefined, lovedLifts(experience.answers))
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
-    if (next.length === 0) return;
-    const queue = ready.tired ? next.map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) })) : next;
+    if (generated.length === 0) return;
+    let next = generated;
+    if (prog) next = generated.slice(0, Math.max(0, oldLifts.length - keep)).map((ex, i) => { const o = oldLifts[keep + i]; return o ? { ...ex, sets: o.sets, reps: o.reps, targetNote: o.targetNote } : ex; });
+    next = [...keptLifts, ...next];
+    const queue = ready.tired && !prog ? next.map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) })) : next;
     setPlanExercises((prev) => {
       const firstIdx = prev.findIndex((e) => e.type === 'resistance');
       const rest = prev.filter((e) => e.type !== 'resistance');
@@ -2444,7 +2453,7 @@ function ActiveWorkout({
   const [reorder, setReorder] = useState(false); // drag handles only show while reordering
   // A suggested lifting workout can be swapped for a whole new suggestion until the first lift is logged.
   const canShuffle = Boolean(onNewSuggestion) && !isCleanSlateWorkout(workout.id)
-    && !(() => { try { return localStorage.getItem(`groove:programSession:${workout.id}`); } catch { return null; } })()
+    && !(() => { try { return JSON.parse(localStorage.getItem(`groove:programSession:${workout.id}`) || 'null')?.aerobic; } catch { return null; } })()
     && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
     && !sets.some((x) => x.movementType !== 'aerobic' && x.movementType !== 'flexibility');
   const [dragOffsetY, setDragOffsetY] = useState(0);
