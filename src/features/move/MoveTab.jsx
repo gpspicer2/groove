@@ -1012,6 +1012,36 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     );
   }
 
+  // "New Suggestion": swaps every lift in a suggested workout (nothing logged yet) for a fresh set, skipping what is in the
+  // workout now and anything done in the last 7 days, so the new picks don't overlap with this week.
+  function newSuggestion() {
+    if (!activeWorkout) return;
+    const w = activeWorkout;
+    let ready = {};
+    try { ready = JSON.parse(localStorage.getItem(`groove:readiness:${w.id}`) || 'null') || {}; } catch { /* */ }
+    let hidden = [];
+    try { hidden = JSON.parse(localStorage.getItem('groove:hiddenExercises') || '[]'); } catch { /* */ }
+    const weekAgo = Date.now() - 7 * 864e5;
+    const week = workouts.filter((x) => !x.deletedAt && x.id !== w.id && new Date(x.startedAt).getTime() >= weekAgo).sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+    const recentNames = week.flatMap((x) => [
+      ...sets.filter((y) => y.workoutId === x.id && y.movementType !== 'aerobic' && y.movementType !== 'flexibility').map((y) => y.exerciseName),
+      ...(x.plan || []).filter((e) => e && e.type === 'resistance').map((e) => e.name),
+    ]);
+    const current = planExercises.filter((e) => e.type === 'resistance').map((e) => e.name);
+    const blocked = [...hidden, ...avoidForAreas([...(ready.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
+    // Today's lifts count as "recent" so none of them come straight back (most recent first), unless a muscle has nothing else.
+    const next = generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, blocked, ready.tired ? 4 : undefined, lovedLifts(experience.answers))
+      .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+    if (next.length === 0) return;
+    const queue = ready.tired ? next.map((ex) => ({ ...ex, sets: Math.max(2, (ex.sets || 3) - 1) })) : next;
+    setPlanExercises((prev) => {
+      const firstIdx = prev.findIndex((e) => e.type === 'resistance');
+      const rest = prev.filter((e) => e.type !== 'resistance');
+      const at = firstIdx < 0 ? rest.length : firstIdx;
+      return [...rest.slice(0, at), ...queue, ...rest.slice(at)];
+    });
+  }
+
   function moveGroup(groupIndex, direction) {
     setPlanExercises((prev) => {
       const groups = groupPlan(prev).map((g) => g.map(({ index, ...rest }) => rest));
@@ -1434,6 +1464,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
           onDeleteSet={deleteSet}
           onUpdateSet={updateSet}
           onReplace={replaceExercise}
+          onNewSuggestion={newSuggestion}
           onMoveGroup={moveGroup}
           onReorderGroup={reorderGroup}
           onPairExisting={pairExisting}
@@ -2316,7 +2347,7 @@ function ActiveWorkout({
   combinedLayout,
   combinedActivity: combinedActivityRaw,
   workout, exercises, sets, lastPerformance, bodyweight, hrZones,
-  onLogSet, onDeleteSet, onUpdateSet, onReplace, onMoveGroup, onReorderGroup, onPairExisting, onPairNew, onPairCardio, onUnpair,
+  onLogSet, onDeleteSet, onUpdateSet, onReplace, onNewSuggestion, onMoveGroup, onReorderGroup, onPairExisting, onPairNew, onPairCardio, onUnpair,
   onAddExercise, onAddSuperset, onAddAerobic, onAddFlexibility, onAddStretch, onAddWarmup,
   onAddWarmupDrill, onRenameWarmupDrill, onRemoveWarmupDrill, onReorderWarmupDrill,
   onRemoveExercise, onFinish, onDiscard, onProgress,
@@ -2411,6 +2442,11 @@ function ActiveWorkout({
   const dragStateRef = useRef(null);
   const [draggingIndex, setDraggingIndex] = useState(null);
   const [reorder, setReorder] = useState(false); // drag handles only show while reordering
+  // A suggested lifting workout can be swapped for a whole new suggestion until the first lift is logged.
+  const canShuffle = Boolean(onNewSuggestion) && !isCleanSlateWorkout(workout.id)
+    && !(() => { try { return localStorage.getItem(`groove:programSession:${workout.id}`); } catch { return null; } })()
+    && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
+    && !sets.some((x) => x.movementType !== 'aerobic' && x.movementType !== 'flexibility');
   const [dragOffsetY, setDragOffsetY] = useState(0);
 
   // React attaches its synthetic touchstart/touchmove listeners as
@@ -2692,9 +2728,10 @@ function ActiveWorkout({
             </span>
           </button>
         )}
-        {groups.length > 2 && (
-          <div className="flex justify-end -mb-1">
-            <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>
+        {(groups.length > 2 || canShuffle) && (
+          <div className="flex justify-between -mb-1">
+            {canShuffle ? <button onClick={onNewSuggestion} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
+            {groups.length > 2 && <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>}
           </div>
         )}
         {groups.map((group, gi) => {
