@@ -605,7 +605,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programRequest]);
   useEffect(() => {
-    if (!autoStart || loading || activeWorkoutId) return;
+    if (!autoStart || loading) return;
+    // A start request that came while a workout was already open must not wait around and fire when that workout finishes.
+    if (activeWorkoutId) { setAutoStart(false); return; }
     if (movementMode === 'Resistance' && selectedStyle && selectedGroups.length > 0 && selectedLocation && programSession) {
       setAutoStart(false);
       startWorkout();
@@ -2495,6 +2497,8 @@ function ActiveWorkout({
     && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
     && !sets.some((x) => x.movementType !== 'aerobic' && x.movementType !== 'flexibility');
   const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [dragTo, setDragTo] = useState(null); // where the dragged card would land, so the others part to leave a gap
+  const [dragH, setDragH] = useState(0);
 
   // React attaches its synthetic touchstart/touchmove listeners as
   // passive by default, so e.preventDefault() inside an onTouchMove prop
@@ -2510,9 +2514,23 @@ function ActiveWorkout({
     const t = e.touches[0];
     const scroller = document.getElementById('app-scroll');
     const state = { fromIndex: gi, startY: t.clientY, startScroll: scroller ? scroller.scrollTop : 0, lastY: t.clientY, touchId: t.identifier };
+    // Where every card sits in the scrolling list right now (their layout, not the live shifting), so the landing spot
+    // can be worked out as the finger moves and the other cards can part to leave a gap there.
+    state.mids = groupRefs.current.map((el) => { if (!el) return 0; const r = el.getBoundingClientRect(); return r.top + r.height / 2 + (scroller ? scroller.scrollTop : 0); });
+    state.to = gi;
+    state.h = (groupRefs.current[gi]?.getBoundingClientRect().height || 0) + 12;
     dragStateRef.current = state;
     setDraggingIndex(gi);
     setDragOffsetY(0);
+    setDragTo(gi);
+    setDragH(state.h);
+    function landing() {
+      const y = state.lastY + (scroller ? scroller.scrollTop : 0);
+      let k = 0;
+      state.mids.forEach((m, i) => { if (i !== state.fromIndex && m < y) k += 1; });
+      state.to = k;
+      setDragTo(k);
+    }
 
     function findTouch(ev, list) {
       return [...list].find((x) => x.identifier === state.touchId) || list[0];
@@ -2529,7 +2547,7 @@ function ActiveWorkout({
       let v = 0;
       if (state.lastY < box.top + zone + 90) v = -Math.ceil(((box.top + zone + 90 - state.lastY) / zone) * 14);
       else if (state.lastY > box.bottom - zone) v = Math.ceil(((state.lastY - (box.bottom - zone)) / zone) * 14);
-      if (v) { scroller.scrollTop += v; setDragOffsetY(offset()); }
+      if (v) { scroller.scrollTop += v; setDragOffsetY(offset()); landing(); }
       raf = requestAnimationFrame(autoScroll);
     }
     raf = requestAnimationFrame(autoScroll);
@@ -2541,32 +2559,16 @@ function ActiveWorkout({
       const touch = findTouch(ev, ev.touches);
       state.lastY = touch.clientY;
       setDragOffsetY(offset());
+      landing();
     }
 
     function onEnd(ev) {
       if (dragStateRef.current === state) {
-        const touch = ev.changedTouches.length ? findTouch(ev, ev.changedTouches) : null;
-        if (touch) {
-          const y = touch.clientY;
-          let closestIndex = state.fromIndex;
-          let closestDist = Infinity;
-          groupRefs.current.forEach((el, i) => {
-            // The dragged row's own rect is still carrying the live
-            // translateY(dragOffsetY) at this instant — it moves in
-            // lockstep with the touch, so it always reads as "closest to
-            // itself" and the drop position never resolves to anywhere
-            // else. Only compare against the OTHER (static) rows.
-            if (!el || i === state.fromIndex) return;
-            const rect = el.getBoundingClientRect();
-            const mid = rect.top + rect.height / 2;
-            const dist = Math.abs(y - mid);
-            if (dist < closestDist) { closestDist = dist; closestIndex = i; }
-          });
-          if (closestIndex !== state.fromIndex) onReorderGroup(state.fromIndex, closestIndex);
-        }
+        if (state.to !== state.fromIndex) onReorderGroup(state.fromIndex, state.to);
         dragStateRef.current = null;
         setDraggingIndex(null);
         setDragOffsetY(0);
+        setDragTo(null);
       }
       cancelAnimationFrame(raf);
       window.removeEventListener('touchmove', onMove);
@@ -2949,11 +2951,17 @@ function ActiveWorkout({
                 ref={(el) => (groupRefs.current[gi] = el)}
                 style={{
                   opacity: isDragging ? 0.9 : 1,
-                  transform: isDragging ? `translateY(${dragOffsetY}px)` : 'none',
+                  transform: isDragging ? `translateY(${dragOffsetY}px)` : (() => {
+                    // The cards between where the dragged one started and where it would land slide over by its height, opening a gap.
+                    if (draggingIndex == null || dragTo == null) return 'none';
+                    if (draggingIndex < dragTo && gi > draggingIndex && gi <= dragTo) return `translateY(${-dragH}px)`;
+                    if (draggingIndex > dragTo && gi >= dragTo && gi < draggingIndex) return `translateY(${dragH}px)`;
+                    return 'none';
+                  })(),
                   position: isDragging ? 'relative' : 'static',
                   zIndex: isDragging ? 20 : 'auto',
                   boxShadow: isDragging ? '0 8px 20px rgba(0,0,0,0.25)' : 'none',
-                  transition: isDragging ? 'none' : 'transform 0.15s ease',
+                  transition: isDragging ? 'none' : 'transform 0.18s ease',
                 }}
                 className="flex items-stretch gap-1"
               >
