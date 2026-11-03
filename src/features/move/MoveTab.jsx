@@ -94,6 +94,8 @@ const EZ_BAR_LB = 20;
 // of every workout assuming a treadmill.
 const WARMUP_AEROBIC_PLACEHOLDER = 'Aerobic Warm-up';
 // Names that are flexibility work even when typed into the resistance form.
+// A bare "Foam Rolling" (optionally with a region) rather than one specific roll.
+const FOAM_INTENT_RE = /^foam\s*roll(?:er|ing|s)?(?:\s*\(?\s*(upper|lower|full)\s*body\s*\)?)?$/i;
 const FLEX_NAME_RE = /stretch|yoga|pilates|foam roll|mobility|tai chi|balance training/i;
 // Same, minus yoga: yoga logged from an aerobic list keeps counting as aerobic too.
 const FLEX_ONLY_RE = /stretch|pilates|foam roll|mobility|tai chi|balance training/i;
@@ -850,10 +852,10 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Muscles picked decide what gets rolled (otherwise the Upper / Lower / Full Body choice). A foam rolling session is
       // just the rolls: stretches for the muscles only join in when a stretching activity is also picked.
       const foam = selectedFlexActivities.includes('Foam Rolling');
-      const rolls = cleanSlate || !foam ? [] : (selectedGroups.length > 0 ? generateFoamRollsForGroups(selectedGroups, usedRolls) : generateFoamRollPlan(`Foam Roll: ${foamRegion}`, usedRolls));
+      const rolls = !foam ? [] : (selectedGroups.length > 0 ? generateFoamRollsForGroups(selectedGroups, usedRolls) : generateFoamRollPlan(`Foam Roll: ${foamRegion}`, usedRolls));
       const wantsStretches = !foam || selectedFlexActivities.some((a) => /stretch/i.test(a));
-      plan = cleanSlate ? [] : [...rolls, ...(wantsStretches ? generateFlexibilityPlan(selectedGroups) : [])];
-      const flexActivityEntries = selectedFlexActivities.filter((n) => cleanSlate || n !== 'Foam Rolling').map((name) => ({
+      plan = cleanSlate ? [...rolls] : [...rolls, ...(wantsStretches ? generateFlexibilityPlan(selectedGroups) : [])];
+      const flexActivityEntries = selectedFlexActivities.filter((n) => n !== 'Foam Rolling').map((name) => ({
         name, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: '',
       }));
       plan = [...plan, ...flexActivityEntries];
@@ -1217,6 +1219,17 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   function addFlexibility(name, targetNote = '') {
     const trimmed = name.trim();
     if (!trimmed) return;
+    // "Foam Rolling" (typed, picked or suggested) always becomes the real roll cards, each with its hold timer, never a bare timed activity.
+    const foam = trimmed.match(FOAM_INTENT_RE);
+    if (foam) {
+      const region = foam[1] ? `${foam[1][0].toUpperCase()}${foam[1].slice(1).toLowerCase()} Body` : 'Full Body';
+      setPlanExercises((prev) => {
+        const used = new Set(prev.map((e) => e.name));
+        const rolls = generateFoamRollPlan(`Foam Roll: ${region}`, used);
+        return rolls.length ? [...prev, ...rolls] : prev;
+      });
+      return;
+    }
     setPlanExercises((prev) => [...prev, { name: trimmed, muscleGroup: 'Flexibility', type: 'flexibility-activity', supersetId: null, targetNote: targetNote.trim() }]);
   }
 
@@ -3779,6 +3792,7 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
     const name = titleCaseWords(custom).trim();
     if (!name) return;
     const known = findKnownMove(name);
+    if (FOAM_INTENT_RE.test(name)) { onAddActivity(name); setAdded((x) => [...x, name]); setCustom(''); return; }
     if (known && known.kind !== 'lift') onAddStretch(known.name, known.muscleGroup, known);
     else onAddStretch(name, 'Flexibility', { sets: 2, reps: '20-30s' });
     setAdded((a) => [...a, name]);
@@ -3814,10 +3828,18 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
           </button>
         ))}
       </div>
+      <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-2.5 mb-2.5">
+        <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Foam Roll</div>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {['Upper Body', 'Lower Body', 'Full Body'].map((r) => (
+            <button key={r} onClick={() => { onAddActivity(`Foam Rolling ${r}`); setAdded((x) => [...x, `Foam Roll ${r}`]); }} style={{ background: INK_3, color: PAPER_DIM }} className="px-3 py-1.5 rounded-full text-sm">{r}</button>
+          ))}
+        </div>
+      </div>
       <div style={{ borderTop: `1px dashed ${INK_3}` }} className="pt-2.5">
         <div style={{ color: TEXT_SOFT }} className="text-sm mb-1.5 text-center">Or log time doing</div>
         <div className="flex flex-wrap justify-center gap-1.5 mb-2.5">
-          {FLEXIBILITY_ACTIVITIES.filter((a) => !taken(a)).map((a) => (
+          {FLEXIBILITY_ACTIVITIES.filter((a) => !taken(a) && a !== 'Foam Rolling').map((a) => (
             <button
               key={a}
               onClick={() => { onAddActivity(a); setAdded((x) => [...x, a]); }}
