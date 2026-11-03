@@ -52,6 +52,17 @@ function repsAfterSwap(name, oldReps, style) {
   return oldReps;
 }
 
+// The muscle areas a workout actually trained, from its logged lifts, biggest share first (Legs and Arms count as one area
+// each). Null when no lifts were logged.
+function areasFromSets(list) {
+  const done = list.filter((x) => x.movementType !== 'aerobic' && x.movementType !== 'flexibility' && x.muscleGroup && x.muscleGroup !== 'Warm-up' && x.muscleGroup !== 'Cardio');
+  if (done.length === 0) return null;
+  const areaOf = (g) => (LEGS_BUNDLE.includes(g) ? 'Legs' : ARMS_BUNDLE.includes(g) ? 'Arms' : g);
+  const per = new Map();
+  done.forEach((x) => { const a = areaOf(x.muscleGroup); if (!per.has(a)) per.set(a, new Set()); per.get(a).add(x.exerciseName); });
+  return [...per.keys()].sort((a, b) => per.get(b).size - per.get(a).size);
+}
+
 function isCleanSlateWorkout(id) {
   try { return Boolean(id) && localStorage.getItem(`groove:cleanSlate:${id}`) === '1'; } catch { return false; }
 }
@@ -426,12 +437,37 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   // that resets to empty on every mount.
   useEffect(() => {
     if (loading || activeWorkoutId) return;
-    const inProgress = workouts.find((w) => !w.completedAt && !w.deletedAt);
+    // Only the newest unfinished workout comes back, and a stray empty one from days ago doesn't (those used to pile up and
+    // reopen one after another every time a workout was cancelled).
+    const dayAgo = Date.now() - 24 * 3600 * 1000;
+    const inProgress = workouts
+      .filter((w) => !w.completedAt && !w.deletedAt && (new Date(w.startedAt).getTime() >= dayAgo || sets.some((x) => x.workoutId === w.id)))
+      .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))[0];
     if (!inProgress) return;
     setActiveWorkoutId(inProgress.id);
     setPlanExercises(inProgress.plan || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, workouts]);
+
+  // One-time tidy per app open: a finished lifting workout from the last two weeks whose title still lists a muscle area that
+  // has no logged lifts (planned or ticked, then dropped) gets re-titled from what was actually done.
+  const retitled = useRef(false);
+  useEffect(() => {
+    if (loading || retitled.current || sets.length === 0) return;
+    retitled.current = true;
+    const since = Date.now() - 14 * 864e5;
+    workouts.filter((w) => w.completedAt && !w.deletedAt && !w.fromStrava && w.movementMode !== 'Flexibility' && w.movementMode !== 'Aerobic' && new Date(w.startedAt).getTime() >= since).forEach((w) => {
+      const trained = areasFromSets(sets.filter((x) => x.workoutId === w.id));
+      if (!trained) return;
+      const areaOf = (g) => (LEGS_BUNDLE.includes(g) ? 'Legs' : ARMS_BUNDLE.includes(g) ? 'Arms' : g);
+      const listed = w.muscleGroups.map(areaOf);
+      if (listed.every((g) => trained.includes(g)) && trained.every((g) => listed.includes(g))) return;
+      supabase.from('workouts').update({ muscle_groups: trained }).eq('id', w.id).then(({ error }) => {
+        if (!error) setWorkouts((prev) => prev.map((x) => (x.id === w.id ? { ...x, muscleGroups: trained } : x)));
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, workouts, sets]);
 
   const activeWorkout = workouts.find((w) => w.id === activeWorkoutId) || null;
   activeIdRef.current = activeWorkoutId;
@@ -1351,9 +1387,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       if (window.confirm("Nothing's logged yet. Cancel this workout instead?")) discardWorkout(true);
       return;
     }
+    // The title follows what was actually done (not what was planned or ticked at the start): the muscle areas of the lifts
+    // logged, biggest share first. Legs and Arms count as one area each.
+    const update = { completed_at: new Date().toISOString() };
+    const trained = areasFromSets(sets.filter((x) => x.workoutId === activeWorkoutId));
+    if (trained && activeWorkout?.movementMode !== 'Flexibility') update.muscle_groups = trained;
     const { data, error } = await supabase
       .from('workouts')
-      .update({ completed_at: new Date().toISOString() })
+      .update(update)
       .eq('id', activeWorkoutId)
       .select()
       .single();
@@ -1435,7 +1476,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (skipConfirm !== true && !window.confirm('Cancel this workout? Anything you logged in it will be cleared.')) return;
     const { error } = await supabase.from('workouts').delete().eq('id', activeWorkoutId);
     if (error) { setLoadError(error.message); return; }
-    setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId));
+    // Any other unfinished workout with nothing logged is a leftover from the same mis-start; clear those too so cancelling
+    // doesn't just reveal the next one.
+    const leftovers = workouts.filter((w) => w.id !== activeWorkoutId && !w.completedAt && !w.deletedAt && !sets.some((x) => x.workoutId === w.id)).map((w) => w.id);
+    if (leftovers.length) await supabase.from('workouts').delete().in('id', leftovers);
+    setWorkouts((prev) => prev.filter((w) => w.id !== activeWorkoutId && !leftovers.includes(w.id)));
     setSets((prev) => prev.filter((s) => s.workoutId !== activeWorkoutId));
     try { localStorage.removeItem(LIVE_BACKUP_KEY); } catch { /* */ }
     setActiveWorkoutId(null);
