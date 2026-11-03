@@ -17,7 +17,7 @@ import { useAuth } from '../../auth/AuthContext';
 import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER, PLUM } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, findKnownMove, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -1015,10 +1015,16 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   function replaceExercise(index, next) {
     const ex = planExercises[index];
+    const style = activeWorkout?.style;
     setPlanExercises((prev) =>
-      prev.map((e, i) => (i === index
-        ? { ...e, name: next.name, ...(next.muscleGroup ? { muscleGroup: next.muscleGroup } : {}), sets: ex.type === 'flexibility' ? (next.sets ?? ex.sets) : ex.sets, reps: ex.type === 'flexibility' ? (next.reps ?? ex.reps) : repsAfterSwap(next.name, ex.reps, activeWorkout?.style) }
-        : e))
+      prev.map((e, i) => {
+        if (i !== index) return e;
+        // A typed name that is really a stretch or foam roll becomes a flexibility card (and the reverse for a lift), with that
+        // move's own sets and reps.
+        if (next.kind === 'roll' || next.kind === 'stretch') return { ...e, name: next.name, muscleGroup: next.muscleGroup || e.muscleGroup, type: 'flexibility', sets: next.sets ?? 2, reps: next.reps ?? '20-30s' };
+        if (next.kind === 'lift' && (ex.type === 'flexibility')) return { ...e, name: next.name, muscleGroup: next.muscleGroup || e.muscleGroup, type: 'resistance', sets: STYLE_CONFIG[style]?.sets ?? next.sets ?? 3, reps: holdReps(next) ?? STYLE_CONFIG[style]?.reps ?? next.reps ?? '10-12' };
+        return { ...e, name: next.name, ...(next.muscleGroup ? { muscleGroup: next.muscleGroup } : {}), sets: ex.type === 'flexibility' ? (next.sets ?? ex.sets) : ex.sets, reps: ex.type === 'flexibility' ? (next.reps ?? ex.reps) : repsAfterSwap(next.name, ex.reps, style) };
+      })
     );
   }
 
@@ -3024,23 +3030,24 @@ function ActiveWorkout({
             location={workout.location}
             onAdd={(name, group) => {
               const typed = titleCaseWords(name);
-              // Stretching typed into the resistance form is still flexibility work.
-              const stretch = Object.entries(FLEXIBILITY_LIBRARY).flatMap(([g, list]) => list.map((e) => ({ ...e, group: g }))).find((e) => e.name.toLowerCase() === typed.toLowerCase());
-              if (stretch) {
-                onAddStretch(stretch.name, stretch.group, stretch);
-                setActiveGroupKey(`flexibility-${stretch.name}`);
+              // Whatever is typed is matched to the library first (spelling, hyphens and plurals don't matter), so a stretch or
+              // foam roll typed here comes up as the same flexibility card, with the same settings, as one picked from the list.
+              const known = findKnownMove(typed, group);
+              if (known && known.kind !== 'lift') {
+                onAddStretch(known.name, known.muscleGroup, known);
+                setActiveGroupKey(`flexibility-${known.name}`);
                 closeAddForm();
                 return;
               }
-              if (FLEX_NAME_RE.test(typed)) {
+              if (FLEX_NAME_RE.test(typed) && !known) {
                 onAddFlexibility(typed);
                 setActiveGroupKey(`flexibility-activity-${typed}`);
                 closeAddForm();
                 return;
               }
-              const lib = (EXERCISE_LIBRARY[group] || []).find((e) => e.name.toLowerCase() === typed.toLowerCase());
-              const finalName = lib?.name || typed;
-              onAddExercise(finalName, group);
+              const finalName = known?.name || typed;
+              const useGroup = known && !(EXERCISE_LIBRARY[group] || []).some((e) => e.name === known.name) ? known.muscleGroup : group;
+              onAddExercise(finalName, useGroup);
               setActiveGroupKey(`resistance-${finalName}`);
               setPendingScrollKey(`resistance-${finalName}`);
               closeAddForm();
@@ -3052,8 +3059,9 @@ function ActiveWorkout({
             muscleGroups={workout.muscleGroups}
             location={workout.location}
             onAdd={(a, b) => {
-              const A = { ...a, name: titleCaseWords(a.name) };
-              const B = { ...b, name: titleCaseWords(b.name) };
+              const known = (x) => { const k = findKnownMove(x.name, x.muscleGroup); return k && k.kind === 'lift' ? k.name : titleCaseWords(x.name); };
+              const A = { ...a, name: known(a) };
+              const B = { ...b, name: known(b) };
               onAddSuperset(A, B);
               setActiveGroupKey(`superset-${A.name.trim()}-${B.name.trim()}`);
               setPendingScrollKey(`superset-${A.name.trim()}-${B.name.trim()}`);
@@ -3484,7 +3492,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
           />
           <button
             disabled={!custom.trim()}
-            onClick={() => onPick({ name: titleCaseWords(custom) })}
+            onClick={() => { const k = findKnownMove(custom, group); onPick(k ? { name: k.name, muscleGroup: k.muscleGroup, sets: k.sets, reps: k.reps, kind: k.kind } : { name: titleCaseWords(custom) }); }}
             style={{ background: custom.trim() ? SKY : INK_3, color: custom.trim() ? INK : TEXT_SOFT }}
             className="shrink-0 rounded-md px-4 py-2.5 text-sm font-medium"
           >
@@ -3770,7 +3778,9 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
   function addCustom() {
     const name = titleCaseWords(custom).trim();
     if (!name) return;
-    onAddStretch(name, 'Flexibility', { sets: 2, reps: '20-30s' });
+    const known = findKnownMove(name);
+    if (known && known.kind !== 'lift') onAddStretch(known.name, known.muscleGroup, known);
+    else onAddStretch(name, 'Flexibility', { sets: 2, reps: '20-30s' });
     setAdded((a) => [...a, name]);
     setCustom('');
   }

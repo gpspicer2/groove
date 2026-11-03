@@ -729,6 +729,37 @@ export function generateFoamRollPlan(regionName, used = new Set()) {
   return (FOAM_PLANS[regionName] || []).map((k) => ROLLS[k]).filter((r) => !used.has(r.name)).map((r) => { used.add(r.name); return { ...r, type: 'flexibility', supersetId: null }; });
 }
 
+// Typed names match the library however they are spelled: case, hyphens, spaces and plurals don't matter
+// ("plate loaded row", "Plate-Loaded Row" and "plate-loaded rows" are the same lift), and foam rolls match in
+// any word order ("quads foam roll", "foam rolling quads", "Foam Roll: Quads").
+const wordKey = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
+  .map((w) => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)).join('').replace(/\s+/g, '');
+const ROLL_ALIASES = { itband: 'Outer Thigh', adductor: 'Inner Thigh', pec: 'Chest', pecs: 'Chest', hammy: 'Hamstrings', calf: 'Calves', thoracic: 'Upper Back', trap: 'Upper Back', lat: 'Lats' };
+export function findKnownMove(typed, preferGroup = null) {
+  const raw = String(typed || '').trim();
+  if (!raw) return null;
+  const foam = /foam\s*roll(?:er|ing|s)?/i;
+  if (foam.test(raw)) {
+    const rest = raw.replace(new RegExp(foam.source, 'ig'), ' ').replace(/[:()]/g, ' ').trim();
+    if (!rest) return null;
+    const alias = ROLL_ALIASES[wordKey(rest)];
+    const want = wordKey(alias || rest);
+    const hit = Object.values(ROLLS).find((r) => wordKey(r.name.replace('Foam Roll:', '')) === want);
+    return hit ? { ...hit, kind: 'roll' } : null;
+  }
+  const key = wordKey(raw);
+  for (const [g, list] of Object.entries(FLEXIBILITY_LIBRARY)) {
+    const hit = list.find((e) => wordKey(e.name) === key);
+    if (hit) return { ...hit, muscleGroup: g, kind: 'stretch' };
+  }
+  const groups = [...(preferGroup && EXERCISE_LIBRARY[preferGroup] ? [preferGroup] : []), ...Object.keys(EXERCISE_LIBRARY)];
+  for (const g of groups) {
+    const hit = (EXERCISE_LIBRARY[g] || []).find((e) => wordKey(e.name) === key);
+    if (hit) return { ...hit, muscleGroup: g, kind: 'lift' };
+  }
+  return null;
+}
+
 // How-to for each roll, shown from the (i) on a roll's card. Short on purpose: set up, move, what to watch.
 export const ROLL_GUIDES = {
   'Foam Roll: Upper Back': { setup: 'Lie on your back with the roller across your upper back, just under your shoulder blades. Cross your arms over your chest or hold your head, and lift your hips.', move: 'Use your feet to roll slowly up toward your shoulders, a few inches at a time.', watch: 'Stay above your low back and keep your chin tucked. Skip your neck.' },
