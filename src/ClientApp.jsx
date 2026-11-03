@@ -52,7 +52,7 @@ export default function ClientApp() {
   useEffect(() => {
     if (!user?.id) return;
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    supabase.from('workouts').select('id').is('completed_at', null).is('deleted_at', null)
+    supabase.from('workouts').select('id').eq('user_id', user.id).is('completed_at', null).is('deleted_at', null)
       .gte('started_at', since).limit(1)
       .then(({ data }) => { if (data?.length && !touchedTab.current) setTab('move'); });
   }, [user?.id]);

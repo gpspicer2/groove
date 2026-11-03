@@ -375,9 +375,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const customFlexActivities = allCustom.filter((a) => a.startsWith('flex:')).map((a) => a.slice(5));
 
   const loadData = useCallback(async () => {
+    // Only this person's own workouts: the coach login is allowed to read every member's, which used to leak their
+    // workouts (and unfinished ones, which reopened as if they were the coach's own) into Move.
+    if (!user?.id) return;
     const [workoutRes, setRes, profileRes, programRes] = await Promise.all([
-      supabase.from('workouts').select('*').order('started_at', { ascending: false }),
-      supabase.from('workout_sets').select('*').order('set_number', { ascending: true }),
+      supabase.from('workouts').select('*').eq('user_id', user.id).order('started_at', { ascending: false }),
+      supabase.from('workout_sets').select('*').eq('user_id', user.id).order('set_number', { ascending: true }),
       user ? supabase.from('profiles').select('bodyweight_lb').eq('id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       user ? supabase.from('programs').select('id, name').eq('client_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
     ]);

@@ -199,6 +199,7 @@ A movement-coaching web app run by Greg (gpspicer2), an exercise-science profess
 
 ## Code gotchas
 - A sheet opened from inside another sheet (Account > Injuries, Lifting Preferences, Body and Fitness...) sits in the parent's React tree, so `useSwipeDown` stops touch events from bubbling (otherwise swiping the child closed the Account sheet too). Keep that when editing it.
+- Every member-side query on a table the coach login can read in full (workouts, workout_sets, planned_workouts...) must filter by `user_id` (`.eq('user_id', user.id)`). Move's load used to skip it, so Greg's own Move tab showed members' workouts, and a member's unfinished workout reopened in his Move (fixed 2026-11-03; all other member-side reads were checked and filter).
 - Every React hook must run before any early return (otherwise React error #300).
 - Drag-to-reorder uses raw window touch listeners (`passive: false`); swipe drawers fire buttons on touch end.
 - The same exercise can appear in two muscle groups — card keys carry a `#n` suffix.
