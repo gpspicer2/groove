@@ -388,6 +388,7 @@ const ANCHOR_EXERCISES = {
 
 // Strength work repeats its main lifts on purpose. For hypertrophy and endurance the anchor lift takes turns:
 // if it was in the last workout, a different lift for that muscle leads this time (it returns the next session).
+const VPULL_RE = /Pull-Ups?\b|Chin-Ups?\b/i;
 function ensureAnchors(final, muscleGroups, gender, style, location, recentNames = [], exclude = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   let result = final;
@@ -398,7 +399,8 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     const anchorName = anchorFn(gender);
     if (exclude.includes(anchorName)) continue; // sore or injured: never forced in
     if (result.some((ex) => ex.name === anchorName)) continue;
-    if (style !== 'Strength' && recentNames.includes(anchorName)) continue;
+    if (style !== 'Strength' && (recentNames.includes(anchorName) || (VPULL_RE.test(anchorName) && recentNames.some((n) => VPULL_RE.test(n))))) continue;
+    if (VPULL_RE.test(anchorName) && result.some((ex) => VPULL_RE.test(ex.name))) continue; // already has a chin-up or pull-up
     const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
     if (!pick) continue; // not available at this location (e.g. no pull-up bar outdoors)
     const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: holdReps(pick) ?? styleConfig.reps ?? pick.reps };
@@ -494,10 +496,13 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   const usedFamilies = new Set();
   const lists = muscleGroups.map((group) => {
     const pool = filterByLocation(EXERCISE_LIBRARY[group] || [], location).filter((e) => !exclude.includes(e.name));
-    const fresh = pool.filter((e) => !recentNames.includes(e.name));
+    // A pull-up or chin-up done this week rules out every pull-up and chin-up (they are the same movement), and the two never
+    // sit in one workout.
+    const pool2 = recentNames.some((n) => VPULL_RE.test(n)) ? pool.filter((e) => !VPULL_RE.test(e.name)) : pool;
+    const fresh = pool2.filter((e) => !recentNames.includes(e.name));
     // recentNames runs most recent first, so when a muscle runs out of fresh options the one
     // done longest ago comes back first.
-    const stale = pool.filter((e) => recentNames.includes(e.name)).sort((a, b) => recentNames.indexOf(b.name) - recentNames.indexOf(a.name));
+    const stale = pool2.filter((e) => recentNames.includes(e.name)).sort((a, b) => recentNames.indexOf(b.name) - recentNames.indexOf(a.name));
     // Lifts the member loves come first (the shuffle still varies the rest).
     const loved = (e) => Number(prefer.includes(e.name));
     return { group, ordered: [...shuffle(fresh).sort((x, y) => loved(y) - loved(x)), ...stale], at: 0 };
@@ -512,7 +517,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     for (const l of lists) {
       if (picked.length >= target) break;
       // First choice: a lift whose family isn't in the workout yet. Failing that, anything left (but never a second deadlift).
-      const open = (e) => !usedNames.has(e.name);
+      const open = (e) => !usedNames.has(e.name) && !(VPULL_RE.test(e.name) && [...usedNames].some((n) => VPULL_RE.test(n)));
       let idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !usedFamilies.has(liftFamily(e.name)));
       if (idx < 0 && allowRepeat) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && liftFamily(e.name) !== 'deadlift');
       if (idx < 0) continue;
@@ -626,13 +631,36 @@ export const DYNAMIC_WARMUP_LIBRARY = {
 // Picks 2-3 distinct drills covering the targeted muscle groups, in
 // group order, rather than every group's own full set — a leg day
 // doesn't need six different drills, just enough to get moving.
-export function generateDynamicWarmup(muscleGroups) {
+// Drills that load a sore joint or muscle are left out of the warm-up (the id is a BODY_AREAS or MUSCLE_AREAS id).
+const SQUAT_DRILLS = ['Bodyweight Squats', 'Walking Lunges'];
+const WARMUP_AVOID = {
+  knees: SQUAT_DRILLS,
+  hips: [...SQUAT_DRILLS, 'Fire Hydrants', 'Glute Bridges', "World's Greatest Stretch"],
+  lower_back: ['Torso Twists', 'Bodyweight Squats'],
+  shoulders: ['Arm Circles', 'Scapular Push-Ups', 'Downward Dog to Cobra'],
+  elbows: ['Scapular Push-Ups', 'Downward Dog to Cobra'],
+  m_quads: SQUAT_DRILLS,
+  m_glutes: [...SQUAT_DRILLS, 'Fire Hydrants', 'Glute Bridges', "World's Greatest Stretch"],
+  m_hamstrings: [...SQUAT_DRILLS, 'Leg Swings', "World's Greatest Stretch", 'Glute Bridges'],
+  m_calves: ['Walking Lunges'],
+  m_core: ['Torso Twists', 'Bird Dogs'],
+  m_chest: ['Scapular Push-Ups'],
+};
+const GENTLE_DRILLS = ['Cat-Cow', 'Shoulder Rolls', 'Arm Circles', 'Band Pull-Aparts', 'Scapular Pulls'];
+export function generateDynamicWarmup(muscleGroups, avoidAreas = []) {
+  const avoid = new Set(avoidAreas.flatMap((id) => WARMUP_AVOID[id] || []));
   const drills = [];
   for (const group of muscleGroups) {
     for (const name of DYNAMIC_WARMUP_LIBRARY[group] || []) {
+      if (avoid.has(name)) continue;
       if (!drills.includes(name)) drills.push(name);
       if (drills.length >= 3) return drills;
     }
+  }
+  // Not enough left after skipping the sore ones: top up with easy drills that don't load them.
+  for (const name of GENTLE_DRILLS) {
+    if (drills.length >= 3) break;
+    if (!avoid.has(name) && !drills.includes(name) && (drills.length > 0 || avoidAreas.length > 0)) drills.push(name);
   }
   return drills.slice(0, 3);
 }

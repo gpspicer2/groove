@@ -875,7 +875,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Every resistance session opens with an easy aerobic piece (the
       // client chooses the activity) and a dynamic warm-up (clean slate
       // included) — both removable.
-      const warmupDrills = generateDynamicWarmup(selectedGroups);
+      // The warm-up follows the lifts actually in the workout (not just the muscles ticked) and skips drills that load anything sore.
+      const liftGroups = [...new Set(plan.filter((e) => e.type === 'resistance' && e.muscleGroup).map((e) => e.muscleGroup))];
+      const warmupDrills = generateDynamicWarmup(liftGroups.length ? liftGroups : selectedGroups, [...(readiness?.areas || []), ...injuries.map((i) => i.area)]);
       plan = [
         { name: WARMUP_AEROBIC_PLACEHOLDER, muscleGroup: 'Cardio', type: 'aerobic', supersetId: null, targetNote: '' },
         ...(warmupDrills.length ? [{ name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills: warmupDrills }] : []),
@@ -1275,7 +1277,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   }
 
   function addWarmup(muscleGroups) {
-    const drills = generateDynamicWarmup(muscleGroups);
+    let sore = [];
+    try { sore = (JSON.parse(localStorage.getItem(`groove:readiness:${activeWorkoutId}`) || 'null') || {}).areas || []; } catch { /* */ }
+    const drills = generateDynamicWarmup(muscleGroups, [...sore, ...injuries.map((i) => i.area)]);
     if (drills.length === 0) return;
     const newEx = { name: 'Dynamic Warm-up', muscleGroup: 'Warm-up', type: 'warmup', supersetId: null, drills };
     // Aerobic work done as part of the warm-up stays above the dynamic
