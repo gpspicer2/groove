@@ -849,10 +849,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
-      const wishMore = (wishes?.more || []).filter((g) => selectedGroups.includes(g));
+      const wishGroups = (wishes?.skip || []).length && selectedGroups.some((g) => !wishes.skip.includes(g)) ? selectedGroups.filter((g) => !wishes.skip.includes(g)) : selectedGroups;
+      const wishMore = (wishes?.more || []).filter((g) => wishGroups.includes(g));
+      const wishCap = wishes?.length === 'short' ? 4 : wishes?.length === 'long' ? 8 : null;
       const WISH_GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
       const gearOut = WISH_GEAR[wishes?.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !WISH_GEAR[wishes.gear].includes(e.equipment)).map((e) => e.name) : [];
-      const buildPlan = (extra) => generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers), wishMore)
+      const buildPlan = (extra) => generateWorkout(wishGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], wishCap || (programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined), lovedLifts(experience.answers), wishMore)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       plan = buildPlan(gearOut);
       if (plan.length < 3) plan = buildPlan([]);
@@ -1109,10 +1111,12 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const keptLifts = oldLifts.slice(0, keep);
     // What the person asked for more of: the chosen muscles are listed again so they get extra picks, and an equipment choice
     // leaves everything else out (relaxed if that would leave nothing).
-    const more = (opts.more || []).filter((g) => w.muscleGroups.includes(g));
+    const useGroups = (opts.skip || []).length && w.muscleGroups.some((g) => !opts.skip.includes(g)) ? w.muscleGroups.filter((g) => !opts.skip.includes(g)) : w.muscleGroups;
+    const more = (opts.more || []).filter((g) => useGroups.includes(g));
+    const lenCap = opts.length === 'short' ? 4 : opts.length === 'long' ? 8 : null;
     const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
     const gearOut = GEAR[opts.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !GEAR[opts.gear].includes(e.equipment)).map((e) => e.name) : [];
-    const build = (extra) => generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], prog ? (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
+    const build = (extra) => generateWorkout(useGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], lenCap || prog ? (lenCap || (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3)) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     let generated = build(gearOut);
     if (generated.length < 3) generated = build([]);
@@ -1122,7 +1126,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Reuse the session's prescription from its normal (rep-counted) lifts; a hold keeps its own seconds target.
       const rx = oldLifts.slice(keep).filter((o) => !holdReps(o));
       let n = 0;
-      next = generated.slice(0, more.length ? generated.length : Math.max(0, oldLifts.length - keep)).map((ex) => {
+      next = generated.slice(0, more.length || lenCap ? generated.length : Math.max(0, oldLifts.length - keep)).map((ex) => {
         if (holdReps(ex) || rx.length === 0) return ex;
         const o = rx[Math.min(n, rx.length - 1)]; n += 1;
         return { ...ex, sets: o.sets, reps: o.reps, targetNote: o.targetNote };
@@ -3510,11 +3514,23 @@ function PairChooser({ exercise, next, others = [], onNext, onPickExisting, onOt
 // "What do you want more of?" before a whole new suggestion: pick muscles to get extra lifts, and/or the kind of equipment.
 function NewSuggestionSheet({ groups, onConfirm, onClose }) {
   const [more, setMore] = useState([]);
+  const [skip, setSkip] = useState([]);
   const [gear, setGear] = useState('any');
+  const [length, setLength] = useState('normal');
   const sheet = useSwipeDown(onClose);
-  const toggle = (g) => setMore((m) => (m.includes(g) ? m.filter((x) => x !== g) : [...m, g]));
+  const toggleMore = (g) => { setSkip((x) => x.filter((y) => y !== g)); setMore((m) => (m.includes(g) ? m.filter((x) => x !== g) : [...m, g])); };
+  const toggleSkip = (g) => { setMore((x) => x.filter((y) => y !== g)); setSkip((m) => (m.includes(g) ? m.filter((x) => x !== g) : (m.length >= groups.length - 1 ? m : [...m, g]))); };
   const chip = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
   const gears = [['any', 'Anything'], ['free', 'Free Weights'], ['machines', 'Machines and Cables'], ['bodyweight', 'Bodyweight']];
+  const lengths = [['short', 'Shorter'], ['normal', 'Normal'], ['long', 'Longer']];
+  const row = (title, items, on, pick) => (
+    <>
+      <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">{title}</div>
+      <div className="flex flex-wrap justify-center gap-2 mb-3">
+        {items.map(([id, label]) => <button key={id} onClick={() => pick(id)} style={chip(on(id))} className="rounded-full px-3.5 py-1.5 text-sm">{label}</button>)}
+      </div>
+    </>
+  );
   return (
     <Portal>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -3523,19 +3539,11 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div style={{ color: PAPER }} className="text-base font-medium">What do you want more of?</div>
           <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Pick anything, or tap Build It for a fresh mix.</div>
-          {groups.length > 1 && (
-            <>
-              <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Muscles</div>
-              <div className="flex flex-wrap justify-center gap-2 mb-3">
-                {groups.map((g) => <button key={g} onClick={() => toggle(g)} style={chip(more.includes(g))} className="rounded-full px-3.5 py-1.5 text-sm">{g}</button>)}
-              </div>
-            </>
-          )}
-          <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Equipment</div>
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
-            {gears.map(([id, label]) => <button key={id} onClick={() => setGear(id)} style={chip(gear === id)} className="rounded-full px-3.5 py-1.5 text-sm">{label}</button>)}
-          </div>
-          <button onClick={() => onConfirm({ more, gear })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium">Build It</button>
+          {groups.length > 1 && row('More of', groups.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
+          {groups.length > 1 && row('Skip Today', groups.map((g) => [g, g]), (g) => skip.includes(g), toggleSkip)}
+          {row('Equipment', gears, (id) => gear === id, setGear)}
+          {row('Length', lengths, (id) => length === id, setLength)}
+          <button onClick={() => onConfirm({ more, skip, gear, length })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">Build It</button>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Cancel</button>
         </div>
       </div>
