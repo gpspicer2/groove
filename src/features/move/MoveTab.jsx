@@ -1116,11 +1116,21 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const lenCap = opts.length === 'short' ? 4 : opts.length === 'long' ? 8 : null;
     const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
     const gearOut = GEAR[opts.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !GEAR[opts.gear].includes(e.equipment)).map((e) => e.name) : [];
-    const build = (extra) => generateWorkout(useGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], lenCap || prog ? (lenCap || (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3)) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
+    const vpullRecent = recentNames.filter((n) => /Pull-Ups?\b|Chin-Ups?\b/i.test(n));
+    const build = (extra, recent = [...new Set([...current, ...recentNames])]) => generateWorkout(useGroups, w.style, recent, w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], lenCap || prog ? (lenCap || (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3)) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     let generated = build(gearOut);
     if (generated.length < 3) generated = build([]);
-    if (generated.length === 0) return;
+    if (generated.length === 0) return 'Nothing else fits right now. Try a different location, or loosen the sore areas.';
+    // Small pools (outdoors, a sore area, few lifts left after this week) can hand back the same lifts. In that case lifts from
+    // earlier this week may return, but never today's current ones and never a pull-up or chin-up.
+    const overlap = (list) => list.filter((e) => current.includes(e.name)).length / Math.max(1, list.length);
+    let note = '';
+    if (overlap(generated) >= 0.6) {
+      const again = build(gearOut, [...new Set([...current, ...vpullRecent])]);
+      if (again.length >= 3 && overlap(again) < overlap(generated)) { generated = again; note = 'There weren\'t enough fresh lifts left, so a few from earlier this week came back.'; }
+      if (overlap(generated) >= 0.6) note = 'That is about all that fits for these muscles here today. Try At the Gym, or loosen the sore areas or equipment.';
+    }
     let next = generated;
     if (prog) {
       // Reuse the session's prescription from its normal (rep-counted) lifts; a hold keeps its own seconds target.
@@ -1140,6 +1150,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       const at = firstIdx < 0 ? rest.length : firstIdx;
       return [...rest.slice(0, at), ...queue, ...rest.slice(at)];
     });
+    return note;
   }
 
   function moveGroup(groupIndex, direction) {
@@ -2567,6 +2578,7 @@ function ActiveWorkout({
   const [reorder, setReorder] = useState(false); // drag handles only show while reordering
   // A suggested lifting workout can be swapped for a whole new suggestion until the first lift is logged.
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestNote, setSuggestNote] = useState('');
   const canShuffle = Boolean(onNewSuggestion) && !isCleanSlateWorkout(workout.id)
     && !(() => { try { return JSON.parse(localStorage.getItem(`groove:programSession:${workout.id}`) || 'null')?.aerobic; } catch { return null; } })()
     && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
@@ -2854,10 +2866,11 @@ function ActiveWorkout({
         )}
         {(groups.length > 2 || canShuffle) && (
           <div className="flex justify-between -mb-1">
-            {canShuffle ? <button onClick={() => setSuggestOpen(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
+            {canShuffle ? <button onClick={() => { setSuggestNote(''); setSuggestOpen(true); }} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
             {groups.length > 2 && <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>}
           </div>
         )}
+        {suggestNote && <div style={{ color: PAPER_DIM, background: INK_2 }} className="rounded-md px-3 py-2 text-sm text-center">{suggestNote}</div>}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
           // Keyed by name (already the app's implicit unique identifier for
@@ -3255,7 +3268,7 @@ function ActiveWorkout({
         <NewSuggestionSheet
           groups={workout.muscleGroups}
           onClose={() => setSuggestOpen(false)}
-          onConfirm={(opts) => { setSuggestOpen(false); onNewSuggestion(opts); }}
+          onConfirm={(opts) => { setSuggestOpen(false); setSuggestNote(onNewSuggestion(opts) || ''); }}
         />
       )}
       {swapIndex !== null && (
