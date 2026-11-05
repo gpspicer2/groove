@@ -483,7 +483,7 @@ export const liftFamily = (name) => {
   return null;
 };
 
-export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = []) {
+export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = [], emphasis = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
@@ -528,6 +528,38 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       picked.push({ ...ex, muscleGroup: l.group, sets: style === 'Strength' && !isCompound(ex.name) ? Math.min(3, styleConfig.sets ?? ex.sets) : styleConfig.sets ?? ex.sets, reps: holdReps(ex) ?? (styleConfig.reps ? repsFor(ex.name, styleConfig.reps) : ex.reps) });
     }
   }
+  // "More of" some muscles: those groups get up to three lifts each, the others give up their extras (never below one each),
+  // and the session may run one lift longer to make room.
+  const emph = emphasis.filter((g) => muscleGroups.includes(g));
+  let capMax = maxCount;
+  if (emph.length > 0 && emph.length < muscleGroups.length) {
+    // room for the extra lifts without any other muscle losing its only one (at most 8 in all)
+    capMax = Math.min(8, Math.max(maxCount + 1, muscleGroups.length + 2 * emph.length));
+    for (const g of emph) {
+      const l = lists.find((x) => x.group === g);
+      if (!l) continue;
+      let have = picked.filter((p) => p.muscleGroup === g).length;
+      for (const allowRepeat of [false, true]) {
+        for (let i = 0; i < l.ordered.length && have < 3; i += 1) {
+          const e = l.ordered[i];
+          if (usedNames.has(e.name) || (VPULL_RE.test(e.name) && [...usedNames].some((n) => VPULL_RE.test(n)))) continue;
+          const fam = liftFamily(e.name);
+          if (allowRepeat ? fam === 'deadlift' : (fam && usedFamilies.has(fam))) continue;
+          l.ordered.splice(i, 1); i -= 1;
+          usedNames.add(e.name); if (fam) usedFamilies.add(fam);
+          picked.push({ ...e, muscleGroup: g, sets: style === 'Strength' && !isCompound(e.name) ? Math.min(3, styleConfig.sets ?? e.sets) : styleConfig.sets ?? e.sets, reps: holdReps(e) ?? (styleConfig.reps ? repsFor(e.name, styleConfig.reps) : e.reps) });
+          have += 1;
+        }
+      }
+    }
+    while (picked.length > capMax) {
+      const per = {}; picked.forEach((p) => { per[p.muscleGroup] = (per[p.muscleGroup] || 0) + 1; });
+      let drop = -1;
+      for (let i = picked.length - 1; i >= 0; i -= 1) { if (!emph.includes(picked[i].muscleGroup) && per[picked[i].muscleGroup] > 1) { drop = i; break; } }
+      if (drop < 0) break;
+      picked.splice(drop, 1);
+    }
+  }
   // Each targeted group's anchor lift (see ANCHOR_EXERCISES) outranks
   // everything else — that's what "defaults to starting with X" means —
   // then barbell compounds, then other compounds, then isolation.
@@ -541,7 +573,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     .map(({ ex }) => ex);
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
-  const capped = ordered.slice(0, maxCount);
+  const capped = ordered.slice(0, capMax);
   const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames, exclude);
   const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames, exclude);
   return withAnchors

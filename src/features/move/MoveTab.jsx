@@ -850,10 +850,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
       const wishMore = (wishes?.more || []).filter((g) => selectedGroups.includes(g));
-      const wishGroups = wishMore.length ? [...wishMore, ...selectedGroups, ...wishMore] : selectedGroups;
       const WISH_GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
       const gearOut = WISH_GEAR[wishes?.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !WISH_GEAR[wishes.gear].includes(e.equipment)).map((e) => e.name) : [];
-      const buildPlan = (extra) => generateWorkout(wishGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers))
+      const buildPlan = (extra) => generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers), wishMore)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       plan = buildPlan(gearOut);
       if (plan.length < 3) plan = buildPlan([]);
@@ -1111,10 +1110,9 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     // What the person asked for more of: the chosen muscles are listed again so they get extra picks, and an equipment choice
     // leaves everything else out (relaxed if that would leave nothing).
     const more = (opts.more || []).filter((g) => w.muscleGroups.includes(g));
-    const groups = more.length ? [...more, ...w.muscleGroups, ...more] : w.muscleGroups;
     const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
     const gearOut = GEAR[opts.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !GEAR[opts.gear].includes(e.equipment)).map((e) => e.name) : [];
-    const build = (extra) => generateWorkout(groups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], prog ? oldLifts.length + 3 : ready.tired ? 4 : undefined, lovedLifts(experience.answers))
+    const build = (extra) => generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], prog ? (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     let generated = build(gearOut);
     if (generated.length < 3) generated = build([]);
@@ -1124,7 +1122,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Reuse the session's prescription from its normal (rep-counted) lifts; a hold keeps its own seconds target.
       const rx = oldLifts.slice(keep).filter((o) => !holdReps(o));
       let n = 0;
-      next = generated.slice(0, Math.max(0, oldLifts.length - keep)).map((ex) => {
+      next = generated.slice(0, more.length ? generated.length : Math.max(0, oldLifts.length - keep)).map((ex) => {
         if (holdReps(ex) || rx.length === 0) return ex;
         const o = rx[Math.min(n, rx.length - 1)]; n += 1;
         return { ...ex, sets: o.sets, reps: o.reps, targetNote: o.targetNote };
