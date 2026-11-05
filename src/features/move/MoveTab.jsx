@@ -367,6 +367,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [starterGone, setStarterGone] = useState(() => { try { return localStorage.getItem('groove:starterDismissed') === '1'; } catch { return false; } });
   const [readiness, setReadiness] = useState(null); // { areas: [...], tired }
   const [readinessOpen, setReadinessOpen] = useState(false);
+  const [wishes, setWishes] = useState(null); // { more: [muscles], gear } from "What do you want more of?" before a suggested workout
+  const [wishesOpen, setWishesOpen] = useState(false);
 
   // Custom activities live in one list; flexibility ones carry a "flex:" prefix so they only show in the flexibility picker
   // (and everyday ones never show up there).
@@ -820,6 +822,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (!canStartMode()) return;
     // A suggested lifting workout first asks how the body feels (then comes straight back here).
     if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !readiness) { setReadinessOpen(true); return; }
+    // A suggested (not program) lifting workout then asks what to get more of.
+    if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !programSession && !wishes) { setWishesOpen(true); return; }
     const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
     const usesAerobic = movementMode === 'Aerobic' || movementMode === 'Combined';
     const usesFlexibility = movementMode === 'Flexibility';
@@ -845,8 +849,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
-      plan = generateWorkout(selectedGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, blocked, programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers))
+      const wishMore = (wishes?.more || []).filter((g) => selectedGroups.includes(g));
+      const wishGroups = wishMore.length ? [...wishMore, ...selectedGroups, ...wishMore] : selectedGroups;
+      const WISH_GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
+      const gearOut = WISH_GEAR[wishes?.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !WISH_GEAR[wishes.gear].includes(e.equipment)).map((e) => e.name) : [];
+      const buildPlan = (extra) => generateWorkout(wishGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined, lovedLifts(experience.answers))
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+      plan = buildPlan(gearOut);
+      if (plan.length < 3) plan = buildPlan([]);
       // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
       // first choice is skipped, blocked or not available where the member is training).
       if (programSession?.leads) {
@@ -967,6 +977,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (error) { setLoadError(error.message); return; }
     if ((readiness && (readiness.areas.length > 0 || readiness.tired)) || injuries.length > 0) { try { localStorage.setItem(`groove:readiness:${data.id}`, JSON.stringify({ areas: readiness?.areas || [], tired: Boolean(readiness?.tired), injuries: injuries.map((i) => i.label) })); } catch { /* storage blocked */ } }
     setReadiness(null);
+    setWishes(null);
     // Carrying out a planned workout uses it up.
     if (startingPlan) {
       await supabase.from('planned_workouts').delete().eq('id', startingPlan.id);
@@ -1532,6 +1543,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
         </button>
       )}
 
+      {wishesOpen && <NewSuggestionSheet groups={selectedGroups} onClose={() => { setWishesOpen(false); setReadiness(null); }} onConfirm={(o) => { setWishes(o); setWishesOpen(false); setQuickStart(true); }} />}
       {readinessOpen && <ReadinessSheet injuries={injuries} onCancel={() => setReadinessOpen(false)} onConfirm={(r) => { setReadiness(r); setReadinessOpen(false); setQuickStart(true); }} />}
       {checkInWorkoutId && <CheckInSheet onSave={(f) => saveCheckIn(f)} onReflect={onJournalAfterWorkout ? (f) => saveCheckIn(f, true) : null} onSkip={() => setCheckInWorkoutId(null)} />}
       {showProgramSheet && user && (
