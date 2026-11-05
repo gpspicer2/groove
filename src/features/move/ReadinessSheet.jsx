@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Portal from '../../Portal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
-import { BODY_AREAS } from './exerciseLibrary';
+import { BODY_AREAS, MUSCLE_AREAS } from './exerciseLibrary';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 
 // Before a suggested lifting workout: anything sore or off today? The answer shapes the suggestion
@@ -17,12 +17,19 @@ export default function ReadinessSheet({ onConfirm, onCancel, injuries = [] }) {
     <Portal>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onCancel} />
-        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 text-center">
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 text-center max-h-[92vh] overflow-y-auto">
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div style={{ color: PAPER }} className="text-base font-medium">How's your body today?</div>
           <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Tap anything sore or not feeling right. I'll build around it.</div>
+          <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Sore Joints</div>
           <div className="flex flex-wrap justify-center gap-2 mb-3">
             {BODY_AREAS.map((a) => (
+              <button key={a.id} onClick={() => toggle(a.id)} style={chip(areas.includes(a.id))} className="rounded-full px-3.5 py-1.5 text-sm">{a.label}</button>
+            ))}
+          </div>
+          <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Sore Muscles</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-3">
+            {MUSCLE_AREAS.map((a) => (
               <button key={a.id} onClick={() => toggle(a.id)} style={chip(areas.includes(a.id))} className="rounded-full px-3.5 py-1.5 text-sm">{a.label}</button>
             ))}
             <button onClick={() => setTired((v) => !v)} style={chip(tired)} className="rounded-full px-3.5 py-1.5 text-sm">Run Down</button>

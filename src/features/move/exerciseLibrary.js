@@ -688,11 +688,29 @@ const AREA_AVOID = {
   knees: /Squat|Wall Sit|Lunge|Step-Up|Leg Press|Leg Extension|Jump|Nordic|Sissy/i,
   ankles: /Jump|Lunge|Step-Up|Calf|Skip|Sprint|Box|Bulgarian|Handstand/i,
 };
+// Muscles too sore to train today (as opposed to joints): everything listed under that muscle group is left out, plus the big
+// lifts that lean on it from another group (a deadlift works glutes and hamstrings but is filed under Back).
+export const MUSCLE_AREAS = [
+  { id: 'm_chest', label: 'Chest', groups: ['Chest'], also: /Bench|Push-Up|Dips|Fly|Pec|Chest/i },
+  { id: 'm_quads', label: 'Quads', groups: ['Quadriceps'], also: /Squat|Leg Press|Leg Extension|Lunge|Step-Up|Hack|Wall Sit|Sissy/i },
+  { id: 'm_hamstrings', label: 'Hamstrings', groups: ['Hamstrings'], also: /Deadlift|Romanian|Good Morning|Leg Curl|Nordic|Hip Thrust|Back Extension|Glute-Ham/i },
+  { id: 'm_glutes', label: 'Glutes', groups: ['Glutes'], also: /Squat|Deadlift|Lunge|Step-Up|Hip Thrust|Glute|Romanian|Good Morning|Leg Press|Bridge|Kickback|Abduction/i },
+  { id: 'm_calves', label: 'Calves', groups: [], also: /Calf|Jump|Skip|Sprint/i },
+  { id: 'm_biceps', label: 'Biceps', groups: ['Biceps'], also: /Curl|Chin-Up|Pull-Up|Row|Pulldown/i },
+  { id: 'm_triceps', label: 'Triceps', groups: ['Triceps'], also: /Tricep|Skull|Pushdown|Dips|Close-Grip|Bench|Push-Up|Overhead Press|Kickback/i },
+  { id: 'm_core', label: 'Core', groups: ['Core'], also: /Plank|Crunch|Leg Raise|Russian|Ab Wheel|Wood ?chop|Sit-Up|Hanging/i },
+];
+export const areaLabel = (id) => (BODY_AREAS.find((a) => a.id === id) || MUSCLE_AREAS.find((a) => a.id === id) || {}).label;
 export function avoidForAreas(areaIds = []) {
   const res = areaIds.map((id) => AREA_AVOID[id]).filter(Boolean);
-  if (res.length === 0) return [];
+  const muscles = areaIds.map((id) => MUSCLE_AREAS.find((m) => m.id === id)).filter(Boolean);
+  if (res.length === 0 && muscles.length === 0) return [];
   const names = new Set();
-  Object.values(EXERCISE_LIBRARY).forEach((list) => list.forEach((e) => { if (res.some((re) => re.test(e.name))) names.add(e.name); }));
+  Object.entries(EXERCISE_LIBRARY).forEach(([g, list]) => list.forEach((e) => {
+    if (res.some((re) => re.test(e.name))) names.add(e.name);
+    // "Also" names only count for the lifts that really are that movement, not every exercise in an unrelated group.
+    if (muscles.some((m) => m.groups.includes(g) || (m.also.test(e.name) && !(m.id === 'm_chest' && /Tricep|Shoulder/.test(e.name))))) names.add(e.name);
+  }));
   return [...names];
 }
 
