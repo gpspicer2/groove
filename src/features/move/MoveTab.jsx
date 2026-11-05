@@ -1075,7 +1075,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
 
   // "New Suggestion": swaps every lift in a suggested workout (nothing logged yet) for a fresh set, skipping what is in the
   // workout now and anything done in the last 7 days, so the new picks don't overlap with this week.
-  function newSuggestion() {
+  function newSuggestion(opts = {}) {
     if (!activeWorkout) return;
     const w = activeWorkout;
     let ready = {};
@@ -1097,8 +1097,16 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const blocked = [...hidden, ...avoidForAreas([...(ready.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
     // Today's lifts count as "recent" so none of them come straight back (most recent first), unless a muscle has nothing else.
     const keptLifts = oldLifts.slice(0, keep);
-    const generated = generateWorkout(w.muscleGroups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name)], prog ? oldLifts.length + 3 : ready.tired ? 4 : undefined, lovedLifts(experience.answers))
+    // What the person asked for more of: the chosen muscles are listed again so they get extra picks, and an equipment choice
+    // leaves everything else out (relaxed if that would leave nothing).
+    const more = (opts.more || []).filter((g) => w.muscleGroups.includes(g));
+    const groups = more.length ? [...more, ...w.muscleGroups, ...more] : w.muscleGroups;
+    const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
+    const gearOut = GEAR[opts.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !GEAR[opts.gear].includes(e.equipment)).map((e) => e.name) : [];
+    const build = (extra) => generateWorkout(groups, w.style, [...new Set([...current, ...recentNames])], w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], prog ? oldLifts.length + 3 : ready.tired ? 4 : undefined, lovedLifts(experience.answers))
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
+    let generated = build(gearOut);
+    if (generated.length < 3) generated = build([]);
     if (generated.length === 0) return;
     let next = generated;
     if (prog) {
@@ -2544,6 +2552,7 @@ function ActiveWorkout({
   const [draggingIndex, setDraggingIndex] = useState(null);
   const [reorder, setReorder] = useState(false); // drag handles only show while reordering
   // A suggested lifting workout can be swapped for a whole new suggestion until the first lift is logged.
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const canShuffle = Boolean(onNewSuggestion) && !isCleanSlateWorkout(workout.id)
     && !(() => { try { return JSON.parse(localStorage.getItem(`groove:programSession:${workout.id}`) || 'null')?.aerobic; } catch { return null; } })()
     && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
@@ -2831,7 +2840,7 @@ function ActiveWorkout({
         )}
         {(groups.length > 2 || canShuffle) && (
           <div className="flex justify-between -mb-1">
-            {canShuffle ? <button onClick={onNewSuggestion} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
+            {canShuffle ? <button onClick={() => setSuggestOpen(true)} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
             {groups.length > 2 && <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>}
           </div>
         )}
@@ -3228,6 +3237,13 @@ function ActiveWorkout({
           onClose={() => { setPairIndex(null); setPairPicking(false); }}
         />
       )}
+      {suggestOpen && (
+        <NewSuggestionSheet
+          groups={workout.muscleGroups}
+          onClose={() => setSuggestOpen(false)}
+          onConfirm={(opts) => { setSuggestOpen(false); onNewSuggestion(opts); }}
+        />
+      )}
       {swapIndex !== null && (
         <SwapPicker
           exercise={exercises[swapIndex]}
@@ -3475,6 +3491,42 @@ function PairChooser({ exercise, next, others = [], onNext, onPickExisting, onOt
           )
           )}
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2">Cancel</button>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// "What do you want more of?" before a whole new suggestion: pick muscles to get extra lifts, and/or the kind of equipment.
+function NewSuggestionSheet({ groups, onConfirm, onClose }) {
+  const [more, setMore] = useState([]);
+  const [gear, setGear] = useState('any');
+  const sheet = useSwipeDown(onClose);
+  const toggle = (g) => setMore((m) => (m.includes(g) ? m.filter((x) => x !== g) : [...m, g]));
+  const chip = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
+  const gears = [['any', 'Anything'], ['free', 'Free Weights'], ['machines', 'Machines and Cables'], ['bodyweight', 'Bodyweight']];
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onClose} />
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 text-center max-h-[92vh] overflow-y-auto">
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
+          <div style={{ color: PAPER }} className="text-base font-medium">What do you want more of?</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Pick anything, or tap Build It for a fresh mix.</div>
+          {groups.length > 1 && (
+            <>
+              <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Muscles</div>
+              <div className="flex flex-wrap justify-center gap-2 mb-3">
+                {groups.map((g) => <button key={g} onClick={() => toggle(g)} style={chip(more.includes(g))} className="rounded-full px-3.5 py-1.5 text-sm">{g}</button>)}
+              </div>
+            </>
+          )}
+          <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">Equipment</div>
+          <div className="flex flex-wrap justify-center gap-2 mb-4">
+            {gears.map(([id, label]) => <button key={id} onClick={() => setGear(id)} style={chip(gear === id)} className="rounded-full px-3.5 py-1.5 text-sm">{label}</button>)}
+          </div>
+          <button onClick={() => onConfirm({ more, gear })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium">Build It</button>
+          <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Cancel</button>
         </div>
       </div>
     </Portal>
