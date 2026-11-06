@@ -851,13 +851,14 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
       const wishGroups = (wishes?.skip || []).length && selectedGroups.some((g) => !wishes.skip.includes(g)) ? selectedGroups.filter((g) => !wishes.skip.includes(g)) : selectedGroups;
       const wishMore = (wishes?.more || []).filter((g) => wishGroups.includes(g));
-      const wishCap = wishes?.length === 'short' ? 4 : wishes?.length === 'long' ? 8 : null;
+      const wishCap = typeof wishes?.count === 'number' ? wishes.count : null;
       const WISH_GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
       const gearOut = WISH_GEAR[wishes?.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !WISH_GEAR[wishes.gear].includes(e.equipment)).map((e) => e.name) : [];
-      const buildPlan = (extra) => generateWorkout(wishGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, perGroup, profile?.gender, [...blocked, ...extra], wishCap || (programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined), lovedLifts(experience.answers), wishMore)
+      const buildPlan = (extra) => generateWorkout(wishGroups, selectedStyle, [...new Set(recentNames)], selectedLocation, wishCap ? Math.max(2, Math.ceil(wishCap / Math.max(1, wishGroups.length))) : perGroup, profile?.gender, [...blocked, ...extra], wishCap || (programSession?.leads ? programSession.exercises + 3 : programSession && programSession.exercises > 6 ? programSession.exercises : undefined), lovedLifts(experience.answers), wishMore)
         .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
       plan = buildPlan(gearOut);
-      if (plan.length < 3) plan = buildPlan([]);
+      if (plan.length < Math.min(3, wishCap || 3)) plan = buildPlan([]);
+      if (wishCap && plan.length > wishCap) plan = plan.slice(0, wishCap);
       // Powerlifting days name their lifts: put the day's first and second lift at the front (using a fallback when the
       // first choice is skipped, blocked or not available where the member is training).
       if (programSession?.leads) {
@@ -1113,14 +1114,15 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     // leaves everything else out (relaxed if that would leave nothing).
     const useGroups = (opts.skip || []).length && w.muscleGroups.some((g) => !opts.skip.includes(g)) ? w.muscleGroups.filter((g) => !opts.skip.includes(g)) : w.muscleGroups;
     const more = (opts.more || []).filter((g) => useGroups.includes(g));
-    const lenCap = opts.length === 'short' ? 4 : opts.length === 'long' ? 8 : null;
+    const lenCap = typeof opts.count === 'number' ? opts.count : null;
     const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
     const gearOut = GEAR[opts.gear] ? Object.values(EXERCISE_LIBRARY).flat().filter((e) => !GEAR[opts.gear].includes(e.equipment)).map((e) => e.name) : [];
     const vpullRecent = recentNames.filter((n) => /Pull-Ups?\b|Chin-Ups?\b/i.test(n));
-    const build = (extra, recent = [...new Set([...current, ...recentNames])]) => generateWorkout(useGroups, w.style, recent, w.location, 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], lenCap || prog ? (lenCap || (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3)) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
+    const build = (extra, recent = [...new Set([...current, ...recentNames])]) => generateWorkout(useGroups, w.style, recent, w.location, lenCap ? Math.max(2, Math.ceil(lenCap / Math.max(1, useGroups.length))) : 2, profile?.gender, [...blocked, ...keptLifts.map((e) => e.name), ...extra], lenCap || prog ? (lenCap || (more.length ? Math.max(1, oldLifts.length - keep) : oldLifts.length + 3)) : ready.tired ? 4 : undefined, lovedLifts(experience.answers), more)
       .map((ex) => ({ ...ex, type: 'resistance', supersetId: null }));
     let generated = build(gearOut);
     if (generated.length < 3) generated = build([]);
+    if (lenCap && generated.length > lenCap) generated = generated.slice(0, lenCap);
     if (generated.length === 0) return 'Nothing else fits right now. Try a different location, or loosen the sore areas.';
     // Small pools (outdoors, a sore area, few lifts left after this week) can hand back the same lifts. In that case lifts from
     // earlier this week may return, but never today's current ones and never a pull-up or chin-up.
@@ -3529,13 +3531,13 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
   const [more, setMore] = useState([]);
   const [skip, setSkip] = useState([]);
   const [gear, setGear] = useState('any');
-  const [length, setLength] = useState('normal');
+  const [count, setCount] = useState('auto');
   const sheet = useSwipeDown(onClose);
   const toggleMore = (g) => { setSkip((x) => x.filter((y) => y !== g)); setMore((m) => (m.includes(g) ? m.filter((x) => x !== g) : [...m, g])); };
   const toggleSkip = (g) => { setMore((x) => x.filter((y) => y !== g)); setSkip((m) => (m.includes(g) ? m.filter((x) => x !== g) : (m.length >= groups.length - 1 ? m : [...m, g]))); };
   const chip = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
   const gears = [['any', 'Anything'], ['free', 'Free Weights'], ['machines', 'Machines and Cables'], ['bodyweight', 'Bodyweight']];
-  const lengths = [['short', 'Shorter'], ['normal', 'Normal'], ['long', 'Longer']];
+  const counts = [['auto', 'Auto'], ...[3, 4, 5, 6, 7, 8, 9].map((n) => [n, String(n)])];
   const row = (title, items, on, pick) => (
     <>
       <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">{title}</div>
@@ -3555,8 +3557,8 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
           {groups.length > 1 && row('More of', groups.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
           {groups.length > 1 && row('Skip Today', groups.map((g) => [g, g]), (g) => skip.includes(g), toggleSkip)}
           {row('Equipment', gears, (id) => gear === id, setGear)}
-          {row('Length', lengths, (id) => length === id, setLength)}
-          <button onClick={() => onConfirm({ more, skip, gear, length })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">Build It</button>
+          {row('How Many Exercises?', counts, (id) => count === id, setCount)}
+          <button onClick={() => onConfirm({ more, skip, gear, count: count === 'auto' ? null : count })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">Build It</button>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Cancel</button>
         </div>
       </div>
