@@ -4566,11 +4566,13 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
   const arm = useArmed();
   const sheet = useSwipeDown(() => setOpen(false));
   const close = () => setOpen(false);
-  const row = (key, label, Icon, color, onClick) => (
-    <button key={key} onClick={onClick} style={{ background: INK_3, color: PAPER }} className="w-full flex items-center justify-center gap-1.5 rounded-md py-2.5 px-2 text-sm font-medium">
+  const row = (key, label, Icon, color, onClick, wide = false) => (
+    <button key={key} onClick={onClick} style={{ background: INK_3, color: PAPER }} className={`w-full flex items-center justify-center gap-1.5 rounded-md py-2.5 px-2 text-sm font-medium${wide ? ' col-span-2' : ''}`}>
       <Icon size={15} color={color} /> {label}
     </button>
   );
+  // The buttons sit two across; when a group has an odd number, the last one stretches across so there is no gap.
+  const group = (list) => list.filter(Boolean).map((r, i, all) => row(r[0], r[1], r[2], r[3], r[4], all.length % 2 === 1 && i === all.length - 1));
   return (
     <div className="relative rounded-md">
       {children}
@@ -4589,17 +4591,21 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
               <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               {title && <div style={{ color: PAPER }} className="text-base font-bold text-center mb-2.5">{title}</div>}
               <div className="grid grid-cols-2 gap-2">
-                {onUndo && row('undo', 'Not Finished Yet', Check, LIME, () => { close(); onUndo(); })}
-                {onSwap && row('swap', 'Swap', Replace, LIME, () => { close(); onSwap(); })}
-                {onSuperset && row('superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); })}
-                {onHistory && row('history', 'Your History', TrendingUp, SKY, () => { close(); onHistory(); })}
+                {group([
+                  onUndo && ['undo', 'Not Finished Yet', Check, LIME, () => { close(); onUndo(); }],
+                  onSwap && ['swap', 'Swap', Replace, LIME, () => { close(); onSwap(); }],
+                  onSuperset && ['superset', supersetLabel, Link2, LIME, () => { close(); onSuperset(); }],
+                  onHistory && ['history', 'Your History', TrendingUp, SKY, () => { close(); onHistory(); }],
+                ])}
                 {hasMore && !more && (
                   <button onClick={() => setMore(true)} style={{ color: TEXT_SOFT }} className="col-span-2 text-sm py-1.5 flex items-center justify-center gap-1">More Options <ChevronDown size={14} /></button>
                 )}
-                {more && onNever && row('never', 'Never Suggest', Replace, TEXT_SOFT, () => { close(); onNever(); })}
-                {more && onEdit && row('edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); })}
-                {more && onMoveUp && row('up', 'Move Up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); })}
-                {more && onMoveDown && row('down', 'Move Down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); })}
+                {more && group([
+                  onNever && ['never', 'Never Suggest', Replace, TEXT_SOFT, () => { close(); onNever(); }],
+                  onEdit && ['edit', editLabel, SlidersHorizontal, SKY, () => { close(); onEdit(); }],
+                  onMoveUp && ['up', 'Move Up', ChevronUp, TEXT_SOFT, () => { close(); onMoveUp(); }],
+                  onMoveDown && ['down', 'Move Down', ChevronDown, TEXT_SOFT, () => { close(); onMoveDown(); }],
+                ])}
                 <button
                   onClick={() => arm.press('remove', () => { close(); onRemove(); })}
                   data-armed={arm.armed === 'remove'}
