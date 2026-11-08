@@ -4291,6 +4291,21 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     return () => clearTimeout(t);
   }, [timeLeft]);
   const lockedAwake = useRef(false); // only release the screen lock if this timer took it
+  // Starting from a tap while the seconds box still has the keyboard up: the tap is taken on touch-down (before the keyboard
+  // closes and the page shifts), and the box is put away so the countdown is what you see.
+  function toggleTimer() {
+    try { document.activeElement?.blur?.(); } catch { /* nothing focused */ }
+    unlockAudio();
+    const starting = timeLeft == null;
+    lockedAwake.current = starting;
+    setTimeLeft(starting ? Number(seconds) : null);
+    keepAwake(starting);
+  }
+  function restartTimer() {
+    try { document.activeElement?.blur?.(); } catch { /* nothing focused */ }
+    unlockAudio();
+    setTimeLeft(Number(seconds));
+  }
   useEffect(() => () => { if (lockedAwake.current) keepAwake(false); }, []);
 
   // History can arrive after the card first draws; until the weight box is touched, keep it on the warm-up weight.
@@ -4379,8 +4394,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           </label>
           {Number(seconds) > 0 && timeLeft != null && (
             <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { unlockAudio(); setTimeLeft(Number(seconds)); }}
+              onPointerDown={(e) => { e.preventDefault(); restartTimer(); }}
+              onClick={(e) => { if (e.detail === 0) restartTimer(); }}
               style={{ background: INK_3, color: PAPER }}
               className="rounded-md py-2.5 px-2 min-w-[2.5rem] flex items-center justify-center"
               aria-label="Restart timer"
@@ -4390,8 +4405,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           )}
           {Number(seconds) > 0 && (
             <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { unlockAudio(); lockedAwake.current = timeLeft == null; keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
+              onPointerDown={(e) => { e.preventDefault(); toggleTimer(); }}
+              onClick={(e) => { if (e.detail === 0) toggleTimer(); }}
               style={{ background: timeLeft != null ? SKY : INK_3, color: timeLeft != null ? INK : PAPER }}
               className="rounded-md py-2.5 px-2 min-w-[2.5rem] text-base font-medium tabular-nums flex items-center justify-center"
               aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
@@ -5589,6 +5604,18 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
     const t = setTimeout(() => setTimeLeft((n) => (n == null ? null : n - 1)), 1000);
     return () => clearTimeout(t);
   }, [timeLeft]);
+  function flexToggle() {
+    try { document.activeElement?.blur?.(); } catch { /* nothing focused */ }
+    unlockAudio();
+    const starting = timeLeft == null;
+    setTimeLeft(starting ? Number(seconds) : null);
+    keepAwake(starting);
+  }
+  function flexRestart() {
+    try { document.activeElement?.blur?.(); } catch { /* nothing focused */ }
+    unlockAudio();
+    setTimeLeft(Number(seconds));
+  }
   const guide = guideFor(exercise.name);
   const nextSetNumber = loggedSets.length + 1;
   const isBalance = exercise.balance || BALANCE_ACTIVITIES.includes(exercise.name);
@@ -5677,7 +5704,8 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         />
         {!isReps && Number(seconds) > 0 && timeLeft != null && (
           <button
-            onClick={() => { unlockAudio(); setTimeLeft(Number(seconds)); }}
+            onPointerDown={(e) => { e.preventDefault(); flexRestart(); }}
+            onClick={(e) => { if (e.detail === 0) flexRestart(); }}
             style={{ background: INK_3, color: PAPER_DIM }}
             className="shrink-0 rounded-md px-2.5 py-2 text-sm"
             aria-label="Restart timer"
@@ -5687,7 +5715,8 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
         )}
         {!isReps && Number(seconds) > 0 && (
           <button
-            onClick={() => { unlockAudio(); keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
+            onPointerDown={(e) => { e.preventDefault(); flexToggle(); }}
+            onClick={(e) => { if (e.detail === 0) flexToggle(); }}
             style={{ background: timeLeft != null ? accent : INK_3, color: timeLeft != null ? PAPER : PAPER_DIM }}
             className="shrink-0 rounded-md px-2.5 py-2 text-sm tabular-nums"
             aria-label={timeLeft != null ? 'Stop timer' : 'Start hold timer'}
