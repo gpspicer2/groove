@@ -14,6 +14,7 @@ import MetBrowser from '../../MetBrowser';
 import { useRevealOnOpen } from '../../lib/reveal';
 import ScreeningStatus from '../screening/ScreeningStatus';
 import CoachMessages from '../message/CoachMessages';
+import NewLookNote from '../message/NewLookNote';
 import { PlanFormPopup, PlannedWorkoutPopup, QuickLogSheet } from '../plan/PlanPopups';
 import { planKinds, planMinutes, planSummary, hasDetails } from '../plan/plan';
 import { needsClearance } from '../screening/screening';
@@ -487,6 +488,7 @@ export default function BirdseyeTab({ userId, onOpenWorkout, onLogWorkout, onPla
       />
       <div className="flex flex-col gap-3">
         <CoachMessages />
+        <NewLookNote />
         <ScreeningStatus />
         <TailoredTips />
         {/* The setup homework waits until the first workout is logged, so day one is about moving, not forms. */}
