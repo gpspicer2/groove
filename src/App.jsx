@@ -37,7 +37,7 @@ function Shell() {
 
   if (!minShown || loading || switching || (user && !profile)) {
     return (
-      <div style={{ background: INK }} className="min-h-[100svh] flex justify-center items-start px-6 pt-[30svh]">
+      <div style={{ background: INK }} className="fixed inset-0 flex justify-center items-start px-6 pt-[30vh]">
         <GrooveLoader width={Math.min(300, Math.round(window.innerWidth - 72))} />
       </div>
     );

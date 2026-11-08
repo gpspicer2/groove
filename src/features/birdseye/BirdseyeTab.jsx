@@ -801,7 +801,7 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, unit, aer
           </span>
         </span>
       </div>
-      <div style={{ background: INK_3 }} className={`${met ? 'h-2.5' : 'h-1.5'} rounded-full overflow-hidden relative transition-all`}>
+      <div style={{ background: INK_3 }} className={`${met ? 'h-3' : 'h-1.5'} rounded-full overflow-hidden relative transition-all`}>
         <div style={{ width: `${pct}%`, backgroundColor: color }} className={`h-full rounded-full transition-all${met ? ' groove-disco' : ''}`} />
         {plannedPct > 0 && (
           <div
