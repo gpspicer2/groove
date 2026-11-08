@@ -371,7 +371,12 @@ function ensureSquatVariation(final, muscleGroups, style, location, recentNames,
     const added = { ...pick, muscleGroup: group, sets: styleConfig.sets ?? pick.sets, reps: holdReps(pick) ?? styleConfig.reps ?? pick.reps };
     // Bump the lowest-priority pick (the list is already sorted
     // barbell-compound-first) rather than growing past MAX_EXERCISES.
-    return [...final.slice(0, -1), added];
+    // Take it from a muscle that has two or more picks, so no muscle loses its only lift (biceps or shoulders, say).
+    const per = {}; final.forEach((ex) => { per[ex.muscleGroup] = (per[ex.muscleGroup] || 0) + 1; });
+    let di = -1;
+    for (let i = final.length - 1; i >= 0; i -= 1) { if (per[final[i].muscleGroup] > 1) { di = i; break; } }
+    if (di < 0) di = final.length - 1;
+    return [...final.slice(0, di), ...final.slice(di + 1), added];
   }
   return final;
 }
@@ -485,6 +490,8 @@ export const liftFamily = (name) => {
 
 export function generateWorkout(muscleGroups, style, recentNames = [], location = null, perGroup = 2, gender = null, exclude = [], maxCount = MAX_EXERCISES, prefer = [], emphasis = []) {
   const styleConfig = STYLE_CONFIG[style] || {};
+  // A day with more muscles than the usual cap gets one lift each (at most 8), unless a length was asked for.
+  if (maxCount === MAX_EXERCISES) maxCount = Math.max(maxCount, Math.min(8, muscleGroups.length + (muscleGroups.length >= 6 ? 1 : 0)));
   const picked = [];
   // Some movements (Romanian Deadlift, Bulgarian Split Squat...) are
   // listed under more than one muscle group on purpose, so two different
@@ -573,7 +580,17 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     .map(({ ex }) => ex);
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
-  const capped = ordered.slice(0, capMax);
+  // Every muscle that was picked keeps its best lift, so a crowded day (chest, back, legs, shoulders and arms) can't
+  // trim biceps or shoulders out entirely; the remaining spots go to the highest-ranked lifts.
+  const firstOf = new Set();
+  const reserved = new Set();
+  ordered.forEach((ex) => { if (!firstOf.has(ex.muscleGroup)) { firstOf.add(ex.muscleGroup); reserved.add(ex); } });
+  let spare = Math.max(0, capMax - Math.min(reserved.size, capMax));
+  const capped = ordered.filter((ex) => {
+    if (reserved.has(ex)) return true;
+    if (spare > 0) { spare -= 1; return true; }
+    return false;
+  }).slice(0, Math.max(capMax, Math.min(reserved.size, capMax)));
   const withSquat = ensureSquatVariation(capped, muscleGroups, style, location, recentNames, exclude);
   const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames, exclude);
   return withAnchors
@@ -647,14 +664,34 @@ export function suggestNextWeight(exercise, lastSet, style, daysSince = null) {
 // muscle group, to raise tissue temperature and rehearse the day's
 // movement patterns before the first working set — not the same as the
 // static FLEXIBILITY_LIBRARY stretches, which are for after/during.
+// One short line per drill, shown from the (i) on a warm-up row.
+export const DRILL_INFO = {
+  'Heel Scoops': 'Walk forward and, with each step, flick the heel up and back toward your glute, then scoop it forward into the next stride. Warms up quads and hips. Stay tall.',
+  'Arm Circles': 'Stand tall with arms out to the sides. Make small circles that grow bigger, then switch direction. Keep shoulders down, away from your ears.',
+  'Band Pull-Aparts': 'Hold a light band at chest height with straight arms. Pull it apart by squeezing your shoulder blades together, then return slowly.',
+  'Scapular Push-Ups': 'In a plank with straight arms, let your chest sink between your shoulder blades, then push the floor away. Only the shoulder blades move.',
+  'Scapular Pulls': 'Hang from a bar with straight arms. Pull your shoulder blades down and together to lift slightly, then relax back. Arms stay straight.',
+  'Cat-Cow': 'On hands and knees, round your back up like a cat, then let your belly drop and lift your chest. Move slowly with your breath.',
+  'Shoulder Rolls': 'Roll your shoulders up, back and down in big slow circles. Do some backward and some forward.',
+  'Downward Dog to Cobra': 'From a hips-high downward dog, sweep your chest forward and down, then lift into a gentle cobra. Flow back and repeat.',
+  'Leg Swings': 'Hold something steady and swing one leg forward and back, then side to side. Start small and let the swing grow. Switch legs.',
+  'Walking Lunges': 'Step forward into a lunge, lowering your back knee toward the floor, then step through into the next one. Keep your chest up.',
+  'Bodyweight Squats': 'Feet shoulder-width apart. Sit your hips back and down, keep your chest up, then stand tall. Heels stay down.',
+  "World's Greatest Stretch": 'Step into a deep lunge, set both hands inside your front foot, then rotate and reach one arm to the sky. Switch sides.',
+  'Glute Bridges': 'Lie on your back, knees bent. Press through your heels to lift your hips, squeeze your glutes at the top, then lower with control.',
+  'Fire Hydrants': 'On hands and knees, lift one knee out to the side like a dog at a hydrant, keeping your hips level. Switch sides.',
+  'Torso Twists': 'Stand with feet apart and arms bent. Rotate your torso side to side with control, letting your hips follow a little.',
+  'Bird Dogs': 'On hands and knees, reach one arm forward and the opposite leg back. Keep your back flat and hips level, then switch.',
+};
+
 export const DYNAMIC_WARMUP_LIBRARY = {
   Chest: ['Arm Circles', 'Band Pull-Aparts', 'Scapular Push-Ups'],
   Back: ['Band Pull-Aparts', 'Scapular Pulls', 'Cat-Cow'],
   Shoulders: ['Arm Circles', 'Band Pull-Aparts', 'Shoulder Rolls'],
   Biceps: ['Arm Circles', 'Band Pull-Aparts'],
   Triceps: ['Arm Circles', "Downward Dog to Cobra"],
-  Legs: ['Leg Swings', 'Walking Lunges', 'Bodyweight Squats'],
-  Quadriceps: ['Leg Swings', 'Bodyweight Squats', "World's Greatest Stretch"],
+  Legs: ['Heel Scoops', 'Leg Swings', 'Walking Lunges', 'Bodyweight Squats'],
+  Quadriceps: ['Heel Scoops', 'Leg Swings', 'Bodyweight Squats', "World's Greatest Stretch"],
   Hamstrings: ['Leg Swings', "World's Greatest Stretch", 'Walking Lunges'],
   Glutes: ['Glute Bridges', 'Fire Hydrants', 'Walking Lunges'],
   Core: ['Cat-Cow', 'Torso Twists', 'Bird Dogs'],
@@ -671,9 +708,9 @@ const WARMUP_AVOID = {
   lower_back: ['Torso Twists', 'Bodyweight Squats'],
   shoulders: ['Arm Circles', 'Scapular Push-Ups', 'Downward Dog to Cobra'],
   elbows: ['Scapular Push-Ups', 'Downward Dog to Cobra'],
-  m_quads: SQUAT_DRILLS,
+  m_quads: [...SQUAT_DRILLS, 'Heel Scoops'],
   m_glutes: [...SQUAT_DRILLS, 'Fire Hydrants', 'Glute Bridges', "World's Greatest Stretch"],
-  m_hamstrings: [...SQUAT_DRILLS, 'Leg Swings', "World's Greatest Stretch", 'Glute Bridges'],
+  m_hamstrings: [...SQUAT_DRILLS, 'Heel Scoops', 'Leg Swings', "World's Greatest Stretch", 'Glute Bridges'],
   m_calves: ['Walking Lunges'],
   m_core: ['Torso Twists', 'Bird Dogs'],
   m_chest: ['Scapular Push-Ups'],

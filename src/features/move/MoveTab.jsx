@@ -17,7 +17,7 @@ import { useAuth } from '../../auth/AuthContext';
 import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER, PLUM } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, findKnownMove, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, areaLabel, liftFamily, DYNAMIC_WARMUP_LIBRARY } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, findKnownMove, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, areaLabel, liftFamily, DYNAMIC_WARMUP_LIBRARY, DRILL_INFO } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -4998,6 +4998,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
   const [addingOther, setAddingOther] = useState(false);
   const [otherValue, setOtherValue] = useState('');
   const [swapDrill, setSwapDrill] = useState(null);
+  const [infoDrill, setInfoDrill] = useState(null);
 
   const rowRefs = useRef([]);
   const dragStateRef = useRef(null);
@@ -5221,8 +5222,23 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
                       {done && <Check size={10} color={INK} />}
                     </span>
                     <span style={{ textDecoration: done ? 'line-through' : 'none' }}>{name}</span>
+                    {DRILL_INFO[name] && (
+                      <span
+                        role="button"
+                        aria-label={`How to do ${name}`}
+                        onClick={(e) => { e.stopPropagation(); setInfoDrill(infoDrill === name ? null : name); }}
+                        style={{ color: infoDrill === name ? VIOLET : TEXT_SOFT }}
+                        className="shrink-0 p-1 -m-1"
+                      >
+                        <Info size={14} />
+                      </span>
+                    )}
                   </button>
+
                 </SwipeActions>
+                  {infoDrill === name && DRILL_INFO[name] && (
+                    <div style={{ background: INK_3, color: PAPER_DIM }} className="rounded-md px-3 py-2 mt-1 text-[13px] leading-snug">{DRILL_INFO[name]}</div>
+                  )}
               </div>
             </div>
           );
@@ -5264,7 +5280,7 @@ function WarmupCard({ index, exercise, loggedSets = [], onLogSet, onDeleteSet, o
           style={{ color: VIOLET }}
           className="w-full text-sm py-2 mt-1 flex items-center justify-center gap-1"
         >
-          <Plus size={12} /> Other
+          <Plus size={12} /> Add Your Own
         </button>
       )}
       <button

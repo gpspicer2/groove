@@ -111,27 +111,6 @@ html, body {
 }
 
 
-/* The runner's stride (see Wordmark.jsx): a strip of 12 pre-drawn frames shown
-   one at a time. One cycle is 0.6s and a burst plays it twice. */
-.groove-run-body { position: absolute; display: block; }
-.gr-sprite { position: absolute; background-repeat: no-repeat; opacity: 0; pointer-events: none; }
-.gr-sprite.on { opacity: 1; animation: gr-frames 0.6s step-end 2; }
-@keyframes gr-frames {
-  0.000% { background-position: 0 0.000%; }
-  8.333% { background-position: 0 9.091%; }
-  16.667% { background-position: 0 18.182%; }
-  25.000% { background-position: 0 27.273%; }
-  33.333% { background-position: 0 36.364%; }
-  41.667% { background-position: 0 45.455%; }
-  50.000% { background-position: 0 54.545%; }
-  58.333% { background-position: 0 63.636%; }
-  66.667% { background-position: 0 72.727%; }
-  75.000% { background-position: 0 81.818%; }
-  83.333% { background-position: 0 90.909%; }
-  91.667% { background-position: 0 100.000%; }
-  100% { background-position: 0 0%; }
-}
-
 .groove-plan-blink, .groove-plan-pulse { will-change: opacity; }
 
 /* Goal celebration: confetti falls and the message fades in, holds, and out. */

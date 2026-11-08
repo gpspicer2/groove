@@ -171,11 +171,11 @@ export default function ClientApp() {
           ) : <div />}
           {isTrainer ? (
             <button onClick={() => { setView('coach'); window.scrollTo(0, 0); }} aria-label="Switch to Coach view" title="Tap the logo to switch to your coach view" className="justify-self-center flex flex-col items-center">
-              <Wordmark height={30} running={Boolean(moveStatus)} />
+              <Wordmark height={30} />
               <span style={{ color: BRICK }} className="text-[11px] font-bold tracking-[0.35em] uppercase mt-0.5 pl-[0.35em]">Member</span>
             </button>
           ) : (
-            <Wordmark height={30} className="justify-self-center" running={Boolean(moveStatus)} />
+            <Wordmark height={30} className="justify-self-center" />
           )}
           <div className="justify-self-end flex items-center gap-2">
             <ViewToggle compact />

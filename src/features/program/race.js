@@ -221,7 +221,8 @@ function longRuns(race, spec, level, curve) {
     if (curve.isCut(j)) { out.push(half(last * 0.75)); continue; }
     const k = curve.nonCut.indexOf(j);
     const want = c > 1 ? startLong + ((cap - startLong) * k) / (c - 1) : cap;
-    last = Math.min(cap, half(Math.max(want, startLong)));
+    // The long run grows by at most a mile a week (the week's total follows it, so this also keeps weekly jumps small).
+    last = Math.min(cap, half(Math.max(want, startLong)), k === 0 ? Infinity : last + 1);
     out.push(last);
   }
   return out;
