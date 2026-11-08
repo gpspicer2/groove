@@ -4159,14 +4159,18 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // Typed-in names count too: the usual barbell lifts even without the word "barbell" (Pendlay Row, Deadlift, Back Squat...).
   const barbellName = /barbell|pendlay|deadlift|(back|front|pause|box|zercher) squat|(bench|overhead|military|push) press|power clean|snatch|good morning|bent.?over row|skull crusher|preacher curl|\bez.?bar|trap bar/i.test(exercise.name || '');
   const ezBar = /ez/i.test(variantKey || '');
-  const isBarbell = !notFreeBar && (exercise.equipment === 'barbell' || barbellName || ezBar);
+  // The Equipment chip on lunges and squats (Barbell / Dumbbells / Smith Machine) decides the tools, whatever the name says.
+  const pickedBar = variantKey === 'Barbell';
+  const pickedSmith = variantKey === 'Smith Machine';
+  const pickedDb = variantKey === 'Dumbbells';
+  const isBarbell = pickedBar || (!pickedSmith && !pickedDb && !notFreeBar && (exercise.equipment === 'barbell' || barbellName || ezBar));
   // An EZ bar is lighter than an Olympic bar (about 20 lb); with no bar chosen yet on a curl or extension, don't block the Log button.
   const ezCapable = /curl|extension|skull/i.test(exercise.name || '');
   const barLb = ezBar ? EZ_BAR_LB : ezCapable && !variantKey ? 0 : BARBELL_MIN_LB;
   const barbellFloor = isBarbell && !useBodyweight ? barLb : 0;
   // Free weights (barbell, dumbbell, kettlebell) open with a lighter warm-up set based on what the lifter has been working
   // with; the later sets go to the working weight. Machines, cables, bodyweight and holds just start at the working weight.
-  const freeWeight = !useBodyweight && !byTime && (isBarbell || /dumbbell|kettlebell/i.test(exercise.name || '') || exercise.equipment === 'dumbbell');
+  const freeWeight = !useBodyweight && !byTime && (isBarbell || pickedDb || /dumbbell|kettlebell/i.test(exercise.name || '') || exercise.equipment === 'dumbbell');
   const workingW = suggestion?.weight ?? last?.weight ?? null;
   const warmW = (() => {
     if (!freeWeight || !(workingW > 0)) return null;
@@ -4180,7 +4184,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const startWeight = warmNow ? warmW : warmDone ? workingW : startWeightBase;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
-  const plateName = /plate.?loaded|smith|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
+  const plateName = pickedSmith || /plate.?loaded|smith|hack squat|leg press|t-?bar|^hip thrust$/i.test(exercise.name || '');
   const perSideEligible = !useBodyweight && (plateName || isBarbell); // barbells too: plates per side + the bar
   const perSideKey = `groove:perSide:${(exercise.name || '').toLowerCase()}`;
   const [perSideOn, setPerSideOn] = useState(() => {

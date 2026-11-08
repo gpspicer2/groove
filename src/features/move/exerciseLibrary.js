@@ -913,6 +913,12 @@ export const VARIATIONS = {
   'Overhead Tricep Extension': { label: 'Handle', options: ['Dumbbell', 'EZ Bar', 'Rope', 'Straight Bar', 'Single Arm'] },
   'Skull Crusher': { label: 'Bar', options: ['EZ Bar', 'Straight Bar', 'Dumbbells'] },
   'Barbell Back Squat': { label: 'Bar', options: ['High Bar', 'Low Bar'] },
+  // Lunges and the bodyweight squat can be loaded however the lifter likes; the choice changes the weight tools
+  // (a barbell has its 45 lb bar, a Smith bar takes plates, dumbbells get a warm-up set) and keeps its own history.
+  'Walking Lunges': { label: 'Equipment', options: ['Bodyweight', 'Dumbbells', 'Barbell', 'Smith Machine'] },
+  'Reverse Lunges': { label: 'Equipment', options: ['Bodyweight', 'Dumbbells', 'Barbell', 'Smith Machine'] },
+  'Bulgarian Split Squat': { label: 'Equipment', options: ['Bodyweight', 'Dumbbells', 'Barbell', 'Smith Machine'] },
+  'Bodyweight Squat': { label: 'Equipment', options: ['Bodyweight', 'Dumbbells', 'Barbell', 'Smith Machine'] },
 };
 export const variationFor = (name) => VARIATIONS[name] || null;
 
