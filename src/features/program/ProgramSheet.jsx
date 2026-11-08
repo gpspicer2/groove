@@ -8,12 +8,13 @@ import { useAuth } from '../../auth/AuthContext';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, BRICK } from '../../theme';
 import {
   GOALS, MODELS, GOAL_INFO, MODEL_INFO, isHybridGoal, goalEmoji, programGoals, liftGoalsOf, hasCardio, hasGoal, blendInfo, DAY_NAMES, programTitle, resistanceDays, weekNumber, phaseLabel,
-  sessionsForWeek, isRace, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine, leadText, secondaryLine,
+  sessionsForWeek, isRace, isContest, daysToShow, contestPhase, prescriptionLine, accessoryLine, splitOptions, chosenSplit, hasChosenDays, cardioDays, intervalLine, leadText, secondaryLine,
 } from './programs';
 import { useHr } from './ProgramCards';
 import ExperienceForm from '../experience/ExperienceForm';
 import NoScaleSheet from './NoScaleSheet';
 import RaceBuilder from './RaceBuilder';
+import ContestBuilder from './ContestBuilder';
 import { fmtTime, daysToRace } from './race';
 import { useExperience } from '../experience/useExperience';
 
@@ -135,7 +136,7 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-3">
             <span className="w-6" />
-            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">{step === 'manage' ? 'Your Program' : step === 'race' ? 'Train for a Race' : 'Choose a Program'}</h2>
+            <h2 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-lg font-medium">{step === 'manage' ? 'Your Program' : step === 'race' ? 'Train for a Race' : step === 'contest' ? 'Contest Prep' : 'Choose a Program'}</h2>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-1 -m-1" aria-label="Close"><X size={20} /></button>
           </div>
 
@@ -144,8 +145,9 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
             return (
               <>
                 <div style={{ color: SKY }} className="text-base font-medium">{programTitle(program)}</div>
-                <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{isRace(program) ? `${daysToRace(program.race)} days to race day${program.race.goalSeconds ? ` · goal ${fmtTime(program.race.goalSeconds)}` : ''} · ` : `${program.days} days a week${chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · `}{phaseLabel(program, week)}</div>
+                <div style={{ color: TEXT_SOFT }} className="text-sm mb-3">{isRace(program) ? `${daysToRace(program.race)} days to race day${program.race.goalSeconds ? ` · goal ${fmtTime(program.race.goalSeconds)}` : ''} · ` : isContest(program) ? `${daysToShow(program)} days to the show · ` : `${program.days} days a week${chosenSplit(program) ? ` · ${chosenSplit(program).label}` : ''} · `}{phaseLabel(program, week)}</div>
                 <div style={{ color: TEXT_SOFT }} className="text-sm uppercase tracking-wide mb-1.5">This Week</div>
+                {isContest(program) && <div style={{ color: PAPER_DIM }} className="text-sm mb-2 text-left">{contestPhase(program, week).note}</div>}
                 <WeekList program={program} week={week} />
                 {hasCardio(program) && (
                   <div className="mt-3 text-left">
@@ -155,6 +157,8 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                 )}
                 {isRace(program) ? (
                   <button onClick={() => setStep('race')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">Update My Race Plan</button>
+                ) : isContest(program) ? (
+                  <button onClick={() => setStep('contest')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">Update My Contest Plan</button>
                 ) : (
                   <button onClick={() => setStep('weekdays')} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
                     {hasChosenDays(program) ? 'Change Training Days' : 'Pick Your Training Days'}
@@ -180,6 +184,10 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
                   <div className="text-base font-medium">🏃 Train for a Race</div>
                   <div style={{ opacity: 0.85 }} className="text-sm">5K to marathon, with paces, a long run and a taper.</div>
                 </button>
+                <button onClick={() => setStep('contest')} style={tile(false)} className="w-full rounded-xl px-4 py-3">
+                  <div className="text-base font-medium">🏆 Contest Prep</div>
+                  <div style={{ opacity: 0.85 }} className="text-sm">Bodybuilding show countdown: lifting, a cardio ramp and a peak week.</div>
+                </button>
               </div>
               <div className="flex items-center justify-between mt-3">{program ? back('manage') : <span />}<span /></div>
             </>
@@ -190,6 +198,16 @@ export default function ProgramSheet({ userId, program, onSave, onClose, weekSta
               onSave={async (next) => {
                 await onSave(next);
                 if (next.race.strength > 0) await supabase.from('profiles').update({ resistance_goal: next.race.strength, track_resistance_goal: true }).eq('id', userId);
+              }}
+              onDone={onClose} />
+          )}
+
+          {step === 'contest' && (
+            <ContestBuilder program={program} weekStartDay={weekStartDay} hrOn={hrOn} onBack={() => setStep(program ? 'manage' : 'kind')}
+              onSave={async (next) => {
+                if (!(isContest(program) && program.startMinutes)) next.startMinutes = await recentWeeklyMinutes(userId);
+                await onSave(next);
+                await supabase.from('profiles').update({ resistance_goal: resistanceDays(next), track_resistance_goal: true }).eq('id', userId);
               }}
               onDone={onClose} />
           )}

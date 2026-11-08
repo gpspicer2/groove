@@ -1,5 +1,33 @@
 import { useCallback, useRef, useState } from 'react';
 
+// Android's back button (and a browser back) closes the top sheet instead of leaving the app. Each open sheet adds one
+// history entry; a back press pops it and closes the sheet, and a sheet closed any other way (swipe, X, Done) takes its
+// entry back out so history stays tidy.
+const backStack = [];
+let backIgnore = 0;
+let backListening = false;
+function onBackPop() {
+  if (backIgnore > 0) { backIgnore -= 1; return; }
+  const e = backStack.pop();
+  if (e) { e.popped = true; e.close(); }
+}
+// Registers one open sheet; returns the function that unregisters it. Called when the sheet's element appears (so a sheet
+// that stays mounted while hidden never adds history).
+function registerBack(closeRef) {
+  if (!backListening) { window.addEventListener('popstate', onBackPop); backListening = true; }
+  const entry = { popped: false, pushed: false, close: () => closeRef.current && closeRef.current() };
+  const t = setTimeout(() => {
+    try { window.history.pushState({ grooveSheet: true }, ''); entry.pushed = true; backStack.push(entry); } catch { /* history blocked */ }
+  }, 0);
+  return () => {
+    clearTimeout(t);
+    if (!entry.pushed) return;
+    const i = backStack.indexOf(entry);
+    if (i >= 0) backStack.splice(i, 1);
+    if (!entry.popped) { backIgnore += 1; try { window.history.back(); } catch { backIgnore -= 1; } }
+  };
+}
+
 // Lets a bottom sheet be dragged down to close (phones). Spread the result
 // onto the sheet element:  const sheet = useSwipeDown(onClose);
 //   <div ref={sheet.ref} {...sheet.handlers} style={{ ...sheet.style, background: ... }}>
@@ -10,6 +38,7 @@ import { useCallback, useRef, useState } from 'react';
 export function useSwipeDown(onClose) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const backOffRef = useRef(null);
   const st = useRef({ y0: 0, x0: 0, canDrag: false, inside: true, active: false, dy: 0 });
   const [dy, setDy] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -17,8 +46,10 @@ export function useSwipeDown(onClose) {
 
   // A callback ref: attaches the touch listeners when the sheet appears and removes them when it goes away.
   const ref = useCallback((el) => {
+    if (backOffRef.current) { backOffRef.current(); backOffRef.current = null; }
     if (detachRef.current) { detachRef.current(); detachRef.current = null; }
     if (!el) return;
+    backOffRef.current = registerBack(closeRef);
     // The dimmed overlay (a fixed full-screen parent) takes part too; otherwise just the sheet itself.
     const parent = el.parentElement;
     const surface = parent && getComputedStyle(parent).position === 'fixed' ? parent : el;

@@ -33,7 +33,7 @@ export const cardioGoalOf = (program) => { const g = programGoals(program); retu
 export const hasCardio = (program) => cardioGoalOf(program) != null;
 export const hasGoal = (program, id) => programGoals(program).includes(id);
 // The short name on cards: the goal (Strength, Fat Loss...), or both names for a blend.
-export const programLabel = (program) => (isRace(program) ? raceTitle(program) : isBlend(program) ? programTitle(program) : (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label);
+export const programLabel = (program) => (isRace(program) ? raceTitle(program) : program?.contest ? 'Contest Prep' : isBlend(program) ? programTitle(program) : (GOALS.find((g) => g.id === program.goal) || { label: 'Training' }).label);
 // A short plain description of a blend, shown when more than one goal is picked.
 export function blendInfo(goals) {
   const lift = goals.filter((g) => g === 'strength' || g === 'hypertrophy');
@@ -197,7 +197,22 @@ const BLEND_CARDIO = {
   5: { seq: 'RARAR', days: [1, 2, 3, 5, 6] },
   6: { seq: 'RARARA', days: [1, 2, 3, 4, 6, 0] },
 };
-const hybridPlan = (program) => (isBlend(program) && liftGoalsOf(program).length > 0 && BLEND_CARDIO[program.days]) || FAT_LOSS[program.days] || FAT_LOSS[4];
+// Contest Prep (2026-11-08): a hypertrophy + cardio blend with `program.contest = { show, weeks, liftDays, cardioDays }`.
+// Lifting and cardio days are spread through the week; phases (Prep, Late Prep, Final Push, Peak Week) follow the weeks left
+// before the show.
+export const isContest = (program) => Boolean(program?.contest);
+export const daysToShow = (program) => daysToRace({ date: program.contest.show });
+function contestSeq(l, c) {
+  const n = l + c;
+  const out = Array(n).fill('R');
+  for (let k = 0; k < c; k += 1) out[Math.min(n - 1, Math.round(((k + 0.5) * n) / c))] = 'A';
+  return out.join('');
+}
+const contestPlan = (program) => {
+  const { liftDays: l, cardioDays: c } = program.contest;
+  return { seq: contestSeq(l, c), days: DAYS[Math.min(6, l + c)] || DAYS[6], lifts: [] };
+};
+const hybridPlan = (program) => (program.contest && contestPlan(program)) || (isBlend(program) && liftGoalsOf(program).length > 0 && BLEND_CARDIO[program.days]) || FAT_LOSS[program.days] || FAT_LOSS[4];
 
 const DAYS = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 4, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -270,10 +285,11 @@ export function cycleKey(program) {
   if (program.goal === 'hypertrophy') return program.model === 'linear' ? 'linear' : 'undulating';
   return program.goal;
 }
-export function cycleLength(program) { if (isRace(program)) return program.race.weeks; return CYCLES[cycleKey(program)].len; }
+export function cycleLength(program) { if (isRace(program)) return program.race.weeks; if (isContest(program)) return program.contest.weeks; return CYCLES[cycleKey(program)].len; }
 
 export function programTitle(program) {
   if (isRace(program)) return raceTitle(program);
+  if (isContest(program)) return 'Contest Prep';
   if (isBlend(program)) {
     const gs = programGoals(program);
     return gs.length > 2 ? 'Custom Blend' : gs.map((id) => GOALS.find((x) => x.id === id)?.label || id).join(' + ');
@@ -296,6 +312,7 @@ export function weekNumber(program, today = new Date(), weekStartDay = 'sunday')
 }
 export function cyclePosition(program, week) {
   if (isRace(program)) return Math.min(week, program.race.weeks);
+  if (isContest(program)) return Math.min(week, program.contest.weeks);
   return ((week - 1) % cycleLength(program)) + 1;
 }
 
@@ -318,7 +335,9 @@ function cardioRules(program) {
   if (gs.length === 2) { const [a, b] = [CARDIO_RULES.fat_loss, CARDIO_RULES.fitness]; return { cap: (a.cap + b.cap) / 2, perDay: (a.perDay + b.perDay) / 2, growth: (a.growth + b.growth) / 2, light: (a.light + b.light) / 2 }; }
   return CARDIO_RULES[gs[0]] || CARDIO_RULES.fat_loss;
 }
+let CONTEST_WEEK = null; // the real week while a contest week is being built (its cardio sessions are built from a stand-in week)
 export function weeklyMinutes(program, week) {
+  if (isContest(program)) return contestMinutes(program, CONTEST_WEEK ?? week);
   const r = cardioRules(program);
   const start = Math.max(60, Number(program.startMinutes) || 90);
   const cap = Math.max(start, Math.min(r.cap, cardioDays(program) * r.perDay));
@@ -393,6 +412,7 @@ function flavored(main, label, goal) {
 // The sessions for one week, with the prescription for that week.
 export function sessionsForWeek(program, week) {
   if (isRace(program)) return raceSessionsForWeek(program, week);
+  if (isContest(program)) return contestSessions(program, week);
   return isBlend(program) ? blendSessions(program, week) : plainSessions(program, week);
 }
 
@@ -504,8 +524,47 @@ function plainSessions(program, week, keyOverride) {
   return out;
 }
 
+// ---- Contest Prep phases ----
+// Weeks left counts the current week, so 1 = the week of the show.
+export function contestPhase(program, week) {
+  const wl = program.contest.weeks - week + 1;
+  const base = { weeksLeft: wl };
+  if (wl <= 0) return { ...base, name: 'Recovery', volume: 0.7, note: 'The show is done. Eat well, sleep, and ease back in. Reverse out of prep slowly rather than all at once.' };
+  if (wl === 1) return { ...base, name: 'Peak Week', volume: 0.55, note: 'Training tapers: fewer sets, no new exercises, nothing that leaves you sore. Water, sodium and food changes for show day are individual and carry real risks, so Groove does not prescribe them. Talk with Greg or your doctor.' };
+  if (wl <= 4) return { ...base, name: 'Final Push', volume: 0.85, note: 'Keep the weights up and the technique clean. Cardio peaks now. Recovery and sleep matter most.' };
+  if (wl <= 8) return { ...base, name: 'Late Prep', volume: 1, note: 'Hold your lifting intensity as the cardio builds. Keep the reps crisp and rest well.' };
+  return { ...base, name: 'Prep', volume: 1, note: 'Build muscle and steady habits. Cardio starts where you are and climbs gradually.' };
+}
+// Weekly cardio minutes: start where the member is, climb steadily to a peak by the Final Push, hold it, halve it in
+// Peak Week, and keep it light afterward.
+export function contestMinutes(program, week) {
+  const c = program.contest;
+  const start = Math.max(60, Number(program.startMinutes) || 90);
+  const peak = Math.min(270, Math.max(start + 30, c.cardioDays * 75));
+  const wl = c.weeks - week + 1;
+  let m;
+  if (wl <= 0) m = start * 0.4;
+  else if (wl === 1) m = peak * 0.5;
+  else { const t = Math.max(0, Math.min(1, (week - 1) / Math.max(1, c.weeks - 3))); m = start + (peak - start) * t; }
+  return Math.max(20, Math.round(m / 5) * 5);
+}
+function contestSessions(program, week) {
+  const ph = contestPhase(program, week);
+  const cw = ((week - 1) % 3) + 1; // a stand-in build week for the lifting templates (no deload inside a prep)
+  CONTEST_WEEK = week;
+  let base;
+  try { base = blendSessions(program, cw); } finally { CONTEST_WEEK = null; }
+  return base.map((s) => {
+    const id = s.id.replace(/^w\d+-/, `w${week}-`);
+    if (s.kind !== 'resistance') return { ...s, id, phase: ph.name };
+    const sets = Math.max(2, Math.round((s.presc.sets || 3) * ph.volume));
+    return { ...s, id, phase: ph.name, presc: { ...s.presc, sets } };
+  });
+}
+
 export function phaseLabel(program, week) {
   if (isRace(program)) return racePhaseLabel(program, week);
+  if (isContest(program)) { const ph = contestPhase(program, week); return `${ph.name} · ${ph.weeksLeft > 0 ? `${ph.weeksLeft} week${ph.weeksLeft === 1 ? '' : 's'} to the show` : 'show is done'}`; }
   const key = cycleKey(program);
   const cyc = CYCLES[key];
   const pos = cyclePosition(program, week);

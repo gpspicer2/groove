@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthContext';
 import NoScaleSheet from './NoScaleSheet';
 import { predictedMaxHR } from '../../lib/heartRate';
 import { daysToRace, RACES } from './race';
-import { GOALS, isRace, isHybridGoal, hasCardio, hasGoal, isBlend, programLabel, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
+import { GOALS, isRace, isContest, daysToShow, isHybridGoal, hasCardio, hasGoal, isBlend, programLabel, DAY_NAMES, chosenSplit, cycleLength, hasChosenDays, normalizeMoves, programTitle, weekNumber, phaseLabel, sessionsForWeek, prescriptionLine, accessoryLine, weeklyMinutes, intervalLine, cardioDays, resistanceDays, leadText, secondaryLine } from './programs';
 
 // Resting and max heart rate for turning zones into bpm (max is predicted from age when none is measured).
 export function useHr(program) {
@@ -80,6 +80,8 @@ export function MoveProgramCard({ program, week, lifted = 0, flex = null, onStar
   const race = isRace(program) ? program.race : null;
   const exact = race
     ? `${RACES[race.distance].label} on ${new Date(`${race.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${daysToRace(race) > 0 ? `${daysToRace(race)} days to go` : daysToRace(race) === 0 ? 'race day!' : 'race complete'}`
+    : isContest(program)
+    ? `Show ${new Date(`${program.contest.show}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${daysToShow(program) > 0 ? `${daysToShow(program)} days to go` : daysToShow(program) === 0 ? 'show day!' : 'show complete'} · ${program.contest.liftDays} lifting + ${program.contest.cardioDays} cardio`
     : hasCardio(program)
     ? `${cardioDays(program)} cardio days · ${resistanceDays(program)} ${isBlend(program) ? 'lifting' : 'strength'} days · heart-rate zones`
     : [model, split ? split.label : null, `${program.days} days a week`].filter(Boolean).join(' · ');
