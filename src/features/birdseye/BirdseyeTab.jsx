@@ -905,9 +905,12 @@ function WorkoutCalendar({ suppressHint, userId, workouts, hasResistance, hasAer
   const startWeekday = weekStartDay === 'monday' ? (rawStartWeekday + 6) % 7 : rawStartWeekday;
   const dayLabels = weekDayLabels(weekStartDay);
 
+  // Whole weeks: the days before the 1st and after the last are the real neighbouring dates (dimmed), so a month that
+  // starts on a Sunday still shows the previous week, and everything stays tappable.
   const cells = [];
-  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let i = startWeekday; i > 0; i--) cells.push(new Date(year, month, 1 - i));
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  for (let d = 1; cells.length % 7 !== 0; d++) cells.push(new Date(year, month + 1, d));
 
   // A day can have more than one logged session (a walk in the morning,
   // a resistance session later) — combine all of them so none quietly
@@ -969,7 +972,7 @@ function WorkoutCalendar({ suppressHint, userId, workouts, hasResistance, hasAer
               style={{ outline: isToday ? `1px solid ${SKY}` : 'none', outlineOffset: -1 }}
               className="aspect-[3/2] rounded-md flex flex-col items-center justify-center gap-0.5 group"
             >
-              <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT }} className="text-sm">{day.getDate()}</span>
+              <span style={{ color: hasAny || dayPlans.length > 0 ? PAPER : TEXT_SOFT, opacity: day.getMonth() === month ? 1 : 0.55 }} className="text-sm">{day.getDate()}</span>
               {hasAny || dayPlans.length > 0 ? (
                 <span className="flex items-center gap-0.5">
                   {a && <Activity size={10} color={PLUM} />}
