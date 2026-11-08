@@ -4316,7 +4316,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
 
   function handleLog() {
     if (belowBarbell) return;
-    const isWarm = warmCheck && !byTime;
+    const isWarm = warmCheck && !byTime && nextSetNumber === 1;
     const setNo = isWarm ? 0 : nextSetNumber;
     setPlates([]);
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
@@ -4516,7 +4516,7 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
         </div>
       )}
       <div className="mt-1.5 flex items-center justify-center gap-2 flex-wrap">
-        {!byTime && (
+        {!byTime && nextSetNumber === 1 && (
           <button
             onClick={toggleWarm}
             aria-pressed={warmCheck}
@@ -4682,7 +4682,7 @@ function ExerciseCard({
 
         {loggedSets.length > 0 && (
           <div className="flex flex-wrap justify-center gap-1 mb-1">
-            {loggedSets.map((s) => (
+            {loggedSets.map((s) => (s.movementType === 'aerobic' || !onUpdateSet ? (
               <button
                 key={s.id}
                 onClick={() => {
@@ -4696,9 +4696,34 @@ function ExerciseCard({
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
                   : <>{s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isWarmup ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">W</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
-              <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
+                <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
-            ))}
+            ) : (
+              // A lift's set: tap the numbers to flip it between a warm-up and a working set, tap the X to delete it.
+              <span
+                key={s.id}
+                style={{ background: armed === s.id ? BRICK : INK_3, color: armed === s.id ? PAPER : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+                data-armed={armed === s.id}
+                className="rounded-full text-sm tabular-nums flex items-center overflow-hidden"
+              >
+                <button
+                  onClick={() => onUpdateSet(s.id, { set_number: s.isWarmup ? loggedSets.filter((x) => x.movementType !== 'aerobic' && !x.isWarmup).length + 1 : 0 })}
+                  aria-label={s.isWarmup ? 'Make this a working set' : 'Mark this set as a warm-up'}
+                  title={s.isWarmup ? 'Tap to make this a working set' : 'Tap to mark as a warm-up'}
+                  className="pl-2.5 pr-1.5 py-1 flex items-center gap-1"
+                >
+                  {s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isWarmup ? <span style={{ color: armed === s.id ? PAPER : TEXT_SOFT }} className="text-[13px] mr-1">W</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                </button>
+                <button
+                  onClick={() => press(s.id, () => onDeleteSet(s.id))}
+                  aria-label="Delete this set"
+                  style={{ borderLeft: `1px solid ${TEXT_SOFT}` }}
+                  className="pl-1.5 pr-2.5 py-1 flex items-center self-stretch"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </span>
+            )))}
           </div>
         )}
 
