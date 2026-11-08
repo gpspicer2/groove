@@ -111,6 +111,30 @@ html, body {
 }
 
 
+/* A met weekly goal: the bar becomes a strip of mirror tiles with a glint that sweeps across now and then. */
+.groove-disco {
+  position: relative;
+  overflow: hidden;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2270%22 height=%2210%22%3E%3Crect x=%220%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.12%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%225%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.05%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2210%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.2%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2215%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.45%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2220%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2225%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2230%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.3%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2235%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2240%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.12%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2245%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.3%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2250%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2255%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.3%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2260%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.05%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2265%22 y=%220%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%220%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.2%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2210%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.2%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2215%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2220%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.05%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2230%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.3%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2235%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.2%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2240%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2245%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.3%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2250%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2255%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.05%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2260%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.45%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3Crect x=%2265%22 y=%225%22 width=%225%22 height=%225%22 fill=%22white%22 fill-opacity=%220.45%22 stroke=%22black%22 stroke-opacity=%220.28%22 stroke-width=%220.8%22/%3E%3C/svg%3E");
+  background-size: 70px 10px;
+}
+.groove-disco::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 0.85) 50%, transparent 100%);
+  transform: translateX(-120%);
+  animation: groove-glint 3.6s ease-in-out infinite;
+}
+@keyframes groove-glint {
+  0%, 55% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .groove-disco::after { animation: none; display: none; }
+}
+
 .groove-plan-blink, .groove-plan-pulse { will-change: opacity; }
 
 /* Goal celebration: confetti falls and the message fades in, holds, and out. */

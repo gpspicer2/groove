@@ -777,6 +777,8 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, unit, aer
   // What this week's planned workouts would add, shown dashed and pulsing.
   const displayPlanned = showingMinutes ? aerobic.plannedMinutes : planned;
   const plannedPct = Math.max(0, Math.min(100 - pct, (displayPlanned / displayGoal) * 100));
+  // A finished goal turns into a little disco-ball strip: mirror tiles and a glint that sweeps across.
+  const met = displayGoal > 0 && displayCount >= displayGoal;
 
   return (
     <div ref={goalRef} className="relative mb-1.5 last:mb-0 rounded-md overflow-hidden">
@@ -799,8 +801,8 @@ function GoalRow({ label, icon: Icon, color, count, goal, planned = 0, unit, aer
           </span>
         </span>
       </div>
-      <div style={{ background: INK_3 }} className="h-1.5 rounded-full overflow-hidden relative">
-        <div style={{ width: `${pct}%`, background: color }} className="h-full rounded-full transition-all" />
+      <div style={{ background: INK_3 }} className={`${met ? 'h-2.5' : 'h-1.5'} rounded-full overflow-hidden relative transition-all`}>
+        <div style={{ width: `${pct}%`, backgroundColor: color }} className={`h-full rounded-full transition-all${met ? ' groove-disco' : ''}`} />
         {plannedPct > 0 && (
           <div
             className="groove-plan-pulse absolute top-0 bottom-0 rounded-full"
