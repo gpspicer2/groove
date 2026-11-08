@@ -2,8 +2,8 @@ import React from 'react';
 import useDarkMode from './useDarkMode';
 
 // The loading screen is simply the logo (neon version in dark mode), fading in softly.
-const W = 1135;
-const H = 231;
+const W = 1829;
+const H = 343;
 
 export default function GrooveLoader({ width = 200, label = 'Loading' }) {
   const dark = useDarkMode();
