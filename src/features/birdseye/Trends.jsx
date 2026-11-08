@@ -156,10 +156,10 @@ export default function Trends({ userId, profile, active, weekStartDay = 'sunday
       const sets = [];
       for (let from = 0; from < 40 * PAGE; from += PAGE) {
         const sRes = await supabase.from('workout_sets')
-          .select('workout_id, exercise_name, muscle_group, weight, reps, movement_type, distance, light_minutes, moderate_minutes, vigorous_minutes')
+          .select('workout_id, set_number, exercise_name, muscle_group, weight, reps, movement_type, distance, light_minutes, moderate_minutes, vigorous_minutes')
           .eq('user_id', userId).order('created_at', { ascending: true }).range(from, from + PAGE - 1);
         if (sRes.error) { if (!cancelled) setError("Couldn't load your trends."); return; }
-        (sRes.data || []).forEach((s) => { if (ids.has(s.workout_id)) sets.push(s); });
+        (sRes.data || []).forEach((s) => { if (ids.has(s.workout_id) && s.set_number !== 0) sets.push(s); });
         if ((sRes.data || []).length < PAGE) break;
       }
       const mRes = await supabase.from('fitness_measurements').select('kind, value, measured_at').eq('user_id', userId).eq('kind', 'bodyweight').order('measured_at', { ascending: true });

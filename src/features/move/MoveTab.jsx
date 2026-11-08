@@ -118,6 +118,8 @@ function mapSet(row) {
     exerciseName: row.exercise_name,
     muscleGroup: row.muscle_group,
     setNumber: row.set_number,
+    // A warm-up set is saved as set 0 (no database change needed); it never counts as a working set.
+    isWarmup: row.set_number === 0 && (row.movement_type || 'resistance') === 'resistance',
     weight: row.weight != null ? Number(row.weight) : null,
     reps: row.reps != null ? Number(row.reps) : null,
     movementType: row.movement_type || 'resistance',
@@ -148,12 +150,12 @@ function workoutSummary(allSets, allExerciseCount) {
     const distances = workoutSets.map((s) => s.distance).filter(Boolean);
     return [minutes > 0 && `${minutes} min`, ...distances].filter(Boolean).join(' · ') || (exerciseCount === 1 ? '1 activity' : `${exerciseCount} activities`);
   }
-  return `${plural(exerciseCount, 'exercise')} · ${plural(workoutSets.length, 'set')}`;
+  return `${plural(exerciseCount, 'exercise')} · ${plural(workoutSets.filter((s) => !s.isWarmup).length, 'set')}`;
 }
 
 function totalWeightLifted(workoutSets) {
   return workoutSets
-    .filter((s) => s.movementType === 'resistance')
+    .filter((s) => s.movementType === 'resistance' && !s.isWarmup)
     .reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
 }
 
@@ -692,7 +694,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   // last set done that same way; `matchedVariant` says whether it found one (otherwise it is the overall last).
   function lastPerformance(exerciseName, variant = null) {
     const all = sets
-      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance');
+      .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance' && !s.isWarmup);
     const same = variant ? all.filter((s) => s.distance === variant) : [];
     const matches = (same.length ? same : all)
       .map((s) => {
@@ -2691,7 +2693,7 @@ function ActiveWorkout({
     if (undoneKeys.has(groupKey)) return false;
     if (doneKeys.has(groupKey)) return true;
     return group.every((m) => {
-      const n = sets.filter((x) => x.exerciseName === m.name).length;
+      const n = sets.filter((x) => x.exerciseName === m.name && !x.isWarmup).length;
       return n > 0 && (m.type === 'aerobic' || m.type === 'flexibility-activity' || n >= (m.sets || 1));
     });
   }
@@ -4138,8 +4140,9 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // already logged THIS workout survived (it's persisted), so prefer
   // continuing from that over falling back to last time's suggestion.
   const liftSets = (loggedSets || []).filter((s) => s.movementType !== 'aerobic');
-  const mostRecentLogged = liftSets.length > 0
-    ? [...liftSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
+  const workSets = liftSets.filter((s) => !s.isWarmup);
+  const mostRecentLogged = workSets.length > 0
+    ? [...workSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
     : null;
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
@@ -4172,8 +4175,8 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   })();
   const warmReps = style === 'Strength' ? 5 : 8;
   // The warm-up set is the first set of the exercise; once it is logged, set 2 goes to the working weight.
-  const warmDone = warmW != null && mostRecentLogged && mostRecentLogged.setNumber === 1 && (mostRecentLogged.weight ?? 0) < workingW * 0.8;
-  const warmNow = warmW != null && !mostRecentLogged;
+  const warmDone = warmW != null && liftSets.length > 0 && workSets.length === 0;
+  const warmNow = warmW != null && liftSets.length === 0;
   const startWeight = warmNow ? warmW : warmDone ? workingW : startWeightBase;
   // Plate-loaded machines are usually loaded by the plates on each side, so those lifts can be typed per side
   // (stored as the total of both sides, so lb lifted and kcal stay right). On by default for them, remembered per exercise.
@@ -4292,24 +4295,33 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warmNow, warmW]);
   // Right after the warm-up set is logged, the next set starts at the working weight.
-  const warmLogged = useRef(false);
-  useEffect(() => {
-    if (!warmLogged.current || nextSetNumber < 2) return;
-    warmLogged.current = false;
-    if (workingW > 0) setWeight(Math.max(f === 1 ? barbellFloor : 0, fromTotal(workingW)));
-    setReps(last?.reps ?? 8);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextSetNumber]);
+  // The Warm-up box: ticked by itself for the suggested lighter first set. A ticked set is saved as a warm-up
+  // (set 0): it shows in the exercise's history but never counts toward target sets or lb lifted.
+  const [warmCheck, setWarmCheck] = useState(warmNow);
+  function toggleWarm() {
+    const next = !warmCheck;
+    setWarmCheck(next);
+    if (!next && warmNow && !weightTouched.current && workingW > 0) {
+      setWeight(Math.max(f === 1 ? barbellFloor : 0, fromTotal(workingW)));
+      setReps(last?.reps ?? 8);
+    }
+  }
 
   function handleLog() {
     if (belowBarbell) return;
-    if (warmNow && nextSetNumber === 1 && (Number(weight) || 0) * f + extra < workingW * 0.8) warmLogged.current = true;
+    const isWarm = warmCheck && !byTime;
+    const setNo = isWarm ? 0 : nextSetNumber;
     setPlates([]);
     const countPayload = byTime ? { reps: null, durationSeconds: seconds } : { reps, durationSeconds: null };
     if (useBodyweight) {
-      onLog({ setNumber: nextSetNumber, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
+      onLog({ setNumber: setNo, weight: (bodyweight || 0) + weight, isBodyweight: true, ...countPayload });
     } else {
-      onLog({ setNumber: nextSetNumber, weight: (Number(weight) || 0) * f + extra, isBodyweight: false, ...countPayload });
+      onLog({ setNumber: setNo, weight: (Number(weight) || 0) * f + extra, isBodyweight: false, ...countPayload });
+    }
+    if (isWarm) {
+      setWarmCheck(false);
+      if (workingW > 0) setWeight(Math.max(f === 1 ? barbellFloor : 0, fromTotal(workingW)));
+      setReps(last?.reps ?? 8);
     }
   }
 
@@ -4485,11 +4497,24 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
           )}
         </div>
       )}
-      {contextBits.length > 0 && (
-        <div style={{ color: TEXT_SOFT }} className="text-[13px] mt-1.5 text-center">
-          {contextBits.join(' · ')}
-        </div>
-      )}
+      <div className="mt-1.5 flex items-center justify-center gap-2 flex-wrap">
+        {!byTime && (
+          <button
+            onClick={toggleWarm}
+            aria-pressed={warmCheck}
+            style={{ background: warmCheck ? SKY : INK_3, color: warmCheck ? INK : PAPER_DIM, fontFamily: 'Outfit, sans-serif' }}
+            className="rounded-full pl-1.5 pr-2.5 py-1 text-sm flex items-center gap-1"
+          >
+            <span style={{ border: `1.5px solid ${warmCheck ? INK : TEXT_SOFT}` }} className="w-4 h-4 rounded-[4px] flex items-center justify-center">
+              {warmCheck && <Check size={12} strokeWidth={3} />}
+            </span>
+            Warm-up
+          </button>
+        )}
+        {contextBits.length > 0 && (
+          <span style={{ color: TEXT_SOFT }} className="text-[13px] text-center">{contextBits.join(' · ')}</span>
+        )}
+      </div>
       {belowBarbell && <div style={{ color: TEXT_SOFT }} className="text-sm text-center mt-1 mb-2">The bar alone is {barLb} lb.</div>}
     </>
   );
@@ -4567,7 +4592,7 @@ function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
   isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown, lastFor,
 }) {
-  const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic').length + 1;
+  const nextSetNumber = loggedSets.filter((s) => s.movementType !== 'aerobic' && !s.isWarmup).length + 1;
   const [showSettings, setShowSettings] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -4652,7 +4677,7 @@ function ExerciseCard({
               >
                 {s.movementType === 'aerobic'
                   ? `${s.distance ? `${s.distance} · ` : ''}${formatIntensityMinutes(s)}`
-                  : <>{s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
+                  : <>{s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isWarmup ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">W</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}</>}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
@@ -4776,7 +4801,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
                 data-armed={armed === s.id}
                 className="rounded-full px-2.5 py-1 text-sm tabular-nums flex items-center gap-1"
               >
-                {s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
+                {s.distance && mixedVariants ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">{s.distance}</span> : null}{s.isWarmup ? <span style={{ color: TEXT_SOFT }} className="text-[13px] mr-1">W</span> : null}{s.isBodyweight ? bwLabel(s.weight, bodyweight) : s.weight ?? '—'}×{s.durationSeconds ? `${s.durationSeconds}s` : (s.reps ?? '—')}
               <span style={{ borderLeft: `1px solid ${TEXT_SOFT}`, opacity: 0.9 }} className="pl-1.5 ml-0.5 flex items-center"><X size={12} strokeWidth={3} /></span>
               </button>
             ))}
@@ -4915,7 +4940,7 @@ function SupersetCard({ index, members, style, bodyweight, sets, lastPerformance
               onRemove={() => onRemove(ex.index, loggedSets.length > 0)}
               onSplit={onSplit}
               onUndo={onUndo}
-              nextSetNumber={loggedSets.length + 1}
+              nextSetNumber={loggedSets.filter((s) => !s.isWarmup).length + 1}
             />
           );
         })}

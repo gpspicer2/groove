@@ -92,9 +92,9 @@ export function useProgramLifted(userId, program, refreshKey) {
       const ids = w.data.map((x) => x.id);
       let total = 0;
       for (let i = 0; i < ids.length; i += 25) {
-        const s = await supabase.from('workout_sets').select('weight, reps, movement_type').in('workout_id', ids.slice(i, i + 25)).limit(5000);
+        const s = await supabase.from('workout_sets').select('weight, reps, movement_type, set_number').in('workout_id', ids.slice(i, i + 25)).limit(5000);
         if (cancelled || s.error) return;
-        (s.data || []).forEach((r) => { if ((r.movement_type || 'resistance') === 'resistance') total += (Number(r.weight) || 0) * (Number(r.reps) || 0); });
+        (s.data || []).forEach((r) => { if ((r.movement_type || 'resistance') === 'resistance' && r.set_number !== 0) total += (Number(r.weight) || 0) * (Number(r.reps) || 0); });
       }
       if (!cancelled) setLb(Math.round(total));
     })();
