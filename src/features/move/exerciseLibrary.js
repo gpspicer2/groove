@@ -909,8 +909,8 @@ export const VARIATIONS = {
   'Barbell Curl': { label: 'Grip or Bar', options: ['Standard', 'Wide', 'Close', 'Reverse', 'EZ Bar'] },
   'Cable Curl': { label: 'Grip or Bar', options: ['Standard', 'Wide', 'Close', 'Reverse', 'EZ Bar'] },
   'Preacher Curl': { label: 'Grip or Bar', options: ['Standard', 'Wide', 'Close', 'Reverse', 'EZ Bar'] },
-  'Tricep Pushdown': { label: 'Handle', options: ['Straight Bar', 'EZ Bar', 'Rope', 'V-Bar', 'Single Arm'] },
-  'Overhead Tricep Extension': { label: 'Handle', options: ['Dumbbell', 'EZ Bar', 'Rope', 'Straight Bar', 'Single Arm'] },
+  'Tricep Pushdown': { label: 'Handle', options: ['Straight Bar', 'EZ Bar', 'Rope', 'Split Rope', 'Single Split Rope', 'V-Bar', 'Single Arm'] },
+  'Overhead Tricep Extension': { label: 'Handle', options: ['Dumbbell', 'EZ Bar', 'Rope', 'Split Rope', 'Single Split Rope', 'Straight Bar', 'Single Arm'] },
   'Skull Crusher': { label: 'Bar', options: ['EZ Bar', 'Straight Bar', 'Dumbbells'] },
   'Barbell Back Squat': { label: 'Bar', options: ['High Bar', 'Low Bar'] },
   // Lunges and the bodyweight squat can be loaded however the lifter likes; the choice changes the weight tools
