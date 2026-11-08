@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react
 import { revealSoon } from '../../lib/reveal';
 import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { useArmed } from '../../lib/useArmed';
-import { Timer, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, Play, TrendingUp } from '../../lib/icons';
+import { Timer, RotateCcw, Plus, X, Check, Replace, ChevronDown, ChevronUp, Trash2, Link2, GripVertical, SlidersHorizontal, Info, Activity, Dumbbell, PersonStanding, MoreHorizontal, Play, TrendingUp } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import ExperienceSheet from '../experience/ExperienceSheet';
@@ -2796,7 +2796,10 @@ function ActiveWorkout({
         <div style={{ color: TEXT_SOFT }} className="text-sm flex-1">
           {restElapsed < restTarget ? `Target ${Math.floor(restTarget / 60)}:${String(restTarget % 60).padStart(2, '0')}` : 'Ready when you are'}
         </div>
-        <button onClick={() => setRestStartedAt(null)} style={{ color: TEXT_SOFT }} className="p-1 -m-1">
+        <button onClick={() => { setRestStartedAt(Date.now()); setRestElapsed(0); }} style={{ color: TEXT_SOFT }} className="p-1.5" aria-label="Restart rest timer">
+          <RotateCcw size={14} />
+        </button>
+        <button onClick={() => setRestStartedAt(null)} style={{ color: TEXT_SOFT }} className="p-1.5 -mr-1.5" aria-label="Stop rest timer">
           <X size={14} />
         </button>
       </div>
@@ -4374,6 +4377,17 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
             />
             <span style={{ color: TEXT_SOFT }} className={unitClass}>sec</span>
           </label>
+          {Number(seconds) > 0 && timeLeft != null && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { unlockAudio(); setTimeLeft(Number(seconds)); }}
+              style={{ background: INK_3, color: PAPER }}
+              className="rounded-md py-2.5 px-2 min-w-[2.5rem] flex items-center justify-center"
+              aria-label="Restart timer"
+            >
+              <RotateCcw size={18} />
+            </button>
+          )}
           {Number(seconds) > 0 && (
             <button
               onMouseDown={(e) => e.preventDefault()}
@@ -5636,6 +5650,16 @@ function FlexibilityCard({ index, exercise, loggedSets, onLogSet, onDeleteSet, o
           style={{ background: INK_3, color: PAPER, fontFamily: 'Outfit, sans-serif' }}
           className="w-16 rounded-md px-2 py-2 text-sm outline-none text-center"
         />
+        {!isReps && Number(seconds) > 0 && timeLeft != null && (
+          <button
+            onClick={() => { unlockAudio(); setTimeLeft(Number(seconds)); }}
+            style={{ background: INK_3, color: PAPER_DIM }}
+            className="shrink-0 rounded-md px-2.5 py-2 text-sm"
+            aria-label="Restart timer"
+          >
+            <RotateCcw size={16} />
+          </button>
+        )}
         {!isReps && Number(seconds) > 0 && (
           <button
             onClick={() => { unlockAudio(); keepAwake(timeLeft == null); setTimeLeft((n) => (n == null ? Number(seconds) : null)); }}
