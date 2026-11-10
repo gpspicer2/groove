@@ -43,7 +43,7 @@ export default function ClearanceCard({ client, onClientChanged }) {
   }
   const pending = needsClearance(s);
   const why = clearanceReason(s);
-  const copy = RESULT_COPY[s.result];
+  const copy = RESULT_COPY[s.result] || RESULT_COPY.clearance_first; // an unknown or older result code must not blank the member screen
   const color = pending ? (s.result === 'stop_and_clearance' ? BRICK : AMBER) : LIME;
 
   async function undo() {

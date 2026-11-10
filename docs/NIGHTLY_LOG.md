@@ -1,5 +1,16 @@
 # Nightly Log
 
+## 2026-11-10
+**Fixed:** one small safety net. If a member's saved health-check result is an unknown or old value, Greg's member screen (Overview) used to crash. It now falls back to the "check with your doctor first" wording, so the screen always opens. No health-screening rules changed.
+
+**Design tweaks:** none needed.
+
+**Found but left for Greg**
+- A few five-run-day novice marathon and half-marathon plans still jump about 3 miles in the week after a rest week (16 to 19 miles), because each easy run has a 2-mile minimum. It is mild and I left it alone.
+- On a slow night my own test of last night was cut short by a tooling error, so nothing was checked then; tonight everything below was.
+
+**Checked all good:** no undefined names (lint), build passes, 12 api functions, 540 suggested workouts, 1,260 program weeks (every goal, blend and Contest Prep layout), race plans, and every coach tab plus a member's Overview, Plan, Health, Workouts and Notes in light and dark with no errors. Move flows (warm-up tick and flip, timers, equipment chips, exercise menu, contest builder, Android Back, new-look note, dynamic drill info, New Suggestion, foam rolling, cancel) all pass.
+
 ## 2026-10-29
 **Fixed:** nothing in the code tonight. The logo work (smoother dark-mode edges, a cleaner runner with a bent back arm) went live earlier and checks out in light and dark.
 
