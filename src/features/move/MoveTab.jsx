@@ -830,8 +830,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     if (!canStartMode()) return;
     // A suggested lifting workout first asks how the body feels (then comes straight back here).
     if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !readiness) { setReadinessOpen(true); return; }
-    // A suggested (not program) lifting workout then asks what to get more of.
-    if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !programSession && !wishes) { setWishesOpen(true); return; }
+    // A suggested lifting workout (a program session too, but not the new-to-lifting starter) then asks what to get more of.
+    if ((movementMode === 'Resistance' || movementMode === 'Combined') && !cleanSlate && !programSession?.starter && !wishes) { setWishesOpen(true); return; }
     const usesResistance = movementMode === 'Resistance' || movementMode === 'Combined';
     const usesAerobic = movementMode === 'Aerobic' || movementMode === 'Combined';
     const usesFlexibility = movementMode === 'Flexibility';
