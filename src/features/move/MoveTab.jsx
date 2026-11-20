@@ -14,6 +14,7 @@ import SwipeHint from '../../SwipeHint';
 import { titleCaseWords } from '../../lib/text';
 import IntensityGuideModal from '../../IntensityGuideModal';
 import { useAuth } from '../../auth/AuthContext';
+import { logMeasurement } from '../../lib/measurements';
 import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER, PLUM } from '../../theme';
@@ -356,6 +357,11 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [addingExerciseToId, setAddingExerciseToId] = useState(null);
   const [checkInWorkoutId, setCheckInWorkoutId] = useState(null);
   const [bodyweight, setBodyweight] = useState(null);
+  useEffect(() => {
+    const on = (e) => { if (Number(e.detail) > 0) setBodyweight(Number(e.detail)); };
+    window.addEventListener('groove:bodyweightChanged', on);
+    return () => window.removeEventListener('groove:bodyweightChanged', on);
+  }, []);
   const [assignedProgram, setAssignedProgram] = useState(null); // { id, name, exercises: [...] }
   // Self-guided training program (goal + days a week), and the session being started from it.
   const { program, save: saveProgram } = useProgram(user?.id);
@@ -851,7 +857,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       // Everything to leave out: hidden swaps, a starter session's technical lifts, sore areas and injuries, lifts the member
       // marked "Skip it", and Olympic lifts they haven't said they know.
       const blocked = [...hidden, ...(programSession?.starter ? beginnerAvoid() : []), ...avoidForAreas([...(readiness?.areas || []), ...injuries.map((i) => i.area)]), ...blockedByExperience(experience.answers, experience.experience?.gym)];
-      const wishGroups = (wishes?.skip || []).length && selectedGroups.some((g) => !wishes.skip.includes(g)) ? selectedGroups.filter((g) => !wishes.skip.includes(g)) : selectedGroups;
+      const wishBase = (wishes?.skip || []).length && selectedGroups.some((g) => !wishes.skip.includes(g)) ? selectedGroups.filter((g) => !wishes.skip.includes(g)) : selectedGroups;
+      const wishGroups = [...wishBase, ...(wishes?.more || []).filter((g) => !wishBase.includes(g))]; // muscles added from "Add Muscles"
       const wishMore = (wishes?.more || []).filter((g) => wishGroups.includes(g));
       const wishCap = typeof wishes?.count === 'number' ? wishes.count : null;
       const WISH_GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
@@ -1114,7 +1121,8 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     const keptLifts = oldLifts.slice(0, keep);
     // What the person asked for more of: the chosen muscles are listed again so they get extra picks, and an equipment choice
     // leaves everything else out (relaxed if that would leave nothing).
-    const useGroups = (opts.skip || []).length && w.muscleGroups.some((g) => !opts.skip.includes(g)) ? w.muscleGroups.filter((g) => !opts.skip.includes(g)) : w.muscleGroups;
+    const baseGroups = (opts.skip || []).length && w.muscleGroups.some((g) => !opts.skip.includes(g)) ? w.muscleGroups.filter((g) => !opts.skip.includes(g)) : w.muscleGroups;
+    const useGroups = [...baseGroups, ...(opts.more || []).filter((g) => !baseGroups.includes(g))]; // muscles added from "Add Muscles"
     const more = (opts.more || []).filter((g) => useGroups.includes(g));
     const lenCap = typeof opts.count === 'number' ? opts.count : null;
     const GEAR = { free: ['barbell', 'dumbbell'], machines: ['machine', 'cable', 'smith'], bodyweight: ['bodyweight'] };
@@ -2583,6 +2591,7 @@ function ActiveWorkout({
   // A suggested lifting workout can be swapped for a whole new suggestion until the first lift is logged.
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestNote, setSuggestNote] = useState('');
+  const [locAsk, setLocAsk] = useState(null); // the new place, while we ask whether to swap the lifts for it
   const canShuffle = Boolean(onNewSuggestion) && !isCleanSlateWorkout(workout.id)
     && !(() => { try { return JSON.parse(localStorage.getItem(`groove:programSession:${workout.id}`) || 'null')?.aerobic; } catch { return null; } })()
     && exercises.some((e) => e.type === 'resistance') && !exercises.some((e) => e.supersetId)
@@ -2819,12 +2828,21 @@ function ActiveWorkout({
             {workout.location || 'Add location'}
           </button>
         </div>
+        {locAsk && canShuffle && (
+          <div style={{ background: INK_2 }} className="rounded-md px-3 py-2 mt-1.5 text-sm text-center">
+            <div style={{ color: PAPER }}>Moving to {locAsk}. Want a new workout for it?</div>
+            <div className="flex justify-center gap-4 mt-1">
+              <button onClick={() => { setLocAsk(null); setSuggestNote(''); setSuggestOpen(true); }} style={{ color: SKY }} className="font-medium underline underline-offset-2 py-1">Yes, New Suggestion</button>
+              <button onClick={() => setLocAsk(null)} style={{ color: TEXT_SOFT }} className="py-1">Keep This One</button>
+            </div>
+          </div>
+        )}
         {editingLocation && (
           <div className="flex justify-center gap-1.5 mt-1.5">
             {WORKOUT_LOCATIONS.map((loc) => (
               <button
                 key={loc}
-                onClick={() => { onChangeLocation && onChangeLocation(loc); setEditingLocation(false); }}
+                onClick={() => { if (loc !== workout.location && canShuffle) setLocAsk(loc); onChangeLocation && onChangeLocation(loc); setEditingLocation(false); }}
                 style={{ background: workout.location === loc ? SKY : INK_3, color: workout.location === loc ? INK : PAPER_DIM }}
                 className="rounded-full px-3 py-1 text-sm"
               >
@@ -3543,6 +3561,8 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
   const chip = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
   const gears = [['any', 'Anything'], ['free', 'Free Weights'], ['machines', 'Machines and Cables'], ['bodyweight', 'Bodyweight']];
   const counts = [['auto', 'Auto'], ...[3, 4, 5, 6, 7, 8, 9].map((n) => [n, String(n)])];
+  // Muscles that are not in this workout yet can be added too (a leg day that skipped quads, say).
+  const addable = ['Chest', 'Back', 'Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Shoulders', 'Biceps', 'Triceps', 'Core'].filter((g) => !groups.includes(g));
   const row = (title, items, on, pick) => (
     <>
       <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">{title}</div>
@@ -3561,6 +3581,7 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
           <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Pick anything, or tap Build It for a fresh mix.</div>
           {groups.length > 1 && row('More of', groups.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
           {groups.length > 1 && row('Skip Today', groups.map((g) => [g, g]), (g) => skip.includes(g), toggleSkip)}
+          {addable.length > 0 && row('Add Muscles', addable.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
           {row('Equipment', gears, (id) => gear === id, setGear)}
           {row('How Many Exercises?', counts, (id) => count === id, setCount)}
           <button onClick={() => onConfirm({ more, skip, gear, count: count === 'auto' ? null : count })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">Build It</button>
@@ -4137,7 +4158,6 @@ function isBodyweightEligible(name) {
 // cluttering every card — callers that don't need that (SupersetCard)
 // just own the same two bits of state locally and pass them through.
 function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight, loggedSets, variantKey = null, variantHasHistory = false }) {
-  const suggestion = suggestNextWeight(exercise, last, style, last?.daysSince);
   // Reopening the app mid-workout remounts this component, wiping the
   // weight/reps the user had typed in for the next set — but any set
   // already logged THIS workout survived (it's persisted), so prefer
@@ -4147,6 +4167,14 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   const mostRecentLogged = workSets.length > 0
     ? [...workSets].sort((a, b) => (b.setNumber ?? 0) - (a.setNumber ?? 0))[0]
     : null;
+  // The suggestion follows what was just lifted: once a working set is logged this workout, the next set is judged from
+  // that set (so lifting more than the suggestion moves the suggestion), not from the last workout.
+  const suggestion = mostRecentLogged && mostRecentLogged.weight != null && mostRecentLogged.reps != null && !mostRecentLogged.durationSeconds
+    ? (() => {
+      const s2 = suggestNextWeight(exercise, { ...mostRecentLogged, isBodyweight: mostRecentLogged.isBodyweight }, style, 0);
+      return s2 && s2.weight === Math.round(mostRecentLogged.weight / 5) * 5 ? { ...s2, note: 'Same as your last set' } : s2;
+    })()
+    : suggestNextWeight(exercise, last, style, last?.daysSince);
   // Starts from the last/suggested weight for this exercise (or 0 if
   // there's no history yet), and from 8 reps — the middle of a typical
   // working-set rep range. Weight/reps then carry over set-to-set, so a
@@ -4627,6 +4655,36 @@ function SwipeActions({ children, title, onSwap, onSuperset, supersetLabel = 'Ma
 // Holds (Plank, Wall Sit) are counted in seconds, not reps: their target reads like "30-60s".
 const isHoldExercise = (ex) => /\d\s*s\b/i.test(String(ex?.reps || ''));
 
+// Once a month, on a bodyweight lift (pull-ups, dips...), a quick check that the weight on file is still right, because it sets
+// the load those lifts are counted at. Asked at most every 30 days per phone.
+function BodyweightNudge({ bodyweight }) {
+  const { user } = useAuth();
+  const key = `groove:bwAsked:${user?.id || ''}`;
+  const [shown, setShown] = useState(() => { try { return Date.now() - Number(localStorage.getItem(key) || 0) > 30 * 864e5; } catch { return false; } });
+  const [val, setVal] = useState(bodyweight != null ? String(bodyweight) : '');
+  if (!shown || !user) return null;
+  const close = () => { try { localStorage.setItem(key, String(Date.now())); } catch { /* storage blocked */ } setShown(false); };
+  async function save() {
+    const v = parseFloat(val);
+    if (v > 0) {
+      await supabase.from('profiles').update({ bodyweight_lb: v }).eq('id', user.id);
+      logMeasurement(user.id, 'bodyweight', v);
+      window.dispatchEvent(new CustomEvent('groove:bodyweightChanged', { detail: v }));
+    }
+    close();
+  }
+  return (
+    <div style={{ background: INK_3 }} className="rounded-md px-3 py-2 mb-2 text-sm text-center">
+      <div style={{ color: PAPER_DIM }}>Still {bodyweight != null ? `${bodyweight} lb` : 'your weight'}? Bodyweight lifts use it.</div>
+      <div className="flex items-center justify-center gap-2 mt-1.5">
+        <input type="number" inputMode="decimal" value={val} onChange={(e) => setVal(e.target.value)} aria-label="Bodyweight in pounds" style={{ background: INK_2, color: PAPER }} className="w-20 rounded-md px-2 py-1.5 text-base text-center outline-none" />
+        <button onClick={save} style={{ background: SKY, color: INK }} className="rounded-md px-3 py-1.5 text-sm font-medium">Update</button>
+        <button onClick={close} style={{ color: TEXT_SOFT }} className="px-2 py-1.5 text-sm">Not Now</button>
+      </div>
+    </div>
+  );
+}
+
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
   isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown, lastFor,
@@ -4748,6 +4806,7 @@ function ExerciseCard({
           </div>
         )}
 
+        {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={lastShown} variantKey={variant} variantHasHistory={Boolean(lastV && lastV.matchedVariant)}
@@ -4871,6 +4930,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
             ))}
           </div>
         )}
+        {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         <WeightRepsInput
           exercise={exercise}
