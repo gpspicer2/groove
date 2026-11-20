@@ -506,10 +506,15 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     // A pull-up or chin-up done this week rules out every pull-up and chin-up (they are the same movement), and the two never
     // sit in one workout.
     const pool2 = recentNames.some((n) => VPULL_RE.test(n)) ? pool.filter((e) => !VPULL_RE.test(e.name)) : pool;
-    const fresh = pool2.filter((e) => !recentNames.includes(e.name));
+    // A lift counts as recent when it, or any lift of the same movement family, was done lately (a Romanian deadlift this week
+    // also rules out single-leg RDLs and good mornings), so the workout leans on other patterns and complementary muscles.
+    const recentFam = new Set(recentNames.map(liftFamily).filter(Boolean));
+    const isRecent = (e) => recentNames.includes(e.name) || (liftFamily(e.name) != null && recentFam.has(liftFamily(e.name)));
+    const recencyIdx = (e) => { const f = liftFamily(e.name); const i = recentNames.findIndex((n) => n === e.name || (f && liftFamily(n) === f)); return i < 0 ? 1e9 : i; };
+    const fresh = pool2.filter((e) => !isRecent(e));
     // recentNames runs most recent first, so when a muscle runs out of fresh options the one
     // done longest ago comes back first.
-    const stale = pool2.filter((e) => recentNames.includes(e.name)).sort((a, b) => recentNames.indexOf(b.name) - recentNames.indexOf(a.name));
+    const stale = pool2.filter(isRecent).sort((a, b) => recencyIdx(b) - recencyIdx(a));
     // Lifts the member loves come first (the shuffle still varies the rest).
     const loved = (e) => Number(prefer.includes(e.name));
     return { group, ordered: [...shuffle(fresh).sort((x, y) => loved(y) - loved(x)), ...stale], at: 0 };
