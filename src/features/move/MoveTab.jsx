@@ -3551,18 +3551,26 @@ function PairChooser({ exercise, next, others = [], onNext, onPickExisting, onOt
 
 // "What do you want more of?" before a whole new suggestion: pick muscles to get extra lifts, and/or the kind of equipment.
 function NewSuggestionSheet({ groups, onConfirm, onClose }) {
+  const [say, setSay] = useState(false); // "I want a say" opens the choices
   const [more, setMore] = useState([]);
   const [skip, setSkip] = useState([]);
   const [gear, setGear] = useState('any');
   const [count, setCount] = useState('auto');
+  const [specific, setSpecific] = useState(false);
   const sheet = useSwipeDown(onClose);
-  const toggleMore = (g) => { setSkip((x) => x.filter((y) => y !== g)); setMore((m) => (m.includes(g) ? m.filter((x) => x !== g) : [...m, g])); };
+  const toggleMoreList = (list) => {
+    const on = list.every((g) => more.includes(g));
+    setSkip((x) => x.filter((y) => !list.includes(y)));
+    setMore((m) => (on ? m.filter((x) => !list.includes(x)) : [...new Set([...m, ...list])]));
+  };
   const toggleSkip = (g) => { setMore((x) => x.filter((y) => y !== g)); setSkip((m) => (m.includes(g) ? m.filter((x) => x !== g) : (m.length >= groups.length - 1 ? m : [...m, g]))); };
   const chip = (on) => ({ background: on ? SKY : INK_3, color: on ? INK : PAPER });
   const gears = [['any', 'Anything'], ['free', 'Free Weights'], ['machines', 'Machines and Cables'], ['bodyweight', 'Bodyweight']];
   const counts = [['auto', 'Auto'], ...[3, 4, 5, 6, 7, 8, 9].map((n) => [n, String(n)])];
-  // Muscles that are not in this workout yet can be added too (a leg day that skipped quads, say).
-  const addable = ['Chest', 'Back', 'Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Shoulders', 'Biceps', 'Triceps', 'Core'].filter((g) => !groups.includes(g));
+  // General areas first; the specific muscles sit behind a dropdown.
+  const areas = [['Chest', ['Chest']], ['Back', ['Back']], ['Legs', ['Legs']], ['Shoulders', ['Shoulders']], ['Arms', ['Biceps', 'Triceps']], ['Core', ['Core']]];
+  const specifics = ['Quadriceps', 'Hamstrings', 'Glutes', 'Biceps', 'Triceps'];
+  const specificOpen = specific || specifics.some((g) => more.includes(g));
   const row = (title, items, on, pick) => (
     <>
       <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">{title}</div>
@@ -3571,20 +3579,40 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
       </div>
     </>
   );
+  const confirm = () => onConfirm(say ? { more, skip, gear, count: count === 'auto' ? null : count } : { more: [], skip: [], gear: 'any', count: null });
   return (
     <Portal>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onClose} />
         <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-5 pb-6 text-center max-h-[92vh] overflow-y-auto">
           <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
-          <div style={{ color: PAPER }} className="text-base font-medium">What do you want more of?</div>
-          <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Pick anything, or tap Build It for a fresh mix.</div>
-          {groups.length > 1 && row('More of', groups.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
-          {groups.length > 1 && row('Skip Today', groups.map((g) => [g, g]), (g) => skip.includes(g), toggleSkip)}
-          {addable.length > 0 && row('Add Muscles', addable.map((g) => [g, g]), (g) => more.includes(g), toggleMore)}
-          {row('Equipment', gears, (id) => gear === id, setGear)}
-          {row('How Many Exercises?', counts, (id) => count === id, setCount)}
-          <button onClick={() => onConfirm({ more, skip, gear, count: count === 'auto' ? null : count })} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">Build It</button>
+          <div style={{ color: PAPER }} className="text-base font-medium">Want a say in this workout?</div>
+          <div style={{ color: PAPER_DIM }} className="text-sm mt-1 mb-3">Or I can just build it for you.</div>
+          <button onClick={() => setSay((v) => !v)} aria-expanded={say} style={{ background: INK_3, color: PAPER }} className="w-full rounded-md py-2.5 mb-3 text-sm font-medium flex items-center justify-center gap-1.5">
+            I Want a Say {say ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
+          {say && (
+            <div className="mb-1">
+              <div style={{ color: TEXT_SOFT }} className="text-xs font-medium mb-1.5">More of</div>
+              <div className="flex flex-wrap justify-center gap-2 mb-2">
+                {areas.map(([label, list]) => (
+                  <button key={label} onClick={() => toggleMoreList(list)} style={chip(list.every((g) => more.includes(g)))} className="rounded-full px-3.5 py-1.5 text-sm">{label}</button>
+                ))}
+              </div>
+              <button onClick={() => setSpecific((v) => !v)} style={{ color: TEXT_SOFT }} className="text-sm py-1 mb-2 flex items-center justify-center gap-1 mx-auto">
+                More Specific Muscles {specificOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {specificOpen && (
+                <div className="flex flex-wrap justify-center gap-2 mb-3">
+                  {specifics.map((g) => <button key={g} onClick={() => toggleMoreList([g])} style={chip(more.includes(g))} className="rounded-full px-3.5 py-1.5 text-sm">{g}</button>)}
+                </div>
+              )}
+              {groups.length > 1 && row('Skip Today', groups.map((g) => [g, g]), (g) => skip.includes(g), toggleSkip)}
+              {row('Equipment', gears, (id) => gear === id, setGear)}
+              {row('How Many Exercises?', counts, (id) => count === id, setCount)}
+            </div>
+          )}
+          <button onClick={confirm} style={{ background: SKY, color: INK }} className="w-full rounded-md py-3 text-sm font-medium mt-1">{say ? 'Build It' : 'Build It for Me'}</button>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="w-full text-sm py-2 mt-1">Cancel</button>
         </div>
       </div>
