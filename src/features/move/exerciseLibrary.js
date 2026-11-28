@@ -404,7 +404,7 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     const anchorName = anchorFn(gender);
     if (exclude.includes(anchorName)) continue; // sore or injured: never forced in
     if (result.some((ex) => ex.name === anchorName)) continue;
-    if (style !== 'Strength' && (recentNames.includes(anchorName) || (VPULL_RE.test(anchorName) && recentNames.some((n) => VPULL_RE.test(n))))) continue;
+    if (style !== 'Strength' && group === 'Back' && (recentNames.includes(anchorName) || (VPULL_RE.test(anchorName) && recentNames.some((n) => VPULL_RE.test(n))))) continue;
     if (VPULL_RE.test(anchorName) && result.some((ex) => VPULL_RE.test(ex.name))) continue; // already has a chin-up or pull-up
     const pick = filterByLocation(EXERCISE_LIBRARY[group] || [], location).find((e) => e.name === anchorName);
     if (!pick) continue; // not available at this location (e.g. no pull-up bar outdoors)
@@ -590,7 +590,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   const anchorNames = new Set(
     muscleGroups.map((g) => ANCHOR_EXERCISES[g]?.(gender)).filter(Boolean)
   );
-  const tier = (ex) => (anchorNames.has(ex.name) ? 3 : ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
+  const tier = (ex) => (anchorNames.has(ex.name) ? 4 : LEGS_BUNDLE.includes(ex.muscleGroup) && SQUAT_PATTERN.test(ex.name) ? 3 : ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
   // A muscle area's lifts stay together (legs, then back, and so on in the order picked), big lifts before single-joint work
   // inside each area, and calves / core finishers at the very end.
   const areaOf = (g) => (LEGS_BUNDLE.includes(g) ? 'Legs' : ARMS_BUNDLE.includes(g) ? 'Arms' : g);

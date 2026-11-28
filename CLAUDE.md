@@ -251,3 +251,5 @@ Greg ran the sign-up test (consent, health check, tour) and it works; consent go
 - Strava setup (built 2026-10-14, not yet switched on): Greg creates the Strava API app, adds the three Vercel variables, runs the Strava SQL (end of `schema.sql`), then taps Account > Connect Strava. See `docs/STRAVA.md`.
 - Supabase SQL for programs (`program`) and coach acknowledgments (`coach_ack`) was run on 2026-10-14. Both are live.
 - Contest Prep (bodybuilding show countdown) was built 2026-11-08; see its note above. Not built: diet, water or sodium guidance, a weight-trend screen, a show-day checklist.
+
+- Chest and leg days always lead with their anchor (2026-11-22, Greg: "I shouldn't have to tell you these things"): bench press leads Chest and a squat leads any leg day (Back Squat; squat variations rank next, ahead of hinges), even when it was done in the last workout. Only the Back anchor (pull-up) still takes turns when recent.
