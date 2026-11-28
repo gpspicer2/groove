@@ -701,7 +701,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   function lastPerformance(exerciseName, variant = null) {
     const all = sets
       .filter((s) => s.exerciseName === exerciseName && s.workoutId !== activeWorkoutId && s.movementType === 'resistance' && !s.isWarmup);
-    const same = variant ? all.filter((s) => s.distance === variant) : [];
+    const same = variant ? all.filter((s) => splitDist(s.distance).variant === variant) : [];
     const matches = (same.length ? same : all)
       .map((s) => {
         const w = workouts.find((wk) => wk.id === s.workoutId);
@@ -4756,6 +4756,33 @@ function BodyweightNudge({ bodyweight }) {
   );
 }
 
+// "One Side at a Time" (unilateral or alternating dumbbell work) rides along in the set's `distance` text after the
+// grip / handle choice ("Neutral Grip · One Side"), so no database change is needed. These keep the two apart.
+const SIDE_TAG = 'One Side';
+function splitDist(d) {
+  const parts = String(d || '').split(' · ').filter(Boolean);
+  const each = parts.includes(SIDE_TAG);
+  return { variant: parts.filter((x) => x !== SIDE_TAG).join(' · ') || null, each };
+}
+function joinDist(variant, each) {
+  const out = [variant, each ? SIDE_TAG : null].filter(Boolean).join(' · ');
+  return out || null;
+}
+function isSideEligible(exercise, variant) {
+  return /dumbbell|kettlebell/i.test(exercise?.name || '') || exercise?.equipment === 'dumbbell' || variant === 'Dumbbells';
+}
+function loadEach(name) { try { return localStorage.getItem(`groove:oneSide:${name}`) === '1'; } catch { return false; } }
+function saveEach(name, on) { try { if (on) localStorage.setItem(`groove:oneSide:${name}`, '1'); else localStorage.removeItem(`groove:oneSide:${name}`); } catch { /* storage blocked */ } }
+
+function SideCheck({ checked, onChange }) {
+  return (
+    <label className="mb-2 flex items-center justify-center gap-2 text-sm" style={{ color: PAPER_DIM }}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" style={{ accentColor: SKY }} />
+      One Side at a Time
+    </label>
+  );
+}
+
 function ExerciseCard({
   index, exercise, style, bodyweight, loggedSets, last, onLogSet, onDeleteSet, onOpenSwap, onRemove,
   isActive, onActivate, onCollapse, onQuickAerobic, onUpdateSet, combinedActivity, preset, isDone, onDone, onUndo, onNever, onSuperset, onMoveUp, onMoveDown, lastFor,
@@ -4767,11 +4794,14 @@ function ExerciseCard({
   const guide = guideFor(exercise.name);
   // Grip / handle / bar: chosen per set for Pull-Ups, otherwise once and kept for this workout (never carried to the next one).
   const variation = variationFor(exercise.name);
-  const lastLabel = [...loggedSets].reverse().find((x) => x.movementType !== 'aerobic' && x.distance)?.distance || null;
+  const lastRaw = [...loggedSets].reverse().find((x) => x.movementType !== 'aerobic' && x.distance)?.distance || null;
+  const lastLabel = splitDist(lastRaw).variant;
   // Show the grip/bar on each logged set only when the sets differ (or it changes every set); the chip above already says it.
   const mixedVariants = Boolean(variation?.perSet) || new Set(loggedSets.map((x) => x.distance).filter(Boolean)).size > 1;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
-  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
+  const [eachSide, setEachSide] = useState(() => (lastRaw ? splitDist(lastRaw).each : loadEach(exercise.name)));
+  const sideOk = isSideEligible(exercise, variant);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide) }); if (variation?.perSet) setVariant(null); };
   // Last / Try follow the chosen variation once there is history for it.
   const lastV = variant && lastFor ? lastFor(variant) : null;
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
@@ -4879,6 +4909,7 @@ function ExerciseCard({
 
         {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
+        {sideOk && <SideCheck checked={eachSide} onChange={(v) => { setEachSide(v); saveEach(exercise.name, v); }} />}
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={lastShown} variantKey={variant} variantHasHistory={Boolean(lastV && lastV.matchedVariant)}
           onLog={logWithVariant} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
@@ -4902,33 +4933,20 @@ function ExerciseCard({
 
 // Grip / handle / bar choice for an exercise (tap again to clear).
 function VariationChips({ variation, value, onChange }) {
-  // Once a choice is made the options fold into one small line (tap it to change); per-set choices (grips) stay open.
-  const [changing, setChanging] = useState(false);
-  if (value && !variation.perSet && !changing) {
-    return (
-      <div className="mb-2 flex items-center justify-center gap-2">
-        <span style={{ color: TEXT_SOFT }} className="text-[13px]">{variation.label}</span>
-        <button onClick={() => setChanging(true)} style={{ background: SKY, color: INK }} className="rounded-full px-3 py-0.5 text-sm" aria-label={`${variation.label}: ${value}. Tap to change`}>
-          {value}
-        </button>
-      </div>
-    );
-  }
+  // A compact drop-down (the phone's own picker) instead of a row of chips: label on the left, the choice on the right.
   return (
-    <div className="mb-2">
-      <div style={{ color: TEXT_SOFT }} className="text-[13px] text-center mb-1">{variation.label}{variation.perSet ? ' for this set' : ''}</div>
-      <div className="flex flex-wrap justify-center gap-1.5">
-        {variation.options.map((o) => (
-          <button
-            key={o}
-            onClick={() => { onChange(value === o ? null : o); setChanging(false); }}
-            style={{ background: value === o ? SKY : INK_3, color: value === o ? INK : PAPER_DIM }}
-            className="rounded-full px-3 py-1 text-sm"
-          >
-            {o}
-          </button>
-        ))}
-      </div>
+    <div className="mb-2 flex items-center justify-center gap-2">
+      <span style={{ color: TEXT_SOFT }} className="text-[13px]">{variation.label}{variation.perSet ? ' This Set' : ''}</span>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value || null)}
+        aria-label={variation.label}
+        style={{ background: value ? SKY : INK_3, color: value ? INK : PAPER_DIM }}
+        className="rounded-full pl-3 pr-2 py-1 text-sm outline-none max-w-[60%]"
+      >
+        <option value="">Choose</option>
+        {variation.options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   );
 }
@@ -4948,11 +4966,14 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const [statsOpen, setStatsOpen] = useState(false);
   const guide = guideFor(exercise.name);
   const variation = variationFor(exercise.name);
-  const lastLabel = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
+  const lastRaw = [...loggedSets].reverse().find((x) => x.distance)?.distance || null;
+  const lastLabel = splitDist(lastRaw).variant;
   // Show the grip/bar on each logged set only when the sets differ (or it changes every set); the chip above already says it.
   const mixedVariants = Boolean(variation?.perSet) || new Set(loggedSets.map((x) => x.distance).filter(Boolean)).size > 1;
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
-  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: variant }); if (variation?.perSet) setVariant(null); };
+  const [eachSide, setEachSide] = useState(() => (lastRaw ? splitDist(lastRaw).each : loadEach(exercise.name)));
+  const sideOk = isSideEligible(exercise, variant);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide) }); if (variation?.perSet) setVariant(null); };
   const lastV = variant && lastFor ? lastFor(variant) : null;
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
@@ -5003,6 +5024,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
         )}
         {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
+        {sideOk && <SideCheck checked={eachSide} onChange={(v) => { setEachSide(v); saveEach(exercise.name, v); }} />}
         <WeightRepsInput
           exercise={exercise}
           style={style}
