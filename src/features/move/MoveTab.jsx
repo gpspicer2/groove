@@ -1780,9 +1780,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
                                 {exSets.map((s) => (
                                   <div key={s.id} data-armed={setArm.armed === s.id} style={setArm.armed === s.id ? { background: BRICK, color: PAPER } : undefined} className="flex items-center gap-2 justify-center rounded-md py-0.5">
                                     {s.movementType === 'aerobic' ? (
-                                      <span style={{ color: PAPER_DIM }} className="text-sm">
-                                        {formatIntensityMinutes(s)}{s.distance ? ` · ${s.distance}` : ''}
-                                      </span>
+                                      <AerobicEditRow set={s} onSave={(fields) => updateSet(s.id, fields)} />
                                     ) : isFlexibility ? (
                                       <span style={{ color: PAPER_DIM }} className="text-sm">
                                         {s.lightMinutes || s.moderateMinutes || s.vigorousMinutes ? formatIntensityMinutes(s) : s.durationSeconds ? `${s.durationSeconds}s` : s.reps ? `${s.reps} ${s.muscleGroup === 'Warm-up' ? 'drills' : 'reps'}` : '—'}
@@ -3425,6 +3423,49 @@ function QuickAerobicButton({ onSubmit, fixedName, preset }) {
       onCancel={() => { setOpen(false); setOther(false); }}
       onSubmit={(name, intensity, minutes) => { onSubmit(name, intensity, minutes); setOpen(false); setOther(false); }}
     />
+  );
+}
+
+// Change the minutes or intensity of a logged aerobic entry right in History (no need to delete and re-log).
+function AerobicEditRow({ set, onSave }) {
+  const startIntensity = set.vigorousMinutes ? 'Vigorous' : set.lightMinutes ? 'Light' : 'Moderate';
+  const total = (set.lightMinutes || 0) + (set.moderateMinutes || 0) + (set.vigorousMinutes || 0) || Math.round((set.durationSeconds || 0) / 60) || 0;
+  const [minutes, setMinutes] = useState(String(total || ''));
+  const [intensity, setIntensity] = useState(startIntensity);
+  function save(nextMinutes = minutes, nextIntensity = intensity) {
+    const m = Number(nextMinutes);
+    if (!(m > 0)) return;
+    onSave({
+      duration_seconds: Math.round(m * 60),
+      light_minutes: nextIntensity === 'Light' ? m : null,
+      moderate_minutes: nextIntensity === 'Moderate' ? m : null,
+      vigorous_minutes: nextIntensity === 'Vigorous' ? m : null,
+    });
+  }
+  return (
+    <div className="flex items-center gap-1.5 justify-center">
+      <input
+        type="number"
+        inputMode="numeric"
+        value={minutes}
+        aria-label="Minutes"
+        onChange={(e) => setMinutes(e.target.value)}
+        onBlur={() => save()}
+        style={{ background: INK_3, color: PAPER }}
+        className="w-14 rounded-md px-1 py-1.5 text-sm outline-none text-center"
+      />
+      <span style={{ color: TEXT_SOFT }} className="text-xs">min</span>
+      {['Light', 'Moderate', 'Vigorous'].map((lvl) => (
+        <button
+          key={lvl}
+          onClick={() => { setIntensity(lvl); save(minutes, lvl); }}
+          style={{ background: intensity === lvl ? SKY : INK_3, color: intensity === lvl ? INK : PAPER_DIM }}
+          className="px-1.5 py-1.5 rounded-md text-xs"
+        >
+          {lvl}
+        </button>
+      ))}
+      </div>
   );
 }
 
