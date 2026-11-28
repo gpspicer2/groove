@@ -1,5 +1,16 @@
 # Nightly Log
 
+## 2026-11-23
+**Fixed:** nothing needed tonight. No new problems turned up.
+
+**Design tweaks:** none needed.
+
+**Found but left for Greg**
+- Still not live: the workout fixes from the last few days (bench and squat lead, no repeats, gym as the default place, suggested weight in the box, suggested-words bar, edit minutes in History). They are on the side branch only, because the privacy plugin still stops me committing as gpspicer2. When you are at your laptop, set the four GIT_AUTHOR / GIT_COMMITTER variables in Settings > Claude Code > Manage environments (or turn the plugin off) and I will push them to main.
+- My old warm-up test script now fails on purpose (the half-weight warm-up is off); nothing in the app is wrong.
+
+**Checked all good:** no undefined names (lint), build passes, 12 api functions, workout tests (4,000 random workouts: no repeats, no muscle dropped, chest leads with bench and legs with a squat), 1,260 program weeks, and Move flows plus every coach tab in light and dark with no errors.
+
 ## 2026-11-21
 **Fixed:** on days with five or six muscles picked, Triceps was left out of the suggested workout about 1 time in 11 (it was already about 1 in 20 before last night's clean sweep). The Chest bench press was swapping out the lone Triceps close-grip bench. Now a muscle's only lift is never swapped away, and a second bench or squat is not stacked beside it. Tested on 4,000 random workouts: no repeated one-only movements, no muscle dropped.
 
