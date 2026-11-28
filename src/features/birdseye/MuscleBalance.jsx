@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Info, X } from '../../lib/icons';
 import Portal from '../../Portal';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY } from '../../theme';
 import { BALANCE_BUCKETS, BALANCE_TARGET_DAYS, balanceBucket } from '../move/muscles';
 
@@ -11,6 +12,7 @@ const PULL = ['Back', 'Biceps'];
 // days a week) and a push/pull check. Hidden until a lift is logged.
 export default function MuscleBalance({ sets, bare = false }) {
   const [showInfo, setShowInfo] = useState(false);
+  const infoSheet = useSwipeDown(() => setShowInfo(false));
   // sets: [{ workout_id, muscle_group }] for resistance sets this week
   if (sets.length === 0) return null;
   const days = {};
@@ -50,7 +52,8 @@ export default function MuscleBalance({ sets, bare = false }) {
         <Portal>
           <div className="fixed inset-0 z-[60] flex items-end justify-center">
             <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={() => setShowInfo(false)} />
-            <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-5 pt-4 pb-6 space-y-3 text-center">
+            <div ref={infoSheet.ref} {...infoSheet.handlers} style={{ background: INK_2, ...infoSheet.style }} className="relative w-full max-w-md rounded-t-xl px-5 pt-4 pb-6 space-y-3 text-center max-h-[92vh] overflow-y-auto">
+              <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               <div className="flex items-center justify-between">
                 <div style={{ color: PAPER }} className="text-sm font-medium">Muscle Goals</div>
                 <button onClick={() => setShowInfo(false)} aria-label="Close" style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>

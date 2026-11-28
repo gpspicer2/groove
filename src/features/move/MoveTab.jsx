@@ -3662,6 +3662,7 @@ function NewSuggestionSheet({ groups, onConfirm, onClose }) {
 }
 
 function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
+  const sheet = useSwipeDown(onClose);
   const [custom, setCustom] = useState('');
   const isAerobic = exercise.type === 'aerobic';
   const isFlex = exercise.type === 'flexibility';
@@ -3706,10 +3707,12 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
       <div
-        style={{ background: INK_2 }}
+        ref={sheet.ref} {...sheet.handlers}
+        style={{ background: INK_2, ...sheet.style }}
         className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 max-h-[70vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
         <div className="flex items-center justify-between mb-3">
           <div style={{ color: PAPER }} className="text-sm font-medium">{choosing ? 'Choose your activity' : `Swap "${exercise.name}" for…`}</div>
           <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2">
@@ -3761,6 +3764,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
 
 // Swap one dynamic warm-up drill for another: drills that go with the same muscles first, then every other drill.
 function DrillSwapSheet({ name, current, onPick, onClose }) {
+  const sheet = useSwipeDown(onClose);
   const groups = Object.entries(DYNAMIC_WARMUP_LIBRARY);
   const open = (d) => d !== name && !current.includes(d);
   const similar = [...new Set(groups.filter(([, list]) => list.includes(name)).flatMap(([, list]) => list))].filter(open);
@@ -3772,7 +3776,8 @@ function DrillSwapSheet({ name, current, onPick, onClose }) {
     <Portal>
       <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" />
-        <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between mb-3">
             <div style={{ color: PAPER }} className="text-sm font-medium">Swap "{name}" for…</div>
             <button onClick={onClose} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>

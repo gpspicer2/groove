@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, Wind, Dumbbell } from '../../lib/icons';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, LIME, SKY, MOSS, BRICK } from '../../theme';
 import { titleCaseLive } from '../../lib/titleCase';
 
@@ -134,6 +135,7 @@ function FeatureCard({ color, icon: Icon, title, children }) {
 
 export function VO2maxEstimator({ userId, profile, updateProfile }) {
   const [activeTest, setActiveTest] = useState(null);
+  const testSheet = useSwipeDown(() => setActiveTest(null));
   const [values, setValues] = useState({});
   const [result, setResult] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -200,7 +202,8 @@ export function VO2maxEstimator({ userId, profile, updateProfile }) {
       {activeTest && (
         <Portal>
           <div style={{ background: 'rgba(0,0,0,0.75)' }} className="fixed inset-0 z-[60] flex items-end md:items-center justify-center px-4">
-            <div style={{ background: INK_2 }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto">
+            <div ref={testSheet.ref} {...testSheet.handlers} style={{ background: INK_2, ...testSheet.style }} className="w-full max-w-sm rounded-t-2xl md:rounded-2xl px-5 py-6 max-h-[85vh] overflow-y-auto">
+              <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
               <div className="flex items-center justify-between mb-4">
                 <h3 style={{ color: PAPER, fontFamily: 'Outfit, sans-serif' }} className="text-base">{activeTest.name}</h3>
                 <button onClick={() => setActiveTest(null)} style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={20} /></button>

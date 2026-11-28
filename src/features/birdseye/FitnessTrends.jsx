@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp } from '../../lib/icons';
 import { useRevealOnOpen } from '../../lib/reveal';
+import { useSwipeDown, GRAB_BAR_CLASS } from '../../lib/swipeDown';
 import { supabase } from '../../lib/supabaseClient';
 import Portal from '../../Portal';
 import { useAuth } from '../../auth/AuthContext';
@@ -189,6 +190,7 @@ export default function FitnessTrends({ userId, profile, active, hideScale = fal
 }
 
 function LogTestSheet({ userId, onClose, onSaved }) {
+  const sheet = useSwipeDown(onClose);
   const [test, setTest] = useState(null);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -206,7 +208,8 @@ function LogTestSheet({ userId, onClose, onSaved }) {
     <Portal>
       <div className="fixed inset-0 z-[55] flex items-end justify-center">
         <div style={{ background: 'rgba(0,0,0,0.5)' }} className="absolute inset-0" onClick={onClose} />
-        <div style={{ background: INK_2 }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 space-y-3 text-center">
+        <div ref={sheet.ref} {...sheet.handlers} style={{ background: INK_2, ...sheet.style }} className="relative w-full max-w-md rounded-t-xl px-4 pt-4 pb-6 space-y-3 text-center max-h-[92vh] overflow-y-auto">
+          <div style={{ background: TEXT_SOFT, opacity: 0.45 }} className={GRAB_BAR_CLASS} />
           <div className="flex items-center justify-between">
             <div style={{ color: PAPER }} className="text-sm font-medium">{test ? test.label : 'Which test?'}</div>
             <button onClick={onClose} aria-label="Close" style={{ color: TEXT_SOFT }} className="p-2 -m-2"><X size={18} /></button>
