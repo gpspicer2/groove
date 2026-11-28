@@ -21,8 +21,14 @@ function quietField(el) {
     if (!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize', 'sentences');
     el.setAttribute('autocorrect', 'on');
     el.spellcheck = true;
-  } else {
+  } else if (!['text', 'search', ''].includes(el.type) || /^(numeric|decimal|tel)$/.test(el.inputMode || '')) {
+    // numbers, dates and similar stay plain
     el.setAttribute('autocorrect', 'off');
+  } else if (!el.hasAttribute('autocorrect')) {
+    // Ordinary text boxes (exercise names, notes, titles) get the phone's suggestion bar and autocorrect too
+    // (turning autocorrect off also hides the predictive-text bar above the keyboard). A field that sets its own value keeps it.
+    el.setAttribute('autocorrect', 'on');
+    el.spellcheck = true;
   }
   el.setAttribute('data-lpignore', 'true');
   el.setAttribute('data-form-type', 'other');
