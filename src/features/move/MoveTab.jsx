@@ -4786,26 +4786,30 @@ function BodyweightNudge({ bodyweight }) {
 // "One Side at a Time" (unilateral or alternating dumbbell work) rides along in the set's `distance` text after the
 // grip / handle choice ("Neutral Grip · One Side"), so no database change is needed. These keep the two apart.
 const SIDE_TAG = 'One Side';
+const DEFICIT_TAG = 'Deficit';
 function splitDist(d) {
   const parts = String(d || '').split(' · ').filter(Boolean);
-  const each = parts.includes(SIDE_TAG);
-  return { variant: parts.filter((x) => x !== SIDE_TAG).join(' · ') || null, each };
+  return { variant: parts.filter((x) => x !== SIDE_TAG && x !== DEFICIT_TAG).join(' · ') || null, each: parts.includes(SIDE_TAG), deficit: parts.includes(DEFICIT_TAG) };
 }
-function joinDist(variant, each) {
-  const out = [variant, each ? SIDE_TAG : null].filter(Boolean).join(' · ');
+function joinDist(variant, each, deficit) {
+  const out = [variant, each ? SIDE_TAG : null, deficit ? DEFICIT_TAG : null].filter(Boolean).join(' · ');
   return out || null;
 }
 function isSideEligible(exercise, variant) {
   return /dumbbell|kettlebell/i.test(exercise?.name || '') || exercise?.equipment === 'dumbbell' || variant === 'Dumbbells';
 }
+// Deficit (standing on a plate or platform) suits the conventional, sumo and trap bar deadlifts, not Romanian or single-leg ones.
+function isDeficitEligible(exercise) {
+  return /deadlift/i.test(exercise?.name || '') && !/romanian|single/i.test(exercise?.name || '');
+}
 function loadEach(name) { try { return localStorage.getItem(`groove:oneSide:${name}`) === '1'; } catch { return false; } }
 function saveEach(name, on) { try { if (on) localStorage.setItem(`groove:oneSide:${name}`, '1'); else localStorage.removeItem(`groove:oneSide:${name}`); } catch { /* storage blocked */ } }
 
-function SideCheck({ checked, onChange }) {
+function SideCheck({ checked, onChange, label = 'One Side at a Time' }) {
   return (
     <label className="mb-2 flex items-center justify-center gap-2 text-sm" style={{ color: PAPER_DIM }}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" style={{ accentColor: SKY }} />
-      One Side at a Time
+      {label}
     </label>
   );
 }
@@ -4828,7 +4832,9 @@ function ExerciseCard({
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const [eachSide, setEachSide] = useState(() => (lastRaw ? splitDist(lastRaw).each : loadEach(exercise.name)));
   const sideOk = isSideEligible(exercise, variant);
-  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide) }); if (variation?.perSet) setVariant(null); };
+  const deficitOk = isDeficitEligible(exercise);
+  const [deficit, setDeficit] = useState(() => splitDist(lastRaw).deficit);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide, deficitOk && deficit) }); if (variation?.perSet) setVariant(null); };
   // Last / Try follow the chosen variation once there is history for it.
   const lastV = variant && lastFor ? lastFor(variant) : null;
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
@@ -4937,6 +4943,7 @@ function ExerciseCard({
         {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         {sideOk && <SideCheck checked={eachSide} onChange={(v) => { setEachSide(v); saveEach(exercise.name, v); }} />}
+        {deficitOk && <SideCheck label="Deficit" checked={deficit} onChange={setDeficit} />}
         <WeightRepsInput
           exercise={exercise} style={style} bodyweight={bodyweight} last={lastShown} variantKey={variant} variantHasHistory={Boolean(lastV && lastV.matchedVariant)}
           onLog={logWithVariant} nextSetNumber={nextSetNumber} onFinish={loggedSets.length > 0 ? () => { onDone && onDone(); onCollapse(); } : null}
@@ -5000,7 +5007,9 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
   const [variant, setVariant] = useState(variation && !variation.perSet && variation.options.includes(lastLabel) ? lastLabel : null);
   const [eachSide, setEachSide] = useState(() => (lastRaw ? splitDist(lastRaw).each : loadEach(exercise.name)));
   const sideOk = isSideEligible(exercise, variant);
-  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide) }); if (variation?.perSet) setVariant(null); };
+  const deficitOk = isDeficitEligible(exercise);
+  const [deficit, setDeficit] = useState(() => splitDist(lastRaw).deficit);
+  const logWithVariant = (p) => { onLogSet('distance' in p ? p : { ...p, distance: joinDist(variant, sideOk && eachSide, deficitOk && deficit) }); if (variation?.perSet) setVariant(null); };
   const lastV = variant && lastFor ? lastFor(variant) : null;
   const lastShown = lastV && lastV.matchedVariant ? lastV : last;
   const [useBodyweight, setUseBodyweight] = useState(isBodyweightEligible(exercise?.name) && bodyweight != null);
@@ -5052,6 +5061,7 @@ function SupersetMember({ exercise, style, bodyweight, loggedSets, last, lastFor
         {useBodyweight && <BodyweightNudge bodyweight={bodyweight} />}
         {variation && <VariationChips variation={variation} value={variant} onChange={setVariant} />}
         {sideOk && <SideCheck checked={eachSide} onChange={(v) => { setEachSide(v); saveEach(exercise.name, v); }} />}
+        {deficitOk && <SideCheck label="Deficit" checked={deficit} onChange={setDeficit} />}
         <WeightRepsInput
           exercise={exercise}
           style={style}
