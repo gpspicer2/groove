@@ -483,6 +483,11 @@ const FAMILY_RULES = [
   ['plank', /Plank/i],
   ['crunch', /Crunch|Leg Raise|Ab Wheel/i],
 ];
+// Movements that never appear twice in one suggested workout, even when a count was asked for (a second calf raise or hinge adds
+// nothing; it is better to run a lift short than to pad it with a copy).
+const ONE_PER_WORKOUT = new Set(['calf', 'hinge', 'deadlift', 'leg-curl', 'hip-thrust', 'plank', 'crunch', 'lateral', 'rear-delt', 'dip', 'push-up', 'vertical-press', 'bench', 'incline-press', 'fly']);
+// Small finishing work goes last in the list, after the big lifts.
+const FINISHERS = new Set(['calf', 'plank', 'crunch']);
 export const liftFamily = (name) => {
   for (const [id, yes, no] of FAMILY_RULES) if (yes.test(name) && !(no && no.test(name))) return id;
   return null;
@@ -531,7 +536,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       // First choice: a lift whose family isn't in the workout yet. Failing that, anything left (but never a second deadlift).
       const open = (e) => !usedNames.has(e.name) && !(VPULL_RE.test(e.name) && [...usedNames].some((n) => VPULL_RE.test(n)));
       let idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !usedFamilies.has(liftFamily(e.name)));
-      if (idx < 0 && allowRepeat) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && liftFamily(e.name) !== 'deadlift');
+      if (idx < 0 && allowRepeat) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !ONE_PER_WORKOUT.has(liftFamily(e.name)));
       if (idx < 0) continue;
       const ex = l.ordered[idx];
       l.ordered.splice(idx, 1);
@@ -579,9 +584,15 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
     muscleGroups.map((g) => ANCHOR_EXERCISES[g]?.(gender)).filter(Boolean)
   );
   const tier = (ex) => (anchorNames.has(ex.name) ? 3 : ex.equipment === 'barbell' ? 2 : isCompound(ex.name) ? 1 : 0);
+  // A muscle area's lifts stay together (legs, then back, and so on in the order picked), big lifts before single-joint work
+  // inside each area, and calves / core finishers at the very end.
+  const areaOf = (g) => (LEGS_BUNDLE.includes(g) ? 'Legs' : ARMS_BUNDLE.includes(g) ? 'Arms' : g);
+  const areaOrder = []; muscleGroups.forEach((g) => { const a2 = areaOf(g); if (!areaOrder.includes(a2)) areaOrder.push(a2); });
+  const rank = (ex, i) => [FINISHERS.has(liftFamily(ex.name)) ? 1 : 0, Math.max(0, areaOrder.indexOf(areaOf(ex.muscleGroup))), -tier(ex), Math.max(0, muscleGroups.indexOf(ex.muscleGroup)), i];
+  const byRank = (a, b) => { const x = rank(a.ex, a.i); const y = rank(b.ex, b.i); for (let k = 0; k < x.length; k += 1) if (x[k] !== y[k]) return x[k] - y[k]; return 0; };
   const ordered = picked
     .map((ex, i) => ({ ex, i }))
-    .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
+    .sort(byRank)
     .map(({ ex }) => ex);
   // A 10-exercise session runs too long — 6 keeps the heaviest/most
   // important lifts (already sorted to the front) and trims the rest.
@@ -600,7 +611,7 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
   const withAnchors = ensureAnchors(withSquat, muscleGroups, gender, style, location, recentNames, exclude);
   return withAnchors
     .map((ex, i) => ({ ex, i }))
-    .sort((a, b) => (tier(b.ex) - tier(a.ex)) || (a.i - b.i))
+    .sort(byRank)
     .map(({ ex }) => ex);
 }
 
