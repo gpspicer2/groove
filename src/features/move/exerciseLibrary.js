@@ -298,7 +298,7 @@ export function generateFlexibilityPlan(muscleGroups, perGroup = muscleGroups.le
 // Where a session happens, and what equipment is realistically available
 // there. Falls back to the full pool for a muscle group if filtering would
 // leave it empty, rather than suggesting nothing.
-export const WORKOUT_LOCATIONS = ['The Great Outdoors', 'In the Home', 'At the Gym'];
+export const WORKOUT_LOCATIONS = ['At the Gym', 'In the Home', 'The Great Outdoors'];
 
 // Two emoji flank each location label. The person-shaped one swaps to
 // match the account's gender (Female/Male); anything else stays fixed.

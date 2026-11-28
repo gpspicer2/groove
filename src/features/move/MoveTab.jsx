@@ -323,7 +323,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [progress, setProgress] = useState({ done: 0, total: 0 }); // exercises complete, shown under the tabs
-  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('At the Gym');
   const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [movementMode, setMovementMode] = useState('');
   const [combinedActivity, setCombinedActivity] = useState(''); // '' = choose each time
@@ -629,7 +629,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setCleanSlate(false);
     if (sess.kind === 'aerobic') {
       // Cardio day: set up an easy walk to swap or confirm, then tap Log Workout.
-      setSelectedLocation(completedWorkouts[0]?.location || 'The Great Outdoors');
+      setSelectedLocation(sess.run ? 'The Great Outdoors' : 'At the Gym');
       setMovementMode('Aerobic');
       // Heart-rate cardio (weight loss) leaves the activity up to the member; older cardio days still suggest a walk.
       setSelectedActivities((prev) => (sess.run ? ['Outdoor Run'] : sess.zone ? [] : prev.length ? prev : ['Walking']));
@@ -638,7 +638,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
       setSelectedStyle('');
       setProgramSession(null);
     } else {
-      setSelectedLocation(completedWorkouts[0]?.location || 'At the Gym');
+      setSelectedLocation('At the Gym');
       setMovementMode('Resistance');
       setSelectedGroups(sess.groups);
       setSelectedStyle(sess.style);
@@ -784,7 +784,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setSelectedActivities([]);
     setSelectedFlexActivities([]);
     setSelectedStyle('');
-    setSelectedLocation('');
+    setSelectedLocation('At the Gym');
     setMovementMode('');
     setCombinedLayout('');
     setCombinedActivity('');
@@ -1021,7 +1021,7 @@ export default function MoveTab({ onJournalAfterWorkout, deepLinkWorkoutId, onCo
     setSelectedActivities([]);
     setSelectedFlexActivities([]);
     setSelectedStyle('');
-    setSelectedLocation('');
+    setSelectedLocation('At the Gym');
     setMovementMode('');
     setCleanSlate(false);
     setSelectedDate(todayLocalISO());
