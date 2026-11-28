@@ -935,7 +935,11 @@ export const VARIATIONS = {
   'Tricep Pushdown': { label: 'Handle', options: ['Straight Bar', 'EZ Bar', 'Rope', 'Split Rope', 'Single Split Rope', 'V-Bar', 'Single Arm'] },
   'Overhead Tricep Extension': { label: 'Handle', options: ['Dumbbell', 'EZ Bar', 'Rope', 'Split Rope', 'Single Split Rope', 'Straight Bar', 'Single Arm'] },
   'Skull Crusher': { label: 'Bar', options: ['EZ Bar', 'Straight Bar', 'Dumbbells'] },
-  'Barbell Back Squat': { label: 'Bar', options: ['High Bar', 'Low Bar'] },
+  // Squat styles: bar position (high, low, Zercher in the elbows) and stance (wide, narrow, cannonball = heels raised and narrow, very deep).
+  'Barbell Back Squat': { label: 'Style', options: ['High Bar', 'Low Bar', 'Zercher', 'Wide Stance', 'Narrow Stance', 'Cannonball'] },
+  'Front Squat': { label: 'Stance', options: ['Standard', 'Wide', 'Narrow', 'Cannonball'] },
+  'Goblet Squat': { label: 'Stance', options: ['Standard', 'Wide', 'Narrow', 'Cannonball'] },
+  'Smith Machine Squat': { label: 'Stance', options: ['Standard', 'Wide', 'Narrow', 'Cannonball'] },
   // Lunges and the bodyweight squat can be loaded however the lifter likes; the choice changes the weight tools
   // (a barbell has its 45 lb bar, a Smith bar takes plates, dumbbells get a warm-up set) and keeps its own history.
   'Walking Lunges': { label: 'Equipment', options: ['Bodyweight', 'Dumbbells', 'Barbell', 'Smith Machine'] },
