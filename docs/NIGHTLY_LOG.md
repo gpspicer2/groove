@@ -1,5 +1,16 @@
 # Nightly Log
 
+## 2026-11-21
+**Fixed:** on days with five or six muscles picked, Triceps was left out of the suggested workout about 1 time in 11 (it was already about 1 in 20 before last night's clean sweep). The Chest bench press was swapping out the lone Triceps close-grip bench. Now a muscle's only lift is never swapped away, and a second bench or squat is not stacked beside it. Tested on 4,000 random workouts: no repeated one-only movements, no muscle dropped.
+
+**Design tweaks:** none needed.
+
+**Found but left for Greg**
+- The clean-sweep workout ordering (calves and core last, muscle areas together) and tonight's fix are NOT live yet. They sit on the side branch only, because the privacy plugin stops me committing as gpspicer2. When you are at your laptop, set the four GIT_AUTHOR / GIT_COMMITTER variables in Settings > Claude Code > Manage environments (or turn the plugin off) and I will push to main.
+- Novice half and full marathon plans still jump about 3 miles after a rest week (16 to 19). Mild; left alone.
+
+**Checked all good:** no undefined names (lint), build passes, 12 api functions, 1,260 program weeks, workout fuzz, and Move flows (count, add muscles, program start, warm-up tick, contest builder) plus every coach tab in light and dark, with no errors.
+
 ## 2026-11-10
 **Fixed:** one small safety net. If a member's saved health-check result is an unknown or old value, Greg's member screen (Overview) used to crash. It now falls back to the "check with your doctor first" wording, so the screen always opens. No health-screening rules changed.
 

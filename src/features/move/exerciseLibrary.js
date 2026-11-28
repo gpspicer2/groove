@@ -414,8 +414,13 @@ function ensureAnchors(final, muscleGroups, gender, style, location, recentNames
     // Prefer dropping from a muscle that has two or more picks, so no muscle loses its only exercise.
     // The anchor replaces a same-family lift already picked (a machine chest press, say) instead of sitting beside it.
     const sameFamily = (ex) => !keep.has(ex.name) && liftFamily(ex.name) === liftFamily(anchorName);
-    const twin = liftFamily(anchorName) ? (result.findIndex((ex) => sameFamily(ex) && ex.muscleGroup === group) >= 0 ? result.findIndex((ex) => sameFamily(ex) && ex.muscleGroup === group) : result.findIndex(sameFamily)) : -1;
+    // A twin in another muscle's list only goes if that muscle keeps another lift (a triceps close-grip bench isn't swapped for the chest bench).
+    const count = (g) => result.filter((x) => x.muscleGroup === g).length;
+    const own = liftFamily(anchorName) ? result.findIndex((ex) => sameFamily(ex) && ex.muscleGroup === group) : -1;
+    const twin = !liftFamily(anchorName) ? -1 : own >= 0 ? own : result.findIndex((ex) => sameFamily(ex) && count(ex.muscleGroup) > 1);
     if (twin >= 0) { result = [...result.slice(0, twin), ...result.slice(twin + 1), added]; continue; }
+    // A same-family lift is already in (another muscle's only one): don't stack a second bench or squat beside it.
+    if (liftFamily(anchorName) && ONE_PER_WORKOUT.has(liftFamily(anchorName)) && result.some(sameFamily)) continue;
     const perMuscle = {};
     result.forEach((ex) => { perMuscle[ex.muscleGroup] = (perMuscle[ex.muscleGroup] || 0) + 1; });
     const droppable = (ex) => !keep.has(ex.name) && !SQUAT_PATTERN.test(ex.name);
@@ -537,6 +542,8 @@ export function generateWorkout(muscleGroups, style, recentNames = [], location 
       const open = (e) => !usedNames.has(e.name) && !(VPULL_RE.test(e.name) && [...usedNames].some((n) => VPULL_RE.test(n)));
       let idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !usedFamilies.has(liftFamily(e.name)));
       if (idx < 0 && allowRepeat) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && !ONE_PER_WORKOUT.has(liftFamily(e.name)));
+      // A muscle with nothing picked yet may reuse a one-only family (a tricep dip after a chest dip) rather than drop out; deadlifts never repeat.
+      if (idx < 0 && allowRepeat && !picked.some((p) => p.muscleGroup === l.group)) idx = l.ordered.findIndex((e, i) => i >= l.at && open(e) && liftFamily(e.name) !== 'deadlift');
       if (idx < 0) continue;
       const ex = l.ordered[idx];
       l.ordered.splice(idx, 1);
