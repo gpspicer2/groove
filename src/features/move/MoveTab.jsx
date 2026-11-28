@@ -4185,6 +4185,7 @@ function isBodyweightEligible(name) {
 // to-edit settings panel) so those toggles live in one place instead of
 // cluttering every card — callers that don't need that (SupersetCard)
 // just own the same two bits of state locally and pass them through.
+const AUTO_WARMUP = false;
 function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumber, onFinish, byTime, useBodyweight, loggedSets, variantKey = null, variantHasHistory = false }) {
   // Reopening the app mid-workout remounts this component, wiping the
   // weight/reps the user had typed in for the next set — but any set
@@ -4231,8 +4232,9 @@ function WeightRepsInput({ exercise, style, bodyweight, last, onLog, nextSetNumb
   // with; the later sets go to the working weight. Machines, cables, bodyweight and holds just start at the working weight.
   const freeWeight = !useBodyweight && !byTime && (isBarbell || pickedDb || /dumbbell|kettlebell/i.test(exercise.name || '') || exercise.equipment === 'dumbbell');
   const workingW = suggestion?.weight ?? last?.weight ?? null;
+  // Off (2026-11-22, Greg: the box should open on the suggested weight): flip AUTO_WARMUP to bring the half-weight first set back.
   const warmW = (() => {
-    if (!freeWeight || !(workingW > 0)) return null;
+    if (!AUTO_WARMUP || !freeWeight || !(workingW > 0)) return null;
     if (isBarbell) return workingW <= barLb + 10 ? null : Math.max(barLb, roundToFive(workingW * 0.5));
     return workingW < 20 ? null : Math.max(5, roundToFive(workingW * 0.5));
   })();
