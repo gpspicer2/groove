@@ -2887,13 +2887,6 @@ function ActiveWorkout({
             </span>
           </button>
         )}
-        {(groups.length > 2 || canShuffle) && (
-          <div className="flex justify-between -mb-1">
-            {canShuffle ? <button onClick={() => { setSuggestNote(''); setSuggestOpen(true); }} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
-            {groups.length > 2 && <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>}
-          </div>
-        )}
-        {suggestNote && <div style={{ color: PAPER_DIM, background: INK_2 }} className="rounded-md px-3 py-2 text-sm text-center">{suggestNote}</div>}
         {groups.map((group, gi) => {
           const showRest = restGroupIndex === gi;
           // Keyed by name (already the app's implicit unique identifier for
@@ -3056,7 +3049,17 @@ function ActiveWorkout({
           const nextGroup = groups[gi + 1];
           const insertAfter = nextGroup ? nextGroup[0].index : exercises.length;
           return (
-            <div key={groupKey} className={warmupEndGi >= 0 && gi <= warmupEndGi && !warmupShown ? 'hidden' : 'space-y-3'}>
+            <Fragment key={groupKey}>
+            {gi === (warmupEndGi >= 0 ? warmupEndGi + 1 : 0) && (<>
+{(groups.length > 2 || canShuffle) && (
+          <div className="flex justify-between -mb-1">
+            {canShuffle ? <button onClick={() => { setSuggestNote(''); setSuggestOpen(true); }} style={{ color: SKY }} className="text-sm underline underline-offset-2 py-1">New Suggestion</button> : <span />}
+            {groups.length > 2 && <button onClick={() => setReorder((v) => !v)} style={{ color: reorder ? SKY : TEXT_SOFT }} className="text-sm underline underline-offset-2 py-1">{reorder ? 'Done Reordering' : 'Reorder'}</button>}
+          </div>
+        )}
+        {suggestNote && <div style={{ color: PAPER_DIM, background: INK_2 }} className="rounded-md px-3 py-2 text-sm text-center">{suggestNote}</div>}
+            </>)}
+            <div className={warmupEndGi >= 0 && gi <= warmupEndGi && !warmupShown ? 'hidden' : 'space-y-3'}>
               <div
                 data-group-key={groupKey}
                 ref={(el) => (groupRefs.current[gi] = el)}
@@ -3116,6 +3119,7 @@ function ActiveWorkout({
                 </div>
               )}
             </div>
+            </Fragment>
           );
         })}
       </div>
