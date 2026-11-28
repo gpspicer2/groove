@@ -18,7 +18,7 @@ import { logMeasurement } from '../../lib/measurements';
 import Trends from '../birdseye/Trends';
 import { getAutoStartRestTimer } from '../../restPreference';
 import { INK, INK_2, INK_3, PAPER, PAPER_DIM, TEXT_SOFT, SKY, LIME, BRICK, AMBER, VIOLET, MOSS, ON_AMBER, PLUM } from '../../theme';
-import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, findKnownMove, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, areaLabel, liftFamily, DYNAMIC_WARMUP_LIBRARY, DRILL_INFO } from './exerciseLibrary';
+import { workoutTitle, shortWorkoutTitle, plural, modeLabel, MODE_EMOJI, STYLE_EMOJI, MUSCLE_GROUPS, EXERCISE_LIBRARY, FLEXIBILITY_LIBRARY, FLEXIBILITY_ACTIVITIES, MOVEMENT_MODES, AEROBIC_ACTIVITIES_QUICK, LIFESTYLE_ACTIVITIES, TRAINING_STYLES, STYLE_CONFIG, LOCATION_EQUIPMENT, WORKOUT_LOCATIONS, locationEmojis, filterByLocation, generateWorkout, holdReps, repsFor, isCompound, LEGS_BUNDLE, ARMS_BUNDLE, generateFlexibilityPlan, generateFoamRollPlan, generateFoamRollsForGroups, findKnownMove, similarMoves, variationFor, beginnerAvoid, STARTER_SESSION, generateCooldown, BALANCE_ACTIVITIES, generateDynamicWarmup, suggestNextWeight, BODY_AREAS, avoidForAreas, areaLabel, liftFamily, DYNAMIC_WARMUP_LIBRARY, DRILL_INFO } from './exerciseLibrary';
 import CheckInSheet from './CheckInSheet';
 import ReadinessSheet from './ReadinessSheet';
 import { useInjuries, activeInjuries } from '../injury/injuries';
@@ -3752,6 +3752,7 @@ function SwapPicker({ exercise, usedNames, location, onPick, onClose }) {
             {choosing ? 'Use' : 'Swap'}
           </button>
         </div>
+        {!isAerobic && !isFlex && <SimilarSuggestions query={custom} group={group} location={location} exclude={[exercise?.name, ...(usedNames || [])]} onPick={(e) => onPick({ name: e.name, muscleGroup: e.muscleGroup, sets: e.sets, reps: e.reps, kind: e.kind })} />}
       </div>
     </div>
     </Portal>
@@ -3788,6 +3789,25 @@ function DrillSwapSheet({ name, current, onPick, onClose }) {
   );
 }
 
+// Closest library moves to what is being typed (see similarMoves), so a typed "squats" offers Back Squat, Front Squat, Goblet Squat...
+function SimilarSuggestions({ query, group, location, kinds, exclude = [], onPick, flip = false }) {
+  const found = similarMoves(query, { group, location, kinds, exclude, limit: 5 });
+  const exact = found.some((e) => e.name.toLowerCase() === String(query || '').trim().toLowerCase());
+  if (found.length === 0 || exact) return null;
+  return (
+    <div className={flip ? 'mb-2' : 'mt-2'}>
+      <div style={{ color: TEXT_SOFT }} className="text-xs text-center mb-1">Did You Mean</div>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {found.map((e) => (
+          <button key={e.name} onClick={() => onPick(e)} style={{ background: INK_3, color: PAPER }} className="rounded-full px-3 py-1.5 text-sm">
+            {e.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MovementPicker({ label, group, setGroup, name, setName, location }) {
   const libraryOptions = filterByLocation(EXERCISE_LIBRARY[group] || [], location);
   return (
@@ -3819,6 +3839,7 @@ function MovementPicker({ label, group, setGroup, name, setName, location }) {
           </button>
         ))}
       </div>
+      <SimilarSuggestions flip query={name} group={group} location={location} onPick={(e) => { setGroup(e.muscleGroup); setName(e.name); }} />
       <input
         type="text"
         value={name}
@@ -4109,6 +4130,7 @@ function AddStretchForm({ muscleGroups, usedNames, onAddStretch, onAddActivity, 
             Add
           </button>
         </div>
+        <SimilarSuggestions query={custom} kinds={['stretch']} exclude={[...usedNames, ...added]} onPick={(e) => { onAddStretch(e.name, e.muscleGroup, e); setAdded((a) => [...a, e.name]); setCustom(''); }} />
       </div>
       <button onClick={onDone} style={{ background: SKY, color: INK }} className="w-full rounded-md py-2.5 text-sm font-medium mt-3">
         {added.length > 0 ? `Done (${added.length} added)` : 'Cancel'}

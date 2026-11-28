@@ -898,6 +898,41 @@ export function findKnownMove(typed, preferGroup = null) {
   return null;
 }
 
+
+// Looser matching while someone types an exercise name: "squats", "db press", "rdl" or "pullup" offer the closest library moves
+// so they never start from scratch. Scores shared words (plurals, short forms and starts of words count), then the movement family.
+const NAME_ALIASES = { db: 'dumbbell', dbs: 'dumbbell', bb: 'barbell', kb: 'kettlebell', ohp: 'overhead press', rdl: 'romanian deadlift', sldl: 'single leg romanian deadlift', pullup: 'pull ups', pullups: 'pull ups', chinup: 'chin up', chinups: 'chin up', pushup: 'push ups', pushups: 'push ups', lat: 'lat', abs: 'crunch', quads: 'quadriceps', hams: 'hamstring', tri: 'tricep', bi: 'bicep', delt: 'shoulder', delts: 'shoulder' };
+const nameTokens = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean)
+  .flatMap((w) => (NAME_ALIASES[w] ? NAME_ALIASES[w].split(' ') : [w]))
+  .map((w) => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w));
+export function similarMoves(typed, { group = null, location = null, kinds = ['lift'], limit = 5, exclude = [] } = {}) {
+  const q = nameTokens(typed);
+  if (q.join('').length < 2) return [];
+  const pool = [];
+  if (kinds.includes('lift')) {
+    const groups = Object.keys(EXERCISE_LIBRARY);
+    groups.forEach((g) => filterByLocation(EXERCISE_LIBRARY[g] || [], location).forEach((e) => pool.push({ ...e, muscleGroup: g, kind: 'lift' })));
+  }
+  if (kinds.includes('stretch')) Object.entries(FLEXIBILITY_LIBRARY).forEach(([g, list]) => list.forEach((e) => pool.push({ ...e, muscleGroup: g, kind: 'stretch' })));
+  const anchors = new Set(Object.values(ANCHOR_EXERCISES).map((f) => f('Male')));
+  const qFam = liftFamily(String(typed));
+  const seen = new Set();
+  const scored = [];
+  pool.forEach((e) => {
+    if (exclude.includes(e.name) || seen.has(e.name)) return;
+    seen.add(e.name);
+    const t = nameTokens(e.name);
+    let hits = 0;
+    q.forEach((w) => { if (t.some((x) => x === w || ((w.length >= 3 || (q.length === 1 && w.length >= 2)) && x.startsWith(w)) || (x.length >= 4 && w.startsWith(x)))) hits += 1; });
+    const fam = qFam && liftFamily(e.name) === qFam ? 1 : 0;
+    if (hits === 0 && !fam) return;
+    // all typed words found beats a partial match; a same-family lift is a softer match; a shorter name is the plainer move
+    const score = (hits / q.length) * 10 + fam * 3 + (hits === q.length ? 3 : 0) - t.length * 0.2 + (group && e.muscleGroup === group ? 0.5 : 0) + (anchors.has(e.name) ? 2.5 : 0);
+    scored.push({ e, score });
+  });
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit).map(({ e }) => e);
+}
+
 // How-to for each roll, shown from the (i) on a roll's card. Short on purpose: set up, move, what to watch.
 export const ROLL_GUIDES = {
   'Foam Roll: Upper Back': { setup: 'Lie on your back with the roller across your upper back, just under your shoulder blades. Cross your arms over your chest or hold your head, and lift your hips.', move: 'Use your feet to roll slowly up toward your shoulders, a few inches at a time.', watch: 'Stay above your low back and keep your chin tucked. Skip your neck.' },
